@@ -34,7 +34,7 @@ class GeneralCfg(BaseModel):
     top_n_results: int = 20
 
 class SearchCfg(BaseModel):
-    mode: Literal["grid","random","ea_bayesian_hybrid"] = "ea_bayesian_hybrid"
+    mode: Literal["grid","random","ea_bayesian_hybrid","ml_surrogate"] = "ea_bayesian_hybrid"
 
 class RangesCfg(BaseModel):
     nol_range: Range

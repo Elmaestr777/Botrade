@@ -218,6 +218,51 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
         )
         results = seeds + bayes_results
         # proceed to consolidation below
+    elif mode == "ml_surrogate":
+        # ML surrogate: train on historical evaluations (Supabase if configured), propose candidates, evaluate
+        from .data_sources import compute_scores_if_missing, fetch_history_from_supabase
+        from .optimizer_ml import propose_with_surrogate
+        # Historical data
+        weights = {
+            "pf": float(config.metrics.weights.pf),
+            "sharpe": float(config.metrics.weights.sharpe),
+            "calmar": float(config.metrics.weights.calmar),
+            "dd": float(config.metrics.weights.dd),
+            "rr": float(config.metrics.weights.rr),
+            "recov": float(config.metrics.weights.recov),
+            "cons": float(config.metrics.weights.cons),
+            "r2": float(config.metrics.weights.r2),
+            "slope": float(config.metrics.weights.slope),
+        }
+        hist_raw = fetch_history_from_supabase(sym, tf, None, max_rows=2000)
+        history = compute_scores_if_missing(hist_raw, weights)
+        # Bounds by range triplets (min,max,step)
+        bounds = {
+            "nol": (float(config.ranges.nol_range.min), float(config.ranges.nol_range.max), float(config.ranges.nol_range.step)),
+            "prd": (float(config.ranges.prd_range.min), float(config.ranges.prd_range.max), float(config.ranges.prd_range.step)),
+            "sl_init_pct": (float(config.ranges.sl_pct_range.min), float(config.ranges.sl_pct_range.max), float(config.ranges.sl_pct_range.step)),
+            "be_after_bars": (float(config.ranges.be_bars_range.min), float(config.ranges.be_bars_range.max), float(config.ranges.be_bars_range.step)),
+            "be_lock_pct": (float(config.ranges.be_lock_pct_range.min), float(config.ranges.be_lock_pct_range.max), float(config.ranges.be_lock_pct_range.step)),
+            "ema_len": (float(config.ranges.ema_len_range.min), float(config.ranges.ema_len_range.max), float(config.ranges.ema_len_range.step)),
+        }
+        # Suggest
+        n_suggest = int(min(config.general.max_combinations, 200))
+        suggestions = propose_with_surrogate(
+            history,
+            bounds,
+            modes,
+            tp_vectors,
+            alloc_patterns,
+            n_suggest=n_suggest,
+            rng_seed=None,
+        )
+        # Evaluate suggestions
+        from joblib import Parallel, delayed
+        n_jobs = int(config.resource.n_jobs)
+        mets = Parallel(n_jobs=max(1, n_jobs), prefer="threads")(delayed(eval_candidate)(c) for c in suggestions)
+        results = [
+            {"params": c, "metrics": m, "provenance": "ML"} for c, m in zip(suggestions, mets)
+        ]
     else:
         candidates: list[dict] = []
         # Random sampling to respect max_combinations without materializing the full grid
