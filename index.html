@@ -38,7 +38,6 @@
         </label>
         <button id="btRunVisible" class="btn">Backtest</button>
         <button id="labOpen" class="btn" title="Recherche/Apprentissage par TF">Lab</button>
-        <button id="labDockBtn" class="btn" title="Afficher le dock Lab (3 panneaux)">Dock</button>
         <button id="liveOpen" class="btn" title="Paper/Live trading">Live</button>
         <span id="status" class="status"></span>
       </div>
@@ -48,44 +47,6 @@
       <div id="lbc-overlay" class="lbc-overlay">
           <div id="lbc-prob" class="lbc-card hidden"></div>
           <div id="lbc-table" class="lbc-card hidden"></div>
-        </div>
-        <!-- Lab Dock 3 panneaux -->
-        <div id="labDock" class="lab-dock hidden">
-          <aside id="labLeft" class="lbc-card normal" style="left:12px; top:12px; width:280px;">
-            <div class="card-header"><strong>Lab</strong><div style="display:flex; gap:6px;">
-              <button id="labStartBtn" class="btn primary">▶️</button>
-              <button id="labPauseBtn" class="btn">⏸️</button>
-              <button id="labStopBtn" class="btn">⏹️</button>
-            </div></div>
-            <div class="card-body grid2">
-              <label>Top N <input id="labTopN" type="number" min="1" max="100" value="20" style="width:5rem" /></label>
-              <label>Budget iters <input id="labBudget" type="number" min="10" max="2000" value="100" style="width:6rem" /></label>
-              <label>Objectif
-                <select id="labObjective">
-                  <option value="score" selected>Score</option>
-                  <option value="pf">PF</option>
-                  <option value="sharpe">Sharpe</option>
-                  <option value="dd">Min DD</option>
-                </select>
-              </label>
-              <label>Prior TF <input id="labUseTFPriorDock" type="checkbox" checked /></label>
-            </div>
-          </aside>
-          <aside id="labRight" class="lbc-card normal" style="right:12px; top:12px; width:320px;">
-            <div class="card-header"><strong>Logs</strong><span style="color:var(--muted); font-size:12px;" id="labRunStatus">Idle</span></div>
-            <div class="card-body">
-              <pre id="labDockLog" style="margin:0; max-height:46vh; overflow:auto; white-space:pre-wrap;">—</pre>
-            </div>
-          </aside>
-          <div id="labKpis" class="lbc-card normal" style="left:50%; transform:translateX(-50%); top:12px; min-width:360px;">
-            <div class="card-header"><strong>KPIs</strong></div>
-            <div class="card-body" style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px;">
-              <div><div style="color:var(--muted); font-size:11px;">Score</div><div id="kpiScore" style="font-weight:600;">—</div></div>
-              <div><div style="color:var(--muted); font-size:11px;">PF</div><div id="kpiPF" style="font-weight:600;">—</div></div>
-              <div><div style="color:var(--muted); font-size:11px;">Win%</div><div id="kpiWin" style="font-weight:600;">—</div></div>
-              <div><div style="color:var(--muted); font-size:11px;">Max DD</div><div id="kpiDD" style="font-weight:600;">—</div></div>
-            </div>
-          </div>
         </div>
         <button id="gotoEndBtn" class="btn">⏭ Aller à la fin</button>
       </div>
@@ -932,7 +893,11 @@
               <label><input id="labFocusCons" type="checkbox" /> Consistency</label>
               <label title="Temps limite de calcul (secondes); 0 = désactivé">Temps (s) <input id="labTimeLimitSec" type="number" min="0" step="1" value="0" style="width:6rem" /></label>
               <label title="Score minimum (0-100); 0 = désactivé">Score min <input id="labMinScore" type="number" min="0" max="100" step="0.1" value="0" style="width:6rem" /></label>
-              <button id="labRun" class="btn primary" style="margin-left:auto;">Entraîner</button>
+              <div style="display:flex; gap:6px; margin-left:auto;">
+                <button id="labRun" class="btn primary">Entraîner</button>
+                <button id="labPause" class="btn" title="Mettre en pause/Reprendre">Pause</button>
+                <button id="labStop" class="btn" title="Arrêter">Stop</button>
+              </div>
             </div>
             <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
               <strong>Cache</strong>
@@ -942,7 +907,23 @@
             </div>
           </div>
           <div id="labSummary" style="margin-bottom:10px; color:var(--muted);"></div>
-          <div style="overflow:auto; max-height:60vh;">
+          <!-- KPIs + Logs inline (no extra tab/dock) -->
+          <div class="lab-panels">
+            <div class="kpi-cards">
+              <div class="kpi-item"><div class="kpi-label">Score</div><div id="kpiScore" class="kpi-value">—</div></div>
+              <div class="kpi-item"><div class="kpi-label">PF</div><div id="kpiPF" class="kpi-value">—</div></div>
+              <div class="kpi-item"><div class="kpi-label">Win%</div><div id="kpiWin" class="kpi-value">—</div></div>
+              <div class="kpi-item"><div class="kpi-label">Max DD</div><div id="kpiDD" class="kpi-value">—</div></div>
+            </div>
+            <div class="log-panel">
+              <div class="card-header" style="margin-bottom:6px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                <strong>Logs</strong>
+                <span id="labRunStatus" style="color:var(--muted); font-size:12px;">Idle</span>
+              </div>
+              <pre id="labLog" style="margin:0; max-height:30vh; overflow:auto; white-space:pre-wrap; background:var(--header-bg); padding:6px; border-radius:6px;">—</pre>
+            </div>
+          </div>
+          <div style="overflow:auto; max-height:60vh; margin-top:10px;">
             <table class="lbc-table" style="width:100%">
               <thead>
                 <tr>

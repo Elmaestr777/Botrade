@@ -168,10 +168,12 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
 .lbc-card.normal { font-size: 13px; }
 .lbc-card.large { font-size: 15px; }
 
-/* Lab Dock overlay */
-#labDock { position: fixed; inset: 0; pointer-events: none; z-index: 3500; }
-#labDock .lbc-card { pointer-events: auto; }
-#labDock.hidden { display: none; }
+/* Lab panels inside Lab modal */
+.lab-panels { display:grid; grid-template-columns: 1fr 320px; gap: 10px; align-items:start; }
+.kpi-cards { display:grid; grid-template-columns: repeat(4, minmax(80px, 1fr)); gap:8px; }
+.kpi-item { border:1px solid var(--header-border); border-radius:8px; padding:8px; background: var(--bg); }
+.kpi-label { color: var(--muted); font-size: 11px; }
+.kpi-value { font-weight: 600; font-size: 16px; }
 
 .lbc-table { border-collapse: collapse; width: 100%; }
 .lbc-table th, .lbc-table td { border: 1px solid var(--header-border); padding: 4px 6px; text-align: center; }

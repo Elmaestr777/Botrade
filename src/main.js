@@ -283,34 +283,23 @@ const labOpenBtn = document.getElementById('labOpen'); const labModalEl = docume
 const btOpenBtn = document.getElementById('btRunVisible'); const btModalEl = document.getElementById('btModal'); const btCloseBtn=document.getElementById('btCloseModal');
 const heavenCfgBtn = document.getElementById('heavenCfg'); const lbcModalEl = document.getElementById('lbcModal'); const lbcCloseBtn=document.getElementById('lbcClose');
 
-// Lab Dock elements
-const labDockBtn = document.getElementById('labDockBtn');
-const labDockEl = document.getElementById('labDock');
-const labStartBtn = document.getElementById('labStartBtn');
-const labPauseBtn = document.getElementById('labPauseBtn');
-const labStopBtn = document.getElementById('labStopBtn');
-const labLogEl = document.getElementById('labDockLog');
+// Lab inline panels (in Lab modal)
 const labRunStatusEl = document.getElementById('labRunStatus');
 const kpiScoreEl = document.getElementById('kpiScore');
 const kpiPFEl = document.getElementById('kpiPF');
 const kpiWinEl = document.getElementById('kpiWin');
 const kpiDDEl = document.getElementById('kpiDD');
-const labTopNEl = document.getElementById('labTopN');
-const labBudgetEl = document.getElementById('labBudget');
+const labLogEl = document.getElementById('labLog');
 
-function setLabDockVisible(v){ try{ if(!labDockEl) return; if(v){ labDockEl.classList.remove('hidden'); } else { labDockEl.classList.add('hidden'); } }catch(_){ } }
 function addLabLog(msg){ try{ if(!labLogEl) return; const t=new Date(); const hh=String(t.getHours()).padStart(2,'0'); const mm=String(t.getMinutes()).padStart(2,'0'); const ss=String(t.getSeconds()).padStart(2,'0'); const line=`[${hh}:${mm}:${ss}] ${msg}`; if(labLogEl.textContent==='—') labLogEl.textContent=line; else labLogEl.textContent += ("\n"+line); labLogEl.scrollTop = labLogEl.scrollHeight; }catch(_){ } }
 function updateLabKpis(best){ try{ if(!best||!best.length){ if(kpiScoreEl) kpiScoreEl.textContent='—'; if(kpiPFEl) kpiPFEl.textContent='—'; if(kpiWinEl) kpiWinEl.textContent='—'; if(kpiDDEl) kpiDDEl.textContent='—'; return; } const top=best[0]; const st=top.res||{}; if(kpiScoreEl) kpiScoreEl.textContent = Number(top.score||0).toFixed(1); if(kpiPFEl) kpiPFEl.textContent = (st.profitFactor===Infinity? '∞' : Number(st.profitFactor||0).toFixed(2)); if(kpiWinEl) kpiWinEl.textContent = Number(st.winrate||0).toFixed(1)+'%'; if(kpiDDEl) kpiDDEl.textContent = Number(st.maxDDAbs||0).toFixed(0); }catch(_){ } }
+function updateLabKpiFrom(score, res){ try{ if(kpiScoreEl) kpiScoreEl.textContent = Number(score||0).toFixed(1); if(kpiPFEl) kpiPFEl.textContent = (res.profitFactor===Infinity? '∞' : Number(res.profitFactor||0).toFixed(2)); if(kpiWinEl) kpiWinEl.textContent = Number(res.winrate||0).toFixed(1)+'%'; if(kpiDDEl) kpiDDEl.textContent = Number(res.maxDDAbs||0).toFixed(0); }catch(_){ } }
 
 function openModalEl(el){ if(!el) return; el.classList.remove('hidden'); el.setAttribute('aria-hidden','false'); try{ el.style.zIndex = String(bumpModalZ()); }catch(_){ } }
 function closeModalEl(el){ if(!el) return; el.classList.add('hidden'); el.setAttribute('aria-hidden','true'); }
 if(liveOpenBtn&&liveModalEl) liveOpenBtn.addEventListener('click', ()=>{ try{ populateLiveWalletsUI(); }catch(_){ } openModalEl(liveModalEl); }); if(liveCloseBtn&&liveModalEl) liveCloseBtn.addEventListener('click', ()=> closeModalEl(liveModalEl)); if(liveModalEl) liveModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(liveModalEl); });
 if(labOpenBtn&&labModalEl) labOpenBtn.addEventListener('click', ()=>{ try{ renderLabFromStorage(); }catch(_){ } openModalEl(labModalEl); try{ ensureLabTrainButton(); }catch(_){ } }); if(labCloseBtn&&labModalEl) labCloseBtn.addEventListener('click', ()=> closeModalEl(labModalEl)); if(labModalEl) labModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(labModalEl); });
 
-if(labDockBtn){ labDockBtn.addEventListener('click', ()=>{ try{ const hidden=labDockEl && labDockEl.classList.contains('hidden'); setLabDockVisible(!!hidden); }catch(_){ } }); }
-if(labStartBtn){ labStartBtn.addEventListener('click', ()=>{ try{ setLabDockVisible(true); startLabTraining(); }catch(_){ } }); }
-if(labPauseBtn){ labPauseBtn.addEventListener('click', ()=>{ try{ btPaused=!btPaused; addLabLog(btPaused?'Paused':'Resumed'); if(labRunStatusEl) labRunStatusEl.textContent = btPaused? 'Pause' : 'En cours'; }catch(_){ } }); }
-if(labStopBtn){ labStopBtn.addEventListener('click', ()=>{ try{ btAbort=true; addLabLog('Arrêt demandé'); if(labRunStatusEl) labRunStatusEl.textContent='Arrêt'; }catch(_){ } }); }
 // Supabase config/login button in Lab
 try{ const labSupBtn=document.getElementById('labSupabase'); if(labSupBtn){ labSupBtn.addEventListener('click', ()=>{ try{ if(window.SUPA && typeof SUPA.openConfigAndLogin==='function'){ SUPA.openConfigAndLogin(); } }catch(_){ } }); } }catch(_){ }
 if(btOpenBtn&&btModalEl) btOpenBtn.addEventListener('click', ()=> openModalEl(btModalEl)); if(btCloseBtn&&btModalEl) btCloseBtn.addEventListener('click', ()=> closeModalEl(btModalEl)); if(btModalEl) btModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(btModalEl); });
@@ -770,7 +759,7 @@ const weights=getWeights(profSel);
   function neighbor(arr, v){ const i=arr.indexOf(v); const out=[]; if(i>0) out.push(arr[i-1]); out.push(v); if(i>=0 && i<arr.length-1) out.push(arr[i+1]); return pick(out.length?out:arr); }
   function mutate(p, rate){ const q={...p}; if(Math.random()<rate) q.nol = neighbor(rNol, q.nol); if(Math.random()<rate) q.prd = neighbor(rPrd, q.prd); if(Math.random()<rate) q.slInitPct = neighbor(rSL, q.slInitPct); if(Math.random()<rate) q.beAfterBars = neighbor(rBEb, q.beAfterBars); if(Math.random()<rate) q.beLockPct = neighbor(rBEL, q.beLockPct); if(Math.random()<rate) q.emaLen = neighbor(rEMALen, q.emaLen); return q; }
   function crossover(a,b){ return { nol: Math.random()<0.5?a.nol:b.nol, prd: Math.random()<0.5?a.prd:b.prd, slInitPct: Math.random()<0.5?a.slInitPct:b.slInitPct, beAfterBars: Math.random()<0.5?a.beAfterBars:b.beAfterBars, beLockPct: Math.random()<0.5?a.beLockPct:b.beLockPct, emaLen: Math.random()<0.5?a.emaLen:b.emaLen, entryMode: a.entryMode, useFibRet: a.useFibRet, confirmMode: a.confirmMode, ent382:a.ent382, ent500:a.ent500, ent618:a.ent618, ent786:a.ent786, tpEnable:a.tpEnable, tp: Array.isArray(a.tp)? a.tp.slice(0,10):[] }; }
-  async function evalParamsList(list){ const out=[]; for(const item of list){ if(btAbort) break; const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, item.p); const score=scoreResult(res, weights); out.push({ p:item.p, res, score, owner:item.owner||null }); }
+async function evalParamsList(list){ const out=[]; for(const item of list){ if(btAbort) break; while(btPaused && !btAbort){ if(labRunStatusEl) labRunStatusEl.textContent='Pause'; await new Promise(r=> setTimeout(r, 200)); } if(btAbort) break; const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, item.p); const score=scoreResult(res, weights); out.push({ p:item.p, res, score, owner:item.owner||null }); if(score>bestGlobal){ bestGlobal=score; updateLabKpiFrom(score, res); } }
     return out; }
   function updateProgress(text, pct){ if(btProgText) btProgText.textContent=text; if(btProgBar) btProgBar.style.width = Math.max(0,Math.min(100,Math.round(pct)))+'%'; }
 
@@ -788,7 +777,8 @@ let cur = await evalParamsList(init);
     bestGlobal = Math.max(bestGlobal, (cur[0]?.score ?? -Infinity));
     if(timeUp() || goalReached()) return cur;
     updateProgress(`EA g 1/${gens}`, 100*(1/(gens+1)));
-    for(let g=2; g<=gens+1 && !btAbort; g++){
+for(let g=2; g<=gens+1 && !btAbort; g++){
+      while(btPaused && !btAbort){ if(labRunStatusEl) labRunStatusEl.textContent='Pause'; await new Promise(r=> setTimeout(r, 200)); }
       if(timeUp() || goalReached()) break;
       const elites = cur.slice(0, Math.max(2, Math.floor(pop*0.3)));
       // children
@@ -816,7 +806,8 @@ const evald = await evalParamsList(children);
 let cur = (await evalParamsList(start)).sort((a,b)=> b.score-a.score);
     bestGlobal = Math.max(bestGlobal, (cur[0]?.score ?? -Infinity));
     updateProgress(`Bayes 0/${iters}`, 0);
-    for(let it=1; it<=iters && !btAbort; it++){
+for(let it=1; it<=iters && !btAbort; it++){
+      while(btPaused && !btAbort){ if(labRunStatusEl) labRunStatusEl.textContent='Pause'; await new Promise(r=> setTimeout(r, 200)); }
       if(timeUp() || goalReached()) break;
       const eliteN = Math.max(1, Math.floor(cur.length * elitePct/100));
       const elite = cur.slice(0, eliteN);
@@ -840,7 +831,8 @@ const evald = await evalParamsList(batch);
   let seeds=[];
   if(goal==='improve' || usePrior){ const pal=readPalmares(sym, tfSel).slice(0,25); for(const it of pal){ seeds.push({ p:{ ...(it.params||{}) }, owner:it }); } }
 
-btAbort=false; updateProgress('Entraînement...', 0);
+btAbort=false; btPaused=false; updateProgress('Entraînement...', 0);
+  if(labRunStatusEl) labRunStatusEl.textContent='En cours';
   let eaOut=[], bayOut=[];
   if(strategy==='ea' || strategy==='hybrid'){ eaOut = await runEA(seeds); }
   if(strategy==='bayes'){ bayOut = await runBayes(seeds); }
@@ -862,6 +854,14 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
     pal.sort((a,b)=> (b.score||0)-(a.score||0)); pal=pal.slice(0,25); writePalmares(sym, tfSel, pal); try{ renderLabFromStorage(); }catch(_){ } setStatus('Amélioration terminée'); closeBtProgress();
   }
 }catch(_){ setStatus('Erreur entraînement'); } }); }
+
+// Lab Pause/Stop buttons
+try{
+  const labPauseBtn2=document.getElementById('labPause');
+  const labStopBtn2=document.getElementById('labStop');
+  if(labPauseBtn2){ labPauseBtn2.addEventListener('click', ()=>{ btPaused=!btPaused; addLabLog(btPaused?'Pause':'Reprise'); if(labRunStatusEl) labRunStatusEl.textContent = btPaused? 'Pause' : 'En cours'; }); }
+  if(labStopBtn2){ labStopBtn2.addEventListener('click', ()=>{ btAbort=true; addLabLog('Arrêt demandé'); if(labRunStatusEl) labRunStatusEl.textContent='Arrêt'; }); }
+}catch(_){ }
 
 // Presets (Heaven)
 const lbcPresetName=document.getElementById('lbcPresetName'); const lbcPresetSave=document.getElementById('lbcPresetSave'); const lbcPresetSelect=document.getElementById('lbcPresetSelect'); const lbcPresetLoad=document.getElementById('lbcPresetLoad'); const lbcPresetDelete=document.getElementById('lbcPresetDelete'); const lbcResetBtn=document.getElementById('lbcReset');
