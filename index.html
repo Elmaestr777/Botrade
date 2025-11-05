@@ -89,6 +89,42 @@
               <label>Lock % move <input id="optBELockPct" type="number" min="0" step="0.1" value="5.0" style="width:5.5rem" /></label>
             </fieldset>
             <fieldset>
+              <legend>SL Ladder</legend>
+              <label><input type="checkbox" id="optSLEnable" /> Activer</label>
+              <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px;">
+                <div>
+                  <label>SL1 type
+                    <select id="optSL1Type">
+                      <option value="Percent" selected>Percent</option>
+                      <option value="Fib">Fibonacci</option>
+                      <option value="EMA">EMA</option>
+                    </select>
+                  </label>
+                  <label>SL1 value
+                    <input id="optSL1R" type="number" step="0.001" value="2.000" style="width:6rem" />
+                    <select id="optSL1Fib" style="width:8rem; display:none;">
+                      <option value="0.236">0.236</option>
+                      <option value="0.382" selected>0.382</option>
+                      <option value="0.5">0.500</option>
+                      <option value="0.618">0.618</option>
+                      <option value="0.786">0.786</option>
+                      <option value="1">1.000</option>
+                      <option value="1.272">1.272</option>
+                      <option value="1.414">1.414</option>
+                      <option value="1.618">1.618</option>
+                      <option value="2">2.000</option>
+                    </select>
+                    <select id="optSL1Ema" style="width:8rem; display:none;"></select>
+                  </label>
+                </div>
+                <!-- rows 2..10 -->
+                
+                <!-- We'll keep minimal rows for now (1 shown) to avoid UI bloat; additional rows can be toggled later -->
+                
+              </div>
+              <p style="color:var(--muted); font-size:12px; margin:4px 0 0;">Le premier SL valide (sous l'entrée pour un long, au-dessus pour un short) est utilisé; sinon, on revient à "SL initial %".</p>
+            </fieldset>
+            <fieldset>
               <legend>ZigZag & Fibonacci</legend>
               <label>Période (prd) <input id="optPrd" type="number" min="2" max="50" value="15" style="width:4.5rem" /></label>
               <label><input type="checkbox" id="optUseZZDraw" checked /> Dessiner ZigZag</label>
@@ -924,6 +960,28 @@
               <label><input type="checkbox" data-r="2.236" />2.236</label>
               <label><input type="checkbox" data-r="2.618" />2.618</label>
               <label><input type="checkbox" data-r="3" />3.000</label>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:6px;">
+              <strong>SL Opt</strong>
+              <label><input id="labSLOptEn" type="checkbox" /> Optimiser SL</label>
+              <label>Nb SL <input id="labSLCount" type="number" min="1" max="10" value="1" style="width:5rem" /></label>
+              <label><input id="labSLAllowFib" type="checkbox" checked /> Fib</label>
+              <label><input id="labSLAllowPct" type="checkbox" checked /> Percent</label>
+              <label><input id="labSLAllowEMA" type="checkbox" /> EMA</label>
+              <label title="Pourcentage SL (si Percent)">Min % <input id="labSLPctMin" type="number" min="0" step="0.1" value="0.5" style="width:5rem" /></label>
+              <label title="Pourcentage SL (si Percent)">Max % <input id="labSLPctMax" type="number" min="0" step="0.1" value="5.0" style="width:5rem" /></label>
+            </div>
+            <div id="labSLFibWrap" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:6px;">
+              <label><input type="checkbox" data-r="0.236" />0.236</label>
+              <label><input type="checkbox" data-r="0.382" checked />0.382</label>
+              <label><input type="checkbox" data-r="0.5" checked />0.500</label>
+              <label><input type="checkbox" data-r="0.618" checked />0.618</label>
+              <label><input type="checkbox" data-r="0.786" />0.786</label>
+              <label><input type="checkbox" data-r="1" />1.000</label>
+              <label><input type="checkbox" data-r="1.272" />1.272</label>
+              <label><input type="checkbox" data-r="1.382" />1.382</label>
+              <label><input type="checkbox" data-r="1.414" />1.414</label>
+              <label><input type="checkbox" data-r="1.618" />1.618</label>
             </div>
             <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
               <strong>Cache</strong>
