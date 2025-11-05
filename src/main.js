@@ -60,7 +60,7 @@ const G={ nol:grid(R.nol.min,R.nol.max,R.nol.step,true), prd:grid(R.prd.min,R.pr
     const K = 3, MC = 2, MIN_TRADES = 30;
     function sliceIdx(len, k, K){ const size=Math.floor(len/K); const s=k*size; const e=(k===K-1)? (len-1) : ((k+1)*size-1); return [s,e]; }
     function jitterBars(src, sigma){ const out=new Array(src.length); for(let i=0;i<src.length;i++){ const m=1+(Math.random()*2-1)*sigma; const b=src[i]; out[i]={ time:b.time, open:b.open*m, high:b.high*m, low:b.low*m, close:b.close*m }; } return out; }
-    function evalWF(p){ const ep=toEngineParams(p); let totalPnl=0, trades=0, pfSum=0, pfCnt=0, wrSum=0, rrSum=0, ddMax=0; let eqEnd=conf.startCap; let mcPf=[]; for(let k=0;k<K;k++){ const [sIdx,eIdx]=sliceIdx(bars.length, k, K); const r=runBacktestSliceFor(bars, sIdx, eIdx, conf, ep); if(r&&r.tradesCount>0){ totalPnl+=r.totalPnl; trades+=r.tradesCount; pfSum+= (isFinite(r.profitFactor)? r.profitFactor: 0); pfCnt++; wrSum+=r.winrate; rrSum+= (isFinite(r.avgRR)? r.avgRR: 0); ddMax=Math.max(ddMax, r.maxDDAbs||0); } for(let j=0;j<MC;j++){ const rmc=runBacktestSliceFor(jitterBars(bars, 0.0015), sIdx, eIdx, conf, ep); if(rmc&&rmc.tradesCount>0&&isFinite(rmc.profitFactor)) mcPf.push(rmc.profitFactor); } }
+async function evalWF(p){ const ep=toEngineParams(p); let totalPnl=0, trades=0, pfSum=0, pfCnt=0, wrSum=0, rrSum=0, ddMax=0; let eqEnd=conf.startCap; let mcPf=[]; for(let k=0;k<K;k++){ try{ if(btProgNote) btProgNote.textContent = `Walk-forward ${k+1}/${K}`; addBtLog && addBtLog(`Walk-forward ${k+1}/${K}`); }catch(_){ } const [sIdx,eIdx]=sliceIdx(bars.length, k, K); const r=runBacktestSliceFor(bars, sIdx, eIdx, conf, ep); if(r&&r.tradesCount>0){ totalPnl+=r.totalPnl; trades+=r.tradesCount; pfSum+= (isFinite(r.profitFactor)? r.profitFactor: 0); pfCnt++; wrSum+=r.winrate; rrSum+= (isFinite(r.avgRR)? r.avgRR: 0); ddMax=Math.max(ddMax, r.maxDDAbs||0); } await new Promise(res=> setTimeout(res, 0)); for(let j=0;j<MC;j++){ try{ if(btProgNote) btProgNote.textContent = `Monte Carlo ${j+1}/${MC}`; }catch(_){ } const rmc=runBacktestSliceFor(jitterBars(bars, 0.0015), sIdx, eIdx, conf, ep); if(rmc&&rmc.tradesCount>0&&isFinite(rmc.profitFactor)) mcPf.push(rmc.profitFactor); await new Promise(res=> setTimeout(res, 0)); } }
       eqEnd = conf.startCap + totalPnl;
       const agg={ equityFinal:eqEnd, totalPnl: totalPnl, tradesCount: trades, winrate: (pfCnt? wrSum/pfCnt:0), avgRR:(pfCnt? rrSum/pfCnt:0), profitFactor: (pfCnt? pfSum/pfCnt: (trades? Infinity:0)), maxDDAbs: ddMax };
       let s = scoreResult(agg, weights);
@@ -72,7 +72,7 @@ const G={ nol:grid(R.nol.min,R.nol.max,R.nol.step,true), prd:grid(R.prd.min,R.pr
     }
 
     // Adaptive loop (epsilon-greedy + elite sampling)
-    openBtProgress('Entraînement...'); btAbort=false; try{ addBtLog('Initialisation...'); }catch(_){ }
+setBtTitle('Entraînement'); openBtProgress('Entraînement...'); btAbort=false; try{ addBtLog('Initialisation...'); }catch(_){ }
     await new Promise(r=> setTimeout(r, 0));
     const total = 100; const batch = 8; const topN = 20; const EPS=0.35;
     const best=[]; const seen=new Set();
@@ -87,7 +87,7 @@ const G={ nol:grid(R.nol.min,R.nol.max,R.nol.step,true), prd:grid(R.prd.min,R.pr
       const uniq=[];
 for(const p of pool){ const key=JSON.stringify(p); if(seen.has(key)) continue; seen.add(key); uniq.push(p); if(uniq.length>=batch) break; } try{ addBtLog(`Batch: ${uniq.length} évaluations (progress ${Math.round(done/total*100)}%)`); }catch(_){ }
       // Evaluate
-      for(const p of uniq){ if(btAbort) break; const ev=evalWF(p); addResult(p,ev); try{ const ep=toEngineParams(p); testedAll.push({ params: ep, metrics: ev.res, score: ev.score }); }catch(_){ } done++; if(btProgBar&&btProgText){ const pct=Math.round(done/total*100); btProgBar.style.width=pct+'%'; btProgText.textContent=`Entraînement ${pct}% (${done}/${total})`; } await new Promise(r=> setTimeout(r,0)); if(done>=total||btAbort) break; }
+for(const p of uniq){ if(btAbort) break; const ev=await evalWF(p); addResult(p,ev); try{ const ep=toEngineParams(p); testedAll.push({ params: ep, metrics: ev.res, score: ev.score }); }catch(_){ } done++; if(btProgBar&&btProgText){ const pct=Math.round(done/total*100); btProgBar.style.width=pct+'%'; btProgText.textContent=`Entraînement ${pct}% (${done}/${total})`; } await new Promise(r=> setTimeout(r,0)); if(done>=total||btAbort) break; }
       if(done<total && !btAbort){ setTimeout(step, 0); } else { try{ closeBtProgress(); closeModalEl(btModalEl); }catch(_){ }
         // Persist to Lab palmarès
         try{ const arr=readPalmares(sym, tf); for(const b of best.slice(0, topN)){ const name=uniqueNameFor(sym, tf, randomName()); arr.unshift({ ts:Date.now(), name, gen:1, params: { nol:b.params.nol, prd:b.params.prd, slInitPct:b.params.slInitPct, beAfterBars:b.params.beAfterBars, beLockPct:b.params.beLockPct, emaLen:b.params.emaLen, entryMode:b.params.entryMode, tpEnable:true, tp: toEngineParams(b.params).tp }, res:b.res, score:b.score }); } writePalmares(sym, tf, arr.slice(0, 1000)); renderLabFromStorage(); try{ addBtLog(`Palmarès construit: ${Math.min(best.length, topN)} entrées`); }catch(_){ } setStatus('Entraînement terminé'); }catch(_){ setStatus('Entraînement terminé'); }
@@ -163,6 +163,7 @@ const statusEl = document.getElementById('status');
 const gotoEndBtn = document.getElementById('gotoEndBtn');
 
 function setStatus(msg){ if(statusEl){ statusEl.textContent = msg||''; } }
+function setBtTitle(text){ try{ const h=btProgressEl && btProgressEl.querySelector('.modal-header h2'); if(h) h.textContent = text||'Simulation'; }catch(_){ } }
 function symbolToDisplay(sym){ if(!sym) return '—'; return sym.endsWith('USDC')? sym.slice(0,-4)+'/USDC' : sym; }
 function updateTitle(sym){ if(titleEl){ titleEl.textContent = symbolToDisplay(sym); } }
 function updateWatermark(){ try{ chart.applyOptions({ watermark: { visible:true, color: isDark()? 'rgba(229,231,235,0.20)' : 'rgba(17,24,39,0.12)', text: symbolToDisplay(currentSymbol), fontSize:34, horzAlign:'left', vertAlign:'top' } }); }catch(_){ } }
