@@ -1111,8 +1111,7 @@ let cur = (await evalParamsList(start)).sort((a,b)=> b.score-a.score);
       updateProgress(`Bayes ${it}/${iters}`, 100*it/iters);
     }
     return cur; }
-    return cur; }
-
+    
   // Build seeds
   let seeds=[];
   if(goal==='improve' || usePrior){ const pal=readPalmares(sym, tfSel).slice(0,25); for(const it of pal){ seeds.push({ p:{ ...(it.params||{}) }, owner:it }); } }
