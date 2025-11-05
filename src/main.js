@@ -1,3 +1,86 @@
+
+// --- Lab: Entrainer (AI surrogate) ---
+function ensureLabTrainButton(){
+  try{
+    if(!labModalEl) return;
+    const content = labModalEl.querySelector('.modal-content') || labModalEl;
+    if(content.querySelector('#labTrainBtn')) return;
+    const btn = document.createElement('button');
+    btn.id = 'labTrainBtn';
+    btn.className = 'btn';
+    btn.textContent = 'Entrainer';
+    btn.style.position = 'absolute';
+    btn.style.top = '8px'; btn.style.right = '56px';
+    btn.style.zIndex = '1';
+    btn.addEventListener('click', ()=>{ try{ startLabTraining(); }catch(_){ setStatus('Erreur entraînement'); } });
+    content.appendChild(btn);
+  }catch(_){ }
+}
+
+async function startLabTraining(){
+  try{
+    // Setup
+    const tf = labTFSelect? labTFSelect.value : (intervalSelect? intervalSelect.value : currentInterval);
+    const sym = currentSymbol;
+    let bars = candles;
+    if(tf !== currentInterval){ try{ bars = await fetchAllKlines(sym, tf, 5000); }catch(_){ bars = candles; } }
+    if(!bars || !bars.length){ setStatus('Aucune donnée'); return; }
+    const [sIdx,eIdx] = [0, bars.length-1];
+    // Backtest config (reuses UI fields if present)
+    const conf={
+      startCap: Math.max(0, parseFloat(btStartCap&&btStartCap.value||'10000')),
+      fee: Math.max(0, parseFloat(btFee&&btFee.value||'0.1')),
+      lev: Math.max(1, parseFloat(btLev&&btLev.value||'1')),
+      maxPct: Math.max(0, Math.min(100, parseFloat(btMaxPct&&btMaxPct.value||'100'))),
+      base: (btMaxBase&&btMaxBase.value)||'initial'
+    };
+    // Ranges (defaults if not specified elsewhere)
+    const R = {
+      nol: {min:2,max:6,step:1}, prd:{min:8,max:34,step:2}, sl:{min:0.5,max:3,step:0.5},
+      beb:{min:3,max:8,step:1}, bel:{min:3,max:10,step:1}, ema:{min:21,max:89,step:4}
+    };
+    // Helper to draw from grid
+    function grid(min,max,step,asInt){ const out=[]; for(let v=min; v<=max+1e-9; v+=step){ out.push(asInt? Math.round(v): +v.toFixed(6)); } return Array.from(new Set(out)); }
+    const G={ nol:grid(R.nol.min,R.nol.max,R.nol.step,true), prd:grid(R.prd.min,R.prd.max,R.prd.step,true), sl:grid(R.sl.min,R.sl.max,R.sl.step,false), beb:grid(R.beb.min,R.beb.max,R.beb.step,true), bel:grid(R.bel.min,R.bel.max,R.bel.step,false), ema:grid(R.ema.min,R.ema.max,R.ema.step,true) };
+    const modes=['Original','Fib','Both'];
+    // TP vectors and alloc patterns (simple subset)
+    const fibs=[0.382,0.5,0.618,1.0,1.382,1.618];
+    function randomTP(){ const k=3; const arr=fibs.slice().sort(()=>Math.random()-0.5).slice(0,k).sort((a,b)=>a-b); return arr; }
+    function randomAlloc(){ const k=3; const units=20; const cuts=[Math.floor(Math.random()*units), Math.floor(Math.random()*units), units].sort((a,b)=>a-b); const parts=[cuts[0], cuts[1]-cuts[0], cuts[2]-cuts[1]]; const step=5; return parts.map(p=> Math.max(0, Math.round((p/units)*100/step)*step)); }
+    function sample(){ return {
+      nol: G.nol[(Math.random()*G.nol.length)|0], prd: G.prd[(Math.random()*G.prd.length)|0], slInitPct: G.sl[(Math.random()*G.sl.length)|0], beAfterBars: G.beb[(Math.random()*G.beb.length)|0], beLockPct: G.bel[(Math.random()*G.bel.length)|0], emaLen: G.ema[(Math.random()*G.ema.length)|0], entryMode: modes[(Math.random()*modes.length)|0], tp: (Math.random()<0.7? randomTP(): []), tpAlloc: (Math.random()<0.9? randomAlloc(): [100])
+    }; }
+    function toEngineParams(p){ return {
+      nol:p.nol, prd:p.prd, slInitPct:p.slInitPct, beAfterBars:p.beAfterBars, beLockPct:p.beLockPct, emaLen:p.emaLen, entryMode:p.entryMode, tpEnable:true, tp: p.tp.map((r,i)=>({ type:'Fib', fib:r, value:r, qty: (p.tpAlloc[i]||0) }))
+    }; }
+    const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
+    // Adaptive loop
+    openBtProgress('Entraînement...'); btAbort=false;
+    const total = 150; const batch = 5; const topN = 20;
+    const best=[]; const seen=new Set();
+    function sc(res){ return scoreResult(res, weights); }
+    function addResult(p,res){ const score=sc(res); best.push({ score, params:p, res }); best.sort((a,b)=> b.score-a.score); if(best.length>Math.max(topN,60)) best.length=Math.max(topN,60); }
+    function mutate(p){ const q=JSON.parse(JSON.stringify(p)); function n(arr,v){ const i=arr.indexOf(v); const j=Math.max(0, Math.min(arr.length-1, i + (Math.random()<0.5?-1:1))); return arr[j]; }
+      if(Math.random()<0.7) q.nol=n(G.nol,q.nol); if(Math.random()<0.7) q.prd=n(G.prd,q.prd); if(Math.random()<0.6) q.slInitPct=n(G.sl,q.slInitPct); if(Math.random()<0.6) q.beAfterBars=n(G.beb,q.beAfterBars); if(Math.random()<0.6) q.beLockPct=n(G.bel,q.beLockPct); if(Math.random()<0.6) q.emaLen=n(G.ema,q.emaLen); if(Math.random()<0.3) q.entryMode=modes[(Math.random()*modes.length)|0]; return q; }
+    let done=0;
+    async function step(){
+      const pool=[];
+      if(best.length<30){ for(let i=0;i<batch*4;i++){ pool.push(sample()); } }
+      else { const seeds=best.slice(0,10).map(b=>b.params); for(const s of seeds){ for(let k=0;k<batch; k++){ pool.push(mutate(s)); } } }
+      // Dedup
+      const uniq=[];
+      for(const p of pool){ const key=JSON.stringify(p); if(seen.has(key)) continue; seen.add(key); uniq.push(p); if(uniq.length>=batch) break; }
+      // Evaluate
+      for(const p of uniq){ if(btAbort) break; const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, toEngineParams(p)); addResult(p,res); done++; if(btProgBar&&btProgText){ const pct=Math.round(done/total*100); btProgBar.style.width=pct+'%'; btProgText.textContent=`Entraînement ${pct}% (${done}/${total})`; } await new Promise(r=> setTimeout(r,0)); if(done>=total||btAbort) break; }
+      if(done<total && !btAbort){ setTimeout(step, 0); } else { try{ closeBtProgress(); closeModalEl(btModalEl); }catch(_){ }
+        // Persist to Lab palmarès
+        try{ const arr=readPalmares(sym, tf); for(const b of best.slice(0, topN)){ const name=uniqueNameFor(sym, tf, randomName()); arr.unshift({ ts:Date.now(), name, gen:1, params: { nol:b.params.nol, prd:b.params.prd, slInitPct:b.params.slInitPct, beAfterBars:b.params.beAfterBars, beLockPct:b.params.beLockPct, emaLen:b.params.emaLen, entryMode:b.params.entryMode, tpEnable:true, tp: toEngineParams(b.params).tp }, res:b.res, score:b.score }); } writePalmares(sym, tf, arr.slice(0, 1000)); renderLabFromStorage(); setStatus('Entraînement terminé'); }catch(_){ setStatus('Entraînement terminé'); }
+      }
+    }
+    step();
+  }catch(_){ setStatus('Erreur entraînement'); try{ closeBtProgress(); }catch(_){ } }
+}
+
 // --- Lab: lecture et palmarès (localStorage) ---
 const labTBody = document.getElementById('labTBody'); const labSummaryEl=document.getElementById('labSummary'); const labTFSelect=document.getElementById('labTFSelect');
 function labKey(sym, tf){ return `lab:results:${sym}:${tf}`; }
@@ -179,7 +262,7 @@ const heavenCfgBtn = document.getElementById('heavenCfg'); const lbcModalEl = do
 function openModalEl(el){ if(!el) return; el.classList.remove('hidden'); el.setAttribute('aria-hidden','false'); try{ el.style.zIndex = String(bumpModalZ()); }catch(_){ } }
 function closeModalEl(el){ if(!el) return; el.classList.add('hidden'); el.setAttribute('aria-hidden','true'); }
 if(liveOpenBtn&&liveModalEl) liveOpenBtn.addEventListener('click', ()=>{ try{ populateLiveWalletsUI(); }catch(_){ } openModalEl(liveModalEl); }); if(liveCloseBtn&&liveModalEl) liveCloseBtn.addEventListener('click', ()=> closeModalEl(liveModalEl)); if(liveModalEl) liveModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(liveModalEl); });
-if(labOpenBtn&&labModalEl) labOpenBtn.addEventListener('click', ()=>{ try{ renderLabFromStorage(); }catch(_){ } openModalEl(labModalEl); }); if(labCloseBtn&&labModalEl) labCloseBtn.addEventListener('click', ()=> closeModalEl(labModalEl)); if(labModalEl) labModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(labModalEl); });
+if(labOpenBtn&&labModalEl) labOpenBtn.addEventListener('click', ()=>{ try{ renderLabFromStorage(); }catch(_){ } openModalEl(labModalEl); try{ ensureLabTrainButton(); }catch(_){ } }); if(labCloseBtn&&labModalEl) labCloseBtn.addEventListener('click', ()=> closeModalEl(labModalEl)); if(labModalEl) labModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(labModalEl); });
 if(btOpenBtn&&btModalEl) btOpenBtn.addEventListener('click', ()=> openModalEl(btModalEl)); if(btCloseBtn&&btModalEl) btCloseBtn.addEventListener('click', ()=> closeModalEl(btModalEl)); if(btModalEl) btModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(btModalEl); });
 if(heavenCfgBtn&&lbcModalEl) heavenCfgBtn.addEventListener('click', ()=>{ try{ populateHeavenModal(); }catch(_){ } openModalEl(lbcModalEl); }); if(lbcCloseBtn&&lbcModalEl) lbcCloseBtn.addEventListener('click', ()=> closeModalEl(lbcModalEl)); if(lbcModalEl) lbcModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(lbcModalEl); });
 
