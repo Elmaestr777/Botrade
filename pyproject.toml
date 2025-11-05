@@ -1,0 +1,22 @@
+[tool.ruff]
+line-length = 100
+extend-exclude = [
+  "node_modules",
+  ".cache_heaven",
+  "runs",
+  "build",
+  "dist",
+  "**/__pycache__",
+]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = ["E501", "UP035", "B905", "E702", "F841"]
+
+[tool.ruff.per-file-ignores]
+"heaven_opt/__init__.py" = ["F401"]
+"heaven_opt/simulator.py" = ["F821"]
+
+[tool.ruff.isort]
+known-first-party = ["heaven_opt"]
+
+[tool.ruff.mccabe]
+max-complexity = 20

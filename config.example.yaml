@@ -1,0 +1,61 @@
+general:
+  symbol: BTCUSDC
+  tf_optim: 1h
+  date_from: 2024-01-01T00:00:00Z
+  date_to: 2024-03-01T00:00:00Z
+  max_combinations: 1000
+  top_n_results: 20
+search:
+  mode: ea_bayesian_hybrid
+ranges:
+  nol_range: [2, 6, 1]
+  prd_range: [8, 34, 2]
+  sl_pct_range: [0.5, 3.0, 0.5]
+  be_bars_range: [3, 8, 1]
+  be_lock_pct_range: [3.0, 10.0, 1.0]
+  ema_len_range: [21, 89, 4]
+entry_modes: [Original, Fib, Both]
+TP:
+  mode: Fib
+  allowed_ratios: [0.236, 0.382, 0.5, 0.618, 1.0, 1.618, 2.0]
+TP_allocation:
+  allocation_step_pct: 5
+  max_patterns: 8
+  allowed_patterns: [equal, front, back, random]
+EA:
+  pop_size: 80
+  n_generations: 12
+  cx_prob: 0.7
+  mut_prob: 0.2
+  elitism_frac: 0.02
+  tournament_size: 3
+Bayesian:
+  n_trials: 20
+  sampler: TPE
+  refine_radius: 0.2
+backtest:
+  initial_equity: 10000
+  fee_pct: 0.1
+  leverage: 1
+  risk_max_pct: 1.0
+validation:
+  walk_forward:
+    train_window: 21d
+    test_window: 7d
+    stride: 7d
+resource:
+  n_jobs: 4
+  cache_dir: .cache_heaven
+metrics:
+  weights:
+    pf: 0.24
+    sharpe: 0.18
+    calmar: 0.14
+    dd: 0.12
+    rr: 0.12
+    recov: 0.08
+    cons: 0.06
+    r2: 0.04
+    slope: 0.02
+  min_trades: 30
+  penalize_complexity: true

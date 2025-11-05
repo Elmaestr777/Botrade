@@ -1,0 +1,28 @@
+{
+  "name": "chart",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "http-server -p 5173 -a 127.0.0.1 -c-1 .",
+    "dev": "http-server -p 5173 -a 127.0.0.1 -c-1 .",
+    "serve": "http-server -p 5173 -a 127.0.0.1 -c-1 .",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "lint:py": "python -m ruff check heaven_opt run_optimize.py tests",
+    "lint:py:fix": "python -m ruff check --fix heaven_opt run_optimize.py tests",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:py": "python -m pytest -q"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "lightweight-charts": "^4.2.3"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "eslint": "^8.57.0"
+  }
+}

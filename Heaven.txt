@@ -1,0 +1,261 @@
+// This Pine Script™ code is subject to the MPL 2.0 at https://mozilla.org/MPL/2.0/
+// © LonesomeTheBlue in collaboration with elmaestrooooooooooooooooooooooooooooooooooooo
+
+//@version=6
+strategy("Line Break + ZigZag Fibo (Paper, TP ladder + EMA55 trail)", shorttitle="LBC+Fibo TP Ladder", overlay=true,
+  initial_capital=10000, currency=currency.EUR,
+  default_qty_type=strategy.percent_of_equity, default_qty_value=5, pyramiding=0)
+
+// ====== Inputs ======
+nol        = input.int(3, "Line Break: Number of Lines", minval=1)
+riskOn     = input.bool(false, "Risk Management")
+maxRisk    = input.float(1.0, "  Maximum Risk %", minval=0, step=0.1) / 100
+showTrend  = input.bool(true, "Show Trendline")
+trendUpCol   = input.color(color.lime,  "Trend Color Up")
+trendDnCol   = input.color(color.red,   "Trend Color Down")
+showclosingp = input.bool(true, "Show Closing Price on Scale")
+
+// Stops (SL + BE)
+grpStops      = "Stops"
+sl_init_pct   = input.float(2.0, "Initial SL %", minval=0, step=0.1, group=grpStops) / 100
+be_enable     = input.bool(true, "Move to Break-even", group=grpStops)
+be_after_bars = input.int(5, "Bars to BE", minval=1, group=grpStops)
+be_lock_pct   = input.float(5.0, "Lock % of move at BE", minval=0, step=0.1, group=grpStops) / 100
+
+// ZigZag / Fibo entries
+grpFibo = "Fibonacci / ZigZag"
+entryMode       = input.string("Original", "Entry Mode", options=["Original","Fib Retracement","Both"], group=grpFibo)
+useFibDraw      = input.bool(true, "Draw ZigZag + Fibonacci", group=grpFibo)
+prd             = input.int(15, "ZigZag Period", minval=2, maxval=50, group=grpFibo)
+zzUpCol         = input.color(color.lime, "ZigZag Up Color", group=grpFibo)
+zzDnCol         = input.color(color.red,  "ZigZag Down Color", group=grpFibo)
+useFibRet       = input.bool(false, "Enable Fib Retracement Entries", group=grpFibo)
+confirmMode     = input.string("Bounce", "Confirmation", options=["Bounce","Touch"], group=grpFibo)
+ent382          = input.bool(true,  "Entry at 0.382", group=grpFibo)
+ent500          = input.bool(true,  "Entry at 0.500", group=grpFibo)
+ent618          = input.bool(true,  "Entry at 0.618", group=grpFibo)
+ent786          = input.bool(false, "Entry at 0.786", group=grpFibo)
+
+// TP ladder config (shared for Long/Short)
+grpTP    = "TP Ladder (shared L/S)"
+tp_enable     = input.bool(true, "Enable TP Ladder", group=grpTP)
+tp_norm100    = input.bool(true, "Normalize to 100%", group=grpTP)
+ema_trail_len = input.int(55, "EMA trail length (for TP8)", minval=1, group=grpTP)
+
+// Ratios (editable)
+tp1_ratio  = input.float(0.382, "TP1 ratio", step=0.001, group=grpTP)
+tp2_ratio  = input.float(0.500, "TP2 ratio", step=0.001, group=grpTP)
+tp3_ratio  = input.float(0.680, "TP3 ratio", step=0.001, group=grpTP)
+tp4_ratio  = input.float(1.000, "TP4 ratio", step=0.001, group=grpTP)
+tp5_ratio  = input.float(1.382, "TP5 ratio", step=0.001, group=grpTP)
+tp6_ratio  = input.float(1.618, "TP6 ratio", step=0.001, group=grpTP)
+tp7_ratio  = input.float(2.000, "TP7 ratio", step=0.001, group=grpTP)
+
+// Percents (editable)
+tp1_pct  = input.float(10, "TP1 %", minval=0, maxval=100, step=1, group=grpTP)
+tp2_pct  = input.float(15, "TP2 %", minval=0, maxval=100, step=1, group=grpTP)
+tp3_pct  = input.float(15, "TP3 %", minval=0, maxval=100, step=1, group=grpTP)
+tp4_pct  = input.float(10, "TP4 %", minval=0, maxval=100, step=1, group=grpTP)
+tp5_pct  = input.float(10, "TP5 %", minval=0, maxval=100, step=1, group=grpTP)
+tp6_pct  = input.float(10, "TP6 %", minval=0, maxval=100, step=1, group=grpTP)
+tp7_pct  = input.float(10, "TP7 %", minval=0, maxval=100, step=1, group=grpTP)
+tp8_pct  = input.float(20, "TP8 % (EMA trail)", minval=0, maxval=100, step=1, group=grpTP)
+
+// ====== Helpers ======
+roundToTick(x) => math.round(x / syminfo.mintick) * syminfo.mintick
+clamp(x, lo, hi) => math.max(lo, math.min(x, hi))
+
+// Normalize to sum=100 if requested
+float sumPerc = tp1_pct + tp2_pct + tp3_pct + tp4_pct + tp5_pct + tp6_pct + tp7_pct + tp8_pct
+float scale   = tp_norm100 and sumPerc > 0 ? 100.0 / sumPerc : 1.0
+float p1 = clamp(tp1_pct * scale, 0.0, 100.0)
+float p2 = clamp(tp2_pct * scale, 0.0, 100.0)
+float p3 = clamp(tp3_pct * scale, 0.0, 100.0)
+float p4 = clamp(tp4_pct * scale, 0.0, 100.0)
+float p5 = clamp(tp5_pct * scale, 0.0, 100.0)
+float p6 = clamp(tp6_pct * scale, 0.0, 100.0)
+float p7 = clamp(tp7_pct * scale, 0.0, 100.0)
+float p8 = clamp(tp8_pct * scale, 0.0, 100.0)
+
+// ====== Line Break core (close-only updates) ======
+var int   trend  = close >= open ? 1 : -1
+var float[] opens  = array.new_float(500, open)
+var float[] closes = array.new_float(500, close)
+
+if not barstate.isrealtime or barstate.isconfirmed
+    if trend == 1
+        if close < math.min(array.min(array.slice(opens, 0, nol)), array.min(array.slice(closes, 0, nol)))
+            trend := -1
+        if close > closes.get(0) or trend == -1
+            array.pop(opens),  array.unshift(opens, trend == -1 ? opens.get(0) : closes.get(0))
+            array.pop(closes), array.unshift(closes, close)
+    else
+        if close > math.max(array.max(array.slice(opens, 0, nol)), array.max(array.slice(closes, 0, nol)))
+            trend := 1
+        if close < closes.get(0) or trend == 1
+            array.pop(opens),  array.unshift(opens, trend == 1 ? opens.get(0) : closes.get(0))
+            array.pop(closes), array.unshift(closes, close)
+
+// Trend level
+float trendlevel = na
+int n = math.min(nol, math.min(array.size(opens), array.size(closes)))
+if n > 0
+    float minUp = math.min(array.min(array.slice(opens, 0, n)), array.min(array.slice(closes, 0, n)))
+    float maxDn = math.max(array.max(array.slice(opens, 0, n)), array.max(array.slice(closes, 0, n)))
+    trendlevel := trend == 1 ? minUp : maxDn
+
+color trcol = trend == 1 ? trendUpCol : trendDnCol
+bool riskOK = (not riskOn) or (not na(trendlevel) and maxRisk >= math.abs(open - trendlevel) / open)
+bool flipSig = trend != trend[1]
+bool longSig  = flipSig and trend == 1 and riskOK
+bool shortSig = flipSig and trend == -1 and riskOK
+
+plot(showTrend ? trendlevel : na, color=flipSig ? na : trcol, linewidth=2)
+plotshape(longSig,  text="Long",  style=shape.labelup,   location=location.absolute, color=color.lime, textcolor=color.black, size=size.tiny)
+plotshape(shortSig, text="Short", style=shape.labeldown, location=location.absolute, color=color.red,  textcolor=color.black, size=size.tiny)
+
+// ====== ZigZag pivots ======
+float ph = ta.pivothigh(high, prd, prd)
+float pl = ta.pivotlow(low,  prd, prd)
+float pivotPrice = na
+pivotPrice := na(ph) ? pl : ph
+var int pivotIdx = int(na)
+pivotIdx := not na(pivotPrice) ? (bar_index - prd) : int(na)
+
+float s1_price = ta.valuewhen(not na(pivotPrice), pivotPrice, 0)
+float s2_price = ta.valuewhen(not na(pivotPrice), pivotPrice, 1)
+int   s1_idx   = int(ta.valuewhen(not na(pivotIdx), pivotIdx, 0))
+int   s2_idx   = int(ta.valuewhen(not na(pivotIdx), pivotIdx, 1))
+
+bool haveSwing = not na(s1_price) and not na(s2_price)
+bool swingUp   = haveSwing and s1_price > s2_price
+bool swingDn   = haveSwing and s1_price < s2_price
+
+priceAt(r) => haveSwing ? (s2_price + (s1_price - s2_price) * r) : float(na)
+
+if useFibDraw and haveSwing
+    line.new(x1=s2_idx, y1=s2_price, x2=s1_idx, y2=s1_price, color=swingUp ? zzUpCol : zzDnCol, width=2)
+
+// ====== Fib retracement entries ======
+bool fibRiskOk = not riskOn or (not na(trendlevel) and maxRisk >= math.abs(close - trendlevel) / close)
+bool fibLongRaw  = false
+bool fibShortRaw = false
+float lvl = na
+if haveSwing and useFibRet
+    if swingUp
+        if ent382
+            lvl := priceAt(0.382)
+            fibLongRaw := fibLongRaw or (confirmMode == "Bounce" ? ta.crossover(close, lvl) : (low <= lvl and close > lvl))
+        if ent500
+            lvl := priceAt(0.5)
+            fibLongRaw := fibLongRaw or (confirmMode == "Bounce" ? ta.crossover(close, lvl) : (low <= lvl and close > lvl))
+        if ent618
+            lvl := priceAt(0.618)
+            fibLongRaw := fibLongRaw or (confirmMode == "Bounce" ? ta.crossover(close, lvl) : (low <= lvl and close > lvl))
+        if ent786
+            lvl := priceAt(0.786)
+            fibLongRaw := fibLongRaw or (confirmMode == "Bounce" ? ta.crossover(close, lvl) : (low <= lvl and close > lvl))
+    if swingDn
+        if ent382
+            lvl := priceAt(0.382)
+            fibShortRaw := fibShortRaw or (confirmMode == "Bounce" ? ta.crossunder(close, lvl) : (high >= lvl and close < lvl))
+        if ent500
+            lvl := priceAt(0.5)
+            fibShortRaw := fibShortRaw or (confirmMode == "Bounce" ? ta.crossunder(close, lvl) : (high >= lvl and close < lvl))
+        if ent618
+            lvl := priceAt(0.618)
+            fibShortRaw := fibShortRaw or (confirmMode == "Bounce" ? ta.crossunder(close, lvl) : (high >= lvl and close < lvl))
+        if ent786
+            lvl := priceAt(0.786)
+            fibShortRaw := fibShortRaw or (confirmMode == "Bounce" ? ta.crossunder(close, lvl) : (high >= lvl and close < lvl))
+
+bool fibLong  = useFibRet and fibRiskOk and trend == 1 and fibLongRaw
+bool fibShort = useFibRet and fibRiskOk and trend == -1 and fibShortRaw
+
+// ====== Entries ======
+bool doOrig = entryMode == "Original" or entryMode == "Both"
+bool doFib  = entryMode == "Fib Retracement" or entryMode == "Both"
+if (doOrig and longSig) or (doFib and fibLong)
+    strategy.close("Short"), strategy.entry("Long", strategy.long)
+if (doOrig and shortSig) or (doFib and fibShort)
+    strategy.close("Long"), strategy.entry("Short", strategy.short)
+
+// ====== SL + BE ======
+var float slLong  = float(na)
+var float slShort = float(na)
+bool inLong  = strategy.position_size > 0
+bool inShort = strategy.position_size < 0
+bool enteredLong  = inLong  and strategy.position_size[1] <= 0
+bool enteredShort = inShort and strategy.position_size[1] >= 0
+
+if strategy.position_size == 0 and strategy.position_size[1] != 0
+    slLong := float(na), slShort := float(na)
+
+if enteredLong
+    slLong  := strategy.position_avg_price * (1 - sl_init_pct)
+if enteredShort
+    slShort := strategy.position_avg_price * (1 + sl_init_pct)
+
+int longBars  = ta.barssince(enteredLong)
+int shortBars = ta.barssince(enteredShort)
+float bePlus = float(na), candidate = float(na)
+
+if inLong and not na(slLong)
+    if be_enable and not na(longBars) and longBars >= be_after_bars and close > strategy.position_avg_price
+        bePlus := strategy.position_avg_price + be_lock_pct * (close - strategy.position_avg_price)
+        candidate := math.max(strategy.position_avg_price, bePlus)
+        slLong := math.max(slLong, candidate)
+    strategy.exit("XL", from_entry="Long",  stop=slLong)
+
+if inShort and not na(slShort)
+    if be_enable and not na(shortBars) and shortBars >= be_after_bars and close < strategy.position_avg_price
+        bePlus := strategy.position_avg_price - be_lock_pct * (strategy.position_avg_price - close)
+        candidate := math.min(strategy.position_avg_price, bePlus)
+        slShort := math.min(slShort, candidate)
+    strategy.exit("XS", from_entry="Short", stop=slShort)
+
+// ====== TP ladder (TP1..TP7 limits + TP8 EMA55 trail) ======
+float ema55 = ta.ema(close, ema_trail_len)
+
+// helper to place one TP for long/short
+place_tp_long(id, ratio, pct) =>
+    tgt = priceAt(ratio)
+    if pct > 0 and not na(tgt) and tgt > strategy.position_avg_price
+        strategy.exit(id, from_entry="Long", limit=tgt, qty_percent=pct)
+
+place_tp_short(id, ratio, pct) =>
+    tgt = priceAt(ratio)
+    if pct > 0 and not na(tgt) and tgt < strategy.position_avg_price
+        strategy.exit(id, from_entry="Short", limit=tgt, qty_percent=pct)
+
+if tp_enable and haveSwing
+    if inLong and swingUp
+        place_tp_long("TP1L", tp1_ratio, p1)
+        place_tp_long("TP2L", tp2_ratio, p2)
+        place_tp_long("TP3L", tp3_ratio, p3)
+        place_tp_long("TP4L", tp4_ratio, p4)
+        place_tp_long("TP5L", tp5_ratio, p5)
+        place_tp_long("TP6L", tp6_ratio, p6)
+        place_tp_long("TP7L", tp7_ratio, p7)
+        // TP8 trailing EMA55 for remaining pct
+        if p8 > 0
+            if not na(ema55) and ema55 < close
+                strategy.exit("TP8L_EMA", from_entry="Long", stop=ema55, qty_percent=p8)
+            else
+                strategy.cancel("TP8L_EMA")
+    if inShort and swingDn
+        place_tp_short("TP1S", tp1_ratio, p1)
+        place_tp_short("TP2S", tp2_ratio, p2)
+        place_tp_short("TP3S", tp3_ratio, p3)
+        place_tp_short("TP4S", tp4_ratio, p4)
+        place_tp_short("TP5S", tp5_ratio, p5)
+        place_tp_short("TP6S", tp6_ratio, p6)
+        place_tp_short("TP7S", tp7_ratio, p7)
+        if p8 > 0
+            if not na(ema55) and ema55 > close
+                strategy.exit("TP8S_EMA", from_entry="Short", stop=ema55, qty_percent=p8)
+            else
+                strategy.cancel("TP8S_EMA")
+
+// Price scale
+plot(showclosingp ? close : na, display=display.price_scale, color=color.gray)

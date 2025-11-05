@@ -1,0 +1,46 @@
+{
+  "root": true,
+  "env": {
+    "browser": true,
+    "es2022": true
+  },
+  "extends": [
+    "eslint:recommended"
+  ],
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "script"
+  },
+  "globals": {
+    "LightweightCharts": "readonly",
+    "self": "readonly",
+    "importScripts": "readonly"
+  },
+  "ignorePatterns": [
+    "node_modules/",
+    "runs/",
+    ".cache_heaven/",
+    "heaven_opt/**",
+    "tools/**"
+  ],
+  "overrides": [
+    {
+      "files": ["tools/*.js"],
+      "env": { "node": true, "browser": false },
+      "parserOptions": { "sourceType": "script" }
+    }
+  ],
+  "rules": {
+    "eqeqeq": "off",
+    "curly": ["warn", "all"],
+    "no-undef": "off",
+    "no-redeclare": "error",
+    "prefer-const": "warn",
+    "consistent-return": "warn",
+    "no-inner-declarations": "off",
+    "no-empty": ["warn", { "allowEmptyCatch": true }],
+    "no-empty-function": "off",
+    "no-useless-escape": "off",
+    "no-unused-vars": "off"
+  }
+}
