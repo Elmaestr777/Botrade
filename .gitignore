@@ -1,3 +1,11 @@
+# Local Supabase secrets and CLI cache
+supabase/.env.local
+supabase/.env*
+.supabase_cli/
+supabase.exe
+supabase/.temp/
+supabase/.branches/
+
 # Dependencies and envs
 node_modules/
 .venv/
