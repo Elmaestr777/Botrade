@@ -333,12 +333,97 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
             r["metrics"].update(wf)
             r["metrics"].update(mc)
         r["metrics"]["score"] = composite_score(r["metrics"], weights)
+
+    # Persist all tested strategies to Supabase (best-effort)
+    try:
+        from . import supabase_io as sio  # local module
+        svc_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+        base_ok = bool(svc_key) and bool(os.getenv("SUPABASE_URL") or os.getenv("SUPABASE_REST_URL"))
+        if base_ok and results:
+            user_id = os.getenv("HEAVEN_USER_ID")  # optional; leave null if not provided
+            profile_id = sio.get_balancee_profile_id(svc_key)
+            # Build run context
+            rc = {
+                "mode": str(mode),
+                "date_from": str(getattr(config.general, "date_from", "")),
+                "date_to": str(getattr(config.general, "date_to", "")),
+                "seed": os.getenv("HEAVEN_SEED"),
+                "ts": time.time(),
+            }
+            # Copy before sort/slice
+            all_results_for_persist = list(results)
+            rows_all: list[dict] = []
+            for r in all_results_for_persist:
+                rows_all.append({
+                    "user_id": user_id,
+                    "symbol": sym,
+                    "tf": tf,
+                    "profile_id": profile_id,
+                    "params": r.get("params") or {},
+                    "metrics": r.get("metrics") or {},
+                    "score": float((r.get("metrics") or {}).get("score", 0.0)),
+                    "selected": False,
+                    "palmares_set_id": None,
+                    "provenance": r.get("provenance", "coarse"),
+                    "run_context": rc,
+                })
+            sio.upsert_strategy_evaluations(rows_all, svc_key)
+    except Exception:
+        # Do not fail the optimization if persistence fails
+        pass
+
     # Sort and select top-N
     results.sort(key=lambda r: -float(r["metrics"].get("score", 0.0)))
-    results = results[: config.general.top_n_results]
+    top_results = results[: int(config.general.top_n_results)]
+
+    # Create palmarès set and entries (best-effort)
+    set_id = None
+    try:
+        svc_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+        if bool(svc_key) and bool(os.getenv("SUPABASE_URL") or os.getenv("SUPABASE_REST_URL")) and top_results:
+            from . import supabase_io as sio
+            user_id = os.getenv("HEAVEN_USER_ID")
+            profile_id = sio.get_balancee_profile_id(svc_key)
+            note = os.getenv("HEAVEN_NOTE") or f"{mode} {sym} {tf}"
+            set_id = sio.create_palmares_set({
+                "user_id": user_id,
+                "symbol": sym,
+                "tf": tf,
+                "profile_id": profile_id,
+                "top_n": int(config.general.top_n_results),
+                "note": note,
+            }, svc_key)
+            if set_id:
+                ents = []
+                rank = 1
+                for r in top_results:
+                    ents.append({
+                        "set_id": set_id,
+                        "rank": rank,
+                        "name": None,
+                        "params": r.get("params") or {},
+                        "metrics": r.get("metrics") or {},
+                        "score": float((r.get("metrics") or {}).get("score", 0.0)),
+                        "provenance": r.get("provenance", "coarse"),
+                        "generation": 1,
+                    })
+                    rank += 1
+                sio.insert_palmares_entries(ents, svc_key)
+                # Mark selected=true for top results
+                rows_sel = [{
+                    "user_id": os.getenv("HEAVEN_USER_ID"),
+                    "symbol": sym,
+                    "tf": tf,
+                    "profile_id": profile_id,
+                    "params": r.get("params") or {},
+                } for r in top_results]
+                sio.mark_selected_for_set(rows_sel, set_id, svc_key)
+    except Exception:
+        pass
+
     # Build OptimizationResult
     top = []
-    for r in results:
+    for r in top_results:
         rep = r["metrics"]
         metrics_numeric = {k: float(v) for k, v in rep.items() if isinstance(v, (int, float))}
         top.append(Candidate(params=r["params"], metrics=metrics_numeric, provenance=r.get("provenance", "grid")))

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Chart - BTC/USDC</title>
     <!-- CSP assouplie pour le dev local -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' https://api.binance.com wss://stream.binance.com:9443; font-src 'self' data:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' blob: https://cdn.jsdelivr.net; worker-src 'self' blob:; connect-src 'self' https://api.binance.com wss://stream.binance.com:9443 https://*.supabase.co https://*.supabase.net wss://*.supabase.co wss://*.supabase.net; font-src 'self' data:;">
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="styles.css" />
   </head>
@@ -492,9 +492,11 @@
           <h2>Simulation</h2>
         </div>
         <div class="modal-body">
-          <div id="btProgText" style="margin-bottom:8px;">Préparation...</div>
+          <div id="btProgText" style="margin-bottom:6px;">Préparation...</div>
           <div class="progress"><div id="btProgBar"></div></div>
-          <div id="btProgNote" style="margin-top:6px; color:var(--muted); font-size:12px;"></div>
+          <div id="btProgTime" style="margin-top:6px; font-size:12px;">⏱ 00:00</div>
+          <div id="btProgNote" style="margin-top:4px; color:var(--muted); font-size:12px;"></div>
+          <pre id="btProgLog" style="margin-top:6px; max-height:35vh; overflow:auto; background:var(--bg2, rgba(0,0,0,0.04)); padding:6px; border-radius:4px; font-size:12px; white-space:pre-wrap;">—</pre>
         </div>
         <div class="modal-footer">
           <button id="btAbort" class="btn">Annuler</button>
@@ -827,6 +829,7 @@
             <button id="labExport" class="btn">Exporter CSV</button>
             <button id="labClear" class="btn" title="Effacer l'historique (symbole+TF)">Nettoyer</button>
             <button id="labWeights" class="btn" title="Pondérations du score">Pondérations</button>
+            <button id="labSupabase" class="btn" title="Configurer / synchroniser Supabase">Supabase</button>
             <button id="labClose" class="icon-btn" aria-label="Fermer">×</button>
           </div>
         </div>
@@ -919,6 +922,9 @@
 
     <!-- Lightweight Charts vendored (UMD) for static deploy -->
     <script src="vendor/lightweight-charts.standalone.production.js"></script>
+    <!-- Supabase UMD client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="src/supa_ui.js"></script>
     <script src="src/main.js"></script>
   </body>
 </html>
