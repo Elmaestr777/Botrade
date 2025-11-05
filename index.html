@@ -38,6 +38,7 @@
         </label>
         <button id="btRunVisible" class="btn">Backtest</button>
         <button id="labOpen" class="btn" title="Recherche/Apprentissage par TF">Lab</button>
+        <button id="labDockBtn" class="btn" title="Afficher le dock Lab (3 panneaux)">Dock</button>
         <button id="liveOpen" class="btn" title="Paper/Live trading">Live</button>
         <span id="status" class="status"></span>
       </div>
@@ -47,6 +48,44 @@
       <div id="lbc-overlay" class="lbc-overlay">
           <div id="lbc-prob" class="lbc-card hidden"></div>
           <div id="lbc-table" class="lbc-card hidden"></div>
+        </div>
+        <!-- Lab Dock 3 panneaux -->
+        <div id="labDock" class="lab-dock hidden">
+          <aside id="labLeft" class="lbc-card normal" style="left:12px; top:12px; width:280px;">
+            <div class="card-header"><strong>Lab</strong><div style="display:flex; gap:6px;">
+              <button id="labStartBtn" class="btn primary">▶️</button>
+              <button id="labPauseBtn" class="btn">⏸️</button>
+              <button id="labStopBtn" class="btn">⏹️</button>
+            </div></div>
+            <div class="card-body grid2">
+              <label>Top N <input id="labTopN" type="number" min="1" max="100" value="20" style="width:5rem" /></label>
+              <label>Budget iters <input id="labBudget" type="number" min="10" max="2000" value="100" style="width:6rem" /></label>
+              <label>Objectif
+                <select id="labObjective">
+                  <option value="score" selected>Score</option>
+                  <option value="pf">PF</option>
+                  <option value="sharpe">Sharpe</option>
+                  <option value="dd">Min DD</option>
+                </select>
+              </label>
+              <label>Prior TF <input id="labUseTFPriorDock" type="checkbox" checked /></label>
+            </div>
+          </aside>
+          <aside id="labRight" class="lbc-card normal" style="right:12px; top:12px; width:320px;">
+            <div class="card-header"><strong>Logs</strong><span style="color:var(--muted); font-size:12px;" id="labRunStatus">Idle</span></div>
+            <div class="card-body">
+              <pre id="labDockLog" style="margin:0; max-height:46vh; overflow:auto; white-space:pre-wrap;">—</pre>
+            </div>
+          </aside>
+          <div id="labKpis" class="lbc-card normal" style="left:50%; transform:translateX(-50%); top:12px; min-width:360px;">
+            <div class="card-header"><strong>KPIs</strong></div>
+            <div class="card-body" style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px;">
+              <div><div style="color:var(--muted); font-size:11px;">Score</div><div id="kpiScore" style="font-weight:600;">—</div></div>
+              <div><div style="color:var(--muted); font-size:11px;">PF</div><div id="kpiPF" style="font-weight:600;">—</div></div>
+              <div><div style="color:var(--muted); font-size:11px;">Win%</div><div id="kpiWin" style="font-weight:600;">—</div></div>
+              <div><div style="color:var(--muted); font-size:11px;">Max DD</div><div id="kpiDD" style="font-weight:600;">—</div></div>
+            </div>
+          </div>
         </div>
         <button id="gotoEndBtn" class="btn">⏭ Aller à la fin</button>
       </div>

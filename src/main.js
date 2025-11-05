@@ -12,13 +12,14 @@ function ensureLabTrainButton(){
     btn.style.position = 'absolute';
     btn.style.top = '8px'; btn.style.right = '56px';
     btn.style.zIndex = '1';
-    btn.addEventListener('click', ()=>{ try{ startLabTraining(); }catch(_){ setStatus('Erreur entraînement'); } });
+    btn.addEventListener('click', ()=>{ try{ setLabDockVisible(true); startLabTraining(); }catch(_){ setStatus('Erreur entraînement'); } });
     content.appendChild(btn);
   }catch(_){ }
 }
 
 async function startLabTraining(){
   try{
+    setLabDockVisible(true);
     // Setup
     const tf = labTFSelect? labTFSelect.value : (intervalSelect? intervalSelect.value : currentInterval);
     const sym = currentSymbol;
@@ -72,15 +73,18 @@ async function evalWF(p){ const ep=toEngineParams(p); let totalPnl=0, trades=0, 
     }
 
     // Adaptive loop (epsilon-greedy + elite sampling)
-setBtTitle('Entraînement'); openBtProgress('Entraînement...'); btAbort=false; try{ addBtLog('Initialisation...'); }catch(_){ }
+setBtTitle('Entraînement'); openBtProgress('Entraînement...'); btAbort=false; btPaused=false; try{ addBtLog('Initialisation...'); }catch(_){ }
     await new Promise(r=> setTimeout(r, 0));
-    const total = 100; const batch = 8; const topN = 20; const EPS=0.35;
+    const total = Math.max(10, parseInt((document.getElementById('labBudget')&&document.getElementById('labBudget').value)||'100',10));
+    const batch = 8; const topN = Math.max(1, parseInt((document.getElementById('labTopN')&&document.getElementById('labTopN').value)||'20',10)); const EPS=0.35;
     const best=[]; const seen=new Set();
-    function addResult(p,ev){ best.push({ score:ev.score, params:p, res:ev.res }); best.sort((a,b)=> b.score-a.score); if(best.length>Math.max(topN,60)) best.length=Math.max(topN,60); }
+    function addResult(p,ev){ best.push({ score:ev.score, params:p, res:ev.res }); best.sort((a,b)=> b.score-a.score); if(best.length>Math.max(topN,60)) best.length=Math.max(topN,60); try{ updateLabKpis(best); }catch(_){ } }
     function sampleFromElites(){ if(best.length<8) return sample(); const e=best.slice(0,8).map(b=>b.params); const pick=e[(Math.random()*e.length)|0]; const q=JSON.parse(JSON.stringify(pick)); const J=(arr,v)=>{ const idx=Math.max(0, arr.indexOf(v)); const step=(Math.random()<0.5?-1:1); const j=Math.max(0, Math.min(arr.length-1, idx+step)); return arr[j]; };
       if(Math.random()<0.6) q.nol=J(G.nol,q.nol); if(Math.random()<0.6) q.prd=J(G.prd,q.prd); if(Math.random()<0.5) q.slInitPct=J(G.sl,q.slInitPct); if(Math.random()<0.5) q.beAfterBars=J(G.beb,q.beAfterBars); if(Math.random()<0.5) q.beLockPct=J(G.bel,q.beLockPct); if(Math.random()<0.5) q.emaLen=J(G.ema,q.emaLen); if(Math.random()<0.25) q.entryMode=modes[(Math.random()*modes.length)|0]; if(Math.random()<0.3){ q.tp=randomTP(); q.tpAlloc=randomAlloc(); } return q; }
     let done=0;
     async function step(){
+      if(btPaused){ if(labRunStatusEl) labRunStatusEl.textContent='Pause'; setTimeout(step, 250); return; }
+      if(labRunStatusEl) labRunStatusEl.textContent = `En cours ${done}/${total}`;
       const pool=[];
       for(let i=0;i<batch*3;i++){ pool.push( (Math.random()<EPS)? sample() : sampleFromElites() ); }
       // Dedup
@@ -90,7 +94,7 @@ for(const p of pool){ const key=JSON.stringify(p); if(seen.has(key)) continue; s
 for(const p of uniq){ if(btAbort) break; const ev=await evalWF(p); addResult(p,ev); try{ const ep=toEngineParams(p); testedAll.push({ params: ep, metrics: ev.res, score: ev.score }); }catch(_){ } done++; if(btProgBar&&btProgText){ const pct=Math.round(done/total*100); btProgBar.style.width=pct+'%'; btProgText.textContent=`Entraînement ${pct}% (${done}/${total})`; } await new Promise(r=> setTimeout(r,0)); if(done>=total||btAbort) break; }
       if(done<total && !btAbort){ setTimeout(step, 0); } else { try{ closeBtProgress(); closeModalEl(btModalEl); }catch(_){ }
         // Persist to Lab palmarès
-        try{ const arr=readPalmares(sym, tf); for(const b of best.slice(0, topN)){ const name=uniqueNameFor(sym, tf, randomName()); arr.unshift({ ts:Date.now(), name, gen:1, params: { nol:b.params.nol, prd:b.params.prd, slInitPct:b.params.slInitPct, beAfterBars:b.params.beAfterBars, beLockPct:b.params.beLockPct, emaLen:b.params.emaLen, entryMode:b.params.entryMode, tpEnable:true, tp: toEngineParams(b.params).tp }, res:b.res, score:b.score }); } writePalmares(sym, tf, arr.slice(0, 1000)); renderLabFromStorage(); try{ addBtLog(`Palmarès construit: ${Math.min(best.length, topN)} entrées`); }catch(_){ } setStatus('Entraînement terminé'); }catch(_){ setStatus('Entraînement terminé'); }
+        try{ const arr=readPalmares(sym, tf); for(const b of best.slice(0, topN)){ const name=uniqueNameFor(sym, tf, randomName()); arr.unshift({ ts:Date.now(), name, gen:1, params: { nol:b.params.nol, prd:b.params.prd, slInitPct:b.params.slInitPct, beAfterBars:b.params.beAfterBars, beLockPct:b.params.beLockPct, emaLen:b.params.emaLen, entryMode:b.params.entryMode, tpEnable:true, tp: toEngineParams(b.params).tp }, res:b.res, score:b.score }); } writePalmares(sym, tf, arr.slice(0, 1000)); renderLabFromStorage(); try{ addBtLog(`Palmarès construit: ${Math.min(best.length, topN)} entrées`); }catch(_){ } setStatus('Entraînement terminé'); if(labRunStatusEl) labRunStatusEl.textContent='Terminé'; }catch(_){ setStatus('Entraînement terminé'); if(labRunStatusEl) labRunStatusEl.textContent='Terminé'; }
         // Also persist to Supabase (best-effort)
         try{ if(window.SUPA && typeof SUPA.persistLabResults==='function'){ try{ addBtLog('Persistance Supabase: envoi...'); }catch(_){ } SUPA.persistLabResults({ symbol:sym, tf, tested: testedAll, best: best.slice(0, topN).map(x=>({ params: toEngineParams(x.params), metrics: x.res, score: x.score, gen: (x.gen||1), name: x.name||null })) }); try{ addBtLog('Persistance Supabase: terminé'); }catch(_){ } } }catch(_){ try{ addBtLog('Persistance Supabase: erreur'); }catch(__){} }
       }
@@ -278,10 +282,35 @@ const liveOpenBtn = document.getElementById('liveOpen'); const liveModalEl = doc
 const labOpenBtn = document.getElementById('labOpen'); const labModalEl = document.getElementById('labModal'); const labCloseBtn=document.getElementById('labClose');
 const btOpenBtn = document.getElementById('btRunVisible'); const btModalEl = document.getElementById('btModal'); const btCloseBtn=document.getElementById('btCloseModal');
 const heavenCfgBtn = document.getElementById('heavenCfg'); const lbcModalEl = document.getElementById('lbcModal'); const lbcCloseBtn=document.getElementById('lbcClose');
+
+// Lab Dock elements
+const labDockBtn = document.getElementById('labDockBtn');
+const labDockEl = document.getElementById('labDock');
+const labStartBtn = document.getElementById('labStartBtn');
+const labPauseBtn = document.getElementById('labPauseBtn');
+const labStopBtn = document.getElementById('labStopBtn');
+const labLogEl = document.getElementById('labDockLog');
+const labRunStatusEl = document.getElementById('labRunStatus');
+const kpiScoreEl = document.getElementById('kpiScore');
+const kpiPFEl = document.getElementById('kpiPF');
+const kpiWinEl = document.getElementById('kpiWin');
+const kpiDDEl = document.getElementById('kpiDD');
+const labTopNEl = document.getElementById('labTopN');
+const labBudgetEl = document.getElementById('labBudget');
+
+function setLabDockVisible(v){ try{ if(!labDockEl) return; if(v){ labDockEl.classList.remove('hidden'); } else { labDockEl.classList.add('hidden'); } }catch(_){ } }
+function addLabLog(msg){ try{ if(!labLogEl) return; const t=new Date(); const hh=String(t.getHours()).padStart(2,'0'); const mm=String(t.getMinutes()).padStart(2,'0'); const ss=String(t.getSeconds()).padStart(2,'0'); const line=`[${hh}:${mm}:${ss}] ${msg}`; if(labLogEl.textContent==='—') labLogEl.textContent=line; else labLogEl.textContent += ("\n"+line); labLogEl.scrollTop = labLogEl.scrollHeight; }catch(_){ } }
+function updateLabKpis(best){ try{ if(!best||!best.length){ if(kpiScoreEl) kpiScoreEl.textContent='—'; if(kpiPFEl) kpiPFEl.textContent='—'; if(kpiWinEl) kpiWinEl.textContent='—'; if(kpiDDEl) kpiDDEl.textContent='—'; return; } const top=best[0]; const st=top.res||{}; if(kpiScoreEl) kpiScoreEl.textContent = Number(top.score||0).toFixed(1); if(kpiPFEl) kpiPFEl.textContent = (st.profitFactor===Infinity? '∞' : Number(st.profitFactor||0).toFixed(2)); if(kpiWinEl) kpiWinEl.textContent = Number(st.winrate||0).toFixed(1)+'%'; if(kpiDDEl) kpiDDEl.textContent = Number(st.maxDDAbs||0).toFixed(0); }catch(_){ } }
+
 function openModalEl(el){ if(!el) return; el.classList.remove('hidden'); el.setAttribute('aria-hidden','false'); try{ el.style.zIndex = String(bumpModalZ()); }catch(_){ } }
 function closeModalEl(el){ if(!el) return; el.classList.add('hidden'); el.setAttribute('aria-hidden','true'); }
 if(liveOpenBtn&&liveModalEl) liveOpenBtn.addEventListener('click', ()=>{ try{ populateLiveWalletsUI(); }catch(_){ } openModalEl(liveModalEl); }); if(liveCloseBtn&&liveModalEl) liveCloseBtn.addEventListener('click', ()=> closeModalEl(liveModalEl)); if(liveModalEl) liveModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(liveModalEl); });
 if(labOpenBtn&&labModalEl) labOpenBtn.addEventListener('click', ()=>{ try{ renderLabFromStorage(); }catch(_){ } openModalEl(labModalEl); try{ ensureLabTrainButton(); }catch(_){ } }); if(labCloseBtn&&labModalEl) labCloseBtn.addEventListener('click', ()=> closeModalEl(labModalEl)); if(labModalEl) labModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(labModalEl); });
+
+if(labDockBtn){ labDockBtn.addEventListener('click', ()=>{ try{ const hidden=labDockEl && labDockEl.classList.contains('hidden'); setLabDockVisible(!!hidden); }catch(_){ } }); }
+if(labStartBtn){ labStartBtn.addEventListener('click', ()=>{ try{ setLabDockVisible(true); startLabTraining(); }catch(_){ } }); }
+if(labPauseBtn){ labPauseBtn.addEventListener('click', ()=>{ try{ btPaused=!btPaused; addLabLog(btPaused?'Paused':'Resumed'); if(labRunStatusEl) labRunStatusEl.textContent = btPaused? 'Pause' : 'En cours'; }catch(_){ } }); }
+if(labStopBtn){ labStopBtn.addEventListener('click', ()=>{ try{ btAbort=true; addLabLog('Arrêt demandé'); if(labRunStatusEl) labRunStatusEl.textContent='Arrêt'; }catch(_){ } }); }
 // Supabase config/login button in Lab
 try{ const labSupBtn=document.getElementById('labSupabase'); if(labSupBtn){ labSupBtn.addEventListener('click', ()=>{ try{ if(window.SUPA && typeof SUPA.openConfigAndLogin==='function'){ SUPA.openConfigAndLogin(); } }catch(_){ } }); } }catch(_){ }
 if(btOpenBtn&&btModalEl) btOpenBtn.addEventListener('click', ()=> openModalEl(btModalEl)); if(btCloseBtn&&btModalEl) btCloseBtn.addEventListener('click', ()=> closeModalEl(btModalEl)); if(btModalEl) btModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(btModalEl); });
@@ -486,10 +515,10 @@ const btRunBtn=document.getElementById('btRun'); const btCancelBtn=document.getE
 const btProgressEl=document.getElementById('btProgress'); const btProgText=document.getElementById('btProgText'); const btProgBar=document.getElementById('btProgBar'); const btProgNote=document.getElementById('btProgNote'); const btProgTime=document.getElementById('btProgTime'); const btProgLog=document.getElementById('btProgLog'); const btAbortBtn=document.getElementById('btAbort');
 const btStartCap=document.getElementById('btStartCap'); const btFee=document.getElementById('btFee'); const btLev=document.getElementById('btLev'); const btMaxPct=document.getElementById('btMaxPct'); const btMaxBase=document.getElementById('btMaxBase');
 const btRangeVisible=document.getElementById('btRangeVisible'); const btRangeAll=document.getElementById('btRangeAll'); const btRangeDates=document.getElementById('btRangeDates'); const btFrom=document.getElementById('btFrom'); const btTo=document.getElementById('btTo');
-let btAbort=false; let __btTimerId=null; let __btStartTs=0;
+let btAbort=false; let btPaused=false; let __btTimerId=null; let __btStartTs=0;
 function __fmtElapsed(ms){ const s=Math.floor(ms/1000); const m=Math.floor(s/60); const ss=String(s%60).padStart(2,'0'); const mm=String(m%60).padStart(2,'0'); const hh=Math.floor(m/60); return (hh>0? (String(hh).padStart(2,'0')+':'):'')+mm+':'+ss; }
 function __setBtTime(){ if(btProgTime){ const ms=Date.now()-__btStartTs; btProgTime.textContent = `⏱ ${__fmtElapsed(ms)}`; } }
-function addBtLog(msg){ try{ if(!btProgLog) return; const t=new Date(); const hh=String(t.getHours()).padStart(2,'0'); const mm=String(t.getMinutes()).padStart(2,'0'); const ss=String(t.getSeconds()).padStart(2,'0'); const line=`[${hh}:${mm}:${ss}] ${msg}`; if(btProgLog.textContent==='—') btProgLog.textContent=line; else btProgLog.textContent += ("\n"+line); btProgLog.scrollTop = btProgLog.scrollHeight; }catch(_){ } }
+function addBtLog(msg){ try{ const t=new Date(); const hh=String(t.getHours()).padStart(2,'0'); const mm=String(t.getMinutes()).padStart(2,'0'); const ss=String(t.getSeconds()).padStart(2,'0'); const line=`[${hh}:${mm}:${ss}] ${msg}`; if(btProgLog){ if(btProgLog.textContent==='—') btProgLog.textContent=line; else btProgLog.textContent += ("\n"+line); btProgLog.scrollTop = btProgLog.scrollHeight; } if(typeof addLabLog==='function'){ addLabLog(msg); } }catch(_){ } }
 function openBtProgress(msg){ if(btProgText) btProgText.textContent = msg||''; if(btProgBar) btProgBar.style.width='0%'; if(btProgNote) btProgNote.textContent=''; if(btProgLog) btProgLog.textContent='—'; __btStartTs=Date.now(); if(__btTimerId) { try{ clearInterval(__btTimerId);}catch(_){}} __setBtTime(); __btTimerId=setInterval(__setBtTime, 500); openModalEl(btProgressEl); }
 function closeBtProgress(){ if(__btTimerId){ try{ clearInterval(__btTimerId);}catch(_){ } __btTimerId=null; } closeModalEl(btProgressEl); }
 function getVisibleRange(){ try{ const r=chart.timeScale().getVisibleRange(); if(!r) return null; return { from: r.from, to: r.to }; }catch(_){ return null; } }

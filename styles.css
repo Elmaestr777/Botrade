@@ -167,6 +167,12 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
 .lbc-card.small { font-size: 11px; }
 .lbc-card.normal { font-size: 13px; }
 .lbc-card.large { font-size: 15px; }
+
+/* Lab Dock overlay */
+#labDock { position: fixed; inset: 0; pointer-events: none; z-index: 3500; }
+#labDock .lbc-card { pointer-events: auto; }
+#labDock.hidden { display: none; }
+
 .lbc-table { border-collapse: collapse; width: 100%; }
 .lbc-table th, .lbc-table td { border: 1px solid var(--header-border); padding: 4px 6px; text-align: center; }
 .lbc-table thead th { position: sticky; top: 0; background: var(--bg); z-index: 3; box-shadow: 0 1px 0 var(--header-border); }
