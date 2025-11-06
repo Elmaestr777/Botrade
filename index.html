@@ -962,14 +962,14 @@
             <label><input id="labUseTFPrior" type="checkbox" checked /> Prior TF</label>
             <label><input id="labResume" type="checkbox" checked /> Apprentissage</label>
             <span></span>
-            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <div style="display:none; gap:8px; align-items:center; flex-wrap:wrap;">
               <strong>EA</strong>
               <label>Pop <input id="labEAPop" type="number" min="4" max="2000" value="40" style="width:6rem" /></label>
               <label>Gen <input id="labEAGen" type="number" min="1" max="500" value="20" style="width:6rem" /></label>
               <label>Mut% <input id="labEAMut" type="number" min="0" max="100" step="1" value="20" style="width:6rem" /></label>
               <label>Cx% <input id="labEACx" type="number" min="0" max="100" step="1" value="60" style="width:6rem" /></label>
             </div>
-            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <div style="display:none; gap:8px; align-items:center; flex-wrap:wrap;">
               <strong>Bayes</strong>
               <label>Iters <input id="labBayIters" type="number" min="10" max="5000" value="150" style="width:6rem" /></label>
               <label>Init <input id="labBayInit" type="number" min="5" max="2000" value="40" style="width:6rem" /></label>
@@ -977,12 +977,12 @@
             </div>
             <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
               <strong>Focus</strong>
-              <label><input id="labFocusDD" type="checkbox" /> Min DD</label>
-              <label><input id="labFocusSharpe" type="checkbox" /> Sharpe</label>
-              <label><input id="labFocusPF" type="checkbox" /> PF</label>
-              <label><input id="labFocusSlope" type="checkbox" /> Slope</label>
-              <label><input id="labFocusRecov" type="checkbox" /> Recovery</label>
-              <label><input id="labFocusCons" type="checkbox" /> Consistency</label>
+              <label style="display:none;"><input id="labFocusDD" type="checkbox" /> Min DD</label>
+              <label style="display:none;"><input id="labFocusSharpe" type="checkbox" /> Sharpe</label>
+              <label style="display:none;"><input id="labFocusPF" type="checkbox" /> PF</label>
+              <label style="display:none;"><input id="labFocusSlope" type="checkbox" /> Slope</label>
+              <label style="display:none;"><input id="labFocusRecov" type="checkbox" /> Recovery</label>
+              <label style="display:none;"><input id="labFocusCons" type="checkbox" /> Consistency</label>
               <label title="Temps limite de calcul (secondes); 0 = désactivé">Temps (s) <input id="labTimeLimitSec" type="number" min="0" step="1" value="0" style="width:6rem" /></label>
               <label title="Score minimum (0-100); 0 = désactivé">Score min <input id="labMinScore" type="number" min="0" max="100" step="0.1" value="0" style="width:6rem" /></label>
               <div style="display:flex; gap:6px; margin-left:auto;">
