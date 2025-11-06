@@ -5,7 +5,16 @@
   let client = null;
   let profileIdCache = null;
 
+  function staticCfg(){
+    try{
+      const url = (typeof window!=='undefined' && (window.SUPABASE_URL||'')) || (document?.querySelector?.('meta[name="supabase-url"]')?.content||'') || '';
+      const anon = (typeof window!=='undefined' && (window.SUPABASE_ANON_KEY||'')) || (document?.querySelector?.('meta[name="supabase-anon"]')?.content||'') || '';
+      return { url, anon };
+    }catch(_){ return {url:'',anon:''}; }
+  }
   function readCfg(){
+    const s = staticCfg();
+    if(s.url && s.anon) return s;
     try{ return { url: localStorage.getItem(LS_URL)||'', anon: localStorage.getItem(LS_ANON)||'' }; }catch(_){ return {url:'',anon:''}; }
   }
   function saveCfg(url, anon){ try{ localStorage.setItem(LS_URL, url||''); localStorage.setItem(LS_ANON, anon||''); }catch(_){} }
@@ -22,7 +31,12 @@
   async function getUserId(){ try{ const c=ensureClient(); if(!c) return null; const { data:{ user } } = await c.auth.getUser(); return (user && user.id) || null; }catch(_){ return null; } }
 
   async function ensureAuthFlow(){
-    const c = ensureClient(); if(!c) { alert('Configurez Supabase (URL et Anon Key) d\'abord.'); return false; }
+    const stat = staticCfg();
+    if(stat.url && stat.anon){
+      alert('Supabase est configuré globalement (supa_config.js). Aucune connexion supplémentaire nécessaire.');
+      return true;
+    }
+    const c = ensureClient(); if(!c) { alert('Configurez Supabase (global supa_config.js ou via invite) d\'abord.'); return false; }
     if(await isLoggedIn()) return true;
     const email = prompt('Entrez votre email pour connexion Supabase (magic link)');
     if(!email) return false;
@@ -161,7 +175,12 @@
   }
 
   async function openConfigAndLogin(){
-    // No login: just configure Supabase URL/Anon Key for public pooled writes
+    const stat = staticCfg();
+    if(stat.url && stat.anon){
+      alert('Configuration Supabase définie globalement (src/supa_config.js). Modifiez ce fichier pour changer de projet.');
+      return;
+    }
+    // Fallback: prompt and save to localStorage if global not set
     const cur = readCfg();
     const url = prompt('SUPABASE_URL', cur.url||''); if(url==null) return;
     const anon = prompt('SUPABASE_ANON_KEY (public anon key)', cur.anon||''); if(anon==null) return;
@@ -195,6 +214,7 @@
 
   window.SUPA = {
     isConfigured: ()=>{ const c=readCfg(); return !!(c.url && c.anon); },
+    configSource: ()=>{ const s=staticCfg(); return (s.url&&s.anon)? 'static' : 'localStorage'; },
     openConfigAndLogin,
     ensureAuthFlow,
     persistLabResults,
