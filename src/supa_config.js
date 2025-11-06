@@ -5,5 +5,5 @@
 //   window.SUPABASE_ANON_KEY = "eyJhbGciOiJI...";
 // NOTE: Do NOT put the service role key here (keep it server-side only).
 
-window.SUPABASE_URL = window.SUPABASE_URL || "";
-window.SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || "";
+window.SUPABASE_URL = "https://moxxmohsvgyihjrcdupr.supabase.co";
+window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1veHhtb2hzdmd5aWhqcmNkdXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyOTYyNjAsImV4cCI6MjA3Nzg3MjI2MH0.xnY7LFptWeB8yhWbWBKhJRj5orr_JAi0SsnATKAuTdA";
