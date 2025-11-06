@@ -1385,7 +1385,7 @@ try{ const top=cur[0]; if(top){ addBtLog(`EA g ${g-1}→${g-1} done — ${childr
     while(start.length<initN){ const p=randomParams(); if(isDup(p)) continue; pushSeen(p); start.push({ p }); }
     try{ setBtTitle('Bayes (EDA)'); addBtLog('Bayes: démarrage'); }catch(_){ }
 __labSimTotal += start.length; updateGlobalProgressUI();
-let cur = (await evalParamsList(start, 'Bayes:init')).sort((a,b)=> b.score-a-score);
+let cur = (await evalParamsList(start, 'Bayes:init')).sort((a,b)=> b.score - a.score);
 try{ const top=cur[0]; if(top){ addBtLog(`Bayes init — best ${top.score.toFixed(2)} PF ${(top.res.profitFactor===Infinity?'∞':(top.res.profitFactor||0).toFixed(2))}`); } }catch(_){ }
     bestGlobal = Math.max(bestGlobal, (cur[0]?.score ?? -Infinity));
     updateProgress(`Bayes 0/${iters}`, 0);
