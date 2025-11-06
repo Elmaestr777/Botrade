@@ -39,6 +39,7 @@
         <button id="btRunVisible" class="btn">Backtest</button>
         <button id="labOpen" class="btn" title="Recherche/Apprentissage par TF">Lab</button>
         <button id="liveOpen" class="btn" title="Paper/Live trading">Live</button>
+        <button id="supaCfgBtn" class="btn" title="Configurer Supabase">Supabase</button>
         <span id="status" class="status"></span>
       </div>
     </header>
@@ -1074,6 +1075,27 @@
         </div>
         <div class="modal-footer">
           <span style="color:var(--muted);">Les données sont agrégées à partir des optimisations effectuées (symbole courant + TF sélectionné).</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Supabase config modal -->
+    <div id="supaModal" class="modal hidden" aria-hidden="true" role="dialog">
+      <div class="modal-backdrop" data-close="1"></div>
+      <div class="modal-content" style="max-width:520px;">
+        <div class="modal-header">
+          <h2>Configuration Supabase</h2>
+          <button id="supaClose" class="icon-btn" aria-label="Fermer">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-grid" style="grid-template-columns: 1fr; gap:10px;">
+            <label>SUPABASE_URL <input id="supaUrl" type="text" placeholder="https://xxx.supabase.co" /></label>
+            <label>SUPABASE_ANON_KEY <input id="supaAnon" type="text" placeholder="eyJhbGciOi... (anon public)" /></label>
+            <div id="supaMsg" style="color:var(--muted); font-size:12px;"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="supaSave" class="btn primary">Tester & Enregistrer</button>
         </div>
       </div>
     </div>

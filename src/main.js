@@ -245,6 +245,14 @@ const symbolSelect = document.getElementById('symbol');
 const titleEl = document.getElementById('pairTitle');
 const statusEl = document.getElementById('status');
 const gotoEndBtn = document.getElementById('gotoEndBtn');
+// Supabase config UI
+const supaCfgBtn = document.getElementById('supaCfgBtn');
+const supaModalEl = document.getElementById('supaModal');
+const supaCloseBtn = document.getElementById('supaClose');
+const supaSaveBtn = document.getElementById('supaSave');
+const supaUrlInp = document.getElementById('supaUrl');
+const supaAnonInp = document.getElementById('supaAnon');
+const supaMsgEl = document.getElementById('supaMsg');
 
 function setStatus(msg){ if(statusEl){ statusEl.textContent = msg||''; } }
 function setBtTitle(text){ try{ const h=btProgressEl && btProgressEl.querySelector('.modal-header h2'); if(h) h.textContent = text||'Simulation'; }catch(_){ } }
@@ -366,6 +374,42 @@ if(intervalSelect){ intervalSelect.addEventListener('change', ()=>{ currentInter
 if(symbolSelect){ symbolSelect.addEventListener('change', ()=>{ currentSymbol=symbolSelect.value; updateTitle(currentSymbol); updateWatermark(); closeWs(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval)); }); }
 if(gotoEndBtn){ gotoEndBtn.addEventListener('click', ()=>{ try{ chart.timeScale().scrollToRealTime(); }catch(_){ } }); }
 updateTitle(currentSymbol); updateWatermark(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval));
+
+// Wire Supabase config button/modal
+(function(){ try{
+  function hideSupaBtn(){ if(supaCfgBtn) supaCfgBtn.style.display='none'; }
+  function showSupaBtn(){ if(supaCfgBtn) supaCfgBtn.style.display=''; }
+  async function refreshSupaBtn(){ try{
+    if(!supaCfgBtn) return;
+    const source = (window.SUPA && typeof SUPA.configSource==='function')? SUPA.configSource() : 'localStorage';
+    const isCfg = (window.SUPA && typeof SUPA.isConfigured==='function')? SUPA.isConfigured() : false;
+    const locked = localStorage.getItem('supabase:locked')==='1';
+    if((source==='static' && isCfg) || (locked && isCfg)) hideSupaBtn(); else showSupaBtn();
+  }catch(_){ } }
+  if(supaCfgBtn){ supaCfgBtn.addEventListener('click', ()=>{ try{
+      if(supaUrlInp){ supaUrlInp.value = (window.SUPABASE_URL||'') || localStorage.getItem('supabase:url') || ''; }
+      if(supaAnonInp){ supaAnonInp.value = (window.SUPABASE_ANON_KEY||'') || localStorage.getItem('supabase:anon') || ''; }
+      if(supaMsgEl){ supaMsgEl.textContent=''; }
+      openModalEl(supaModalEl);
+    }catch(_){ } }); }
+  if(supaCloseBtn){ supaCloseBtn.addEventListener('click', ()=> closeModalEl(supaModalEl)); }
+  if(supaModalEl){ supaModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(supaModalEl); }); }
+  if(supaSaveBtn){ supaSaveBtn.addEventListener('click', async ()=>{ try{
+      const url=(supaUrlInp&&supaUrlInp.value||'').trim(); const anon=(supaAnonInp&&supaAnonInp.value||'').trim();
+      if(!url||!anon){ if(supaMsgEl) supaMsgEl.textContent='URL et ANON requis'; return; }
+      try{ localStorage.setItem('supabase:url', url); localStorage.setItem('supabase:anon', anon); }catch(_){ }
+      if(supaMsgEl) supaMsgEl.textContent='Test de connexion...';
+      let ok=false;
+      try{ ok = !!(window.SUPA && typeof SUPA.testConnection==='function' ? (await SUPA.testConnection()) : false); }catch(_){ ok=false; }
+      if(ok){ try{ localStorage.setItem('supabase:locked','1'); }catch(_){ }
+        if(supaMsgEl) supaMsgEl.textContent='Connexion OK. Configuration enregistrée.';
+        setTimeout(()=>{ closeModalEl(supaModalEl); refreshSupaBtn(); }, 600);
+      } else {
+        if(supaMsgEl) supaMsgEl.textContent='Échec de connexion. Vérifiez URL/clé.';
+      }
+    }catch(_){ } }); }
+  refreshSupaBtn();
+} catch(_){ } })();
 
 // --- Modales Live / Lab / Backtest / Heaven ---
 const liveOpenBtn = document.getElementById('liveOpen'); const liveModalEl = document.getElementById('liveModal'); const liveCloseBtn=document.getElementById('liveClose');

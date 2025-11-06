@@ -133,6 +133,15 @@
     };
   }
 
+  async function testConnection(){
+    const c = ensureClient(); if(!c) return false;
+    try{
+      // lightweight test query
+      const { error } = await c.from('lab_profiles').select('id').limit(1);
+      return !error;
+    }catch(_){ return false; }
+  }
+
   async function persistLabResults(ctx){
     try{
       const c = ensureClient(); if(!c) return;
@@ -218,6 +227,7 @@
     openConfigAndLogin,
     ensureAuthFlow,
     persistLabResults,
+    testConnection,
     getUserId,
     fetchKnownKeys: fetchKnownCanonicalKeys,
   };
