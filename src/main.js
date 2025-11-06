@@ -1260,8 +1260,12 @@ async function evalParamsList(list, phase='Eval'){
     // Worker pool for parallel evals
     const CONC = Math.max(1, Math.min( Math.floor((navigator && navigator.hardwareConcurrency) || 2), 6));
     function makePool(conc){
-      const workers=[]; const idle=[]; let closed=false;
-      function spawn(){ const w=new Worker('src/worker_eval.js'); w._busy=false; w.onmessage=(ev)=>{ const d=ev.data||{}; if(w._state==='init'){
+      const workers=[]; const idle=[]; let closed=false; let failed=false;
+      function spawn(){
+        let w=null;
+        try{ w=new Worker('src/worker_eval.js'); }catch(e){ failed=true; return; }
+        if(!w){ failed=true; return; }
+        w._busy=false; w.onmessage=(ev)=>{ const d=ev.data||{}; if(w._state==='init'){
             if(d && d.ok){ w._state='idle'; idle.push(w); trySchedule(); }
             else { w._state='dead'; }
             return;
@@ -1276,6 +1280,7 @@ async function evalParamsList(list, phase='Eval'){
         workers.push(w);
       }
       for(let i=0;i<conc;i++) spawn();
+      if(failed || workers.length===0){ return null; }
       const queue=[];
       function trySchedule(){ if(closed) return; while(idle.length && queue.length){ const w=idle.shift(); const job=queue.shift(); if(!w) break; w._busy=true; w._state='eval'; w._cb=job.cb; try{ w.postMessage({ type:'eval', payload:{ params: job.params } }); }catch(e){ w._busy=false; w._state='idle'; job.cb.reject(e); idle.push(w); } } }
       return {
@@ -1285,7 +1290,11 @@ async function evalParamsList(list, phase='Eval'){
       };
     }
 
-    const pool = makePool(CONC);
+    const fallbackPool = { eval: (params)=> Promise.resolve(runBacktestSliceFor(bars, sIdx, eIdx, conf, params)), close(){ } };
+    let pool=null;
+    try{ pool = makePool(CONC); }catch(_){ pool=null; }
+    if(!pool){ try{ addBtLog(`[${phase}] mode séquentiel (fallback, workers indisponibles)`); }catch(_){ }
+      pool = fallbackPool; }
     let done=0;
     const tasks = list.map(async (item)=>{
       if(btAbort) return null;
