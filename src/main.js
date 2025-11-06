@@ -1388,6 +1388,7 @@ let cur = (await evalParamsList(start, 'Bayes:init')).sort((a,b)=> b.score-a.sco
         p.tp = sampleTPList(tpCfg).slice(0,10);
         p.sl = sampleSLList(slCfg).slice(0,10);
         if(isDup(p)) continue; pushSeen(p); batch.push({ p }); }
+      const t0=performance.now();
       const evald = await evalParamsList(batch, `Bayes`);
       const dt=performance.now()-t0;
       cur = cur.concat(evald).sort((a,b)=> b.score-a.score).slice(0, Math.max(50, initN));
