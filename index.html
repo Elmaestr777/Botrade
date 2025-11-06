@@ -848,6 +848,34 @@
       </div>
     </div>
 
+    <!-- Strategy detail modal -->
+    <div id="detailModal" class="modal hidden" aria-hidden="true" role="dialog">
+      <div class="modal-backdrop" data-close="1"></div>
+      <div class="modal-content" style="max-width:1000px;">
+        <div class="modal-header">
+          <h2>Analyse stratégie</h2>
+          <button id="detailClose" class="icon-btn" aria-label="Fermer">×</button>
+        </div>
+        <div class="modal-body">
+          <div id="detailCtx" style="margin-bottom:8px; color:var(--muted);"></div>
+          <div style="display:grid; grid-template-columns: 1fr; gap:12px;">
+            <div style="display:grid; grid-template-columns: 420px 1fr; gap:12px; align-items:start;">
+              <canvas id="detailRadar" width="420" height="300" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div>
+                <canvas id="detailEquity" width="520" height="220" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+                <canvas id="detailDD" width="520" height="100" style="margin-top:8px; background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+              <canvas id="detailHist" width="480" height="180" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <canvas id="detailEff" width="480" height="180" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+            </div>
+            <canvas id="detailRobust" width="980" height="160" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Research / Lab modal -->
     <div id="labModal" class="modal hidden" aria-hidden="true" role="dialog">
       <div class="modal-backdrop" data-close="1"></div>

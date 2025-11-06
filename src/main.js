@@ -197,13 +197,16 @@ function renderLabFromStorage(){
 // Ajout: gestion du bouton "Voir" dans Lab
 try{
   if(labTBody && (!labTBody.dataset || labTBody.dataset.viewWired!=='1')){
-    labTBody.addEventListener('click', (ev)=>{
+    labTBody.addEventListener('click', async (ev)=>{
       const t=ev.target; if(!t||!t.getAttribute) return; const act=t.getAttribute('data-action');
+      const tf = labTFSelect? labTFSelect.value: (intervalSelect? intervalSelect.value:'');
+      const i = parseInt(t.getAttribute('data-idx')||'-1',10);
+      const arr = readPalmares(currentSymbol, tf);
+      if(!(i>=0 && i<arr.length)) return;
       if(act==='view'){
-        const tf = labTFSelect? labTFSelect.value: (intervalSelect? intervalSelect.value:'');
-        const i = parseInt(t.getAttribute('data-idx')||'-1',10);
-        const arr = readPalmares(currentSymbol, tf);
-        if(i>=0 && i<arr.length){ showStrategyResult(arr[i].res||{}, {symbol: currentSymbol, tf}); }
+        showStrategyResult(arr[i].res||{}, {symbol: currentSymbol, tf});
+      } else if(act==='detail'){
+        try{ await showStrategyDetail(arr[i], { symbol: currentSymbol, tf }); }catch(_){ }
       }
     });
 labTBody.dataset.viewWired='1';
@@ -218,6 +221,10 @@ labTBody.dataset.viewWired='1';
           if(td && !td.querySelector('button[data-action="view"]')){
             const v=document.createElement('button'); v.className='btn'; v.setAttribute('data-action','view'); v.setAttribute('data-idx', idx); v.textContent='Voir';
             td.appendChild(document.createTextNode(' ')); td.appendChild(v);
+          }
+          if(td && !td.querySelector('button[data-action="detail"]')){
+            const d=document.createElement('button'); d.className='btn'; d.setAttribute('data-action','detail'); d.setAttribute('data-idx', idx); d.textContent='Détail';
+            td.appendChild(document.createTextNode(' ')); td.appendChild(d);
           }
         });
       };
@@ -701,7 +708,7 @@ function runBacktestSlice(sIdx, eIdx, conf){
   const res = { equityFinal: equity, totalPnl: equity - conf.startCap, tradesCount: tradesCount, winrate: tradesCount? (wins/tradesCount*100):0, avgRR: tradesCount? (rrSum/tradesCount):0, profitFactor: (grossLoss<0? (grossProfit/Math.abs(grossLoss)) : (tradesCount? Infinity:0)), maxDDAbs, trades };
   return res;
 }
-function runBacktestSliceFor(bars, sIdx, eIdx, conf, params){
+function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
   const lb=computeLineBreakState(bars, Math.max(1, params.nol|0));
   const prd=Math.max(2, params.prd|0);
   const pivAll=computePivots(bars, prd);
@@ -728,12 +735,13 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params){
     return tps;
   }
   let equity=conf.startCap; let peak=equity; let maxDDAbs=0; let grossProfit=0, grossLoss=0; let wins=0, losses=0; let rrSum=0; let tradesCount=0;
-  let pos=null; let pendingFib=null;
+  let pos=null; let pendingFib=null; const trades = collect? []: null; const eqPts = collect? []: null;
   const feePct=conf.fee/100; const maxPct=conf.maxPct/100; const lev=conf.lev; const baseMode=conf.base;
   function __computeQty(entry, sl){ if(!(isFinite(entry)&&isFinite(sl))) return 0; if(equity<=0) return 0; const capBase=(baseMode==='equity')?equity:conf.startCap; const budget=Math.max(0, Math.min(capBase*maxPct, equity)); const notional=budget*lev; const qty0=notional/Math.max(1e-12, entry); const riskAbs=Math.abs(entry-sl); const perUnitWorstLoss = riskAbs + ((Math.abs(entry)+Math.abs(sl)) * feePct); const qtyRisk = perUnitWorstLoss>0? (equity / perUnitWorstLoss) : 0; const q=Math.max(0, Math.min(qty0, qtyRisk)); return q; }
   for(let i=Math.max(1,sIdx); i<=eIdx; i++){
     if(btAbort) break; if(equity<=0) break;
     const bar=bars[i]; const trendNow=lb.trend[i]; const trendPrev=lb.trend[i-1];
+    if(eqPts){ eqPts.push({ time: bar.time, equity }); }
     advancePivotIdxTo(i);
     if(!pos){
       if(trendNow!==trendPrev){
@@ -762,11 +770,14 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params){
         else if(pos.targets && pos.targets.length && bar.low <= pos.targets[0]){ exit = pos.targets[0]; }
         else if(trendNow!==trendPrev && trendNow!==-1){ exit = bar.close; }
       }
-      if(exit!=null){ const pnl = (pos.dir==='long'? (exit - pos.entry) : (pos.entry - exit)) * pos.qty; const fees = (pos.entry*pos.qty + exit*pos.qty) * feePct; const net = pnl - fees; equity += net; if(equity<0) equity=0; tradesCount++; if(pos.risk>0){ rrSum += (net/pos.risk); } if(net>=0){ grossProfit += net; wins++; } else { grossLoss += net; losses++; } if(equity>peak){ peak=equity; } const dd = peak - equity; if(dd>maxDDAbs){ maxDDAbs=dd; } pos=null; }
+      if(exit!=null){ const eqBefore=equity; const pnl = (pos.dir==='long'? (exit - pos.entry) : (pos.entry - exit)) * pos.qty; const fees = (pos.entry*pos.qty + exit*pos.qty) * feePct; const net = pnl - fees; equity += net; if(equity<0) equity=0; tradesCount++; if(pos.risk>0){ rrSum += (net/pos.risk); } if(net>=0){ grossProfit += net; wins++; } else { grossLoss += net; losses++; } if(equity>peak){ peak=equity; } const dd = peak - equity; if(dd>maxDDAbs){ maxDDAbs=dd; } if(trades){ trades.push({ dir:pos.dir, entryTime:bars[pos.entryIdx].time, entry:pos.entry, exitTime:bars[i].time, exit, qty:pos.qty, net, fees, rr: (pos.risk>0? net/pos.risk:null), eqBefore }); } pos=null; }
     }
     if(btProgBar && btProgText){ const p = Math.round((i - sIdx) / Math.max(1, (eIdx - sIdx)) * 100); if(p%5===0){ btProgBar.style.width = p+'%'; btProgText.textContent = `Optimisation ${p}%`; } }
   }
+  if(eqPts){ eqPts.push({ time: bars[Math.min(eIdx, bars.length-1)].time, equity }); }
   const res = { equityFinal: equity, totalPnl: equity - conf.startCap, tradesCount: tradesCount, winrate: tradesCount? (wins/tradesCount*100):0, avgRR: tradesCount? (rrSum/tradesCount):0, profitFactor: (grossLoss<0? (grossProfit/Math.abs(grossLoss)) : (tradesCount? Infinity:0)), maxDDAbs };
+  if(trades) res.trades = trades;
+  if(eqPts) res.eqSeries = eqPts;
   return res;
 }
 if(btCancelBtn){ btCancelBtn.addEventListener('click', ()=> closeModalEl(btModalEl)); }
@@ -948,6 +959,61 @@ if(tradesHdrCtx){ const periodStr = (minTs<Infinity && maxTs>-Infinity)? `${fmt(
 if(tradesClose){ tradesClose.addEventListener('click', ()=> closeModalEl(tradesModalEl)); }
 if(tradesClose2){ tradesClose2.addEventListener('click', ()=> closeModalEl(tradesModalEl)); }
 if(tradesModalEl){ tradesModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close){ closeModalEl(tradesModalEl); } }); }
+
+// Strategy detail modal
+const detailModalEl=document.getElementById('detailModal'); const detailClose=document.getElementById('detailClose'); const detailCtxEl=document.getElementById('detailCtx');
+const canRadar=document.getElementById('detailRadar'); const canEquity=document.getElementById('detailEquity'); const canDD=document.getElementById('detailDD'); const canHist=document.getElementById('detailHist'); const canEff=document.getElementById('detailEff'); const canRob=document.getElementById('detailRobust');
+if(detailClose){ detailClose.addEventListener('click', ()=> closeModalEl(detailModalEl)); }
+if(detailModalEl){ detailModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close){ closeModalEl(detailModalEl); } }); }
+
+function __drawText(ctx, x, y, txt, align='left'){ ctx.save(); ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--fg')||'#111827'; ctx.font='12px Segoe UI, Arial'; ctx.textAlign=align; ctx.textBaseline='middle'; ctx.fillText(txt, x, y); ctx.restore(); }
+function __clr(){ const cs=getComputedStyle(document.documentElement); return { fg: cs.getPropertyValue('--fg')||'#111827', muted: cs.getPropertyValue('--muted')||'#6b7280', border: cs.getPropertyValue('--header-border')||'#e5e7eb' }; }
+function drawRadar(canvas, labels, vals){ if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); const cx=w/2, cy=h/2+10, R=Math.min(w,h)/2-30; const n=labels.length; ctx.strokeStyle=__clr().border; ctx.lineWidth=1; for(let r=0;r<=4;r++){ const rr=R*(r/4); ctx.beginPath(); for(let k=0;k<n;k++){ const ang = -Math.PI/2 + 2*Math.PI*k/n; const x=cx+rr*Math.cos(ang), y=cy+rr*Math.sin(ang); if(k===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); } ctx.closePath(); ctx.stroke(); }
+  for(let k=0;k<n;k++){ const ang=-Math.PI/2 + 2*Math.PI*k/n; const x=cx+(R+10)*Math.cos(ang), y=cy+(R+10)*Math.sin(ang); __drawText(ctx, x, y, labels[k], (Math.cos(ang)>0?'left':(Math.cos(ang)<0?'right':'center'))); }
+  ctx.beginPath(); for(let k=0;k<n;k++){ const v=Math.max(0,Math.min(100, vals[k]||0))/100; const ang=-Math.PI/2 + 2*Math.PI*k/n; const x=cx+R*v*Math.cos(ang), y=cy+R*v*Math.sin(ang); if(k===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); } ctx.closePath(); ctx.fillStyle='rgba(37,99,235,0.25)'; ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.fill(); ctx.stroke(); }
+function drawEquity(canvas, eq){ if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); if(!eq||!eq.length) return; const min=Math.min(...eq.map(p=>p.equity)); const max=Math.max(...eq.map(p=>p.equity)); const x=(i)=> i/(eq.length-1)*(w-40)+20; const y=(v)=> h-20 - (v-min)/(max-min+1e-9)*(h-40); let peak=-Infinity; ctx.fillStyle='rgba(239,68,68,0.15)'; ctx.beginPath(); for(let i=0;i<eq.length;i++){ peak=Math.max(peak, eq[i].equity); const dd=peak-eq[i].equity; if(dd>0){ const xx=x(i); ctx.fillRect(xx-1, y(peak), 2, Math.max(0, y(eq[i].equity)-y(peak))); } } ctx.fill(); ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<eq.length;i++){ const xx=x(i), yy=y(eq[i].equity); if(i===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy); } ctx.stroke(); }
+function drawDD(canvas, eq){ if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); if(!eq||!eq.length) return; let peak=-Infinity; const min=0, maxDD=Math.max(1e-9, ...eq.map(p=>{ peak=Math.max(peak, p.equity); return peak-p.equity; })); peak=-Infinity; for(let i=0;i<eq.length;i++){ peak=Math.max(peak, eq[i].equity); const dd=peak-eq[i].equity; const xx=i/(eq.length-1)*(w-40)+20; const hh=(dd/maxDD)*(h-30); ctx.fillStyle='rgba(239,68,68,0.6)'; ctx.fillRect(xx-1, h-10-hh, 2, hh); } __drawText(ctx, 10, 10, 'Drawdowns', 'left'); }
+function drawHist(canvas, data){ if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); if(!data||!data.length) return; const min=Math.min(...data), max=Math.max(...data); const bins=20; const step=(max-min)/(bins||1)||1; const hist=new Array(bins).fill(0); for(const v of data){ let b=Math.floor((v-min)/step); if(b<0) b=0; if(b>=bins) b=bins-1; hist[b]++; } const mcount=Math.max(...hist); for(let i=0;i<bins;i++){ const x=i/bins*(w-40)+20; const hh= (hist[i]/(mcount||1))*(h-30); ctx.fillStyle='#2563eb'; ctx.fillRect(x, h-10-hh, (w-40)/bins-2, hh); } __drawText(ctx, 10, 10, 'Distribution des rendements (%)', 'left'); }
+function drawBars(canvas, labels, vals){ if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); const n=labels.length; for(let i=0;i<n;i++){ const y=20+i*((h-30)/n); const val=Math.max(0,Math.min(100, vals[i]||0)); ctx.fillStyle='#e5e7eb'; ctx.fillRect(120, y, w-140, 12); ctx.fillStyle='#2563eb'; ctx.fillRect(120, y, (w-140)*val/100, 12); __drawText(ctx, 110, y+6, String(val.toFixed(0))+'%', 'right'); __drawText(ctx, 10, y+6, labels[i], 'left'); } }
+function drawRobust(canvas, complexity, robustness){ if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, 10, 20, 'Complexité & Robustesse', 'left'); // bars
+  const labels=['Complexité (params actifs)','Robustesse (stabilité)']; const vals=[complexity, robustness]; for(let i=0;i<2;i++){ const y=40+i*40; ctx.fillStyle='#e5e7eb'; ctx.fillRect(220, y, w-240, 14); ctx.fillStyle=i===0?'#f59e0b':'#10b981'; ctx.fillRect(220, y, (w-240)*Math.max(0,Math.min(100, vals[i]))/100, 14); __drawText(ctx, 210, y+7, String(Math.round(vals[i]))+'%', 'right'); __drawText(ctx, 10, y+7, labels[i], 'left'); } }
+
+async function showStrategyDetail(item, ctx){ try{ const sym=ctx.symbol, tf=ctx.tf; const p=item.params||{}; const conf={ startCap: Math.max(0, +((document.getElementById('labStartCap')||{}).value||10000)), fee: Math.max(0, +((document.getElementById('labFee')||{}).value||0.1)), lev: Math.max(1, +((document.getElementById('labLev')||{}).value||1)), maxPct:100, base:'initial' };
+  let bars=candles; if(tf!==currentInterval){ try{ bars=await fetchAllKlines(sym, tf, 5000); }catch(_){ bars=candles; } }
+  const sIdx=Math.max(0, bars.length-Math.min(5000, bars.length)); const eIdx=bars.length-1;
+  const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, p, true);
+  const eq = (res.eqSeries||[]).map(x=>({ time:x.time, equity:x.equity }));
+  // returns per trade
+  const rets=[]; let totalDur=0; let minTs=Infinity, maxTs=-Infinity; let wins=0, losses=0; for(const t of (res.trades||[])){ const cap=Math.max(1, t.eqBefore||conf.startCap); rets.push((t.net/cap)*100); if(t.net>=0) wins++; else losses++; totalDur += Math.max(0, (t.exitTime||0)-(t.entryTime||0)); if(Number.isFinite(t.entryTime)&&t.entryTime<minTs) minTs=t.entryTime; if(Number.isFinite(t.exitTime)&&t.exitTime>maxTs) maxTs=t.exitTime; }
+  const mean=(arr)=> arr.length? arr.reduce((a,b)=>a+b,0)/arr.length : 0; const m=mean(rets); const sd=Math.sqrt(mean(rets.map(x=> (x-m)*(x-m)))); const sharpe = (sd>0? (m/sd*Math.sqrt(Math.max(1, rets.length))) : 0);
+  // Radar metrics (0..100)
+  const pf = (res.profitFactor===Infinity? 3 : Math.max(0, Math.min(3, +res.profitFactor||0))); const pfN = (pf/3)*100;
+  const sharpeN = Math.max(0, Math.min(100, (sharpe/3)*100));
+  const recov = (res.maxDDAbs>0? (res.totalPnl/Math.max(1e-9, res.maxDDAbs)) : 0); const recovN = Math.max(0, Math.min(100, (recov/3)*100));
+  const consN = Math.max(0, Math.min(100, 100*(1 - Math.min(1, sd/3))));
+  const cpiN = Math.max(0, Math.min(100, 100*(1 - Math.min(1, (res.maxDDAbs/Math.max(1, conf.startCap)) / 0.5))));
+  const r2 = (()=>{ const n=eq.length; if(n<3) return 0; const xs=eq.map((_,i)=>i); const ys=eq.map(p=>p.equity); const xm=mean(xs), ym=mean(ys); let num=0, den=0; for(let i=0;i<n;i++){ const xv=xs[i]-xm, yv=ys[i]-ym; num += xv*yv; den += xv*xv; } const a=num/(den||1); const b=ym - a*xm; let ssTot=0, ssRes=0; for(let i=0;i<n;i++){ const y=ys[i]; const yhat=a*xs[i]+b; ssTot += (y-ym)*(y-ym); ssRes += (y-yhat)*(y-yhat); } return 1 - (ssRes/(ssTot||1)); })();
+  const r2N = Math.max(0, Math.min(100, r2*100));
+  const winrate = +res.winrate||0; const avgRR = +res.avgRR||0; const teN = Math.max(0, Math.min(100, (winrate/100) * (pf/(pf+1))*100));
+  const edgeN = Math.max(0, Math.min(100, (pf/(pf+1)) * (1 - Math.min(1, sd/5))*100));
+  drawRadar(canRadar, ['Profit Factor','Sharpe','Recovery','Consistency','Cap. Protection','R² equity','Trade Efficiency','Edge Robustness'], [pfN, sharpeN, recovN, consN, cpiN, r2N, teN, edgeN]);
+  drawEquity(canEquity, eq);
+  drawDD(canDD, eq);
+  drawHist(canHist, rets);
+  // Efficiency
+  const totalSecs=Math.max(1, (maxTs>minTs? (maxTs-minTs) : (bars[eIdx].time-bars[sIdx].time)));
+  const days=totalSecs/86400; const freq = (res.tradesCount||0)/(days||1);
+  const timeInMkt = Math.max(0, Math.min(100, 100*(totalDur/Math.max(1, totalSecs))));
+  const effLabels=['Win Rate','Avg R:R','Trade Efficiency','Time in Market','Trades / jour'];
+  const effVals=[winrate, Math.max(0, Math.min(100, (avgRR/2)*100)), teN, timeInMkt, Math.max(0, Math.min(100, (freq/20)*100))];
+  drawBars(canEff, effLabels, effVals);
+  // Complexity & robustness
+  const complexity = (6 + (p.useFibRet?1:0) + (p.confirmMode?1:0) + (Array.isArray(p.tp)? p.tp.length:0)); const compN = Math.max(0, Math.min(100, (complexity/20)*100));
+  drawRobust(canRob, compN, edgeN);
+  if(detailCtxEl){ detailCtxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — ${item.name||'Stratégie'} — PF ${(res.profitFactor===Infinity?'∞':(+res.profitFactor||0).toFixed(2))} • Trades ${res.tradesCount}`; }
+  openModalEl(detailModalEl);
+ }catch(_){ setStatus('Erreur analyse'); }
+}
 
 // Lab actions: refresh/export/clear/weights
 const labExportBtn=document.getElementById('labExport'); const labClearBtn=document.getElementById('labClear'); const labWeightsBtn=document.getElementById('labWeights');
