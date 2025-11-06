@@ -1132,7 +1132,7 @@ const weights=getWeights(profSel);
   // Global simulation progress (for ETA)
   let __labSimTotal=0, __labSimDone=0, __labSimDtSum=0, __labSimDtCnt=0, __labConc=1;
   function __fmtETA(ms){ if(!(ms>0)) return '—'; const s=Math.round(ms/1000); const m=Math.floor(s/60); const ss=String(s%60).padStart(2,'0'); const mm=String(m%60).padStart(2,'0'); const hh=Math.floor(m/60); return (hh>0? (String(hh).padStart(2,'0')+':'):'')+mm+':'+ss; }
-  function updateGlobalProgressUI(){ try{ const tot=Math.max(0,__labSimTotal), dn=Math.max(0,__labSimDone); const pct=tot? Math.round(dn/tot*100) : 0; if(btProgGlobalBar) btProgGlobalBar.style.width=pct+'%'; let eta='—'; if(__labSimDtCnt>0 && tot>0){ const avg = __labSimDtSum/Math.max(1,__labSimDtCnt); const effConc=Math.max(1,__labConc|0); const remain=Math.max(0, tot-dn); eta=__fmtETA((remain*avg)/effConc); } if(btProgGlobalText) btProgGlobalText.textContent = `Global: ${pct}% (${dn}/${tot}) — ETA ${eta}`; }catch(_){ } }
+function updateGlobalProgressUI(){ try{ const tot=Math.max(0,__labSimTotal), dn=Math.max(0,__labSimDone); const pct=tot? Math.round(dn/tot*100) : 0; if(btProgGlobalBar) btProgGlobalBar.style.width=pct+'%'; let eta='—'; if(tot>0){ let avg=null; try{ const fallback=Number(localStorage.getItem('lab:avgEvalMs')); avg = (Number.isFinite(fallback)&&fallback>0)? fallback : null; }catch(_){ avg=null; } if(__labSimDtCnt>0){ avg = __labSimDtSum/Math.max(1,__labSimDtCnt); } if(!(avg>0)) avg = 1000; const effConc=Math.max(1,__labConc|0); const remain=Math.max(0, tot-dn); eta=__fmtETA((remain*avg)/effConc); } if(btProgGlobalText) btProgGlobalText.textContent = `Global: ${pct}% (${dn}/${tot}) — ETA ${eta}`; }catch(_){ } }
   __lastLabTested = allTested;
   // Preload known keys from Supabase to avoid retest across sessions
   let seenCanon = new Set();
@@ -1307,8 +1307,10 @@ async function evalParamsList(list, phase='Eval'){
       if(btAbort) return null;
       const t0=performance.now();
       try{
-        const res = await pool.eval(item.p);
-        const dt=performance.now()-t0; __labSimDone++; __labSimDtSum+=dt; __labSimDtCnt++; updateGlobalProgressUI();
+const res = await pool.eval(item.p);
+        const dt=performance.now()-t0; __labSimDone++; __labSimDtSum+=dt; __labSimDtCnt++;
+        try{ const prev=Number(localStorage.getItem('lab:avgEvalMs')); const newAvg=(Number.isFinite(prev)&&prev>0)? (0.6*prev + 0.4*dt) : dt; localStorage.setItem('lab:avgEvalMs', String(Math.round(newAvg))); }catch(_){ }
+        updateGlobalProgressUI();
 // Robustified score: base + mini-MC jitter + optional halves; penalize variance
 const __baseScore=scoreResult(res, weights);
 function __mean(a){ return a.length? a.reduce((x,y)=>x+y,0)/a.length : 0; }
