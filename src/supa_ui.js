@@ -161,11 +161,36 @@
     alert('Configuration Supabase enregistrée (mode public, sans identification).');
   }
 
+  async function fetchKnownCanonicalKeys(symbol, tf){
+    const c=ensureClient(); if(!c) return new Set();
+    const profileId = await getBalanceeProfileId();
+    const out=new Set();
+    let from=0, step=1000; // simple paging
+    while(true){
+      try{
+        const { data, error } = await c
+          .from('strategy_evaluations')
+          .select('params')
+          .eq('symbol', symbol)
+          .eq('tf', tf)
+          .eq('profile_id', profileId)
+          .range(from, from+step-1);
+        if(error) break;
+        if(!Array.isArray(data) || !data.length) break;
+        for(const row of data){ try{ out.add(JSON.stringify(row.params||{})); }catch(_){ } }
+        if(data.length<step) break;
+        from += step;
+      }catch(_){ break; }
+    }
+    return out;
+  }
+
   window.SUPA = {
     isConfigured: ()=>{ const c=readCfg(); return !!(c.url && c.anon); },
     openConfigAndLogin,
     ensureAuthFlow,
     persistLabResults,
     getUserId,
+    fetchKnownKeys: fetchKnownCanonicalKeys,
   };
 })();

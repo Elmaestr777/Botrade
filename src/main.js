@@ -1002,6 +1002,9 @@ const conf={ startCap: Math.max(0, parseFloat((document.getElementById('labStart
   try{ const span = (from!=null||to!=null)? `${new Date((from||bars[sIdx]?.time||0)*1000).toLocaleString()} → ${new Date((to||bars[eIdx]?.time||0)*1000).toLocaleString()}` : `${new Date((bars[sIdx]?.time||0)*1000).toLocaleString()} → ${new Date((bars[eIdx]?.time||0)*1000).toLocaleString()}`; addBtLog(`Période: idx ${sIdx}-${eIdx} (${Math.max(0,eIdx-sIdx+1)} barres) • ${span}`); }catch(_){ }
 const weights=getWeights(profSel);
   const allTested=[]; // accumulate every evaluated strategy for Supabase persistence
+  // Preload known keys from Supabase to avoid retest across sessions
+  let seenCanon = new Set();
+  try{ if(window.SUPA && typeof SUPA.fetchKnownKeys==='function'){ seenCanon = await SUPA.fetchKnownKeys(sym, tfSel) || new Set(); addBtLog && addBtLog(`Déduplication: ${seenCanon.size} stratégies déjà en base`); } }catch(_){ }
   // Stopping conditions
   const timeLimitSec = Math.max(0, parseInt((document.getElementById('labTimeLimitSec')&&document.getElementById('labTimeLimitSec').value)||'0',10));
   const minScoreGoal = Math.max(0, parseFloat((document.getElementById('labMinScore')&&document.getElementById('labMinScore').value)||'0'));
@@ -1014,6 +1017,7 @@ const weights=getWeights(profSel);
   const rSL=[0.5,1,1.5,2,2.5,3]; const rBEb=[3,4,5,6,7,8]; const rBEL=[3,4,5,6,7,8,9,10];
   const rEMALen=[]; for(let v=21; v<=89; v+=4){ rEMALen.push(v); }
   const keyOf=(p)=> JSON.stringify([p.nol,p.prd,p.slInitPct,p.beAfterBars,p.beLockPct,p.emaLen,p.entryMode,p.useFibRet,p.confirmMode,p.ent382,p.ent500,p.ent618,p.ent786,Array.isArray(p.tp)? p.tp.slice(0,10):[]]);
+  const canonKey=(p)=>{ try{ const tpArr=Array.isArray(p.tp)? p.tp.slice(0,10).map(t=>({ type: t.type||'Fib', fib: (t.fib!=null? t.fib : t.value), pct: (t.pct!=null? t.pct : undefined), emaLen: (t.emaLen!=null? t.emaLen : undefined), qty: (t.qty!=null? t.qty : undefined) })) : []; const obj={ nol:p.nol|0, prd:p.prd|0, slInitPct:+p.slInitPct, beAfterBars:p.beAfterBars|0, beLockPct:+p.beLockPct, emaLen:p.emaLen|0, entryMode:String(p.entryMode||'Both'), tpEnable: (p.tpEnable!=null? !!p.tpEnable : true), tp: tpArr }; return JSON.stringify(obj); }catch(_){ return ''; } };
 
   function readTPOpt(){ try{ const en=!!document.getElementById('labTPOptEn')?.checked; const count=Math.max(1, Math.min(10, parseInt(document.getElementById('labTPCount')?.value||'3',10))); const allowFib=!!document.getElementById('labTPAllowFib')?.checked; const allowPct=!!document.getElementById('labTPAllowPct')?.checked; const allowEMA=!!document.getElementById('labTPAllowEMA')?.checked; const pctMin=parseFloat(document.getElementById('labTPPctMin')?.value||'0.5'); const pctMax=parseFloat(document.getElementById('labTPPctMax')?.value||'5'); const fibs=[]; document.querySelectorAll('#labTPFibWrap input[type=checkbox][data-r]').forEach(el=>{ if(el.checked){ const v=parseFloat(el.getAttribute('data-r')||''); if(isFinite(v)) fibs.push(v); } }); return { en, count, allowFib, allowPct, allowEMA, pctMin, pctMax, fibs: (fibs.length?fibs:[0.382,0.5,0.618,1.0,1.618]) }; }catch(_){ return { en:false, count:3, allowFib:true, allowPct:false, allowEMA:false, pctMin:0.5, pctMax:5, fibs:[0.382,0.5,0.618,1.0,1.618] }; } }
   function randWeights(n){ const arr=new Array(n).fill(0).map(()=> Math.random()+0.05); const s=arr.reduce((a,b)=>a+b,0); return arr.map(x=> x/s); }
@@ -1041,11 +1045,11 @@ async function evalParamsList(list, phase='Eval'){ const out=[]; let idx=0; cons
     const gens = Math.max(1, parseInt((document.getElementById('labEAGen')&&document.getElementById('labEAGen').value)||'20',10));
     const mutPct = Math.max(0, Math.min(100, parseFloat((document.getElementById('labEAMut')&&document.getElementById('labEAMut').value)||'20')))/100;
     const cxPct = Math.max(0, Math.min(100, parseFloat((document.getElementById('labEACx')&&document.getElementById('labEACx').value)||'60')))/100;
-    const seen=new Set(); function pushSeen(p){ seen.add(keyOf(p)); }
+    const seen=new Set(); const isDup=(p)=>{ const k=keyOf(p); if(seen.has(k)) return true; const ck=canonKey(p); if(seenCanon.has(ck)) return true; return false; }; const pushSeen=(p)=>{ seen.add(keyOf(p)); seenCanon.add(canonKey(p)); };
     let pool=[];
     // init population
-    const init=[]; if(Array.isArray(seed)&&seed.length){ for(const s of seed){ const k=keyOf(s.p); if(!seen.has(k)){ pushSeen(s.p); init.push({ p:s.p, owner:s.owner||null }); if(init.length>=pop) break; } } }
-    while(init.length<pop){ const p=randomParams(); const k=keyOf(p); if(!seen.has(k)){ pushSeen(p); init.push({ p }); } }
+    const init=[]; if(Array.isArray(seed)&&seed.length){ for(const s of seed){ if(isDup(s.p)) continue; pushSeen(s.p); init.push({ p:s.p, owner:s.owner||null }); if(init.length>=pop) break; } }
+    while(init.length<pop){ const p=randomParams(); if(isDup(p)) continue; pushSeen(p); init.push({ p }); }
 let cur = await evalParamsList(init, 'EA:init');
     cur.sort((a,b)=> b.score-a.score);
     try{ const top=cur[0]; if(top){ addBtLog(`EA init — best score ${top.score.toFixed(1)} • PF ${(top.res.profitFactor===Infinity?'∞':(top.res.profitFactor||0).toFixed(2))} • Trades ${top.res.tradesCount} • Win ${(top.res.winrate||0).toFixed(1)}%`); } }catch(_){ }
@@ -1061,7 +1065,7 @@ for(let g=2; g<=gens+1 && !btAbort; g++){
       while(children.length<pop){ const a=pick(elites), b=pick(elites);
         let child = (Math.random()<cxPct)? crossover(a.p, b.p) : {...(pick(elites).p)};
         child = mutate(child, mutPct);
-        const k=keyOf(child); if(seen.has(k)) continue; pushSeen(child); children.push({ p:child, owner: (a.owner||b.owner||null) }); }
+        if(isDup(child)) continue; pushSeen(child); children.push({ p:child, owner: (a.owner||b.owner||null) }); }
 const t0g=performance.now();
       const evald = await evalParamsList(children, 'EA');
       const dtg=performance.now()-t0g;
@@ -1075,11 +1079,11 @@ const t0g=performance.now();
   async function runBayes(seed){ const iters = Math.max(0, parseInt((document.getElementById('labBayIters')&&document.getElementById('labBayIters').value)||'150',10));
     const initN = Math.max(1, parseInt((document.getElementById('labBayInit')&&document.getElementById('labBayInit').value)||'40',10));
     const elitePct = Math.max(5, Math.min(80, parseInt((document.getElementById('labBayElitePct')&&document.getElementById('labBayElitePct').value)||'30',10)));
-    const seen=new Set(); function pushSeen(p){ seen.add(keyOf(p)); }
+    const seen=new Set(); const isDup=(p)=>{ const k=keyOf(p); if(seen.has(k)) return true; const ck=canonKey(p); if(seenCanon.has(ck)) return true; return false; }; const pushSeen=(p)=>{ seen.add(keyOf(p)); seenCanon.add(canonKey(p)); };
     let pool=[];
     const seeds = Array.isArray(seed)? seed.slice(0) : [];
-    const start=[]; for(const s of seeds){ const k=keyOf(s.p); if(!seen.has(k)){ pushSeen(s.p); start.push({ p:s.p, owner:s.owner||null }); if(start.length>=initN) break; } }
-    while(start.length<initN){ const p=randomParams(); const k=keyOf(p); if(!seen.has(k)){ pushSeen(p); start.push({ p }); } }
+    const start=[]; for(const s of seeds){ if(isDup(s.p)) continue; pushSeen(s.p); start.push({ p:s.p, owner:s.owner||null }); if(start.length>=initN) break; }
+    while(start.length<initN){ const p=randomParams(); if(isDup(p)) continue; pushSeen(p); start.push({ p }); }
     try{ setBtTitle('Bayes (EDA)'); addBtLog('Bayes: démarrage'); }catch(_){ }
 let cur = (await evalParamsList(start, 'Bayes:init')).sort((a,b)=> b.score-a.score);
     try{ const top=cur[0]; if(top){ addBtLog(`Bayes init — best ${top.score.toFixed(1)} PF ${(top.res.profitFactor===Infinity?'∞':(top.res.profitFactor||0).toFixed(2))}`); } }catch(_){ }
@@ -1100,7 +1104,7 @@ let cur = (await evalParamsList(start, 'Bayes:init')).sort((a,b)=> b.score-a.sco
       const batch=[]; while(batch.length<Math.max(10, cur.length)){
         const p={ nol: sampleFrom(D.nol), prd: sampleFrom(D.prd), slInitPct: sampleFrom(D.sl), beAfterBars: sampleFrom(D.beb), beLockPct: sampleFrom(D.bel), emaLen: sampleFrom(D.ema), entryMode: lbcOpts.entryMode||'Both', useFibRet: !!lbcOpts.useFibRet, confirmMode: lbcOpts.confirmMode||'Bounce', ent382: !!lbcOpts.ent382, ent500: !!lbcOpts.ent500, ent618: !!lbcOpts.ent618, ent786: !!lbcOpts.ent786, tpEnable: true, tp: [] };
         if(tpCfg.en){ p.tp = sampleTPList(tpCfg).slice(0,10); } else { p.tpEnable = !!lbcOpts.tpEnable; p.tp = Array.isArray(lbcOpts.tp)? lbcOpts.tp.slice(0,10):[]; }
-        const k=keyOf(p); if(seen.has(k)) continue; pushSeen(p); batch.push({ p }); }
+        if(isDup(p)) continue; pushSeen(p); batch.push({ p }); }
       const t0=performance.now();
       const evald = await evalParamsList(batch, `Bayes`);
       const dt=performance.now()-t0;
