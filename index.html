@@ -535,6 +535,10 @@
           <pre id="btProgLog" style="margin-top:6px; max-height:35vh; overflow:auto; background:var(--bg2, rgba(0,0,0,0.04)); padding:6px; border-radius:4px; font-size:12px; white-space:pre-wrap;">—</pre>
         </div>
         <div class="modal-footer">
+          <div style="margin-right:auto; display:flex; gap:8px;">
+            <button id="btPause" class="btn" title="Mettre en pause/Reprendre">Pause</button>
+            <button id="btStop" class="btn" title="Arrêter">Stop</button>
+          </div>
           <button id="btAbort" class="btn">Annuler</button>
         </div>
       </div>
@@ -929,8 +933,6 @@
               <label title="Score minimum (0-100); 0 = désactivé">Score min <input id="labMinScore" type="number" min="0" max="100" step="0.1" value="0" style="width:6rem" /></label>
               <div style="display:flex; gap:6px; margin-left:auto;">
                 <button id="labRun" class="btn primary">Entraîner</button>
-                <button id="labPause" class="btn" title="Mettre en pause/Reprendre">Pause</button>
-                <button id="labStop" class="btn" title="Arrêter">Stop</button>
               </div>
             </div>
             <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:6px;">
