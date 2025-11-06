@@ -648,13 +648,14 @@ if(lbcSaveBtn){ lbcSaveBtn.addEventListener('click', ()=>{ if(optEnabled) lbcOpt
 // --- Backtest (période visible / all / dates) ---
 const btRunBtn=document.getElementById('btRun'); const btCancelBtn=document.getElementById('btCancel'); const btOptimizeBtn=document.getElementById('btOptimize');
 const btProgressEl=document.getElementById('btProgress'); const btProgText=document.getElementById('btProgText'); const btProgBar=document.getElementById('btProgBar'); const btProgNote=document.getElementById('btProgNote'); const btProgTime=document.getElementById('btProgTime'); const btProgLog=document.getElementById('btProgLog'); const btAbortBtn=document.getElementById('btAbort');
+const btProgGlobalText=document.getElementById('btProgGlobalText'); const btProgGlobalBar=document.getElementById('btProgGlobalBar');
 const btStartCap=document.getElementById('btStartCap'); const btFee=document.getElementById('btFee'); const btLev=document.getElementById('btLev'); const btMaxPct=document.getElementById('btMaxPct'); const btMaxBase=document.getElementById('btMaxBase');
 const btRangeVisible=document.getElementById('btRangeVisible'); const btRangeAll=document.getElementById('btRangeAll'); const btRangeDates=document.getElementById('btRangeDates'); const btFrom=document.getElementById('btFrom'); const btTo=document.getElementById('btTo');
 let btAbort=false; let btPaused=false; let __btTimerId=null; let __btStartTs=0;
 function __fmtElapsed(ms){ const s=Math.floor(ms/1000); const m=Math.floor(s/60); const ss=String(s%60).padStart(2,'0'); const mm=String(m%60).padStart(2,'0'); const hh=Math.floor(m/60); return (hh>0? (String(hh).padStart(2,'0')+':'):'')+mm+':'+ss; }
 function __setBtTime(){ if(btProgTime){ const ms=Date.now()-__btStartTs; btProgTime.textContent = `⏱ ${__fmtElapsed(ms)}`; } }
 function addBtLog(msg){ try{ const t=new Date(); const hh=String(t.getHours()).padStart(2,'0'); const mm=String(t.getMinutes()).padStart(2,'0'); const ss=String(t.getSeconds()).padStart(2,'0'); const line=`[${hh}:${mm}:${ss}] ${msg}`; if(btProgLog){ if(btProgLog.textContent==='—') btProgLog.textContent=line; else btProgLog.textContent += ("\n"+line); btProgLog.scrollTop = btProgLog.scrollHeight; } if(typeof addLabLog==='function'){ addLabLog(msg); } }catch(_){ } }
-function openBtProgress(msg){ if(btProgText) btProgText.textContent = msg||''; if(btProgBar) btProgBar.style.width='0%'; if(btProgNote) btProgNote.textContent=''; if(btProgLog) btProgLog.textContent='—'; const pBtn=document.getElementById('btPause'); if(pBtn) pBtn.textContent='Pause'; __btStartTs=Date.now(); if(__btTimerId) { try{ clearInterval(__btTimerId);}catch(_){}} __setBtTime(); __btTimerId=setInterval(__setBtTime, 500); openModalEl(btProgressEl); }
+function openBtProgress(msg){ if(btProgText) btProgText.textContent = msg||''; if(btProgBar) btProgBar.style.width='0%'; if(btProgNote) btProgNote.textContent=''; if(btProgGlobalBar) btProgGlobalBar.style.width='0%'; if(btProgGlobalText) btProgGlobalText.textContent='Global: 0% (0/0) — ETA —'; if(btProgLog) btProgLog.textContent='—'; const pBtn=document.getElementById('btPause'); if(pBtn) pBtn.textContent='Pause'; __btStartTs=Date.now(); if(__btTimerId) { try{ clearInterval(__btTimerId);}catch(_){}} __setBtTime(); __btTimerId=setInterval(__setBtTime, 500); openModalEl(btProgressEl); }
 function closeBtProgress(){ if(__btTimerId){ try{ clearInterval(__btTimerId);}catch(_){ } __btTimerId=null; } closeModalEl(btProgressEl); }
 function getVisibleRange(){ try{ const r=chart.timeScale().getVisibleRange(); if(!r) return null; return { from: r.from, to: r.to }; }catch(_){ return null; } }
 function idxFromTime(from, to){ let s=0, e=candles.length-1; if(from!=null){ for(let i=0;i<candles.length;i++){ if(candles[i].time>=from){ s=i; break; } } } if(to!=null){ for(let j=candles.length-1;j>=0;j--){ if(candles[j].time<=to){ e=j; break; } } } return [s,e]; }
@@ -1128,6 +1129,10 @@ const conf={ startCap: Math.max(0, parseFloat((document.getElementById('labStart
   try{ const span = (from!=null||to!=null)? `${new Date((from||bars[sIdx]?.time||0)*1000).toLocaleString()} → ${new Date((to||bars[eIdx]?.time||0)*1000).toLocaleString()}` : `${new Date((bars[sIdx]?.time||0)*1000).toLocaleString()} → ${new Date((bars[eIdx]?.time||0)*1000).toLocaleString()}`; addBtLog(`Période: idx ${sIdx}-${eIdx} (${Math.max(0,eIdx-sIdx+1)} barres) • ${span}`); }catch(_){ }
 const weights=getWeights(profSel);
   const allTested=[]; // accumulate every evaluated strategy for Supabase persistence
+  // Global simulation progress (for ETA)
+  let __labSimTotal=0, __labSimDone=0, __labSimDtSum=0, __labSimDtCnt=0, __labConc=1;
+  function __fmtETA(ms){ if(!(ms>0)) return '—'; const s=Math.round(ms/1000); const m=Math.floor(s/60); const ss=String(s%60).padStart(2,'0'); const mm=String(m%60).padStart(2,'0'); const hh=Math.floor(m/60); return (hh>0? (String(hh).padStart(2,'0')+':'):'')+mm+':'+ss; }
+  function updateGlobalProgressUI(){ try{ const tot=Math.max(0,__labSimTotal), dn=Math.max(0,__labSimDone); const pct=tot? Math.round(dn/tot*100) : 0; if(btProgGlobalBar) btProgGlobalBar.style.width=pct+'%'; let eta='—'; if(__labSimDtCnt>0 && tot>0){ const avg = __labSimDtSum/Math.max(1,__labSimDtCnt); const effConc=Math.max(1,__labConc|0); const remain=Math.max(0, tot-dn); eta=__fmtETA((remain*avg)/effConc); } if(btProgGlobalText) btProgGlobalText.textContent = `Global: ${pct}% (${dn}/${tot}) — ETA ${eta}`; }catch(_){ } }
   __lastLabTested = allTested;
   // Preload known keys from Supabase to avoid retest across sessions
   let seenCanon = new Set();
@@ -1258,7 +1263,7 @@ async function evalParamsList(list, phase='Eval'){
     function fmtParams(p){ try{ return `nol=${p.nol} prd=${p.prd} sl=${p.slInitPct}% be=${p.beAfterBars}/${p.beLockPct}% ema=${p.emaLen} entry=${p.entryMode||'Both'} fibRet=${p.useFibRet?1:0} confirm=${p.confirmMode||'Bounce'} ent=[${p.ent382?'382':''}${p.ent500? (p.ent382?',500':'500'):''}${p.ent618? (p.ent382||p.ent500?',618':'618'):''}${p.ent786? ((p.ent382||p.ent500||p.ent618)?',786':'786'):''}] tp=${fmtTP(p.tp)}`; }catch(_){ return ''; } }
 
     // Worker pool for parallel evals
-    const CONC = Math.max(1, Math.min( Math.floor((navigator && navigator.hardwareConcurrency) || 2), 6));
+    const CONC = Math.max(1, Math.min( Math.floor((navigator && navigator.hardwareConcurrency) || 2), 6)); __labConc = CONC;
     function makePool(conc){
       const workers=[]; const idle=[]; let closed=false; let failed=false;
       function spawn(){
@@ -1294,7 +1299,7 @@ async function evalParamsList(list, phase='Eval'){
     let pool=null;
     try{ pool = makePool(CONC); }catch(_){ pool=null; }
     if(!pool){ try{ addBtLog(`[${phase}] mode séquentiel (fallback, workers indisponibles)`); }catch(_){ }
-      pool = fallbackPool; }
+      pool = fallbackPool; __labConc=1; }
     let done=0;
     const tasks = list.map(async (item)=>{
       if(btAbort) return null;
@@ -1303,7 +1308,7 @@ async function evalParamsList(list, phase='Eval'){
       const t0=performance.now();
       try{
         const res = await pool.eval(item.p);
-        const dt=performance.now()-t0;
+        const dt=performance.now()-t0; __labSimDone++; __labSimDtSum+=dt; __labSimDtCnt++; updateGlobalProgressUI();
         const score=scoreResult(res, weights);
         const rec={ p:item.p, res, score, owner:item.owner||null };
         out.push(rec);
@@ -1331,6 +1336,7 @@ async function evalParamsList(list, phase='Eval'){
     // init population
     const init=[]; if(Array.isArray(seed)&&seed.length){ for(const s of seed){ if(isDup(s.p)) continue; pushSeen(s.p); init.push({ p:s.p, owner:s.owner||null }); if(init.length>=pop) break; } }
     while(init.length<pop){ const p=randomParams(); if(isDup(p)) continue; pushSeen(p); init.push({ p }); }
+__labSimTotal += init.length; updateGlobalProgressUI();
 let cur = await evalParamsList(init, 'EA:init');
     cur.sort((a,b)=> b.score-a.score);
     try{ const top=cur[0]; if(top){ addBtLog(`EA init — best score ${top.score.toFixed(1)} • PF ${(top.res.profitFactor===Infinity?'∞':(top.res.profitFactor||0).toFixed(2))} • Trades ${top.res.tradesCount} • Win ${(top.res.winrate||0).toFixed(1)}%`); } }catch(_){ }
@@ -1348,6 +1354,7 @@ for(let g=2; g<=gens+1 && !btAbort; g++){
         child = mutate(child, mutPct);
         if(isDup(child)) continue; pushSeen(child); children.push({ p:child, owner: (a.owner||b.owner||null) }); }
 const t0g=performance.now();
+      __labSimTotal += children.length; updateGlobalProgressUI();
       const evald = await evalParamsList(children, 'EA');
       const dtg=performance.now()-t0g;
       cur = elites.concat(evald).sort((x,y)=> y.score-x.score).slice(0,pop);
@@ -1366,7 +1373,8 @@ const t0g=performance.now();
     const start=[]; for(const s of seeds){ if(isDup(s.p)) continue; pushSeen(s.p); start.push({ p:s.p, owner:s.owner||null }); if(start.length>=initN) break; }
     while(start.length<initN){ const p=randomParams(); if(isDup(p)) continue; pushSeen(p); start.push({ p }); }
     try{ setBtTitle('Bayes (EDA)'); addBtLog('Bayes: démarrage'); }catch(_){ }
-let cur = (await evalParamsList(start, 'Bayes:init')).sort((a,b)=> b.score-a.score);
+__labSimTotal += start.length; updateGlobalProgressUI();
+let cur = (await evalParamsList(start, 'Bayes:init')).sort((a,b)=> b.score-a-score);
     try{ const top=cur[0]; if(top){ addBtLog(`Bayes init — best ${top.score.toFixed(1)} PF ${(top.res.profitFactor===Infinity?'∞':(top.res.profitFactor||0).toFixed(2))}`); } }catch(_){ }
     bestGlobal = Math.max(bestGlobal, (cur[0]?.score ?? -Infinity));
     updateProgress(`Bayes 0/${iters}`, 0);
@@ -1389,6 +1397,7 @@ let cur = (await evalParamsList(start, 'Bayes:init')).sort((a,b)=> b.score-a.sco
         p.sl = sampleSLList(slCfg).slice(0,10);
         if(isDup(p)) continue; pushSeen(p); batch.push({ p }); }
       const t0=performance.now();
+      __labSimTotal += batch.length; updateGlobalProgressUI();
       const evald = await evalParamsList(batch, `Bayes`);
       const dt=performance.now()-t0;
       cur = cur.concat(evald).sort((a,b)=> b.score-a.score).slice(0, Math.max(50, initN));
