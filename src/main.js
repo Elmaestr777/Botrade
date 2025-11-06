@@ -1031,7 +1031,8 @@ const weights=getWeights(profSel);
   function neighbor(arr, v){ const i=arr.indexOf(v); const out=[]; if(i>0) out.push(arr[i-1]); out.push(v); if(i>=0 && i<arr.length-1) out.push(arr[i+1]); return pick(out.length?out:arr); }
   function mutate(p, rate){ const tpCfg=readTPOpt(); const q={...p}; if(Math.random()<rate) q.nol = neighbor(rNol, q.nol); if(Math.random()<rate) q.prd = neighbor(rPrd, q.prd); if(Math.random()<rate) q.slInitPct = neighbor(rSL, q.slInitPct); if(Math.random()<rate) q.beAfterBars = neighbor(rBEb, q.beAfterBars); if(Math.random()<rate) q.beLockPct = neighbor(rBEL, q.beLockPct); if(Math.random()<rate) q.emaLen = neighbor(rEMALen, q.emaLen); if(tpCfg.en && Math.random()<rate){ q.tp = mutateTP(Array.isArray(q.tp)? q.tp: [], tpCfg).slice(0,10); q.tpEnable=true; } return q; }
   function crossover(a,b){ const tpCfg=readTPOpt(); return { nol: Math.random()<0.5?a.nol:b.nol, prd: Math.random()<0.5?a.prd:b.prd, slInitPct: Math.random()<0.5?a.slInitPct:b.slInitPct, beAfterBars: Math.random()<0.5?a.beAfterBars:b.beAfterBars, beLockPct: Math.random()<0.5?a.beLockPct:b.beLockPct, emaLen: Math.random()<0.5?a.emaLen:b.emaLen, entryMode: a.entryMode, useFibRet: a.useFibRet, confirmMode: a.confirmMode, ent382:a.ent382, ent500:a.ent500, ent618:a.ent618, ent786:a.ent786, tpEnable:true, tp: (tpCfg.en? crossoverTP(a.tp||[], b.tp||[], tpCfg).slice(0,10): (Array.isArray(a.tp)? a.tp.slice(0,10): [])) }; }
-async function evalParamsList(list){ const out=[]; let idx=0; const N=list.length||0; for(const item of list){ if(btAbort) break; try{ const t0=performance.now(); const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, item.p); const dt=performance.now()-t0; const score=scoreResult(res, weights); out.push({ p:item.p, res, score, owner:item.owner||null }); idx++; try{ if(btProgNote) btProgNote.textContent = `Éval ${idx}/${N} • ${Math.round(dt)} ms`; }catch(_){ } if(idx===1 || idx===N || (idx%Math.max(1, Math.floor(N/5))===0)){ try{ addBtLog(`Évaluations ${idx}/${N} — meilleur: ${out.slice().sort((a,b)=>b.score-a.score)[0]?.score.toFixed(1)||'—'}`); }catch(_){ } } } catch(e){ try{ addBtLog(`Eval error: ${e&&e.message?e.message:e}`); }catch(_){ } } await new Promise(r=> setTimeout(r, 0)); }
+async function evalParamsList(list, phase='Eval'){ const out=[]; let idx=0; const N=list.length||0; function fmtTP(tp){ try{ if(!Array.isArray(tp)||!tp.length) return '—'; return tp.map(t=>{ const typ=(t.type||'Fib'); if(typ==='Fib'){ return `F:${t.fib}`; } if(typ==='Percent'){ return `P:${t.pct}%`; } if(typ==='EMA'){ return `E:${t.emaLen}`; } return typ; }).slice(0,10).join(';'); }catch(_){ return '—'; } } function fmtParams(p){ try{ return `nol=${p.nol} prd=${p.prd} sl=${p.slInitPct}% be=${p.beAfterBars}/${p.beLockPct}% ema=${p.emaLen} entry=${p.entryMode||'Both'} fibRet=${p.useFibRet?1:0} confirm=${p.confirmMode||'Bounce'} ent=[${p.ent382?'382':''}${p.ent500? (p.ent382?',500':'500'):''}${p.ent618? (p.ent382||p.ent500?',618':'618'):''}${p.ent786? ((p.ent382||p.ent500||p.ent618)?',786':'786'):''}] tp=${fmtTP(p.tp)}`; }catch(_){ return ''; } }
+  for(const item of list){ if(btAbort) break; try{ const t0=performance.now(); const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, item.p); const dt=performance.now()-t0; const score=scoreResult(res, weights); out.push({ p:item.p, res, score, owner:item.owner||null }); idx++; try{ if(btProgNote) btProgNote.textContent = `${phase} • ${Math.round(dt)} ms`; }catch(_){ } try{ const pfStr = (res.profitFactor===Infinity?'∞':(Number(res.profitFactor||0)).toFixed(2)); addBtLog(`[${phase}] ${idx}/${N} ${fmtParams(item.p)} => score ${score.toFixed(1)} PF ${pfStr} trades ${res.tradesCount} win ${Number(res.winrate||0).toFixed(1)}% (${Math.round(dt)} ms)`); }catch(_){ } } catch(e){ try{ addBtLog(`[${phase}] error: ${e&&e.message?e.message:e}`); }catch(_){ } } await new Promise(r=> setTimeout(r, 0)); }
     return out; }
   function updateProgress(text, pct){ if(btProgText) btProgText.textContent=text; if(btProgBar) btProgBar.style.width = Math.max(0,Math.min(100,Math.round(pct)))+'%'; }
 
@@ -1044,7 +1045,7 @@ async function evalParamsList(list){ const out=[]; let idx=0; const N=list.lengt
     // init population
     const init=[]; if(Array.isArray(seed)&&seed.length){ for(const s of seed){ const k=keyOf(s.p); if(!seen.has(k)){ pushSeen(s.p); init.push({ p:s.p, owner:s.owner||null }); if(init.length>=pop) break; } } }
     while(init.length<pop){ const p=randomParams(); const k=keyOf(p); if(!seen.has(k)){ pushSeen(p); init.push({ p }); } }
-let cur = await evalParamsList(init);
+let cur = await evalParamsList(init, 'EA:init');
     cur.sort((a,b)=> b.score-a.score);
     try{ const top=cur[0]; if(top){ addBtLog(`EA init — best score ${top.score.toFixed(1)} • PF ${(top.res.profitFactor===Infinity?'∞':(top.res.profitFactor||0).toFixed(2))} • Trades ${top.res.tradesCount} • Win ${(top.res.winrate||0).toFixed(1)}%`); } }catch(_){ }
     bestGlobal = Math.max(bestGlobal, (cur[0]?.score ?? -Infinity));
@@ -1061,7 +1062,7 @@ for(let g=2; g<=gens+1 && !btAbort; g++){
         child = mutate(child, mutPct);
         const k=keyOf(child); if(seen.has(k)) continue; pushSeen(child); children.push({ p:child, owner: (a.owner||b.owner||null) }); }
 const t0g=performance.now();
-      const evald = await evalParamsList(children);
+      const evald = await evalParamsList(children, 'EA');
       const dtg=performance.now()-t0g;
       cur = elites.concat(evald).sort((x,y)=> y.score-x.score).slice(0,pop);
       try{ const top=cur[0]; if(top){ addBtLog(`EA g ${g-1}→${g-1} done — ${children.length} évals en ${Math.round(dtg)} ms (${Math.round(dtg/Math.max(1,children.length))} ms/éval) — best ${top.score.toFixed(1)} PF ${(top.res.profitFactor===Infinity?'∞':(top.res.profitFactor||0).toFixed(2))} Trades ${top.res.tradesCount}`); } }catch(_){ }
@@ -1079,7 +1080,7 @@ const t0g=performance.now();
     const start=[]; for(const s of seeds){ const k=keyOf(s.p); if(!seen.has(k)){ pushSeen(s.p); start.push({ p:s.p, owner:s.owner||null }); if(start.length>=initN) break; } }
     while(start.length<initN){ const p=randomParams(); const k=keyOf(p); if(!seen.has(k)){ pushSeen(p); start.push({ p }); } }
     try{ setBtTitle('Bayes (EDA)'); addBtLog('Bayes: démarrage'); }catch(_){ }
-let cur = (await evalParamsList(start)).sort((a,b)=> b.score-a.score);
+let cur = (await evalParamsList(start, 'Bayes:init')).sort((a,b)=> b.score-a.score);
     try{ const top=cur[0]; if(top){ addBtLog(`Bayes init — best ${top.score.toFixed(1)} PF ${(top.res.profitFactor===Infinity?'∞':(top.res.profitFactor||0).toFixed(2))}`); } }catch(_){ }
     bestGlobal = Math.max(bestGlobal, (cur[0]?.score ?? -Infinity));
     updateProgress(`Bayes 0/${iters}`, 0);
@@ -1100,7 +1101,7 @@ let cur = (await evalParamsList(start)).sort((a,b)=> b.score-a.score);
         if(tpCfg.en){ p.tp = sampleTPList(tpCfg).slice(0,10); } else { p.tpEnable = !!lbcOpts.tpEnable; p.tp = Array.isArray(lbcOpts.tp)? lbcOpts.tp.slice(0,10):[]; }
         const k=keyOf(p); if(seen.has(k)) continue; pushSeen(p); batch.push({ p }); }
       const t0=performance.now();
-      const evald = await evalParamsList(batch);
+      const evald = await evalParamsList(batch, `Bayes`);
       const dt=performance.now()-t0;
       cur = cur.concat(evald).sort((a,b)=> b.score-a.score).slice(0, Math.max(50, initN));
       try{ const top=cur[0]; if(top && (it===1 || it%5===0 || it===iters)){ addBtLog(`Bayes it ${it}/${iters} — batch ${batch.length} évals en ${Math.round(dt)} ms — best ${top.score.toFixed(1)} PF ${(top.res.profitFactor===Infinity?'∞':(top.res.profitFactor||0).toFixed(2))}`); } }catch(_){ }
