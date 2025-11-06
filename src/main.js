@@ -1208,9 +1208,65 @@ const weights=getWeights(profSel);
   function neighbor(arr, v){ const i=arr.indexOf(v); const out=[]; if(i>0) out.push(arr[i-1]); out.push(v); if(i>=0 && i<arr.length-1) out.push(arr[i+1]); return pick(out.length?out:arr); }
   function mutate(p, rate){ const tpCfg=readTPOpt(); const slCfg=readSLOpt(); const q={...p}; if(Math.random()<rate) q.nol = neighbor(rNol, q.nol); if(Math.random()<rate) q.prd = neighbor(rPrd, q.prd); if(Math.random()<rate) q.slInitPct = neighbor(rSL, q.slInitPct); if(Math.random()<rate) q.beAfterBars = neighbor(rBEb, q.beAfterBars); if(Math.random()<rate) q.beLockPct = neighbor(rBEL, q.beLockPct); if(Math.random()<rate) q.emaLen = neighbor(rEMALen, q.emaLen); if(Math.random()<rate){ q.tp = mutateTP(Array.isArray(q.tp)? q.tp: [], tpCfg).slice(0,10); q.tpEnable=true; } if(Math.random()<rate){ q.sl = mutateSL(Array.isArray(q.sl)? q.sl: [], slCfg).slice(0,10); q.slEnable=true; } return q; }
   function crossover(a,b){ const tpCfg=readTPOpt(); const slCfg=readSLOpt(); return { nol: Math.random()<0.5?a.nol:b.nol, prd: Math.random()<0.5?a.prd:b.prd, slInitPct: Math.random()<0.5?a.slInitPct:b.slInitPct, beAfterBars: Math.random()<0.5?a.beAfterBars:b.beAfterBars, beLockPct: Math.random()<0.5?a.beLockPct:b.beLockPct, emaLen: Math.random()<0.5?a.emaLen:b.emaLen, entryMode: a.entryMode, useFibRet: a.useFibRet, confirmMode: a.confirmMode, ent382:a.ent382, ent500:a.ent500, ent618:a.ent618, ent786:a.ent786, tpEnable:true, tp: crossoverTP(a.tp||[], b.tp||[], tpCfg).slice(0,10), slEnable:true, sl: crossoverSL(a.sl||[], b.sl||[], slCfg).slice(0,10) }; }
-async function evalParamsList(list, phase='Eval'){ const out=[]; let idx=0; const N=list.length||0; function fmtTP(tp){ try{ if(!Array.isArray(tp)||!tp.length) return '—'; return tp.map(t=>{ const typ=(t.type||'Fib'); if(typ==='Fib'){ return `F:${t.fib}`; } if(typ==='Percent'){ return `P:${t.pct}%`; } if(typ==='EMA'){ return `E:${t.emaLen}`; } return typ; }).slice(0,10).join(';'); }catch(_){ return '—'; } } function fmtParams(p){ try{ return `nol=${p.nol} prd=${p.prd} sl=${p.slInitPct}% be=${p.beAfterBars}/${p.beLockPct}% ema=${p.emaLen} entry=${p.entryMode||'Both'} fibRet=${p.useFibRet?1:0} confirm=${p.confirmMode||'Bounce'} ent=[${p.ent382?'382':''}${p.ent500? (p.ent382?',500':'500'):''}${p.ent618? (p.ent382||p.ent500?',618':'618'):''}${p.ent786? ((p.ent382||p.ent500||p.ent618)?',786':'786'):''}] tp=${fmtTP(p.tp)}`; }catch(_){ return ''; } }
-  for(const item of list){ if(btAbort) break; try{ const t0=performance.now(); const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, item.p); const dt=performance.now()-t0; const score=scoreResult(res, weights); const rec={ p:item.p, res, score, owner:item.owner||null }; out.push(rec); try{ allTested.push({ params: rec.p, metrics: rec.res, score: rec.score }); }catch(_){ } idx++; try{ if(btProgNote) btProgNote.textContent = `${phase} • ${Math.round(dt)} ms`; }catch(_){ } try{ const pfStr = (res.profitFactor===Infinity?'∞':(Number(res.profitFactor||0)).toFixed(2)); addBtLog(`[${phase}] ${idx}/${N} ${fmtParams(item.p)} => score ${score.toFixed(1)} PF ${pfStr} trades ${res.tradesCount} win ${Number(res.winrate||0).toFixed(1)}% (${Math.round(dt)} ms)`); }catch(_){ } } catch(e){ try{ addBtLog(`[${phase}] error: ${e&&e.message?e.message:e}`); }catch(_){ } } await new Promise(r=> setTimeout(r, 0)); }
-    return out; }
+async function evalParamsList(list, phase='Eval'){
+    const out=[]; let idx=0; const N=list.length||0;
+    function fmtTP(tp){ try{ if(!Array.isArray(tp)||!tp.length) return '—'; return tp.map(t=>{ const typ=(t.type||'Fib'); if(typ==='Fib'){ return `F:${t.fib}`; } if(typ==='Percent'){ return `P:${t.pct}%`; } if(typ==='EMA'){ return `E:${t.emaLen}`; } return typ; }).slice(0,10).join(';'); }catch(_){ return '—'; } }
+    function fmtParams(p){ try{ return `nol=${p.nol} prd=${p.prd} sl=${p.slInitPct}% be=${p.beAfterBars}/${p.beLockPct}% ema=${p.emaLen} entry=${p.entryMode||'Both'} fibRet=${p.useFibRet?1:0} confirm=${p.confirmMode||'Bounce'} ent=[${p.ent382?'382':''}${p.ent500? (p.ent382?',500':'500'):''}${p.ent618? (p.ent382||p.ent500?',618':'618'):''}${p.ent786? ((p.ent382||p.ent500||p.ent618)?',786':'786'):''}] tp=${fmtTP(p.tp)}`; }catch(_){ return ''; } }
+
+    // Worker pool for parallel evals
+    const CONC = Math.max(1, Math.min( Math.floor((navigator && navigator.hardwareConcurrency) || 2), 6));
+    function makePool(conc){
+      const workers=[]; const idle=[]; let closed=false;
+      function spawn(){ const w=new Worker('src/worker_eval.js'); w._busy=false; w.onmessage=(ev)=>{ const d=ev.data||{}; if(w._state==='init'){
+            if(d && d.ok){ w._state='idle'; idle.push(w); trySchedule(); }
+            else { w._state='dead'; }
+            return;
+          }
+          if(w._state==='eval'){
+            const cb=w._cb; w._cb=null; w._busy=false; w._state='idle'; if(cb){ if(d && d.ok){ cb.resolve(d.res); } else { cb.reject(new Error(d && d.error || 'worker error')); } }
+            idle.push(w); trySchedule(); return;
+          }
+        };
+        w._state='init';
+        w.postMessage({ type:'init', payload:{ bars, sIdx, eIdx, conf } });
+        workers.push(w);
+      }
+      for(let i=0;i<conc;i++) spawn();
+      const queue=[];
+      function trySchedule(){ if(closed) return; while(idle.length && queue.length){ const w=idle.shift(); const job=queue.shift(); if(!w) break; w._busy=true; w._state='eval'; w._cb=job.cb; try{ w.postMessage({ type:'eval', payload:{ params: job.params } }); }catch(e){ w._busy=false; w._state='idle'; job.cb.reject(e); idle.push(w); } } }
+      return {
+        eval(params){ if(closed) return Promise.reject(new Error('pool closed'));
+          return new Promise((resolve,reject)=>{ queue.push({ params, cb:{resolve,reject} }); trySchedule(); }); },
+        close(){ closed=true; while(workers.length){ try{ workers.pop().terminate(); }catch(_){} } }
+      };
+    }
+
+    const pool = makePool(CONC);
+    let done=0;
+    const tasks = list.map(async (item)=>{
+      if(btAbort) return null;
+      while(btPaused && !btAbort){ if(labRunStatusEl) labRunStatusEl.textContent='Pause'; await new Promise(r=> setTimeout(r, 150)); }
+      if(btAbort) return null;
+      const t0=performance.now();
+      try{
+        const res = await pool.eval(item.p);
+        const dt=performance.now()-t0;
+        const score=scoreResult(res, weights);
+        const rec={ p:item.p, res, score, owner:item.owner||null };
+        out.push(rec);
+        try{ allTested.push({ params: rec.p, metrics: rec.res, score: rec.score }); }catch(_){ }
+        idx++; done++;
+        try{ if(btProgNote) btProgNote.textContent = `${phase} • ${Math.round(dt)} ms`; }catch(_){ }
+        try{ const pfStr = (res.profitFactor===Infinity?'∞':(Number(res.profitFactor||0)).toFixed(2)); addBtLog(`[${phase}] ${done}/${N} ${fmtParams(item.p)} => score ${score.toFixed(1)} PF ${pfStr} trades ${res.tradesCount} win ${Number(res.winrate||0).toFixed(1)}% (${Math.round(dt)} ms)`); }catch(_){ }
+      }catch(e){ try{ addBtLog(`[${phase}] error: ${e&&e.message?e.message:e}`); }catch(_){ } }
+      if(btProgBar && btProgText){ const pct=Math.round(done/Math.max(1,N)*100); btProgBar.style.width=pct+'%'; btProgText.textContent=`${phase} ${pct}% (${done}/${N})`; }
+      await new Promise(r=> setTimeout(r, 0));
+      return null;
+    });
+    await Promise.all(tasks);
+    try{ pool.close(); }catch(_){ }
+    return out;
+  }
   function updateProgress(text, pct){ if(btProgText) btProgText.textContent=text; if(btProgBar) btProgBar.style.width = Math.max(0,Math.min(100,Math.round(pct)))+'%'; }
 
   async function runEA(seed){ const pop = Math.max(4, parseInt((document.getElementById('labEAPop')&&document.getElementById('labEAPop').value)||'40',10));
