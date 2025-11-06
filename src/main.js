@@ -248,6 +248,15 @@ const gotoEndBtn = document.getElementById('gotoEndBtn');
 
 function setStatus(msg){ if(statusEl){ statusEl.textContent = msg||''; } }
 function setBtTitle(text){ try{ const h=btProgressEl && btProgressEl.querySelector('.modal-header h2'); if(h) h.textContent = text||'Simulation'; }catch(_){ } }
+
+let __lastLabTested = [];
+function formatParamsBrief(p){ try{ const tp = Array.isArray(p.tp)? p.tp.slice(0,10).map(t=>{ const typ=t.type||'Fib'; if(typ==='Fib') return `F:${t.fib}`; if(typ==='Percent') return `P:${t.pct}%`; if(typ==='EMA') return `E:${t.emaLen}`; return typ; }).join(';') : '—'; return `nol=${p.nol} prd=${p.prd} sl=${p.slInitPct}% be=${p.beAfterBars}/${p.beLockPct}% ema=${p.emaLen} entry=${p.entryMode||'Both'} tp=[${tp}]`; }catch(_){ return ''; } }
+function openEvalsModal(sym, tf){ try{ const tb=document.getElementById('evalsTBody'); const ctxEl=document.getElementById('evalsCtx'); if(!tb) return; const arr = Array.isArray(__lastLabTested)? __lastLabTested.slice(): []; const rows=[]; let idx=1; const sorted=arr.slice().sort((a,b)=> (b.score||0)-(a.score||0)); for(const it of sorted){ const st=it.metrics||it.res||{}; rows.push(`<tr><td>${idx}</td><td>${(it.score!=null? it.score.toFixed(1): '—')}</td><td>${(st.profitFactor===Infinity?'∞':(st.profitFactor||0).toFixed(2))}</td><td>${(st.totalPnl||0).toFixed(0)}</td><td>${st.tradesCount||0}</td><td>${(st.winrate||0).toFixed(1)}</td><td>${(Number.isFinite(st.avgRR)? st.avgRR.toFixed(2):'—')}</td><td style=\"text-align:left\">${formatParamsBrief(it.params||{})}</td></tr>`); idx++; }
+  tb.innerHTML = rows.length? rows.join('') : '<tr><td colspan="8">—</td></tr>'; if(ctxEl) ctxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — ${arr.length} évaluations`; openModalEl(document.getElementById('evalsModal')); }catch(_){ }
+}
+function exportEvalsCSV(){ try{ const arr=Array.isArray(__lastLabTested)? __lastLabTested: []; if(!arr.length){ setStatus('Aucune évaluation'); return; } let csv='score,pf,totalPnl,trades,winrate,avgRR,nol,prd,slInitPct,beAfterBars,beLockPct,emaLen,entryMode,tp\n'; for(const it of arr){ const st=it.metrics||it.res||{}; const p=it.params||{}; const tp=Array.isArray(p.tp)? JSON.stringify(p.tp).replaceAll(',', ';') : ''; csv+=`${it.score||0},${st.profitFactor||''},${st.totalPnl||''},${st.tradesCount||''},${st.winrate||''},${st.avgRR||''},${p.nol||''},${p.prd||''},${p.slInitPct||''},${p.beAfterBars||''},${p.beLockPct||''},${p.emaLen||''},${p.entryMode||''},"${tp}"\n`; }
+  const blob=new Blob([csv], {type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`evals_${currentSymbol}_${(labTFSelect&&labTFSelect.value)||currentInterval}.csv`; a.click(); }catch(_){ }
+}
 function symbolToDisplay(sym){ if(!sym) return '—'; return sym.endsWith('USDC')? sym.slice(0,-4)+'/USDC' : sym; }
 function updateTitle(sym){ if(titleEl){ titleEl.textContent = symbolToDisplay(sym); } }
 function updateWatermark(){ try{ chart.applyOptions({ watermark: { visible:true, color: isDark()? 'rgba(229,231,235,0.20)' : 'rgba(17,24,39,0.12)', text: symbolToDisplay(currentSymbol), fontSize:34, horzAlign:'left', vertAlign:'top' } }); }catch(_){ } }
@@ -782,12 +791,16 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
 }
 if(btCancelBtn){ btCancelBtn.addEventListener('click', ()=> closeModalEl(btModalEl)); }
 if(btAbortBtn){ btAbortBtn.addEventListener('click', ()=>{ btAbort=true; setStatus('Simulation annulée'); closeBtProgress(); }); }
-// Pause/Stop controls inside progress popup
+// Pause/Stop controls + details actions inside progress popup
 try{
   const btPauseBtn2=document.getElementById('btPause');
   const btStopBtn2=document.getElementById('btStop');
+  const btShowDetails=document.getElementById('btShowDetails');
+  const btExportDetails=document.getElementById('btExportDetails');
   if(btPauseBtn2){ btPauseBtn2.addEventListener('click', ()=>{ btPaused=!btPaused; addBtLog(btPaused?'Pause':'Reprise'); if(labRunStatusEl) labRunStatusEl.textContent = btPaused? 'Pause' : 'En cours'; btPauseBtn2.textContent = btPaused? 'Reprendre' : 'Pause'; }); }
   if(btStopBtn2){ btStopBtn2.addEventListener('click', ()=>{ btAbort=true; addBtLog('Arrêt demandé'); if(labRunStatusEl) labRunStatusEl.textContent='Arrêt'; }); }
+  if(btShowDetails){ btShowDetails.addEventListener('click', ()=> openEvalsModal(currentSymbol, (labTFSelect&&labTFSelect.value)||currentInterval)); }
+  if(btExportDetails){ btExportDetails.addEventListener('click', ()=> exportEvalsCSV()); }
 }catch(_){ }
 if(btOptimizeBtn){ btOptimizeBtn.addEventListener('click', async ()=>{ try{
   const conf={ startCap: Math.max(0, parseFloat(btStartCap&&btStartCap.value||'10000')), fee: Math.max(0, parseFloat(btFee&&btFee.value||'0.1')), lev: Math.max(1, parseFloat(btLev&&btLev.value||'1')), maxPct: Math.max(0, Math.min(100, parseFloat(btMaxPct&&btMaxPct.value||'100'))), base: (btMaxBase&&btMaxBase.value)||'initial' };
@@ -959,6 +972,8 @@ if(tradesHdrCtx){ const periodStr = (minTs<Infinity && maxTs>-Infinity)? `${fmt(
 if(tradesClose){ tradesClose.addEventListener('click', ()=> closeModalEl(tradesModalEl)); }
 if(tradesClose2){ tradesClose2.addEventListener('click', ()=> closeModalEl(tradesModalEl)); }
 if(tradesModalEl){ tradesModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close){ closeModalEl(tradesModalEl); } }); }
+// Evals modal close
+try{ const evalsClose=document.getElementById('evalsClose'); if(evalsClose){ evalsClose.addEventListener('click', ()=> closeModalEl(document.getElementById('evalsModal'))); } }catch(_){ }
 
 // Strategy detail modal
 const detailModalEl=document.getElementById('detailModal'); const detailClose=document.getElementById('detailClose'); const detailCtxEl=document.getElementById('detailCtx');
@@ -1068,6 +1083,7 @@ const conf={ startCap: Math.max(0, parseFloat((document.getElementById('labStart
   try{ const span = (from!=null||to!=null)? `${new Date((from||bars[sIdx]?.time||0)*1000).toLocaleString()} → ${new Date((to||bars[eIdx]?.time||0)*1000).toLocaleString()}` : `${new Date((bars[sIdx]?.time||0)*1000).toLocaleString()} → ${new Date((bars[eIdx]?.time||0)*1000).toLocaleString()}`; addBtLog(`Période: idx ${sIdx}-${eIdx} (${Math.max(0,eIdx-sIdx+1)} barres) • ${span}`); }catch(_){ }
 const weights=getWeights(profSel);
   const allTested=[]; // accumulate every evaluated strategy for Supabase persistence
+  __lastLabTested = allTested;
   // Preload known keys from Supabase to avoid retest across sessions
   let seenCanon = new Set();
   try{ if(window.SUPA && typeof SUPA.fetchKnownKeys==='function'){ seenCanon = await SUPA.fetchKnownKeys(sym, tfSel) || new Set(); addBtLog && addBtLog(`Déduplication: ${seenCanon.size} stratégies déjà en base`); } }catch(_){ }

@@ -539,6 +539,8 @@
             <button id="btPause" class="btn" title="Mettre en pause/Reprendre">Pause</button>
             <button id="btStop" class="btn" title="Arrêter">Stop</button>
           </div>
+          <button id="btShowDetails" class="btn" title="Afficher la liste complète des évaluations">Détails</button>
+          <button id="btExportDetails" class="btn" title="Exporter les évaluations en CSV">Exporter CSV</button>
           <button id="btAbort" class="btn">Annuler</button>
         </div>
       </div>
@@ -871,6 +873,30 @@
               <canvas id="detailEff" width="480" height="180" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
             </div>
             <canvas id="detailRobust" width="980" height="160" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Evaluations detail modal -->
+    <div id="evalsModal" class="modal hidden" aria-hidden="true" role="dialog">
+      <div class="modal-backdrop" data-close="1"></div>
+      <div class="modal-content" style="max-width:1000px;">
+        <div class="modal-header">
+          <h2>Détails des évaluations</h2>
+          <button id="evalsClose" class="icon-btn" aria-label="Fermer">×</button>
+        </div>
+        <div class="modal-body">
+          <div id="evalsCtx" style="margin-bottom:8px; color:var(--muted);"></div>
+          <div style="overflow:auto; max-height:60vh;">
+            <table class="lbc-table" style="width:100%; table-layout:auto; font-size:12px;">
+              <thead>
+                <tr>
+                  <th>#</th><th>Score</th><th>PF</th><th>P&L</th><th>Trades</th><th>Win%</th><th>Avg RR</th><th>Params</th>
+                </tr>
+              </thead>
+              <tbody id="evalsTBody"><tr><td colspan="8">—</td></tr></tbody>
+            </table>
           </div>
         </div>
       </div>
