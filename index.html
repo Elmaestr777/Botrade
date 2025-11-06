@@ -989,17 +989,17 @@
                 <button id="labRun" class="btn primary">Entraîner</button>
               </div>
             </div>
-            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:6px;">
+            <div style="display:none; gap:10px; align-items:center; flex-wrap:wrap; margin-top:6px;">
               <strong>TP Opt</strong>
               <label><input id="labTPOptEn" type="checkbox" /> Optimiser TP</label>
-              <label>Nb TP <input id="labTPCount" type="number" min="1" max="10" value="3" style="width:5rem" /></label>
+              <label>Nb TP <input id="labTPCount" type="number" min="1" max="10" value="10" style="width:5rem" /></label>
               <label><input id="labTPAllowFib" type="checkbox" checked /> Fib</label>
               <label><input id="labTPAllowPct" type="checkbox" /> Percent</label>
               <label><input id="labTPAllowEMA" type="checkbox" /> EMA</label>
               <label title="Pourcentage TP (si Percent)">Min % <input id="labTPPctMin" type="number" min="0" step="0.1" value="0.5" style="width:5rem" /></label>
               <label title="Pourcentage TP (si Percent)">Max % <input id="labTPPctMax" type="number" min="0" step="0.1" value="5.0" style="width:5rem" /></label>
             </div>
-            <div id="labTPFibWrap" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:6px;">
+            <div id="labTPFibWrap" style="display:none; gap:10px; flex-wrap:wrap; margin-bottom:6px;">
               <label><input type="checkbox" data-r="0.236" checked />0.236</label>
               <label><input type="checkbox" data-r="0.382" checked />0.382</label>
               <label><input type="checkbox" data-r="0.5" checked />0.500</label>
@@ -1015,7 +1015,7 @@
               <label><input type="checkbox" data-r="2.618" />2.618</label>
               <label><input type="checkbox" data-r="3" />3.000</label>
             </div>
-            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:6px;">
+            <div style="display:none; gap:10px; align-items:center; flex-wrap:wrap; margin-top:6px;">
               <strong>SL Opt</strong>
               <label><input id="labSLOptEn" type="checkbox" /> Optimiser SL</label>
               <label>Nb SL <input id="labSLCount" type="number" min="1" max="10" value="1" style="width:5rem" /></label>
@@ -1025,7 +1025,7 @@
               <label title="Pourcentage SL (si Percent)">Min % <input id="labSLPctMin" type="number" min="0" step="0.1" value="0.5" style="width:5rem" /></label>
               <label title="Pourcentage SL (si Percent)">Max % <input id="labSLPctMax" type="number" min="0" step="0.1" value="5.0" style="width:5rem" /></label>
             </div>
-            <div id="labSLFibWrap" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:6px;">
+            <div id="labSLFibWrap" style="display:none; gap:10px; flex-wrap:wrap; margin-bottom:6px;">
               <label><input type="checkbox" data-r="0.236" />0.236</label>
               <label><input type="checkbox" data-r="0.382" checked />0.382</label>
               <label><input type="checkbox" data-r="0.5" checked />0.500</label>

@@ -98,6 +98,12 @@
       emaLen: (t.emaLen!=null? t.emaLen : undefined),
       qty: (t.qty!=null? t.qty : undefined),
     })) : [];
+    const slArr = Array.isArray(p.sl)? p.sl.map(t=>({
+      type: t.type||'Percent',
+      fib: (t.fib!=null? t.fib : undefined),
+      pct: (t.pct!=null? t.pct : undefined),
+      emaLen: (t.emaLen!=null? t.emaLen : undefined),
+    })) : [];
     return {
       nol: p.nol|0,
       prd: p.prd|0,
@@ -108,6 +114,8 @@
       entryMode: String(p.entryMode||'Both'),
       tpEnable: !!p.tpEnable,
       tp: tpArr,
+      slEnable: (p.slEnable!=null? !!p.slEnable : (slArr.length>0)),
+      sl: slArr,
     };
   }
 
