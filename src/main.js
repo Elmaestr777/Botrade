@@ -135,14 +135,18 @@ rows.push('<tr>' + `<td>${idx}</td>` + `<td style=\\\"text-align:left\\\">${(r.n
   }
   labTBody.innerHTML = rows.join('');
   if(!labTBody.dataset || labTBody.dataset.wired!=='1'){
-    labTBody.addEventListener('click', (ev)=>{
+    labTBody.addEventListener('click', async (ev)=>{
       const t=ev.target; if(!t || !t.getAttribute) return;
-      const act=t.getAttribute('data-action');
+      const act=t.getAttribute('data-action'); if(!act) return;
       const i=parseInt(t.getAttribute('data-idx')||'-1',10);
-      const cur=readPalmares(sym, tf);
+      // Use the same sorted order as rendered
+      const w=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
+      const base=readPalmares(sym, tf);
+      const cur=base.slice().sort((a,b)=> (b.score||scoreResult(b.res||{},w)) - (a.score||scoreResult(a.res||{},w)));
       if(!(i>=0 && i<cur.length)) return;
+      const rec=cur[i]||{};
       if(act==='apply'){
-        const p=cur[i].params||{};
+        const p=rec.params||{};
         lbcOpts.nol=(p.nol!=null)?p.nol:lbcOpts.nol;
         lbcOpts.prd=(p.prd!=null)?p.prd:lbcOpts.prd;
         if(p.slInitPct!=null) lbcOpts.slInitPct=p.slInitPct;
@@ -188,53 +192,16 @@ rows.push('<tr>' + `<td>${idx}</td>` + `<td style=\\\"text-align:left\\\">${(r.n
         const __optSLEnable=document.getElementById('optSLEnable'); if(__optSLEnable) __optSLEnable.checked=!!lbcOpts.slEnable;
         try{ populateHeavenModal(); }catch(_){ }
         renderLBC(); setStatus('Paramètres appliqués depuis Lab');
+      } else if(act==='view'){
+        showStrategyResult(rec.res||{}, {symbol: currentSymbol, tf});
+      } else if(act==='detail'){
+        try{ await showStrategyDetail(rec, { symbol: currentSymbol, tf }); }catch(_){ }
       }
     });
     labTBody.dataset.wired='1';
   }
 }
 
-// Ajout: gestion du bouton "Voir" dans Lab
-try{
-  if(labTBody && (!labTBody.dataset || labTBody.dataset.viewWired!=='1')){
-    labTBody.addEventListener('click', async (ev)=>{
-      const t=ev.target; if(!t||!t.getAttribute) return; const act=t.getAttribute('data-action');
-      const tf = labTFSelect? labTFSelect.value: (intervalSelect? intervalSelect.value:'');
-      const i = parseInt(t.getAttribute('data-idx')||'-1',10);
-      const arr = readPalmares(currentSymbol, tf);
-      if(!(i>=0 && i<arr.length)) return;
-      if(act==='view'){
-        showStrategyResult(arr[i].res||{}, {symbol: currentSymbol, tf});
-      } else if(act==='detail'){
-        try{ await showStrategyDetail(arr[i], { symbol: currentSymbol, tf }); }catch(_){ }
-      }
-    });
-labTBody.dataset.viewWired='1';
-  }
-  // Observer pour injecter le bouton "Voir" dans les lignes Lab
-  if(labTBody && (!labTBody.dataset || labTBody.dataset.viewMO!=='1')){
-    try{
-      const inject = ()=>{
-        const btns = labTBody.querySelectorAll('button[data-action="apply"]');
-        btns.forEach(b=>{
-          const td=b.parentElement; const idx=b.getAttribute('data-idx');
-          if(td && !td.querySelector('button[data-action="view"]')){
-            const v=document.createElement('button'); v.className='btn'; v.setAttribute('data-action','view'); v.setAttribute('data-idx', idx); v.textContent='Voir';
-            td.appendChild(document.createTextNode(' ')); td.appendChild(v);
-          }
-          if(td && !td.querySelector('button[data-action="detail"]')){
-            const d=document.createElement('button'); d.className='btn'; d.setAttribute('data-action','detail'); d.setAttribute('data-idx', idx); d.textContent='Détail';
-            td.appendChild(document.createTextNode(' ')); td.appendChild(d);
-          }
-        });
-      };
-      const mo=new MutationObserver(()=>{ inject(); });
-      mo.observe(labTBody, {childList:true, subtree:true});
-      inject();
-      labTBody.dataset.viewMO='1';
-    }catch(_){ }
-  }
-}catch(_){ }
 
 /* Chart BTC/USDC avec Lightweight Charts + données Binance + UI Heaven/Lab/Backtest/EMA (restauré) */
 
