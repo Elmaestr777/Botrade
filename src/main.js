@@ -1000,18 +1000,20 @@ const weights=getWeights(profSel);
   // Global simulation progress (for ETA)
   let __labSimTotal=0, __labSimDone=0, __labSimDtSum=0, __labSimDtCnt=0, __labConc=1;
   function __fmtETA(ms){ if(!(ms>0)) return '—'; const s=Math.round(ms/1000); const m=Math.floor(s/60); const ss=String(s%60).padStart(2,'0'); const mm=String(m%60).padStart(2,'0'); const hh=Math.floor(m/60); return (hh>0? (String(hh).padStart(2,'0')+':'):'')+mm+':'+ss; }
-function updateGlobalProgressUI(){ try{ const tot=Math.max(0,__labSimTotal), dn=Math.max(0,__labSimDone); const pct=tot? Math.round(dn/tot*100) : 0; if(btProgGlobalBar) btProgGlobalBar.style.width=pct+'%'; let eta='—'; if(tot>0){ let avg=null; try{ const fallback=Number(localStorage.getItem('lab:avgEvalMs')); avg = (Number.isFinite(fallback)&&fallback>0)? fallback : null; }catch(_){ avg=null; } if(__labSimDtCnt>0){ avg = __labSimDtSum/Math.max(1,__labSimDtCnt); } if(!(avg>0)) avg = 1000; const effConc=Math.max(1,__labConc|0); const remain=Math.max(0, tot-dn); eta=__fmtETA((remain*avg)/effConc); } if(btProgGlobalText) btProgGlobalText.textContent = `Global: ${pct}% (${dn}/${tot}) — ETA ${eta}`; }catch(_){ } }
+function updateGlobalProgressUI(){ try{ let tot=Math.max(0,__labSimTotal), dn=Math.max(0,__labSimDone); if(maxEvals>0){ tot = Math.min(tot, maxEvals); dn = Math.min(dn, maxEvals); } const pct=tot? Math.round(dn/tot*100) : 0; if(btProgGlobalBar) btProgGlobalBar.style.width=pct+'%'; let eta='—'; if(tot>0){ let avg=null; try{ const fallback=Number(localStorage.getItem('lab:avgEvalMs')); avg = (Number.isFinite(fallback)&&fallback>0)? fallback : null; }catch(_){ avg=null; } if(__labSimDtCnt>0){ avg = __labSimDtSum/Math.max(1,__labSimDtCnt); } if(!(avg>0)) avg = 1000; const effConc=Math.max(1,__labConc|0); const remain=Math.max(0, tot-dn); eta=__fmtETA((remain*avg)/effConc); } if(btProgGlobalText) btProgGlobalText.textContent = `Global: ${pct}% (${dn}/${tot}) — ETA ${eta}`; }catch(_){ } }
   __lastLabTested = allTested;
   // Preload known keys from Supabase to avoid retest across sessions
   let seenCanon = new Set();
   try{ if(window.SUPA && typeof SUPA.fetchKnownKeys==='function'){ seenCanon = await SUPA.fetchKnownKeys(sym, tfSel) || new Set(); addBtLog && addBtLog(`Déduplication: ${seenCanon.size} stratégies déjà en base`); } }catch(_){ }
   // Stopping conditions
   const timeLimitSec = Math.max(0, parseInt((document.getElementById('labTimeLimitSec')&&document.getElementById('labTimeLimitSec').value)||'0',10));
+  const maxEvals = Math.max(0, parseInt((document.getElementById('labMaxEvals')&&document.getElementById('labMaxEvals').value)||'0',10));
   const minScoreGoal = Math.max(0, parseFloat((document.getElementById('labMinScore')&&document.getElementById('labMinScore').value)||'0'));
   const deadline = timeLimitSec>0 ? (Date.now() + timeLimitSec*1000) : null;
   function timeUp(){ return deadline!=null && Date.now()>=deadline; }
   let bestGlobal = -Infinity;
   function goalReached(){ return minScoreGoal>0 && bestGlobal>=minScoreGoal; }
+  function quotaReached(){ return maxEvals>0 && __labSimDone>=maxEvals; }
   function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
   const rNol=[2,3,4,5]; const rPrd=[]; for(let v=8; v<=34; v+=2){ rPrd.push(v); }
   const rSL=[0.5,1,1.5,2,2.5,3]; const rBEb=[3,4,5,6,7,8]; const rBEL=[3,4,5,6,7,8,9,10];
@@ -1172,7 +1174,7 @@ async function evalParamsList(list, phase='Eval'){
     const tasks = list.map(async (item)=>{
       if(btAbort) return null;
       while(btPaused && !btAbort){ if(labRunStatusEl) labRunStatusEl.textContent='Pause'; await new Promise(r=> setTimeout(r, 150)); }
-      if(btAbort) return null;
+      if(btAbort) return null; if(quotaReached()) return null;
       const t0=performance.now();
       try{
 const res = await pool.eval(item.p);
@@ -1220,11 +1222,11 @@ let cur = await evalParamsList(init, 'EA:init');
     cur.sort((a,b)=> b.score-a.score);
 try{ const top=cur[0]; if(top){ addBtLog(`EA init — best score ${top.score.toFixed(2)} • PF ${(top.res.profitFactor===Infinity?'∞':(top.res.profitFactor||0).toFixed(2))} • Trades ${top.res.tradesCount} • Win ${(top.res.winrate||0).toFixed(1)}%`); } }catch(_){ }
     bestGlobal = Math.max(bestGlobal, (cur[0]?.score ?? -Infinity));
-    if(timeUp() || goalReached()) return cur;
+    if(timeUp() || goalReached() || quotaReached()) return cur;
     updateProgress(`EA g 1/${gens}`, 100*(1/(gens+1)));
 for(let g=2; g<=gens+1 && !btAbort; g++){
       while(btPaused && !btAbort){ if(labRunStatusEl) labRunStatusEl.textContent='Pause'; await new Promise(r=> setTimeout(r, 200)); }
-      if(timeUp() || goalReached()) break;
+      if(timeUp() || goalReached() || quotaReached()) break;
       const elites = cur.slice(0, Math.max(2, Math.floor(pop*0.3)));
       // children
       const children=[];
@@ -1259,7 +1261,7 @@ try{ const top=cur[0]; if(top){ addBtLog(`Bayes init — best ${top.score.toFixe
     updateProgress(`Bayes 0/${iters}`, 0);
     for(let it=1; it<=iters && !btAbort; it++){
       while(btPaused && !btAbort){ if(labRunStatusEl) labRunStatusEl.textContent='Pause'; await new Promise(r=> setTimeout(r, 200)); }
-      if(timeUp() || goalReached()) break;
+      if(timeUp() || goalReached() || quotaReached()) break;
       const eliteN = Math.max(1, Math.floor(cur.length * elitePct/100));
       const elite = cur.slice(0, eliteN);
       // build categorical distributions (frequency)
