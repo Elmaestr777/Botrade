@@ -1341,9 +1341,14 @@ try{ const top=cur[0]; if(top && (it===1 || it%5===0 || it===iters)){ addBtLog(`
     }
     return cur; }
     
-  // Build seeds
+  // Build seeds (prefer Supabase-backed palmarès cache when available)
   let seeds=[];
-  if(goal==='improve' || usePrior){ const pal=readPalmares(sym, tfSel).slice(0,25); for(const it of pal){ seeds.push({ p:{ ...(it.params||{}) }, owner:it }); } }
+  if(goal==='improve' || usePrior){
+    const pal = (Array.isArray(window.labPalmaresCache) && window.labPalmaresCache.length)
+      ? window.labPalmaresCache.slice(0,25)
+      : readPalmares(sym, tfSel).slice(0,25);
+    for(const it of pal){ seeds.push({ p:{ ...(it.params||{}) }, owner:it }); }
+  }
 
 btAbort=false; btPaused=false; updateProgress('Entraînement...', 0);
   if(labRunStatusEl) labRunStatusEl.textContent='En cours';
