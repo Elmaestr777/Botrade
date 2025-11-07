@@ -227,7 +227,7 @@ try{ chart.timeScale().subscribeVisibleTimeRangeChange(()=>{ try{ updateMkPositi
 const BATCH_LIMIT = 1000; let candles=[]; let ws=null;
 // Progressive history loading: fast first paint, then deep background fetch
 const PRELOAD_BARS = 1000;        // bars for instant display
-const BG_MAX_BARS = 200000;       // upper bound for background history
+const BG_MAX_BARS = Infinity;     // upper bound for background history (max depth)
 const CACHE_SAVE_BARS = 5000;     // persist last N bars per symbol/TF for instant next load
 let __bgLoadToken = 0;            // cancels previous background loaders
 
