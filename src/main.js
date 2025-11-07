@@ -125,6 +125,11 @@ const symbolSelect = document.getElementById('symbol');
 const titleEl = document.getElementById('pairTitle');
 const statusEl = document.getElementById('status');
 const gotoEndBtn = document.getElementById('gotoEndBtn');
+// Status: main + background indicator
+let __statusMain = '';
+let __statusBg = '';
+function setStatus(msg){ __statusMain = msg || ''; if(statusEl){ statusEl.textContent = __statusMain + (__statusBg ? (' • '+__statusBg) : ''); } }
+function setBgStatus(msg){ __statusBg = msg || ''; if(statusEl){ statusEl.textContent = __statusMain + (__statusBg ? (' • '+__statusBg) : ''); } }
 // Supabase config UI
 const supaCfgBtn = document.getElementById('supaCfgBtn');
 const supaModalEl = document.getElementById('supaModal');
@@ -223,7 +228,12 @@ const BATCH_LIMIT = 1000; let candles=[]; let ws=null;
 // Progressive history loading: fast first paint, then deep background fetch
 const PRELOAD_BARS = 1000;        // bars for instant display
 const BG_MAX_BARS = 200000;       // upper bound for background history
+const CACHE_SAVE_BARS = 5000;     // persist last N bars per symbol/TF for instant next load
 let __bgLoadToken = 0;            // cancels previous background loaders
+
+function klinesCacheKey(symbol, interval){ return `klines:${symbol}:${interval}`; }
+function loadKlinesFromCache(symbol, interval){ try{ const s=localStorage.getItem(klinesCacheKey(symbol, interval)); if(!s) return []; const arr=JSON.parse(s); if(Array.isArray(arr) && arr.length && arr[0].time){ return arr; } }catch(_){ } return []; }
+function saveKlinesToCache(symbol, interval, arr){ try{ if(!Array.isArray(arr)||!arr.length) return; const slim = arr.slice(-CACHE_SAVE_BARS); localStorage.setItem(klinesCacheKey(symbol, interval), JSON.stringify(slim)); }catch(_){ } }
 
 // --- FX: USDC -> EUR via Binance (EURUSDC)
 let __usdcEurRate = null; let __usdcEurRateTs = 0;
@@ -270,13 +280,13 @@ async function backgroundExtendKlines(symbol, interval, token){
       cursor = earliest*1000 - 1;
       // Throttled status to avoid UI jank
       const now = Date.now();
-      if(now - lastUiUpdate > 600){ setStatus(`Historique ${Math.round(total/1000)}k+`); lastUiUpdate = now; }
+      if(now - lastUiUpdate > 600){ setBgStatus(`hist: ${Math.round(total/1000)}k`); lastUiUpdate = now; }
       if(batch.length < need) break; // hit API boundary for now
       // Yield to UI
       await new Promise(r=> setTimeout(r, 0));
     }
     // Final status clear if this is still the active token
-    if(token === __bgLoadToken){ setStatus(''); }
+    if(token === __bgLoadToken){ try{ saveKlinesToCache(symbol, interval, candles); }catch(_){ } setBgStatus(''); }
   }catch(_){ /* silent */ }
 }
 
@@ -289,13 +299,23 @@ async function load(symbol, interval){
   try{
     __bgLoadToken++;
     const token = __bgLoadToken;
-    setStatus('Chargement...');
-    // Fast path: small preload for instant render
+    // Try cache for instant paint
+    const cached = loadKlinesFromCache(symbol, interval);
+    if(cached && cached.length){
+      candles = cached;
+      candleSeries.setData(candles);
+      chart.timeScale().fitContent();
+      updateEMAs(); renderLBC();
+    } else {
+      setStatus('Chargement...');
+    }
+    // Ensure preload fetch (fresh)
     candles = await fetchAllKlines(symbol, interval, PRELOAD_BARS);
     candleSeries.setData(candles);
     chart.timeScale().fitContent();
     setStatus('');
     updateEMAs(); renderLBC();
+    try{ saveKlinesToCache(symbol, interval, candles); }catch(_){ }
     // Deep background extend to maximize history depth for Lab/Backtest
     backgroundExtendKlines(symbol, interval, token);
   }catch(e){ setStatus('Erreur chargement'); }
