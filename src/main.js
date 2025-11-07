@@ -220,6 +220,10 @@ try{ chart.timeScale().subscribeVisibleTimeRangeChange(()=>{ try{ updateMkPositi
 
 // --- Data loading (REST + WS) ---
 const BATCH_LIMIT = 1000; let candles=[]; let ws=null;
+// Progressive history loading: fast first paint, then deep background fetch
+const PRELOAD_BARS = 1000;        // bars for instant display
+const BG_MAX_BARS = 200000;       // upper bound for background history
+let __bgLoadToken = 0;            // cancels previous background loaders
 
 // --- FX: USDC -> EUR via Binance (EURUSDC)
 let __usdcEurRate = null; let __usdcEurRateTs = 0;
@@ -243,12 +247,59 @@ async function fetchKlinesBatch(symbol, interval, limit=BATCH_LIMIT, endTimeMs){
   mapped.sort((a,b)=> a.time-b.time); return mapped;
 }
 async function fetchAllKlines(symbol, interval, max=5000){ let all=[]; let cursor=Date.now(); while(all.length<max){ setStatus(`Chargement... (${all.length}+)`); const need=Math.min(BATCH_LIMIT, max-all.length); const batch=await fetchKlinesBatch(symbol, interval, need, cursor); if(!batch.length) break; all=batch.concat(all); if(batch.length<need) break; cursor=batch[0].time*1000 - 1; } return all.slice(-max); }
+
+async function backgroundExtendKlines(symbol, interval, token){
+  try{
+    if(!Array.isArray(candles) || !candles.length) return;
+    let earliest = candles[0]?.time;
+    let cursor = (earliest? earliest*1000 - 1 : Date.now());
+    let total = candles.length;
+    let lastUiUpdate = 0;
+    while(token === __bgLoadToken && total < BG_MAX_BARS){
+      const need = Math.min(BATCH_LIMIT, BG_MAX_BARS - total);
+      const batch = await fetchKlinesBatch(symbol, interval, need, cursor);
+      if(!batch || !batch.length) break;
+      const filtered = batch.filter(b=> b.time < (earliest||Infinity));
+      if(!filtered.length){
+        // Nothing older than current earliest
+        break;
+      }
+      candles = filtered.concat(candles);
+      total = candles.length;
+      earliest = candles[0].time;
+      cursor = earliest*1000 - 1;
+      // Throttled status to avoid UI jank
+      const now = Date.now();
+      if(now - lastUiUpdate > 600){ setStatus(`Historique ${Math.round(total/1000)}k+`); lastUiUpdate = now; }
+      if(batch.length < need) break; // hit API boundary for now
+      // Yield to UI
+      await new Promise(r=> setTimeout(r, 0));
+    }
+    // Final status clear if this is still the active token
+    if(token === __bgLoadToken){ setStatus(''); }
+  }catch(_){ /* silent */ }
+}
+
 function closeWs(){ try{ if(ws){ ws.onopen=ws.onmessage=ws.onerror=ws.onclose=null; ws.close(); } }catch(_){} ws=null; }
 function wsUrl(symbol, interval){ return `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_${interval}`; }
 function openWs(symbol, interval){ closeWs(); try{ ws=new WebSocket(wsUrl(symbol, interval)); }catch(e){ setStatus('WS erreur'); return; } ws.onopen=()=> setStatus('Temps réel'); ws.onmessage=(ev)=>{ try{ const msg=JSON.parse(ev.data); const k=(msg&&msg.k)||(msg&&msg.data&&msg.data.k); if(!k) return; const bar={ time:Math.floor(k.t/1000), open:+k.o, high:+k.h, low:+k.l, close:+k.c }; const last=candles[candles.length-1]; if(last && bar.time===last.time){ candles[candles.length-1]=bar; candleSeries.update(bar); } else if(!last || bar.time>last.time){ candles.push(bar); candleSeries.update(bar); if(candles.length>50000) candles=candles.slice(-50000); }
 updateEMAs(); renderLBC(); if(typeof anyLiveActive==='function' && anyLiveActive()){ try{ multiLiveOnBar(bar); }catch(_){ } } else if(liveSession && liveSession.active){ try{ liveOnBar(bar); }catch(_){ } }
     }catch(_){ } }; ws.onerror=()=> setStatus('WS erreur'); ws.onclose=()=> {/* keep silent */}; }
-async function load(symbol, interval){ try{ setStatus('Chargement...'); candles = await fetchAllKlines(symbol, interval, 5000); candleSeries.setData(candles); chart.timeScale().fitContent(); setStatus(''); updateEMAs(); renderLBC(); }catch(e){ setStatus('Erreur chargement'); }}
+async function load(symbol, interval){
+  try{
+    __bgLoadToken++;
+    const token = __bgLoadToken;
+    setStatus('Chargement...');
+    // Fast path: small preload for instant render
+    candles = await fetchAllKlines(symbol, interval, PRELOAD_BARS);
+    candleSeries.setData(candles);
+    chart.timeScale().fitContent();
+    setStatus('');
+    updateEMAs(); renderLBC();
+    // Deep background extend to maximize history depth for Lab/Backtest
+    backgroundExtendKlines(symbol, interval, token);
+  }catch(e){ setStatus('Erreur chargement'); }
+}
 
 if(intervalSelect){ intervalSelect.addEventListener('change', ()=>{ currentInterval=intervalSelect.value; try{ localStorage.setItem('chart:tf', currentInterval); }catch(_){} updateWatermark(); closeWs(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval)); }); }
 if(symbolSelect){ symbolSelect.addEventListener('change', ()=>{ currentSymbol=symbolSelect.value; updateTitle(currentSymbol); updateWatermark(); closeWs(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval)); }); }
