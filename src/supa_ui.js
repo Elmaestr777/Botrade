@@ -103,33 +103,44 @@
   }
 
   function canonicalParamsFromUI(p){
-    // Expect a toEngineParams()-like object
-    // Normalize keys order by reconstructing new object
-    const tpArr = Array.isArray(p.tp)? p.tp.map(t=>({
-      type: t.type||'Fib',
-      fib: (t.fib!=null? t.fib : t.value),
-      pct: (t.pct!=null? t.pct : undefined),
-      emaLen: (t.emaLen!=null? t.emaLen : undefined),
-      qty: (t.qty!=null? t.qty : undefined),
-    })) : [];
-    const slArr = Array.isArray(p.sl)? p.sl.map(t=>({
-      type: t.type||'Percent',
-      fib: (t.fib!=null? t.fib : undefined),
-      pct: (t.pct!=null? t.pct : undefined),
-      emaLen: (t.emaLen!=null? t.emaLen : undefined),
-    })) : [];
+    // Canonical shape aligned with Python engine (snake_case + tp_types/tp_r/tp_p)
+    const tp = Array.isArray(p.tp) ? p.tp.slice(0, 10) : [];
+    const tp_types = new Array(10).fill('Fib');
+    const tp_r = new Array(10).fill(0.0);
+    const tp_p = new Array(10).fill(0.0);
+    let sumW = 0;
+    for(let i=0;i<tp.length && i<10;i++){
+      const t = tp[i] || {};
+      const typ = String(t.type || 'Fib');
+      if(typ === 'Percent'){
+        tp_types[i] = 'Percent';
+        tp_r[i] = Number(t.pct != null ? t.pct : t.value) || 0;
+      } else if(typ === 'EMA'){
+        tp_types[i] = 'EMA';
+        tp_r[i] = 0; // EMA target is handled by ema_len elsewhere
+      } else {
+        tp_types[i] = 'Fib';
+        tp_r[i] = Number(t.fib != null ? t.fib : t.value) || 0;
+      }
+      let w = t.qty;
+      if(w != null) w = (w > 1 ? Number(w) : Number(w) * 100);
+      tp_p[i] = Number.isFinite(w) ? Math.max(0, w) : 0;
+      sumW += tp_p[i];
+    }
+    if(sumW > 0){
+      for(let i=0;i<10;i++) tp_p[i] = +(tp_p[i] / sumW * 100).toFixed(6);
+    }
     return {
       nol: p.nol|0,
       prd: p.prd|0,
-      slInitPct: +p.slInitPct,
-      beAfterBars: p.beAfterBars|0,
-      beLockPct: +p.beLockPct,
-      emaLen: p.emaLen|0,
-      entryMode: String(p.entryMode||'Both'),
-      tpEnable: !!p.tpEnable,
-      tp: tpArr,
-      slEnable: (p.slEnable!=null? !!p.slEnable : (slArr.length>0)),
-      sl: slArr,
+      sl_init_pct: +p.slInitPct,
+      be_after_bars: p.beAfterBars|0,
+      be_lock_pct: +p.beLockPct,
+      ema_len: p.emaLen|0,
+      entry_mode: String(p.entryMode||'Both').replace('Fib Retracement','Fib'),
+      use_fib_ret: !!p.useFibRet,
+      confirm_mode: String(p.confirmMode||'Bounce'),
+      tp_types, tp_r, tp_p,
     };
   }
 
@@ -213,12 +224,72 @@
           .range(from, from+step-1);
         if(error) break;
         if(!Array.isArray(data) || !data.length) break;
-        for(const row of data){ try{ out.add(JSON.stringify(row.params||{})); }catch(_){ } }
+        for(const row of data){ try{ const p=row.params||{}; const keys=Object.keys(p).sort(); out.add(JSON.stringify(p, keys)); }catch(_){ } }
         if(data.length<step) break;
         from += step;
       }catch(_){ break; }
     }
     return out;
+  }
+
+  function uiParamsFromCanonical(p){
+    // Map Python-canonical params to UI schema used by the front
+    if(!p || typeof p !== 'object') return {};
+    const tp_types = Array.isArray(p.tp_types)? p.tp_types.slice(0,10) : [];
+    const tp_r = Array.isArray(p.tp_r)? p.tp_r.slice(0,10) : [];
+    const tp_p = Array.isArray(p.tp_p)? p.tp_p.slice(0,10) : [];
+    const tp = [];
+    for(let i=0;i<10;i++){
+      const typ = tp_types[i] || 'Fib';
+      const r = Number(tp_r[i]||0);
+      const w = Number(tp_p[i]||0);
+      if(!(w>0)) continue;
+      if(typ === 'Percent') tp.push({ type:'Percent', pct:r, value:r, qty: Math.max(0, Math.min(1, w/100)) });
+      else if(typ === 'EMA') tp.push({ type:'EMA', emaLen: (p.ema_len|0)||55, qty: Math.max(0, Math.min(1, w/100)) });
+      else tp.push({ type:'Fib', fib:r, value:r, qty: Math.max(0, Math.min(1, w/100)) });
+    }
+    const entryModeUI = String(p.entry_mode||'Both') === 'Fib' ? 'Fib Retracement' : String(p.entry_mode||'Both');
+    return {
+      nol: p.nol|0,
+      prd: p.prd|0,
+      slInitPct: +p.sl_init_pct,
+      beAfterBars: p.be_after_bars|0,
+      beLockPct: +p.be_lock_pct,
+      emaLen: p.ema_len|0,
+      entryMode: entryModeUI,
+      useFibRet: !!p.use_fib_ret,
+      confirmMode: String(p.confirm_mode||'Bounce'),
+      tpEnable: tp.length>0,
+      tp,
+      slEnable: false,
+      sl: [],
+    };
+  }
+
+  async function fetchPalmares(symbol, tf, limit=25){
+    const c=ensureClient(); if(!c) return [];
+    const profileId = await getBalanceeProfileId();
+    try{
+      const { data, error } = await c
+        .from('strategy_evaluations')
+        .select('params,metrics,score')
+        .eq('symbol', symbol)
+        .eq('tf', tf)
+        .eq('profile_id', profileId)
+        .is('selected', true)
+        .order('score', { ascending: false })
+        .limit(Math.max(1, limit));
+      if(error || !Array.isArray(data)) return [];
+      const out=[];
+      let idx=1;
+      for(const row of data){
+        const paramsUI = uiParamsFromCanonical(row.params||{});
+        const metrics = row.metrics||{};
+        const score = (typeof row.score==='number')? row.score : 0;
+        out.push({ id: 'db_'+(idx++), name: null, gen: 1, params: paramsUI, res: metrics, score, ts: Date.now() });
+      }
+      return out;
+    }catch(_){ return []; }
   }
 
   window.SUPA = {
@@ -230,5 +301,6 @@
     testConnection,
     getUserId,
     fetchKnownKeys: fetchKnownCanonicalKeys,
+    fetchPalmares,
   };
 })();

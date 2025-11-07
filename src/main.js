@@ -18,9 +18,18 @@ const DICT_ES=["río","piedra","roble","brasa","nube","estrella","luna","sol","m
 const DICT_PL=["rzeka","kamień","dąb","iskra","gwiazda","księżyc","słońce","morze","ziemia","wiatr","burza","las","pustynia","wyspa","orzeł","żubr","ryś","kometa","polana","dolina"];
 function randomName(){ const dicts=[DICT_FR,DICT_EN,DICT_ES,DICT_PL]; const d=dicts[Math.floor(Math.random()*dicts.length)]; return d[Math.floor(Math.random()*d.length)]; }
 function uniqueNameFor(sym, tf, base){ const pal=readPalmares(sym, tf); const names=new Set(pal.map(x=>x.name)); let n=base; let k=2; while(names.has(n)){ n=base+"-"+k; k++; } return n; }
-function renderLabFromStorage(){
+async function renderLabFromStorage(){
   const tf = labTFSelect? labTFSelect.value: (intervalSelect? intervalSelect.value:''), sym=currentSymbol;
-  const arr=readPalmares(sym, tf);
+  let arr=[];
+  try{
+    if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchPalmares==='function'){
+      arr = await SUPA.fetchPalmares(sym, tf, 25);
+    }
+  }catch(_){ arr = []; }
+  if(!Array.isArray(arr) || !arr.length){
+    try{ arr = readPalmares(sym, tf); }catch(_){ arr=[]; }
+  }
+  window.labPalmaresCache = Array.isArray(arr)? arr.slice() : [];
   if(labSummaryEl) labSummaryEl.textContent = arr.length? `Palmarès: ${arr.length} stratégies (symbole ${symbolToDisplay(sym)} • TF ${tf})` : 'Aucun palmarès';
   if(!labTBody){ return; }
   if(!arr.length){ labTBody.innerHTML = '<tr><td colspan=\"13\">Aucune donnée</td></tr>'; return; }
@@ -45,7 +54,7 @@ rows.push('<tr>' + `<td>${idx}</td>` + `<td style=\\\"text-align:left\\\">${(r.n
       const symNow = currentSymbol;
       // Use the same sorted order as rendered
       const w=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
-      const base=readPalmares(symNow, tfNow);
+      const base = Array.isArray(window.labPalmaresCache)? window.labPalmaresCache.slice() : readPalmares(symNow, tfNow);
       const cur=base.slice().sort((a,b)=> (b.score||scoreResult(b.res||{},w)) - (a.score||scoreResult(a.res||{},w)));
       if(!(i>=0 && i<cur.length)) return;
       const rec=cur[i]||{};
@@ -951,7 +960,7 @@ async function showStrategyDetail(item, ctx){ try{ const sym=ctx.symbol, tf=ctx.
 const labExportBtn=document.getElementById('labExport'); const labClearBtn=document.getElementById('labClear'); const labWeightsBtn=document.getElementById('labWeights');
 const weightsModalEl=document.getElementById('weightsModal'); const weightsClose=document.getElementById('weightsClose'); const weightsSave=document.getElementById('weightsSave'); const weightsProfile=document.getElementById('weightsProfile'); const weightsBody=document.getElementById('weightsBody');
 if(labTFSelect){ labTFSelect.addEventListener('change', ()=>{ try{ renderLabFromStorage(); }catch(_){ } }); }
-if(labExportBtn){ labExportBtn.addEventListener('click', ()=>{ try{ const tf=(labTFSelect&&labTFSelect.value)||(intervalSelect&&intervalSelect.value)||''; const arr=readPalmares(currentSymbol, tf); if(!arr.length){ setStatus('Rien à exporter'); return; } let csv='idx,nom,gen,nol,prd,slInitPct,beAfterBars,beLockPct,emaLen,tp1R,entryMode,useFibRet,useFibDraw,confirmMode,ent382,ent500,ent618,ent786,tpEnable,tp,score,profitFactor,totalPnl,equityFinal,tradesCount,winrate,avgRR,maxDDAbs\n'; let idx=1; const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee'); for(const r of arr){ const p=r.params||{}; const st=r.res||{}; const tpStr = Array.isArray(p.tp)? JSON.stringify(p.tp).replaceAll(',', ';') : ''; const score = Number.isFinite(r.score)? r.score : scoreResult(st, weights); csv+=`${idx},\"${r.name||''}\",${r.gen||1},${p.nol||''},${p.prd||''},${p.slInitPct||''},${p.beAfterBars||''},${p.beLockPct||''},${p.emaLen||''},${p.tp1R||''},${p.entryMode||''},${p.useFibRet??''},${p.useFibDraw??''},${p.confirmMode||''},${p.ent382??''},${p.ent500??''},${p.ent618??''},${p.ent786??''},${p.tpEnable??''},\"${tpStr}\",${score.toFixed(2)},${st.profitFactor||''},${st.totalPnl||''},${st.equityFinal||''},${st.tradesCount||''},${st.winrate||''},${st.avgRR||''},${st.maxDDAbs||''}\\n`; idx++; } const blob=new Blob([csv], {type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`palmares_${currentSymbol}_${tf}.csv`; a.click(); }catch(_){ } }); }
+if(labExportBtn){ labExportBtn.addEventListener('click', ()=>{ try{ const tf=(labTFSelect&&labTFSelect.value)||(intervalSelect&&intervalSelect.value)||''; const arr=(Array.isArray(window.labPalmaresCache)? window.labPalmaresCache : readPalmares(currentSymbol, tf)); if(!arr.length){ setStatus('Rien à exporter'); return; } let csv='idx,nom,gen,nol,prd,slInitPct,beAfterBars,beLockPct,emaLen,tp1R,entryMode,useFibRet,useFibDraw,confirmMode,ent382,ent500,ent618,ent786,tpEnable,tp,score,profitFactor,totalPnl,equityFinal,tradesCount,winrate,avgRR,maxDDAbs\n'; let idx=1; const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee'); for(const r of arr){ const p=r.params||{}; const st=r.res||{}; const tpStr = Array.isArray(p.tp)? JSON.stringify(p.tp).replaceAll(',', ';') : ''; const score = Number.isFinite(r.score)? r.score : scoreResult(st, weights); csv+=`${idx},\"${r.name||''}\",${r.gen||1},${p.nol||''},${p.prd||''},${p.slInitPct||''},${p.beAfterBars||''},${p.beLockPct||''},${p.emaLen||''},${p.tp1R||''},${p.entryMode||''},${p.useFibRet??''},${p.useFibDraw??''},${p.confirmMode||''},${p.ent382??''},${p.ent500??''},${p.ent618??''},${p.ent786??''},${p.tpEnable??''},\"${tpStr}\",${score.toFixed(2)},${st.profitFactor||''},${st.totalPnl||''},${st.equityFinal||''},${st.tradesCount||''},${st.winrate||''},${st.avgRR||''},${st.maxDDAbs||''}\\n`; idx++; } const blob=new Blob([csv], {type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`palmares_${currentSymbol}_${tf}.csv`; a.click(); }catch(_){ } }); }
 if(labClearBtn){ labClearBtn.addEventListener('click', ()=>{ try{ const tf=(labTFSelect&&labTFSelect.value)||(intervalSelect&&intervalSelect.value)||''; if(confirm(`Effacer le palmarès pour ${symbolToDisplay(currentSymbol)} • ${tf} ?`)){ localStorage.removeItem(palmaresKey(currentSymbol, tf)); renderLabFromStorage(); } }catch(_){ } }); }
 function buildWeightsUI(){ if(!weightsBody) return; const prof=(weightsProfile&&weightsProfile.value)||(localStorage.getItem('labWeightsProfile')||'balancee'); const w=getWeights(prof); weightsBody.innerHTML = `
   <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
@@ -1023,7 +1032,47 @@ function updateGlobalProgressUI(){ try{ let tot=Math.max(0,__labSimTotal), dn=Ma
   const rSL=[0.5,1,1.5,2,2.5,3]; const rBEb=[3,4,5,6,7,8]; const rBEL=[3,4,5,6,7,8,9,10];
   const rEMALen=[]; for(let v=21; v<=89; v+=4){ rEMALen.push(v); }
   const keyOf=(p)=> JSON.stringify([p.nol,p.prd,p.slInitPct,p.beAfterBars,p.beLockPct,p.emaLen,p.entryMode,p.useFibRet,p.confirmMode,p.ent382,p.ent500,p.ent618,p.ent786,Array.isArray(p.tp)? p.tp.slice(0,10):[], Array.isArray(p.sl)? p.sl.slice(0,10):[]]);
-  const canonKey=(p)=>{ try{ const tpArr=Array.isArray(p.tp)? p.tp.slice(0,10).map(t=>({ type: t.type||'Fib', fib: (t.fib!=null? t.fib : t.value), pct: (t.pct!=null? t.pct : undefined), emaLen: (t.emaLen!=null? t.emaLen : undefined), qty: (t.qty!=null? t.qty : undefined) })) : []; const slArr=Array.isArray(p.sl)? p.sl.slice(0,10).map(t=>({ type: t.type||'Percent', fib: (t.fib!=null? t.fib : undefined), pct: (t.pct!=null? t.pct : undefined), emaLen: (t.emaLen!=null? t.emaLen : undefined) })) : []; const obj={ nol:p.nol|0, prd:p.prd|0, slInitPct:+p.slInitPct, beAfterBars:p.beAfterBars|0, beLockPct:+p.beLockPct, emaLen:p.emaLen|0, entryMode:String(p.entryMode||'Both'), tpEnable: (p.tpEnable!=null? !!p.tpEnable : true), tp: tpArr, slEnable: (p.slEnable!=null? !!p.slEnable : (slArr.length>0)), sl: slArr }; return JSON.stringify(obj); }catch(_){ return ''; } };
+  const canonKey=(p)=>{ try{
+      const tp = Array.isArray(p.tp) ? p.tp.slice(0,10) : [];
+      const tp_types = new Array(10).fill('Fib');
+      const tp_r = new Array(10).fill(0.0);
+      const tp_p = new Array(10).fill(0.0);
+      let sumW = 0;
+      for(let i=0;i<tp.length && i<10;i++){
+        const t = tp[i] || {};
+        const typ = String(t.type || 'Fib');
+        if(typ === 'Percent'){
+          tp_types[i] = 'Percent';
+          tp_r[i] = Number(t.pct != null ? t.pct : t.value) || 0;
+        } else if(typ === 'EMA'){
+          tp_types[i] = 'EMA';
+          tp_r[i] = 0;
+        } else {
+          tp_types[i] = 'Fib';
+          tp_r[i] = Number(t.fib != null ? t.fib : t.value) || 0;
+        }
+        let w = t.qty;
+        if(w != null) w = (w > 1 ? Number(w) : Number(w) * 100);
+        tp_p[i] = Number.isFinite(w) ? Math.max(0, w) : 0;
+        sumW += tp_p[i];
+      }
+      if(sumW > 0){
+        for(let i=0;i<10;i++) tp_p[i] = +(tp_p[i] / sumW * 100).toFixed(6);
+      }
+      const obj = {
+        nol: p.nol|0,
+        prd: p.prd|0,
+        sl_init_pct: +p.slInitPct,
+        be_after_bars: p.beAfterBars|0,
+        be_lock_pct: +p.beLockPct,
+        ema_len: p.emaLen|0,
+        entry_mode: String(p.entryMode||'Both').replace('Fib Retracement','Fib'),
+        use_fib_ret: !!p.useFibRet,
+        confirm_mode: String(p.confirmMode||'Bounce'),
+        tp_types, tp_r, tp_p,
+      };
+      return JSON.stringify(obj, Object.keys(obj).sort());
+    }catch(_){ return ''; } };
 
   function readTPOpt(){
     try{
@@ -1039,9 +1088,8 @@ function updateGlobalProgressUI(){ try{ let tot=Math.max(0,__labSimTotal), dn=Ma
   }
   function randWeights(n){ const arr=new Array(n).fill(0).map(()=> Math.random()+0.05); const s=arr.reduce((a,b)=>a+b,0); return arr.map(x=> x/s); }
   function sampleTPList(tpCfg){
-    const { allowFib, allowPct, allowEMA, pctMin, pctMax, fibs } = tpCfg;
-    // Randomize number of TP levels between 1 and 10 for each sample
-    const n = 1 + ((Math.random()*10)|0);
+    const { allowFib, allowPct, allowEMA, pctMin, pctMax, fibs } = tpCfg || {};
+    const n = Math.max(1, Math.min(10, Number(tpCfg && tpCfg.count) || 10));
     const types=[]; if(allowFib) types.push('Fib'); if(allowPct) types.push('Percent'); if(allowEMA) types.push('EMA'); if(!types.length) types.push('Fib');
     const ws=randWeights(n);
     const list=[];
@@ -1072,14 +1120,15 @@ function updateGlobalProgressUI(){ try{ let tot=Math.max(0,__labSimTotal), dn=Ma
       const pctMin = parseFloat(document.getElementById('labSLPctMin')?.value||'0.5');
       const pctMax = parseFloat(document.getElementById('labSLPctMax')?.value||'5');
       const fibsFull = [0.236,0.382,0.5,0.618,0.786,1.0,1.272,1.382,1.414,1.618,2.0,2.236,2.618,3.0];
-      return { allowFib:true, allowPct:true, allowEMA:true, pctMin, pctMax, fibs: fibsFull };
+      const count = Math.max(1, Math.min(10, parseInt(document.getElementById('labSLCount')?.value||'1',10)));
+      return { allowFib:true, allowPct:true, allowEMA:true, pctMin, pctMax, fibs: fibsFull, count };
     }catch(_){
-      return { allowFib:true, allowPct:true, allowEMA:true, pctMin:0.5, pctMax:5.0, fibs:[0.236,0.382,0.5,0.618,0.786,1.0,1.272,1.382,1.414,1.618,2.0,2.236,2.618,3.0] };
+      return { allowFib:true, allowPct:true, allowEMA:true, pctMin:0.5, pctMax:5.0, fibs:[0.236,0.382,0.5,0.618,0.786,1.0,1.272,1.382,1.414,1.618,2.0,2.236,2.618,3.0], count:1 };
     }
   }
   function sampleSLList(slCfg){
-    const { allowFib, allowPct, allowEMA, pctMin, pctMax, fibs } = slCfg;
-    const n = 1 + ((Math.random()*10)|0);
+    const { allowFib, allowPct, allowEMA, pctMin, pctMax, fibs } = slCfg || {};
+    const n = Math.max(1, Math.min(10, Number(slCfg && slCfg.count) || 1));
     const types=[]; if(allowFib) types.push('Fib'); if(allowPct) types.push('Percent'); if(allowEMA) types.push('EMA'); if(!types.length) types.push('Percent');
     const list=[];
     for(let i=0;i<n;i++){
