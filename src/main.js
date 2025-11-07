@@ -40,9 +40,12 @@ rows.push('<tr>' + `<td>${idx}</td>` + `<td style=\\\"text-align:left\\\">${(r.n
       const t=ev.target; if(!t || !t.getAttribute) return;
       const act=t.getAttribute('data-action'); if(!act) return;
       const i=parseInt(t.getAttribute('data-idx')||'-1',10);
+      // Re-read current sym/TF at click time to avoid stale closures
+      const tfNow = labTFSelect? labTFSelect.value : (intervalSelect? intervalSelect.value:'');
+      const symNow = currentSymbol;
       // Use the same sorted order as rendered
       const w=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
-      const base=readPalmares(sym, tf);
+      const base=readPalmares(symNow, tfNow);
       const cur=base.slice().sort((a,b)=> (b.score||scoreResult(b.res||{},w)) - (a.score||scoreResult(a.res||{},w)));
       if(!(i>=0 && i<cur.length)) return;
       const rec=cur[i]||{};
@@ -94,9 +97,9 @@ rows.push('<tr>' + `<td>${idx}</td>` + `<td style=\\\"text-align:left\\\">${(r.n
         try{ populateHeavenModal(); }catch(_){ }
         renderLBC(); setStatus('Paramètres appliqués depuis Lab');
       } else if(act==='view'){
-        showStrategyResult(rec.res||{}, {symbol: currentSymbol, tf});
+        showStrategyResult(rec.res||{}, {symbol: currentSymbol, tf: tfNow});
       } else if(act==='detail'){
-        try{ await showStrategyDetail(rec, { symbol: currentSymbol, tf }); }catch(_){ }
+        try{ await showStrategyDetail(rec, { symbol: currentSymbol, tf: tfNow }); }catch(_){ }
       }
     });
     labTBody.dataset.wired='1';
