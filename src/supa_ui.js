@@ -215,13 +215,13 @@
     let from=0, step=1000; // simple paging
     while(true){
       try{
-        const { data, error } = await c
+        let q = c
           .from('strategy_evaluations')
           .select('params')
           .eq('symbol', symbol)
-          .eq('tf', tf)
-          .eq('profile_id', profileId)
-          .range(from, from+step-1);
+          .eq('tf', tf);
+        if(profileId!=null) q = q.eq('profile_id', profileId); else q = q.is('profile_id', null);
+        const { data, error } = await q.range(from, from+step-1);
         if(error) break;
         if(!Array.isArray(data) || !data.length) break;
         for(const row of data){ try{ const p=row.params||{}; const keys=Object.keys(p).sort(); out.add(JSON.stringify(p, keys)); }catch(_){ } }
@@ -270,15 +270,16 @@
     const c=ensureClient(); if(!c) return [];
     const profileId = await getBalanceeProfileId();
     try{
-      const { data, error } = await c
+      let q = c
         .from('strategy_evaluations')
         .select('params,metrics,score')
         .eq('symbol', symbol)
         .eq('tf', tf)
-        .eq('profile_id', profileId)
         .is('selected', true)
         .order('score', { ascending: false })
         .limit(Math.max(1, limit));
+      if(profileId!=null) q = q.eq('profile_id', profileId); else q = q.is('profile_id', null);
+      const { data, error } = await q;
       if(error || !Array.isArray(data)) return [];
       const out=[];
       let idx=1;
