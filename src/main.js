@@ -20,17 +20,18 @@ function randomName(){ const dicts=[DICT_FR,DICT_EN,DICT_ES,DICT_PL]; const d=di
 function uniqueNameFor(sym, tf, base){ const pal=readPalmares(sym, tf); const names=new Set(pal.map(x=>x.name)); let n=base; let k=2; while(names.has(n)){ n=base+"-"+k; k++; } return n; }
 async function renderLabFromStorage(){
   const tf = labTFSelect? labTFSelect.value: (intervalSelect? intervalSelect.value:''), sym=currentSymbol;
-  let arr=[];
+  let arr=[]; let source='local';
   try{
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchPalmares==='function'){
-      arr = await SUPA.fetchPalmares(sym, tf, 25);
+      const supaArr = await SUPA.fetchPalmares(sym, tf, 25);
+      if(Array.isArray(supaArr) && supaArr.length){ arr = supaArr; source='Supabase'; }
     }
-  }catch(_){ arr = []; }
+  }catch(_){ /* ignore, will fallback */ }
   if(!Array.isArray(arr) || !arr.length){
-    try{ arr = readPalmares(sym, tf); }catch(_){ arr=[]; }
+    try{ arr = readPalmares(sym, tf); source = (Array.isArray(arr)&&arr.length)? 'local' : source; }catch(_){ arr=[]; }
   }
   window.labPalmaresCache = Array.isArray(arr)? arr.slice() : [];
-  if(labSummaryEl) labSummaryEl.textContent = arr.length? `Palmarès: ${arr.length} stratégies (symbole ${symbolToDisplay(sym)} • TF ${tf})` : 'Aucun palmarès';
+  if(labSummaryEl) labSummaryEl.textContent = arr.length? `Palmarès: ${arr.length} stratégies (symbole ${symbolToDisplay(sym)} • TF ${tf}) — ${source}` : 'Aucun palmarès';
   if(!labTBody){ return; }
   if(!arr.length){ labTBody.innerHTML = '<tr><td colspan=\"14\">Aucune donnée</td></tr>'; return; }
   const rows=[]; let idx=1; const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
@@ -1459,8 +1460,14 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
     setStatus('Palmarès mis à jour'); closeBtProgress();
   } else {
     let pal=readPalmares(sym, tfSel).slice(0,25);
+    const palWasEmpty = pal.length===0;
     // Map improvements by owner id or params signature
     for(const rec of results){ const owner=rec.owner; if(owner){ const idx = pal.findIndex(x=> (x && owner && x.id && x.id===owner.id) || (paramsKey(x.params)===paramsKey(rec.p)) ); const base = (idx>=0? pal[idx] : owner); const curScore = (base && base.score!=null)? base.score : scoreResult((base&&base.res)||{}, weights); if(rec.score>curScore && idx>=0){ pal[idx] = { ...pal[idx], params:rec.p, res:rec.res, score:rec.score, gen: ((pal[idx].gen|0)+1), ts:Date.now() }; } }
+    }
+    // If no local palmarès existed, seed top results (behave like 'new')
+    if(palWasEmpty && (!pal.length) && results.length){
+      const toAdd = results.slice(0, Math.min(10, results.length));
+      for(const b of toAdd){ const base=randomName(); const name=uniqueNameFor(sym, tfSel, base); pal.push({ id:'s'+Date.now()+Math.random().toString(36).slice(2,6), name, gen:1, params:b.p, res:b.res, score:b.score, ts:Date.now() }); }
     }
     pal.sort((a,b)=> (b.score||0)-(a.score||0)); pal=pal.slice(0,25); writePalmares(sym, tfSel, pal); try{ renderLabFromStorage(); }catch(_){ }
     try{ if(window.SUPA && typeof SUPA.persistLabResults==='function'){ const bestOut = results.slice(0, Math.min(10, results.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen: (x.gen||1), name: x.name||null })); SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut }); } }catch(_){ }
