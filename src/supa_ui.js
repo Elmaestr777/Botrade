@@ -204,14 +204,14 @@
           try{
             await insertPalmaresEntries(entries); slog('Supabase: entrées palmarès insérées');
           }catch(e){ slog('Supabase: insert palmarès_entries KO — '+(e&&e.message?e.message:e)); }
-          // Mark selected
-          try{
-            const selRows = best.map(b=> ({ user_id: uid, symbol: sym, tf, profile_id: profileId || null, params: canonicalParamsFromUI(b.params||{}) }));
-            await markSelectedForSet(selRows, setId); slog('Supabase: stratégies marquées selected=true');
-          }catch(e){ slog('Supabase: mark selected KO — '+(e&&e.message?e.message:e)); }
         } else {
           slog('Supabase: création palmarès_set KO (id absent)');
         }
+        // Mark selected — même si setId est null, on passe selected=true pour pouvoir lire via fetchPalmares
+        try{
+          const selRows = best.map(b=> ({ user_id: uid, symbol: sym, tf, profile_id: profileId || null, params: canonicalParamsFromUI(b.params||{}) }));
+          await markSelectedForSet(selRows, setId||null); slog('Supabase: stratégies marquées selected=true');
+        }catch(e){ slog('Supabase: mark selected KO — '+(e&&e.message?e.message:e)); }
       } else {
         slog('Supabase: aucun “best” à enregistrer');
       }
