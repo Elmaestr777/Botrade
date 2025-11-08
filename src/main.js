@@ -27,11 +27,9 @@ async function renderLabFromStorage(){
       if(Array.isArray(supaArr) && supaArr.length){ arr = supaArr; source='Supabase'; }
     }
   }catch(_){ /* ignore, will fallback */ }
-  if(!Array.isArray(arr) || !arr.length){
-    try{ arr = readPalmares(sym, tf); source = (Array.isArray(arr)&&arr.length)? 'local' : source; }catch(_){ arr=[]; }
-  }
+  // Pas de fallback local: Supabase obligatoire (si vide, on affiche vide)
   window.labPalmaresCache = Array.isArray(arr)? arr.slice() : [];
-  if(labSummaryEl) labSummaryEl.textContent = arr.length? `Palmarès: ${arr.length} stratégies (symbole ${symbolToDisplay(sym)} • TF ${tf}) — ${source}` : 'Aucun palmarès';
+  if(labSummaryEl) labSummaryEl.textContent = arr.length? `Palmarès: ${arr.length} stratégies (symbole ${symbolToDisplay(sym)} • TF ${tf}) — Supabase` : 'Aucun palmarès';
   if(!labTBody){ return; }
   if(!arr.length){ labTBody.innerHTML = '<tr><td colspan=\"14\">Aucune donnée</td></tr>'; return; }
   const rows=[]; let idx=1; const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
@@ -57,7 +55,7 @@ rows.push('<tr>' + `<td>${idx}</td>` + `<td style=\\\"text-align:left\\\">${(r.n
       const symNow = currentSymbol;
       // Use the same sorted order as rendered
       const w=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
-      const base = Array.isArray(window.labPalmaresCache)? window.labPalmaresCache.slice() : readPalmares(symNow, tfNow);
+      const base = Array.isArray(window.labPalmaresCache)? window.labPalmaresCache.slice() : [];
       const cur=base.slice().sort((a,b)=> (b.score||scoreResult(b.res||{},w)) - (a.score||scoreResult(a.res||{},w)));
       if(!(i>=0 && i<cur.length)) return;
       const rec=cur[i]||{};
@@ -830,7 +828,7 @@ if(btOptimizeBtn){ btOptimizeBtn.addEventListener('click', async ()=>{ try{
   const rEMA = rng('btOptEMALenEn','btOptEMALenMin','btOptEMALenMax','btOptEMALenStep',21,89,4)||[lbcOpts.emaLen];
   let combos=[]; for(const nol of rNol){ for(const prd of rPrd){ for(const sl of rSL){ for(const be of rBEb){ for(const bel of rBEL){ for(const em of rEMA){ combos.push({ nol, prd, slInitPct:sl, beAfterBars:be, beLockPct:bel, emaLen:em }); } } } } } }
   const usePrior = !!(document.getElementById('btUseTFPrior')&&document.getElementById('btUseTFPrior').checked);
-  if(usePrior){ try{ const priorArr=readLabStorage(currentSymbol, tfSel).slice(0, topN); for(const it of priorArr){ if(it&&it.params){ combos.unshift({ ...it.params }); } } }catch(_){ } }
+  if(usePrior){ try{ let priorArr = Array.isArray(window.labPalmaresCache)? window.labPalmaresCache.slice(0, topN) : []; if((!priorArr.length) && window.SUPA && typeof SUPA.fetchPalmares==='function'){ priorArr = await SUPA.fetchPalmares(currentSymbol, tfSel, topN); } for(const it of priorArr){ if(it&&it.params){ combos.unshift({ ...it.params }); } } }catch(_){ } }
   if(combos.length>maxComb){ const sample=[]; while(sample.length<maxComb){ const i=Math.floor(Math.random()*combos.length); sample.push(combos[i]); combos.splice(i,1); } combos=sample; }
   let bars=candles; if(tfSel!==currentInterval){ try{ bars = await fetchAllKlines(currentSymbol, tfSel, 5000); }catch(_){ bars=candles; } }
   let from=null,to=null;
@@ -841,14 +839,14 @@ if(btOptimizeBtn){ btOptimizeBtn.addEventListener('click', async ()=>{ try{
   const [sIdx,eIdx]=idxFromTimeLocal(bars,from,to);
   openBtProgress('Optimisation...'); btAbort=false; const best=[]; const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
   let done=0; const total=combos.length; function step(k){ const end=Math.min(k+5, total); for(let i=k;i<end;i++){ if(btAbort) break; const p=combos[i]; const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, p); const score=scoreResult(res, weights); best.push({ score, params:p, res }); best.sort((a,b)=> b.score-a.score); if(best.length>topN){ best.length=topN; } done++; if(btProgBar&&btProgText){ const pct=Math.round(done/total*100); btProgBar.style.width=pct+'%'; btProgText.textContent=`Optimisation ${pct}% (${done}/${total})`; } }
-    if(done<total && !btAbort){ setTimeout(()=> step(end), 0); } else { closeBtProgress(); closeModalEl(btModalEl); const tfKey=tfSel; try{ const arr=readLabStorage(currentSymbol, tfKey); for(const b of best){ arr.unshift({ ts:Date.now(), params:b.params, res:b.res }); } writeLabStorage(currentSymbol, tfKey, arr.slice(0,1000)); }catch(_){ } try{ renderLabFromStorage(); }catch(_){ } setStatus('Optimisation terminée'); }
+    if(done<total && !btAbort){ setTimeout(()=> step(end), 0); } else { closeBtProgress(); closeModalEl(btModalEl); try{ renderLabFromStorage(); }catch(_){ } setStatus('Optimisation terminée'); }
   }
   step(0);
  }catch(e){ setStatus('Erreur optimisation'); }
 }); }
 if(btRunBtn){ btRunBtn.addEventListener('click', ()=>{ if(!candles.length){ setStatus('Aucune donnée'); return; } const conf={ startCap: Math.max(0, parseFloat(btStartCap&&btStartCap.value||'10000')), fee: Math.max(0, parseFloat(btFee&&btFee.value||'0.1')), lev: Math.max(1, parseFloat(btLev&&btLev.value||'1')), maxPct: Math.max(0, Math.min(100, parseFloat(btMaxPct&&btMaxPct.value||'100'))), base: (btMaxBase&&btMaxBase.value)||'initial' };
   let from=null, to=null; if(btRangeDates&&btRangeDates.checked){ const f=(btFrom&&btFrom.value)||''; const t=(btTo&&btTo.value)||''; from = f? Math.floor(new Date(f).getTime()/1000): null; to = t? Math.floor(new Date(t).getTime()/1000): null; } else if(btRangeAll&&btRangeAll.checked){ from=null; to=null; } else { const r=getVisibleRange(); if(r){ from=r.from; to=r.to; } }
-const [sIdx,eIdx]=idxFromTime(from,to); btAbort=false; try{ clearTPHitMarkers(); clearSLHitMarkers(); clearBEHitMarkers(); }catch(_){ } openBtProgress('Préparation...'); setTimeout(()=>{ const res=runBacktestSlice(sIdx,eIdx,conf); try{ clearTPHitMarkers(); clearSLHitMarkers(); clearBEHitMarkers(); const tr = Array.isArray(res.trades)? res.trades: []; for(const ev of tr){ if(ev && ev.reason){ if(ev.reason==='SL'){ const be = Math.abs(ev.exit - ev.entry) <= 1e-8; if(be){ addBEHitMarker(ev.exitTime, ev.dir); } else { addSLHitMarker(ev.exitTime, ev.dir); } } else if(typeof ev.reason==='string' && ev.reason.startsWith('TP')){ addTPHitMarker(ev.exitTime, ev.dir); } } } }catch(_){ } renderLBC(); closeBtProgress(); closeModalEl(btModalEl); showStrategyResult(res, {symbol: currentSymbol, tf: (intervalSelect&&intervalSelect.value)||'', startCap: conf.startCap}); try{ const tf=(intervalSelect&&intervalSelect.value)||''; const key=labKey(currentSymbol, tf); const arr=readLabStorage(currentSymbol, tf); arr.unshift({ ts: Date.now(), params: { nol:lbcOpts.nol, prd:lbcOpts.prd, slInitPct:lbcOpts.slInitPct, beAfterBars:lbcOpts.beAfterBars, beLockPct:lbcOpts.beLockPct, emaLen:lbcOpts.emaLen, tp1R:lbcOpts.tp1R, entryMode:lbcOpts.entryMode, useFibRet:lbcOpts.useFibRet, useFibDraw:lbcOpts.useFibDraw, confirmMode:lbcOpts.confirmMode, ent382:lbcOpts.ent382, ent500:lbcOpts.ent500, ent618:lbcOpts.ent618, ent786:lbcOpts.ent786, tpEnable:lbcOpts.tpEnable, tpAfterHit:lbcOpts.tpAfterHit, tpCompound:lbcOpts.tpCompound, tpCloseAllLast:lbcOpts.tpCloseAllLast, tp:lbcOpts.tp }, res }); writeLabStorage(currentSymbol, tf, arr.slice(0,500)); }catch(_){ } try{ renderLabFromStorage(); }catch(_){ } }, 20); }); }
+const [sIdx,eIdx]=idxFromTime(from,to); btAbort=false; try{ clearTPHitMarkers(); clearSLHitMarkers(); clearBEHitMarkers(); }catch(_){ } openBtProgress('Préparation...'); setTimeout(()=>{ const res=runBacktestSlice(sIdx,eIdx,conf); try{ clearTPHitMarkers(); clearSLHitMarkers(); clearBEHitMarkers(); const tr = Array.isArray(res.trades)? res.trades: []; for(const ev of tr){ if(ev && ev.reason){ if(ev.reason==='SL'){ const be = Math.abs(ev.exit - ev.entry) <= 1e-8; if(be){ addBEHitMarker(ev.exitTime, ev.dir); } else { addSLHitMarker(ev.exitTime, ev.dir); } } else if(typeof ev.reason==='string' && ev.reason.startsWith('TP')){ addTPHitMarker(ev.exitTime, ev.dir); } } } }catch(_){ } renderLBC(); closeBtProgress(); closeModalEl(btModalEl); showStrategyResult(res, {symbol: currentSymbol, tf: (intervalSelect&&intervalSelect.value)||'', startCap: conf.startCap}); try{ renderLabFromStorage(); }catch(_){ } }, 20); }); }
 
 // Strategy result modal
 const stratModalEl=document.getElementById('stratModal'); const stratClose=document.getElementById('stratClose'); const stratClose2=document.getElementById('stratClose2'); const stratTitle=document.getElementById('stratTitle'); const stratTBody=document.getElementById('stratTBody'); const tradesModalEl=document.getElementById('tradesModal'); const tradesClose=document.getElementById('tradesClose'); const tradesClose2=document.getElementById('tradesClose2'); const tradesTBody=document.getElementById('tradesTBody'); const tradesCtx=document.getElementById('tradesCtx'); const tradesHdrCtx=document.getElementById('tradesHdrCtx'); let lastTradesCtx=null;
@@ -1051,7 +1049,7 @@ async function showStrategyDetail(item, ctx){ try{ const sym=ctx.symbol, tf=ctx.
 const labExportBtn=document.getElementById('labExport'); const labWeightsBtn=document.getElementById('labWeights');
 const weightsModalEl=document.getElementById('weightsModal'); const weightsClose=document.getElementById('weightsClose'); const weightsSave=document.getElementById('weightsSave'); const weightsProfile=document.getElementById('weightsProfile'); const weightsBody=document.getElementById('weightsBody');
 if(labTFSelect){ labTFSelect.addEventListener('change', ()=>{ try{ renderLabFromStorage(); }catch(_){ } }); }
-if(labExportBtn){ labExportBtn.addEventListener('click', ()=>{ try{ const tf=(labTFSelect&&labTFSelect.value)||(intervalSelect&&intervalSelect.value)||''; const arr=(Array.isArray(window.labPalmaresCache)? window.labPalmaresCache : readPalmares(currentSymbol, tf)); if(!arr.length){ setStatus('Rien à exporter'); return; } let csv='idx,nom,gen,nol,prd,slInitPct,beAfterBars,beLockPct,emaLen,tp1R,entryMode,useFibRet,useFibDraw,confirmMode,ent382,ent500,ent618,ent786,tpEnable,tp,score,profitFactor,totalPnl,equityFinal,tradesCount,winrate,avgRR,maxDDAbs\n'; let idx=1; const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee'); for(const r of arr){ const p=r.params||{}; const st=r.res||{}; const tpStr = Array.isArray(p.tp)? JSON.stringify(p.tp).replaceAll(',', ';') : ''; const score = Number.isFinite(r.score)? r.score : scoreResult(st, weights); csv+=`${idx},\"${r.name||''}\",${r.gen||1},${p.nol||''},${p.prd||''},${p.slInitPct||''},${p.beAfterBars||''},${p.beLockPct||''},${p.emaLen||''},${p.tp1R||''},${p.entryMode||''},${p.useFibRet??''},${p.useFibDraw??''},${p.confirmMode||''},${p.ent382??''},${p.ent500??''},${p.ent618??''},${p.ent786??''},${p.tpEnable??''},\"${tpStr}\",${score.toFixed(2)},${st.profitFactor||''},${st.totalPnl||''},${st.equityFinal||''},${st.tradesCount||''},${st.winrate||''},${st.avgRR||''},${st.maxDDAbs||''}\\n`; idx++; } const blob=new Blob([csv], {type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`palmares_${currentSymbol}_${tf}.csv`; a.click(); }catch(_){ } }); }
+if(labExportBtn){ labExportBtn.addEventListener('click', ()=>{ try{ const tf=(labTFSelect&&labTFSelect.value)||(intervalSelect&&intervalSelect.value)||''; const arr=Array.isArray(window.labPalmaresCache)? window.labPalmaresCache : []; if(!arr.length){ setStatus('Rien à exporter'); return; } let csv='idx,nom,gen,nol,prd,slInitPct,beAfterBars,beLockPct,emaLen,tp1R,entryMode,useFibRet,useFibDraw,confirmMode,ent382,ent500,ent618,ent786,tpEnable,tp,score,profitFactor,totalPnl,equityFinal,tradesCount,winrate,avgRR,maxDDAbs\n'; let idx=1; const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee'); for(const r of arr){ const p=r.params||{}; const st=r.res||{}; const tpStr = Array.isArray(p.tp)? JSON.stringify(p.tp).replaceAll(',', ';') : ''; const score = Number.isFinite(r.score)? r.score : scoreResult(st, weights); csv+=`${idx},\"${r.name||''}\",${r.gen||1},${p.nol||''},${p.prd||''},${p.slInitPct||''},${p.beAfterBars||''},${p.beLockPct||''},${p.emaLen||''},${p.tp1R||''},${p.entryMode||''},${p.useFibRet??''},${p.useFibDraw??''},${p.confirmMode||''},${p.ent382??''},${p.ent500??''},${p.ent618??''},${p.ent786??''},${p.tpEnable??''},\"${tpStr}\",${score.toFixed(2)},${st.profitFactor||''},${st.totalPnl||''},${st.equityFinal||''},${st.tradesCount||''},${st.winrate||''},${st.avgRR||''},${st.maxDDAbs||''}\\n`; idx++; } const blob=new Blob([csv], {type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`palmares_${currentSymbol}_${tf}.csv`; a.click(); }catch(_){ } }); }
 function buildWeightsUI(){ if(!weightsBody) return; const prof=(weightsProfile&&weightsProfile.value)||(localStorage.getItem('labWeightsProfile')||'balancee'); const w=getWeights(prof); weightsBody.innerHTML = `
   <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
     <label>Profit Factor <input id="w_pf" type="number" min="0" max="100" step="1" value="${w.pf}" /></label>
@@ -1432,9 +1430,12 @@ try{ const top=cur[0]; if(top && (it===1 || it%5===0 || it===iters)){ addBtLog(`
   // Build seeds (prefer Supabase-backed palmarès cache when available)
   let seeds=[];
   if(goal==='improve'){
-    const pal = (Array.isArray(window.labPalmaresCache) && window.labPalmaresCache.length)
+    let pal = (Array.isArray(window.labPalmaresCache) && window.labPalmaresCache.length)
       ? window.labPalmaresCache.slice(0,25)
-      : readPalmares(sym, tfSel).slice(0,25);
+      : [];
+    if((!pal.length) && window.SUPA && typeof SUPA.fetchPalmares==='function'){
+      try{ pal = await SUPA.fetchPalmares(sym, tfSel, 25); }catch(_){ pal = []; }
+    }
     for(const it of pal){ seeds.push({ p:{ ...(it.params||{}) }, owner:it }); }
   }
 
@@ -1447,27 +1448,14 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
   const results = (strategy==='ea'? eaOut : (strategy==='bayes'? bayOut : bayOut));
 
   if(goal==='new'){
-    let pal=readPalmares(sym, tfSel);
-    const slots=Math.max(0, 25 - pal.length);
-    const toAdd=results.slice(0, Math.min(slots, 10));
-    for(const b of toAdd){ const k=paramsKey(b.p); const existing=pal.find(x=> paramsKey(x.params)===k); if(existing){ if(b.score> (existing.score||0)){ existing.params=b.p; existing.res=b.res; existing.score=b.score; } continue; }
-      const base=randomName(); const name=uniqueNameFor(sym, tfSel, base); pal.push({ id:'s'+Date.now()+Math.random().toString(36).slice(2,6), name, gen:1, params:b.p, res:b.res, score:b.score, ts:Date.now() }); }
-    pal.sort((a,b)=> (b.score||0)-(a.score||0)); pal=pal.slice(0,25); writePalmares(sym, tfSel, pal); try{ renderLabFromStorage(); }catch(_){ }
-    try{ if(window.SUPA && typeof SUPA.persistLabResults==='function'){ const bestOut = results.slice(0, Math.min(10, results.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen:1, name:null })); SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut }); } }catch(_){ }
+    // Persister uniquement dans Supabase
+    try{ if(window.SUPA && typeof SUPA.persistLabResults==='function'){ const bestOut = results.slice(0, Math.min(10, results.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen:1, name:null })); await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut }); } }catch(_){ }
+    try{ renderLabFromStorage(); }catch(_){ }
     setStatus('Palmarès mis à jour'); closeBtProgress();
   } else {
-    let pal=readPalmares(sym, tfSel).slice(0,25);
-    const palWasEmpty = pal.length===0;
-    // Map improvements by owner id or params signature
-    for(const rec of results){ const owner=rec.owner; if(owner){ const idx = pal.findIndex(x=> (x && owner && x.id && x.id===owner.id) || (paramsKey(x.params)===paramsKey(rec.p)) ); const base = (idx>=0? pal[idx] : owner); const curScore = (base && base.score!=null)? base.score : scoreResult((base&&base.res)||{}, weights); if(rec.score>curScore && idx>=0){ pal[idx] = { ...pal[idx], params:rec.p, res:rec.res, score:rec.score, gen: ((pal[idx].gen|0)+1), ts:Date.now() }; } }
-    }
-    // If no local palmarès existed, seed top results (behave like 'new')
-    if(palWasEmpty && (!pal.length) && results.length){
-      const toAdd = results.slice(0, Math.min(10, results.length));
-      for(const b of toAdd){ const base=randomName(); const name=uniqueNameFor(sym, tfSel, base); pal.push({ id:'s'+Date.now()+Math.random().toString(36).slice(2,6), name, gen:1, params:b.p, res:b.res, score:b.score, ts:Date.now() }); }
-    }
-    pal.sort((a,b)=> (b.score||0)-(a.score||0)); pal=pal.slice(0,25); writePalmares(sym, tfSel, pal); try{ renderLabFromStorage(); }catch(_){ }
-    try{ if(window.SUPA && typeof SUPA.persistLabResults==='function'){ const bestOut = results.slice(0, Math.min(10, results.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen: (x.gen||1), name: x.name||null })); SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut }); } }catch(_){ }
+    // Persister uniquement dans Supabase
+    try{ if(window.SUPA && typeof SUPA.persistLabResults==='function'){ const bestOut = results.slice(0, Math.min(10, results.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen: (x.gen||1), name: x.name||null })); await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut }); } }catch(_){ }
+    try{ renderLabFromStorage(); }catch(_){ }
     setStatus('Amélioration terminée'); closeBtProgress();
   }
  }catch(e){ try{ addBtLog(`Erreur entraînement: ${e&&e.message?e.message:e}`); }catch(_){ } setStatus('Erreur entraînement'); try{ closeBtProgress(); }catch(_){ } } }); }
