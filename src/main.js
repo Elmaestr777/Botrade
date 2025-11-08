@@ -119,7 +119,8 @@ rows.push('<tr>' + `<td>${idx}</td>` + `<td style=\\\"text-align:left\\\">${(r.n
 /* Chart BTC/USDC avec Lightweight Charts + données Binance + UI Heaven/Lab/Backtest/EMA (restauré) */
 
 // --- Elements de base ---
-const container = document.getElementById('chart');
+let container = document.getElementById('chart');
+if(!container){ try{ const el=document.createElement('div'); el.id='chart'; el.style.width='100%'; el.style.height='calc(100vh - 100px)'; document.body.appendChild(el); container = el; }catch(_){ /* fallback */ } }
 const intervalSelect = document.getElementById('interval');
 const symbolSelect = document.getElementById('symbol');
 const titleEl = document.getElementById('pairTitle');
