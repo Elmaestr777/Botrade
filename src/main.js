@@ -1078,8 +1078,6 @@ if(labRunBtn){ labRunBtn.addEventListener('click', async ()=>{ try{
   const tfSel=(labTFSelect&&labTFSelect.value)||currentInterval;
   const goal=(document.getElementById('labGoal')&&document.getElementById('labGoal').value)||'improve';
   const strategy=(document.getElementById('labStrategy')&&document.getElementById('labStrategy').value)||'hybrid';
-  const usePrior=!!(document.getElementById('labUseTFPrior')&&document.getElementById('labUseTFPrior').checked);
-  const resume=!!(document.getElementById('labResume')&&document.getElementById('labResume').checked);
 const conf={ startCap: Math.max(0, parseFloat((document.getElementById('labStartCap')&&document.getElementById('labStartCap').value)||'10000')), fee: Math.max(0, parseFloat((document.getElementById('labFee')&&document.getElementById('labFee').value)||'0.1')), lev: Math.max(1, parseFloat((document.getElementById('labLev')&&document.getElementById('labLev').value)||'1')), maxPct:100, base:'initial' };
 // Show progress popup on top immediately (robust)
   try{
@@ -1434,7 +1432,7 @@ try{ const top=cur[0]; if(top && (it===1 || it%5===0 || it===iters)){ addBtLog(`
     
   // Build seeds (prefer Supabase-backed palmarès cache when available)
   let seeds=[];
-  if(goal==='improve' || usePrior){
+  if(goal==='improve'){
     const pal = (Array.isArray(window.labPalmaresCache) && window.labPalmaresCache.length)
       ? window.labPalmaresCache.slice(0,25)
       : readPalmares(sym, tfSel).slice(0,25);
