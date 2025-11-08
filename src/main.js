@@ -839,7 +839,7 @@ if(btOptimizeBtn){ btOptimizeBtn.addEventListener('click', async ()=>{ try{
   const [sIdx,eIdx]=idxFromTimeLocal(bars,from,to);
   openBtProgress('Optimisation...'); btAbort=false; const best=[]; const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
   let done=0; const total=combos.length; function step(k){ const end=Math.min(k+5, total); for(let i=k;i<end;i++){ if(btAbort) break; const p=combos[i]; const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, p); const score=scoreResult(res, weights); best.push({ score, params:p, res }); best.sort((a,b)=> b.score-a.score); if(best.length>topN){ best.length=topN; } done++; if(btProgBar&&btProgText){ const pct=Math.round(done/total*100); btProgBar.style.width=pct+'%'; btProgText.textContent=`Optimisation ${pct}% (${done}/${total})`; } }
-    if(done<total && !btAbort){ setTimeout(()=> step(end), 0); } else { closeBtProgress(); closeModalEl(btModalEl); try{ renderLabFromStorage(); }catch(_){ } setStatus('Optimisation terminée'); }
+    if(done<total && !btAbort){ setTimeout(()=> step(end), 0); } else { closeBtProgress(); closeModalEl(btModalEl); try{ await renderLabFromStorage(); }catch(_){ } setStatus('Optimisation terminée'); }
   }
   step(0);
  }catch(e){ setStatus('Erreur optimisation'); }
@@ -1450,12 +1450,12 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
   if(goal==='new'){
     // Persister uniquement dans Supabase
     try{ if(window.SUPA && typeof SUPA.persistLabResults==='function'){ const bestOut = results.slice(0, Math.min(10, results.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen:1, name:null })); await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut }); } }catch(_){ }
-    try{ renderLabFromStorage(); }catch(_){ }
+    try{ await renderLabFromStorage(); }catch(_){ }
     setStatus('Palmarès mis à jour'); closeBtProgress();
   } else {
     // Persister uniquement dans Supabase
     try{ if(window.SUPA && typeof SUPA.persistLabResults==='function'){ const bestOut = results.slice(0, Math.min(10, results.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen: (x.gen||1), name: x.name||null })); await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut }); } }catch(_){ }
-    try{ renderLabFromStorage(); }catch(_){ }
+    try{ await renderLabFromStorage(); }catch(_){ }
     setStatus('Amélioration terminée'); closeBtProgress();
   }
  }catch(e){ try{ addBtLog(`Erreur entraînement: ${e&&e.message?e.message:e}`); }catch(_){ } setStatus('Erreur entraînement'); try{ closeBtProgress(); }catch(_){ } } }); }
