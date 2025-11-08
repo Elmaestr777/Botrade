@@ -18,14 +18,18 @@
     try{ return { url: localStorage.getItem(LS_URL)||'', anon: localStorage.getItem(LS_ANON)||'' }; }catch(_){ return {url:'',anon:''}; }
   }
   function saveCfg(url, anon){ try{ localStorage.setItem(LS_URL, url||''); localStorage.setItem(LS_ANON, anon||''); }catch(_){} }
-
-  function ensureClient(){
-    const cfg = readCfg();
-    if(!cfg.url || !cfg.anon || !window.supabase){ client = null; return null; }
-    if(client && client.supabaseUrl === cfg.url){ return client; }
-    try{ client = window.supabase.createClient(cfg.url, cfg.anon, { auth: { persistSession: true, autoRefreshToken: true } }); }catch(_){ client = null; }
-    return client;
+ 
+  function slog(msg){ try{ if(typeof window!=='undefined' && typeof window.addLabLog==='function'){ window.addLabLog(msg); } }catch(_){ }
+    try{ console.log('[SUPA]', msg); }catch(_){ }
   }
+ 
+   function ensureClient(){
+     const cfg = readCfg();
+     if(!cfg.url || !cfg.anon || !window.supabase){ client = null; return null; }
+     if(client && client.supabaseUrl === cfg.url){ return client; }
+     try{ client = window.supabase.createClient(cfg.url, cfg.anon, { auth: { persistSession: true, autoRefreshToken: true } }); }catch(_){ client = null; }
+     return client;
+   }
 
   async function isLoggedIn(){ try{ const c=ensureClient(); if(!c) return false; const { data:{ user } } = await c.auth.getUser(); return !!user; }catch(_){ return false; } }
   async function getUserId(){ try{ const c=ensureClient(); if(!c) return null; const { data:{ user } } = await c.auth.getUser(); return (user && user.id) || null; }catch(_){ return null; } }
@@ -145,24 +149,26 @@
   }
 
   async function testConnection(){
-    const c = ensureClient(); if(!c) return false;
+    const c = ensureClient(); if(!c){ slog('Supabase: client absent'); return false; }
     try{
-      // lightweight test query
       const { error } = await c.from('lab_profiles').select('id').limit(1);
-      return !error;
-    }catch(_){ return false; }
+      if(error){ slog('Supabase: testConnection KO — '+(error.message||error)); return false; }
+      slog('Supabase: connexion OK');
+      return true;
+    }catch(e){ slog('Supabase: testConnection exception — '+(e&&e.message?e.message:e)); return false; }
   }
 
   async function persistLabResults(ctx){
     try{
-      const c = ensureClient(); if(!c) return;
+      const c = ensureClient(); if(!c){ slog('Supabase: client indisponible'); return; }
+      const ok = await testConnection(); if(!ok){ slog('Supabase: connexion KO, annulation de la persistance'); return; }
       // Public pool: no auth, rows written with user_id = null
       const uid = null;
       const profileId = await getBalanceeProfileId();
       const sym = ctx.symbol, tf = ctx.tf;
       const now = Date.now();
       const runContext = { source:'UI:Lab', ts: now };
-
+ 
       // Upsert tested strategies (selected=false)
       const toEval = [];
       if(Array.isArray(ctx.tested)){
@@ -173,11 +179,12 @@
           toEval.push({ user_id: uid, symbol: sym, tf, profile_id: profileId || null, params, metrics, score, selected: false, palmares_set_id: null, provenance: 'UI:Lab', run_context: runContext });
         }
       }
-      if(toEval.length){ await upsertStrategyEvaluations(toEval); }
-
+      if(toEval.length){ slog(`Supabase: upsert ${toEval.length} évaluations...`); await upsertStrategyEvaluations(toEval); slog('Supabase: évaluations enregistrées'); }
+ 
       // Palmarès Top-N
       const best = Array.isArray(ctx.best)? ctx.best.slice() : [];
       if(best.length){
+        slog(`Supabase: création palmarès (${best.length})...`);
         const setId = await createPalmaresSet({ user_id: uid, symbol: sym, tf, profile_id: profileId || null, top_n: best.length, note: `Lab ${sym} ${tf}` });
         if(setId){
           const entries = []; let rank=1;
@@ -185,13 +192,21 @@
             entries.push({ set_id: setId, rank, name: b.name||null, params: canonicalParamsFromUI(b.params||{}), metrics: b.metrics||b.res||{}, score: (typeof b.score==='number')? b.score : 0, provenance: 'UI:Lab', generation: (b.gen!=null? b.gen:1) });
             rank++;
           }
-          await insertPalmaresEntries(entries);
+          try{
+            await insertPalmaresEntries(entries); slog('Supabase: entrées palmarès insérées');
+          }catch(e){ slog('Supabase: insert palmarès_entries KO — '+(e&&e.message?e.message:e)); }
           // Mark selected
-          const selRows = best.map(b=> ({ user_id: uid, symbol: sym, tf, profile_id: profileId || null, params: canonicalParamsFromUI(b.params||{}) }));
-          await markSelectedForSet(selRows, setId);
+          try{
+            const selRows = best.map(b=> ({ user_id: uid, symbol: sym, tf, profile_id: profileId || null, params: canonicalParamsFromUI(b.params||{}) }));
+            await markSelectedForSet(selRows, setId); slog('Supabase: stratégies marquées selected=true');
+          }catch(e){ slog('Supabase: mark selected KO — '+(e&&e.message?e.message:e)); }
+        } else {
+          slog('Supabase: création palmarès_set KO (id absent)');
         }
+      } else {
+        slog('Supabase: aucun “best” à enregistrer');
       }
-    }catch(e){ console.warn('persistLabResults error', e); }
+    }catch(e){ slog('Supabase: persistLabResults exception — '+(e&&e.message?e.message:e)); console.warn('persistLabResults error', e); }
   }
 
   async function openConfigAndLogin(){
