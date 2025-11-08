@@ -197,8 +197,13 @@
         const setId = await createPalmaresSet({ user_id: uid, symbol: sym, tf, profile_id: profileId || null, top_n: best.length, note: `Lab ${sym} ${tf}` });
         if(setId){
           const entries = []; let rank=1;
+          const used=new Set();
+          function genName(){ try{ if(typeof window!=='undefined' && typeof window.randomName==='function'){ return window.randomName(); } }catch(_){ }
+            const pool=['aurora','zenith','ember','nova','atlas','odyssey','vertex','harbor','willow','meadow']; return pool[Math.floor(Math.random()*pool.length)]; }
           for(const b of best){
-            entries.push({ set_id: setId, rank, name: b.name||null, params: canonicalParamsFromUI(b.params||{}), metrics: b.metrics||b.res||{}, score: (typeof b.score==='number')? b.score : 0, provenance: 'UI:Lab', generation: (b.gen!=null? b.gen:1) });
+            let nm = (b.name||null);
+            if(!nm){ let tries=0; do{ nm=genName(); tries++; }while(used.has(nm)&&tries<5); used.add(nm); }
+            entries.push({ set_id: setId, rank, name: nm, params: canonicalParamsFromUI(b.params||{}), metrics: b.metrics||b.res||{}, score: (typeof b.score==='number')? b.score : 0, provenance: 'UI:Lab', generation: (b.gen!=null? b.gen:1) });
             rank++;
           }
           try{
@@ -212,6 +217,7 @@
           const selRows = best.map(b=> ({ user_id: uid, symbol: sym, tf, profile_id: profileId || null, params: canonicalParamsFromUI(b.params||{}) }));
           await markSelectedForSet(selRows, setId||null); slog('Supabase: stratégies marquées selected=true');
         }catch(e){ slog('Supabase: mark selected KO — '+(e&&e.message?e.message:e)); }
+        slog('Supabase: fin persistance Lab');
       } else {
         slog('Supabase: aucun “best” à enregistrer');
       }
@@ -293,9 +299,32 @@
   async function fetchPalmares(symbol, tf, limit=25){
     const c=ensureClient(); if(!c) return [];
     const profileId = await getBalanceeProfileId();
-    function mapRows(rows){ const out=[]; let idx=1; for(const row of rows||[]){ const paramsUI=uiParamsFromCanonical(row.params||{}); const metrics=row.metrics||{}; const score=(typeof row.score==='number')? row.score:0; out.push({ id:'db_'+(idx++), name:null, gen:1, params:paramsUI, res:metrics, score, ts:Date.now() }); } return out; }
+    function mapRows(rows){ const out=[]; let idx=1; for(const row of rows||[]){ const paramsUI=uiParamsFromCanonical(row.params||{}); const metrics=row.metrics||{}; const score=(typeof row.score==='number')? row.score:0; const name=row.name||null; out.push({ id:'db_'+(idx++), name, gen:1, params:paramsUI, res:metrics, score, ts:Date.now() }); } return out; }
     try{
-      // Primary source: selected strategies
+      // Primary source: latest palmarès set entries (names included)
+      let qs = c
+        .from('palmares_sets')
+        .select('id')
+        .eq('symbol', symbol)
+        .eq('tf', tf)
+        .order('id', { ascending:false })
+        .limit(1);
+      if(profileId!=null) qs = qs.eq('profile_id', profileId); else qs = qs.is('profile_id', null);
+      const { data:sets, error:err2 } = await qs;
+      if(!err2 && Array.isArray(sets) && sets.length){
+        const setId = sets[0]?.id;
+        if(setId){
+          const qe = c
+            .from('palmares_entries')
+            .select('params,metrics,score,rank,name')
+            .eq('set_id', setId)
+            .order('rank', { ascending:true })
+            .limit(Math.max(1, limit));
+          const { data:entries, error:err3 } = await qe;
+          if(!err3 && Array.isArray(entries) && entries.length){ return mapRows(entries); }
+        }
+      }
+      // Fallback: selected strategies (may lack names)
       let q = c
         .from('strategy_evaluations')
         .select('params,metrics,score')
@@ -307,28 +336,7 @@
       if(profileId!=null) q = q.eq('profile_id', profileId); else q = q.is('profile_id', null);
       let { data, error } = await q;
       if(!error && Array.isArray(data) && data.length){ return mapRows(data); }
-      // Fallback: read latest palmarès set entries
-      let qs = c
-        .from('palmares_sets')
-        .select('id')
-        .eq('symbol', symbol)
-        .eq('tf', tf)
-        .order('id', { ascending:false })
-        .limit(1);
-      if(profileId!=null) qs = qs.eq('profile_id', profileId); else qs = qs.is('profile_id', null);
-      const { data:sets, error:err2 } = await qs;
-      if(err2 || !Array.isArray(sets) || !sets.length) return [];
-      const setId = sets[0]?.id;
-      if(!setId) return [];
-      const qe = c
-        .from('palmares_entries')
-        .select('params,metrics,score,rank')
-        .eq('set_id', setId)
-        .order('rank', { ascending:true })
-        .limit(Math.max(1, limit));
-      const { data:entries, error:err3 } = await qe;
-      if(err3 || !Array.isArray(entries) || !entries.length) return [];
-      return mapRows(entries);
+      return [];
     }catch(_){ return []; }
   }
 
