@@ -32,15 +32,16 @@ async function renderLabFromStorage(){
   window.labPalmaresCache = Array.isArray(arr)? arr.slice() : [];
   if(labSummaryEl) labSummaryEl.textContent = arr.length? `Palmarès: ${arr.length} stratégies (symbole ${symbolToDisplay(sym)} • TF ${tf})` : 'Aucun palmarès';
   if(!labTBody){ return; }
-  if(!arr.length){ labTBody.innerHTML = '<tr><td colspan=\"13\">Aucune donnée</td></tr>'; return; }
+  if(!arr.length){ labTBody.innerHTML = '<tr><td colspan=\"14\">Aucune donnée</td></tr>'; return; }
   const rows=[]; let idx=1; const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
   const sorted=arr.slice().sort((a,b)=> (b.score||scoreResult(b.res||{},weights)) - (a.score||scoreResult(a.res||{},weights)));
   for(const r of sorted){
     const st=r.res||{}; const p=r.params||{};
     const pf=Number(st.profitFactor||0), pnl=Number(st.totalPnl||0), eq1=Number(st.equityFinal||0), cnt=Number(st.tradesCount||0), wr=Number(st.winrate||0), rr=Number(st.avgRR||0), mdd=Number(st.maxDDAbs||0);
     const paramsStr = `nol=${p.nol}, prd=${p.prd}, sl=${p.slInitPct}%, be=${p.beAfterBars}/${p.beLockPct}%, ema=${p.emaLen}`;
-    const score = Number.isFinite(r.score)? r.score : scoreResult(st, weights);
-rows.push('<tr>' + `<td>${idx}</td>` + `<td style=\\\"text-align:left\\\">${(r.name||'—')}</td>` + `<td>${(r.gen||1)}</td>` + `<td style=\\\"text-align:left\\\">${paramsStr}</td>` + `<td>${score.toFixed(2)}</td>` + `<td>${pf.toFixed(2)}</td>` + `<td>${pnl.toFixed(0)}</td>` + `<td>${eq1.toFixed(0)}</td>` + `<td>${cnt}</td>` + `<td>${wr.toFixed(1)}</td>` + `<td>${Number.isFinite(rr)? rr.toFixed(2): '—'}</td>` + `<td>${mdd.toFixed(0)}</td>` + `<td style=\\\"white-space:nowrap;\\\"><button class=\\\"btn\\\" data-action=\\\"apply\\\" data-idx=\\\"${idx-1}\\\">Appliquer</button> <button class=\\\"btn\\\" data-action=\\\"view\\\" data-idx=\\\"${idx-1}\\\">Voir</button> <button class=\\\"btn\\\" data-action=\\\"detail\\\" data-idx=\\\"${idx-1}\\\">Détail</button></td>` + '</tr>');
+    const robust = Number.isFinite(r.score)? r.score : scoreResult(st, weights);
+    const raw = scoreResult(st, weights);
+rows.push('<tr>' + `<td>${idx}</td>` + `<td style=\\\"text-align:left\\\">${(r.name||'—')}</td>` + `<td>${(r.gen||1)}</td>` + `<td style=\\\"text-align:left\\\">${paramsStr}</td>` + `<td>${raw.toFixed(2)}</td>` + `<td>${robust.toFixed(2)}</td>` + `<td>${pf.toFixed(2)}</td>` + `<td>${pnl.toFixed(0)}</td>` + `<td>${eq1.toFixed(0)}</td>` + `<td>${cnt}</td>` + `<td>${wr.toFixed(1)}</td>` + `<td>${Number.isFinite(rr)? rr.toFixed(2): '—'}</td>` + `<td>${mdd.toFixed(0)}</td>` + `<td style=\\\"white-space:nowrap;\\\"><button class=\\\"btn\\\" data-action=\\\"apply\\\" data-idx=\\\"${idx-1}\\\">Appliquer</button> <button class=\\\"btn\\\" data-action=\\\"view\\\" data-idx=\\\"${idx-1}\\\">Voir</button> <button class=\\\"btn\\\" data-action=\\\"detail\\\" data-idx=\\\"${idx-1}\\\">Détail</button></td>` + '</tr>');
     idx++;
   }
   labTBody.innerHTML = rows.join('');
