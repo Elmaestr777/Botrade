@@ -105,7 +105,7 @@ rows.push('<tr>' + `<td>${idx}</td>` + `<td style=\\\"text-align:left\\\">${(r.n
         const tpAL=document.getElementById('optTPAllLast'); if(tpAL) tpAL.checked=!!lbcOpts.tpCloseAllLast;
         const __optSLEnable=document.getElementById('optSLEnable'); if(__optSLEnable) __optSLEnable.checked=!!lbcOpts.slEnable;
         try{ populateHeavenModal(); }catch(_){ }
-        renderLBC(); setStatus('Paramètres appliqués depuis Lab');
+        renderLBC(); setStatus('Paramètres appliqués depuis Lab'); try{ computeLabBenchmarkAndUpdate(); }catch(_){ }
       } else if(act==='view'){
         showStrategyResult(rec.res||{}, {symbol: currentSymbol, tf: tfNow});
       } else if(act==='detail'){
@@ -223,7 +223,7 @@ const ma13Series = chart.addLineSeries({ color:'#22c55e', lineWidth: 1, priceSca
 
 const ro = new ResizeObserver(entries=>{ for(const e of entries){ chart.resize(Math.floor(e.contentRect.width), Math.floor(e.contentRect.height)); try{ updateMkPositions(); }catch(_){ } } });
 ro.observe(container);
-try{ chart.timeScale().subscribeVisibleTimeRangeChange(()=>{ try{ updateMkPositions(); }catch(_){ } }); }catch(_){ }
+try{ chart.timeScale().subscribeVisibleTimeRangeChange(()=>{ try{ updateMkPositions(); }catch(_){ } try{ const modeEl=document.getElementById('labRangeMode'); const labMode=modeEl&&modeEl.value; const open = !!(labModalEl && labModalEl.getAttribute && labModalEl.getAttribute('aria-hidden')==='false' && !labModalEl.classList.contains('hidden')); if(labMode==='visible' && open){ if(window.__labKpiRangeTimer){ try{ clearTimeout(window.__labKpiRangeTimer); }catch(_){ } } window.__labKpiRangeTimer = setTimeout(()=>{ try{ computeLabBenchmarkAndUpdate(); }catch(_){ } }, 300); } }catch(_){ } }); }catch(_){ }
 
 // --- Data loading (REST + WS) ---
 const BATCH_LIMIT = 1000; let candles=[]; let ws=null;
@@ -395,10 +395,64 @@ function addLabLog(msg){ try{ if(!labLogEl) return; const t=new Date(); const hh
 function updateLabKpis(best){ try{ if(!best||!best.length){ if(kpiScoreEl) kpiScoreEl.textContent='—'; if(kpiPFEl) kpiPFEl.textContent='—'; if(kpiWinEl) kpiWinEl.textContent='—'; if(kpiDDEl) kpiDDEl.textContent='—'; return; } const top=best[0]; const st=top.res||{}; if(kpiScoreEl) kpiScoreEl.textContent = Number(top.score||0).toFixed(2); if(kpiPFEl) kpiPFEl.textContent = (st.profitFactor===Infinity? '∞' : Number(st.profitFactor||0).toFixed(2)); if(kpiWinEl) kpiWinEl.textContent = Number(st.winrate||0).toFixed(1)+'%'; if(kpiDDEl) kpiDDEl.textContent = Number(st.maxDDAbs||0).toFixed(0); }catch(_){ } }
 function updateLabKpiFrom(score, res){ try{ if(kpiScoreEl) kpiScoreEl.textContent = Number(score||0).toFixed(2); if(kpiPFEl) kpiPFEl.textContent = (res.profitFactor===Infinity? '∞' : Number(res.profitFactor||0).toFixed(2)); if(kpiWinEl) kpiWinEl.textContent = Number(res.winrate||0).toFixed(1)+'%'; if(kpiDDEl) kpiDDEl.textContent = Number(res.maxDDAbs||0).toFixed(0); }catch(_){ } }
 
+// Compute KPI benchmark: Heaven (current config) vs top Palmarès over Lab-selected period
+async function computeLabBenchmarkAndUpdate(){
+  try{
+    const tfSel = (labTFSelect&&labTFSelect.value) || currentInterval;
+    let bars = candles;
+    if(tfSel !== currentInterval){
+      try{ bars = await fetchAllKlines(currentSymbol, tfSel, 5000); }catch(_){ bars=candles; }
+    }
+    if(!bars || !bars.length){ if(kpiScoreEl) kpiScoreEl.textContent='—'; if(kpiPFEl) kpiPFEl.textContent='—'; if(kpiWinEl) kpiWinEl.textContent='—'; if(kpiDDEl) kpiDDEl.textContent='—'; return; }
+
+    let from=null, to=null;
+    const rangeMode=(document.getElementById('labRangeMode')&&document.getElementById('labRangeMode').value)||'visible';
+    if(rangeMode==='dates'){
+      const f=(document.getElementById('labFrom')&&document.getElementById('labFrom').value)||'';
+      const t=(document.getElementById('labTo')&&document.getElementById('labTo').value)||'';
+      from = f? Math.floor(new Date(f).getTime()/1000) : null;
+      to = t? Math.floor(new Date(t).getTime()/1000) : null;
+    } else if(rangeMode==='visible'){
+      const r=getVisibleRange(); if(r){ from=r.from; to=r.to; }
+    } else { from=null; to=null; }
+
+    const idxFromTimeLocal=(bars,from,to)=>{ let s=0,e=bars.length-1; if(from!=null){ for(let i=0;i<bars.length;i++){ if(bars[i].time>=from){ s=i; break; } } } if(to!=null){ for(let j=bars.length-1;j>=0;j--){ if(bars[j].time<=to){ e=j; break; } } } return [s,e]; };
+    const [sIdx,eIdx]=idxFromTimeLocal(bars, from, to);
+
+    const conf={ startCap: Math.max(0, parseFloat((document.getElementById('labStartCap')&&document.getElementById('labStartCap').value)||'10000')), fee: Math.max(0, parseFloat((document.getElementById('labFee')&&document.getElementById('labFee').value)||'0.1')), lev: Math.max(1, parseFloat((document.getElementById('labLev')&&document.getElementById('labLev').value)||'1')), maxPct:100, base:'initial' };
+
+    const p={ nol:lbcOpts.nol, prd:lbcOpts.prd, slInitPct:lbcOpts.slInitPct, beAfterBars:lbcOpts.beAfterBars, beLockPct:lbcOpts.beLockPct, emaLen:lbcOpts.emaLen, entryMode:lbcOpts.entryMode||'Both', useFibRet:!!lbcOpts.useFibRet, confirmMode:lbcOpts.confirmMode||'Bounce', ent382:!!lbcOpts.ent382, ent500:!!lbcOpts.ent500, ent618:!!lbcOpts.ent618, ent786:!!lbcOpts.ent786, tpEnable:!!lbcOpts.tpEnable, tp:Array.isArray(lbcOpts.tp)? lbcOpts.tp.slice(0,10):[], slEnable:!!lbcOpts.slEnable, sl:Array.isArray(lbcOpts.sl)? lbcOpts.sl.slice(0,10):[], tp1R:lbcOpts.tp1R };
+
+    const resH = runBacktestSliceFor(bars, sIdx, eIdx, conf, p);
+    const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
+    const scoreH = scoreResult(resH, weights);
+
+    // Top palmarès (robust score if present; otherwise recompute)
+    let palArr = Array.isArray(window.labPalmaresCache)? window.labPalmaresCache.slice() : [];
+    if(!palArr.length && window.SUPA && typeof SUPA.fetchPalmares==='function'){
+      try{ palArr = await SUPA.fetchPalmares(currentSymbol, tfSel, 1); }catch(_){ palArr=[]; }
+    }
+    let palTop=null; if(Array.isArray(palArr) && palArr.length){ palTop = palArr.slice().sort((a,b)=> ((b.score!=null?b.score:scoreResult(b.res||{},weights)) - (a.score!=null?a.score:scoreResult(a.res||{},weights))) )[0]; }
+    const palRes = palTop&&palTop.res? palTop.res : null;
+    const palScore = palTop? (Number.isFinite(palTop.score)? palTop.score : (palRes? scoreResult(palRes, weights): NaN)) : NaN;
+
+    const fmtPF=(v)=> v===Infinity? '∞' : (Number.isFinite(v)? Number(v).toFixed(2) : '—');
+    const scStr = `Heaven: ${scoreH.toFixed(2)} • Palmarès: ${Number.isFinite(palScore)? palScore.toFixed(2): '—'}`;
+    const pfStr = `Heaven: ${fmtPF(resH.profitFactor)} • Palmarès: ${fmtPF(palRes&&palRes.profitFactor)}`;
+    const winStr= `Heaven: ${Number(resH.winrate||0).toFixed(1)}% • Palmarès: ${Number(palRes&&palRes.winrate||0).toFixed(1)}%`;
+    const ddStr = `Heaven: ${Number(resH.maxDDAbs||0).toFixed(0)} • Palmarès: ${Number(palRes&&palRes.maxDDAbs||0).toFixed(0)}`;
+
+    if(kpiScoreEl) kpiScoreEl.textContent = scStr;
+    if(kpiPFEl) kpiPFEl.textContent = pfStr;
+    if(kpiWinEl) kpiWinEl.textContent = winStr;
+    if(kpiDDEl) kpiDDEl.textContent = ddStr;
+  }catch(_){ }
+}
+
 function openModalEl(el){ if(!el) return; el.classList.remove('hidden'); el.setAttribute('aria-hidden','false'); try{ const z=String(bumpModalZ()); el.style.zIndex = z; const c=el.querySelector && el.querySelector('.modal-content'); if(c){ c.style.zIndex = String(bumpModalZ()); } }catch(_){ } }
 function closeModalEl(el){ if(!el) return; el.classList.add('hidden'); el.setAttribute('aria-hidden','true'); }
 if(liveOpenBtn&&liveModalEl) liveOpenBtn.addEventListener('click', ()=>{ try{ populateLiveWalletsUI(); }catch(_){ } openModalEl(liveModalEl); }); if(liveCloseBtn&&liveModalEl) liveCloseBtn.addEventListener('click', ()=> closeModalEl(liveModalEl)); if(liveModalEl) liveModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(liveModalEl); });
-if(labOpenBtn&&labModalEl) labOpenBtn.addEventListener('click', ()=>{ try{ renderLabFromStorage(); }catch(_){ } openModalEl(labModalEl); }); if(labCloseBtn&&labModalEl) labCloseBtn.addEventListener('click', ()=> closeModalEl(labModalEl)); if(labModalEl) labModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(labModalEl); });
+if(labOpenBtn&&labModalEl) labOpenBtn.addEventListener('click', async ()=>{ try{ openModalEl(labModalEl); await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); if(labCloseBtn&&labModalEl) labCloseBtn.addEventListener('click', ()=> closeModalEl(labModalEl)); if(labModalEl) labModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(labModalEl); });
 
 if(btOpenBtn&&btModalEl) btOpenBtn.addEventListener('click', ()=> openModalEl(btModalEl)); if(btCloseBtn&&btModalEl) btCloseBtn.addEventListener('click', ()=> closeModalEl(btModalEl)); if(btModalEl) btModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(btModalEl); });
 if(heavenCfgBtn&&lbcModalEl) heavenCfgBtn.addEventListener('click', ()=>{ try{ populateHeavenModal(); }catch(_){ } openModalEl(lbcModalEl); }); if(lbcCloseBtn&&lbcModalEl) lbcCloseBtn.addEventListener('click', ()=> closeModalEl(lbcModalEl)); if(lbcModalEl) lbcModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(lbcModalEl); });
@@ -478,8 +532,8 @@ function populateHeavenModal(){ try{
   }
 }catch(_){ } }
 if(toggleLBCEl) toggleLBCEl.checked = !!lbcOpts.enabled; if(nolEl) nolEl.value=String(lbcOpts.nol);
-if(toggleLBCEl) toggleLBCEl.addEventListener('change', ()=>{ lbcOpts.enabled=!!toggleLBCEl.checked; saveLBCOpts(); renderLBC(); });
-if(nolEl) nolEl.addEventListener('change', ()=>{ lbcOpts.nol=Math.max(1, parseInt(nolEl.value||'3')); saveLBCOpts(); renderLBC(); });
+if(toggleLBCEl) toggleLBCEl.addEventListener('change', ()=>{ lbcOpts.enabled=!!toggleLBCEl.checked; saveLBCOpts(); renderLBC(); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } });
+if(nolEl) nolEl.addEventListener('change', ()=>{ lbcOpts.nol=Math.max(1, parseInt(nolEl.value||'3')); saveLBCOpts(); renderLBC(); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } });
 const optArrowOffsetPx=document.getElementById('optArrowOffsetPx'); if(optArrowOffsetPx){ optArrowOffsetPx.addEventListener('change', ()=>{ lbcOpts.arrowOffsetPx=Math.max(0, parseInt(optArrowOffsetPx.value||'0')); saveLBCOpts(); renderLBC(); }); }
 
 function computeLineBreakState(bars, nol){ const n=bars.length; if(!n) return {trend:[], level:[], flips:[]}; const trend=new Array(n).fill(0); const level=new Array(n).fill(null); const flips=[]; let t=bars[0].close>=bars[0].open?1:-1; let opens=[bars[0].open]; let closes=[bars[0].close]; for(let i=0;i<n;i++){ const c=bars[i].close; if(t===1){ const cnt=Math.min(nol, opens.length); const minUp=Math.min(...opens.slice(0,cnt), ...closes.slice(0,cnt)); if(c<minUp) t=-1; if(c>closes[0]||t===-1){ const o=(t===-1? opens[0]:closes[0]); opens.unshift(o); closes.unshift(c); } } else { const cnt=Math.min(nol, opens.length); const maxDn=Math.max(...opens.slice(0,cnt), ...closes.slice(0,cnt)); if(c>maxDn) t=1; if(c<closes[0]||t===1){ const o=(t===1? opens[0]:closes[0]); opens.unshift(o); closes.unshift(c); } } trend[i]=t; const cnt2=Math.min(nol, opens.length); const minUp2=Math.min(...opens.slice(0,cnt2), ...closes.slice(0,cnt2)); const maxDn2=Math.max(...opens.slice(0,cnt2), ...closes.slice(0,cnt2)); level[i]=(t===1? minUp2: maxDn2); if(i>0 && trend[i]!==trend[i-1]) flips.push(i); } return {trend, level, flips}; }
@@ -609,7 +663,7 @@ const optEnabled=document.getElementById('optEnabled'); const optNol=document.ge
 const optSLInitPct=document.getElementById('optSLInitPct'); const optSLEnable=document.getElementById('optSLEnable'); const optBEEnable=document.getElementById('optBEEnable'); const optBEBars=document.getElementById('optBEBars'); const optBELockPct=document.getElementById('optBELockPct'); const optEMALen=document.getElementById('optEMALen'); const optShowClose=document.getElementById('optShowClose');
 const optEntryMode=document.getElementById('optEntryMode'); const optEnt382=document.getElementById('optEnt382'); const optEnt500=document.getElementById('optEnt500'); const optEnt618=document.getElementById('optEnt618'); const optEnt786=document.getElementById('optEnt786');
 if(lbcSaveBtn){ lbcSaveBtn.addEventListener('click', ()=>{ if(optEnabled) lbcOpts.enabled=!!optEnabled.checked; if(optNol) lbcOpts.nol = Math.max(1, parseInt(optNol.value||String(lbcOpts.nol))); if(optShowTrend) lbcOpts.showTrend = !!optShowTrend.checked; if(optTrendUp) lbcOpts.trendUpColor = optTrendUp.value||lbcOpts.trendUpColor; if(optTrendDn) lbcOpts.trendDnColor = optTrendDn.value||lbcOpts.trendDnColor; if(optUseZZDraw) lbcOpts.useZZDraw = !!optUseZZDraw.checked; if(optPrd) lbcOpts.prd = Math.max(2, parseInt(optPrd.value||String(lbcOpts.prd))); if(optSLInitPct) lbcOpts.slInitPct = Math.max(0, parseFloat(optSLInitPct.value||String(lbcOpts.slInitPct))); if(optSLEnable) lbcOpts.slEnable=!!optSLEnable.checked; if(optBEEnable) lbcOpts.beEnable=!!optBEEnable.checked; if(optBEBars) lbcOpts.beAfterBars=Math.max(1, parseInt(optBEBars.value||String(lbcOpts.beAfterBars))); if(optBELockPct) lbcOpts.beLockPct=Math.max(0, parseFloat(optBELockPct.value||String(lbcOpts.beLockPct))); if(optEMALen) lbcOpts.emaLen=Math.max(1, parseInt(optEMALen.value||String(lbcOpts.emaLen))); if(optShowClose) lbcOpts.showClose=!!optShowClose.checked; const optShowArrows=document.getElementById('optShowArrows'); if(optShowArrows) lbcOpts.showArrows=!!optShowArrows.checked; const optUseFibDraw=document.getElementById('optUseFibDraw'); const optUseFibRet=document.getElementById('optUseFibRet'); const optConfirmMode=document.getElementById('optConfirmMode'); const optZZUp=document.getElementById('optZZUp'); const optZZDn=document.getElementById('optZZDn'); const optTPEnable=document.getElementById('optTPEnable'); const optTPAfterHit=document.getElementById('optTPAfterHit'); const optTPCompound=document.getElementById('optTPCompound'); const optTPAllLast=document.getElementById('optTPAllLast'); if(optUseFibDraw) lbcOpts.useFibDraw=!!optUseFibDraw.checked; if(optUseFibRet) lbcOpts.useFibRet=!!optUseFibRet.checked; if(optEntryMode) lbcOpts.entryMode=optEntryMode.value||lbcOpts.entryMode; if(optConfirmMode) lbcOpts.confirmMode=optConfirmMode.value||lbcOpts.confirmMode; if(optEnt382) lbcOpts.ent382=!!optEnt382.checked; if(optEnt500) lbcOpts.ent500=!!optEnt500.checked; if(optEnt618) lbcOpts.ent618=!!optEnt618.checked; if(optEnt786) lbcOpts.ent786=!!optEnt786.checked; if(optZZUp) lbcOpts.zzUp=optZZUp.value||lbcOpts.zzUp; if(optZZDn) lbcOpts.zzDn=optZZDn.value||lbcOpts.zzDn; if(optTPEnable) lbcOpts.tpEnable=!!optTPEnable.checked; if(optTPAfterHit) lbcOpts.tpAfterHit=optTPAfterHit.value||lbcOpts.tpAfterHit; if(optTPCompound) lbcOpts.tpCompound=!!optTPCompound.checked; if(optTPAllLast) lbcOpts.tpCloseAllLast=!!optTPAllLast.checked; const tpArr=[]; for(let i=1;i<=10;i++){ const tSel=document.getElementById(`optTP${i}Type`); if(!tSel) continue; const typ=tSel.value||'Fib'; const vNum=document.getElementById(`optTP${i}R`); const vFib=document.getElementById(`optTP${i}Fib`); const vEma=document.getElementById(`optTP${i}Ema`); const pPct=document.getElementById(`optTP${i}P`); const qPct=document.getElementById(`optTP${i}Qty`); const entry={ type:typ }; if(typ==='Fib'){ const r=parseFloat(((vFib && vFib.value) || (vNum && vNum.value) || '')); if(isFinite(r)) { entry.fib=r; } else { continue; } } else if(typ==='Percent'){ const p=parseFloat(((vNum && vNum.value) || (vFib && vFib.value) || '')); if(isFinite(p)) { entry.pct=p; } else { continue; } } else if(typ==='EMA'){ const len=parseInt(((vEma && vEma.value) || (optEMALen && optEMALen.value) || ''),10); if(isFinite(len) && len>0){ entry.emaLen=len; } }
-    if(qPct && qPct.value!==''){ const qv=parseFloat(qPct.value); if(isFinite(qv)) entry.qty=qv; } tpArr.push(entry); } lbcOpts.tp = tpArr; const slArr=[]; for(let i=1;i<=10;i++){ const tSel=document.getElementById(`optSL${i}Type`); if(!tSel) continue; const typ=tSel.value||'Percent'; const vNum=document.getElementById(`optSL${i}R`); const vFib=document.getElementById(`optSL${i}Fib`); const vEma=document.getElementById(`optSL${i}Ema`); const slEntry={ type:typ }; if(typ==='Fib'){ const r=parseFloat(((vFib && vFib.value) || (vNum && vNum.value) || '')); if(isFinite(r)) { slEntry.fib=r; } else { continue; } } else if(typ==='Percent'){ const p=parseFloat(((vNum && vNum.value) || (vFib && vFib.value) || '')); if(isFinite(p)) { slEntry.pct=p; } else { continue; } } else if(typ==='EMA'){ const len=parseInt(((vEma && vEma.value) || (optEMALen && optEMALen.value) || ''),10); if(isFinite(len) && len>0){ slEntry.emaLen=len; } } slArr.push(slEntry); } lbcOpts.sl = slArr; saveLBCOpts(); renderLBC(); closeModalEl(lbcModalEl); }); }
+    if(qPct && qPct.value!==''){ const qv=parseFloat(qPct.value); if(isFinite(qv)) entry.qty=qv; } tpArr.push(entry); } lbcOpts.tp = tpArr; const slArr=[]; for(let i=1;i<=10;i++){ const tSel=document.getElementById(`optSL${i}Type`); if(!tSel) continue; const typ=tSel.value||'Percent'; const vNum=document.getElementById(`optSL${i}R`); const vFib=document.getElementById(`optSL${i}Fib`); const vEma=document.getElementById(`optSL${i}Ema`); const slEntry={ type:typ }; if(typ==='Fib'){ const r=parseFloat(((vFib && vFib.value) || (vNum && vNum.value) || '')); if(isFinite(r)) { slEntry.fib=r; } else { continue; } } else if(typ==='Percent'){ const p=parseFloat(((vNum && vNum.value) || (vFib && vFib.value) || '')); if(isFinite(p)) { slEntry.pct=p; } else { continue; } } else if(typ==='EMA'){ const len=parseInt(((vEma && vEma.value) || (optEMALen && optEMALen.value) || ''),10); if(isFinite(len) && len>0){ slEntry.emaLen=len; } } slArr.push(slEntry); } lbcOpts.sl = slArr; saveLBCOpts(); renderLBC(); closeModalEl(lbcModalEl); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
 
 // --- Backtest (période visible / all / dates) ---
 const btRunBtn=document.getElementById('btRun'); const btCancelBtn=document.getElementById('btCancel'); const btOptimizeBtn=document.getElementById('btOptimize');
@@ -839,7 +893,7 @@ if(btOptimizeBtn){ btOptimizeBtn.addEventListener('click', async ()=>{ try{
   const [sIdx,eIdx]=idxFromTimeLocal(bars,from,to);
   openBtProgress('Optimisation...'); btAbort=false; const best=[]; const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
   let done=0; const total=combos.length; async function step(k){ const end=Math.min(k+5, total); for(let i=k;i<end;i++){ if(btAbort) break; const p=combos[i]; const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, p); const score=scoreResult(res, weights); best.push({ score, params:p, res }); best.sort((a,b)=> b.score-a.score); if(best.length>topN){ best.length=topN; } done++; if(btProgBar&&btProgText){ const pct=Math.round(done/total*100); btProgBar.style.width=pct+'%'; btProgText.textContent=`Optimisation ${pct}% (${done}/${total})`; } }
-    if(done<total && !btAbort){ setTimeout(()=> step(end), 0); } else { closeBtProgress(); closeModalEl(btModalEl); try{ await renderLabFromStorage(); }catch(_){ } setStatus('Optimisation terminée'); }
+    if(done<total && !btAbort){ setTimeout(()=> step(end), 0); } else { closeBtProgress(); closeModalEl(btModalEl); try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } setStatus('Optimisation terminée'); }
   }
   step(0);
  }catch(e){ setStatus('Erreur optimisation'); }
@@ -1048,7 +1102,16 @@ async function showStrategyDetail(item, ctx){ try{ const sym=ctx.symbol, tf=ctx.
 // Lab actions: refresh/export/weights
 const labExportBtn=document.getElementById('labExport'); const labWeightsBtn=document.getElementById('labWeights'); const labRunNewBtn=document.getElementById('labRunNew');
 const weightsModalEl=document.getElementById('weightsModal'); const weightsClose=document.getElementById('weightsClose'); const weightsSave=document.getElementById('weightsSave'); const weightsProfile=document.getElementById('weightsProfile'); const weightsBody=document.getElementById('weightsBody');
-if(labTFSelect){ labTFSelect.addEventListener('change', ()=>{ try{ renderLabFromStorage(); }catch(_){ } }); }
+if(labTFSelect){ labTFSelect.addEventListener('change', async ()=>{ try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
+// Lab range controls: mode + date inputs trigger KPI recompute
+try{
+  const labRangeModeEl=document.getElementById('labRangeMode');
+  const labFromEl=document.getElementById('labFrom');
+  const labToEl=document.getElementById('labTo');
+  if(labRangeModeEl){ labRangeModeEl.addEventListener('change', ()=>{ try{ computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
+  function wireDate(el){ if(!el) return; const h=()=>{ try{ computeLabBenchmarkAndUpdate(); }catch(_){ } }; el.addEventListener('change', h); el.addEventListener('input', h); }
+  wireDate(labFromEl); wireDate(labToEl);
+}catch(_){ }
 if(labRunNewBtn){ labRunNewBtn.addEventListener('click', ()=>{ try{ window.__labGoalOverride='new'; if(labRunBtn){ labRunBtn.click(); } }catch(_){ } }); }
 if(labExportBtn){ labExportBtn.addEventListener('click', ()=>{ try{ const tf=(labTFSelect&&labTFSelect.value)||(intervalSelect&&intervalSelect.value)||''; const arr=Array.isArray(window.labPalmaresCache)? window.labPalmaresCache : []; if(!arr.length){ setStatus('Rien à exporter'); return; } let csv='idx,nom,gen,nol,prd,slInitPct,beAfterBars,beLockPct,emaLen,tp1R,entryMode,useFibRet,useFibDraw,confirmMode,ent382,ent500,ent618,ent786,tpEnable,tp,score,profitFactor,totalPnl,equityFinal,tradesCount,winrate,avgRR,maxDDAbs\n'; let idx=1; const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee'); for(const r of arr){ const p=r.params||{}; const st=r.res||{}; const tpStr = Array.isArray(p.tp)? JSON.stringify(p.tp).replaceAll(',', ';') : ''; const score = Number.isFinite(r.score)? r.score : scoreResult(st, weights); csv+=`${idx},\"${r.name||''}\",${r.gen||1},${p.nol||''},${p.prd||''},${p.slInitPct||''},${p.beAfterBars||''},${p.beLockPct||''},${p.emaLen||''},${p.tp1R||''},${p.entryMode||''},${p.useFibRet??''},${p.useFibDraw??''},${p.confirmMode||''},${p.ent382??''},${p.ent500??''},${p.ent618??''},${p.ent786??''},${p.tpEnable??''},\"${tpStr}\",${score.toFixed(2)},${st.profitFactor||''},${st.totalPnl||''},${st.equityFinal||''},${st.tradesCount||''},${st.winrate||''},${st.avgRR||''},${st.maxDDAbs||''}\\n`; idx++; } const blob=new Blob([csv], {type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`palmares_${currentSymbol}_${tf}.csv`; a.click(); }catch(_){ } }); }
 function buildWeightsUI(){ if(!weightsBody) return; const prof=(weightsProfile&&weightsProfile.value)||(localStorage.getItem('labWeightsProfile')||'balancee'); const w=getWeights(prof); weightsBody.innerHTML = `
@@ -1065,7 +1128,7 @@ function readWeightsFromUI(){ const w={ pf:+(document.getElementById('w_pf')?.va
 if(labWeightsBtn){ labWeightsBtn.addEventListener('click', ()=>{ try{ const prof = localStorage.getItem('labWeightsProfile')||'balancee'; if(weightsProfile){ weightsProfile.value=prof; } buildWeightsUI(); openModalEl(weightsModalEl); }catch(_){ } }); }
 if(weightsProfile){ weightsProfile.addEventListener('change', ()=>{ try{ buildWeightsUI(); }catch(_){ } }); }
 if(weightsClose){ weightsClose.addEventListener('click', ()=> closeModalEl(weightsModalEl)); }
-if(weightsSave){ weightsSave.addEventListener('click', ()=>{ try{ const prof = (weightsProfile&&weightsProfile.value)||'balancee'; const w = readWeightsFromUI(); saveWeights(prof, w); localStorage.setItem('labWeightsProfile', prof); closeModalEl(weightsModalEl); setStatus('Pondérations enregistrées'); try{ renderLabFromStorage(); }catch(_){ } }catch(_){ } }); }
+if(weightsSave){ weightsSave.addEventListener('click', ()=>{ try{ const prof = (weightsProfile&&weightsProfile.value)||'balancee'; const w = readWeightsFromUI(); saveWeights(prof, w); localStorage.setItem('labWeightsProfile', prof); closeModalEl(weightsModalEl); setStatus('Pondérations enregistrées'); try{ renderLabFromStorage(); computeLabBenchmarkAndUpdate(); }catch(_){ } }catch(_){ } }); }
 
 // Lab — Entraîner
 const labRunBtn=document.getElementById('labRun');
@@ -1452,12 +1515,12 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
   if(goal==='new'){
     // Persister uniquement dans Supabase
     try{ if(window.SUPA && typeof SUPA.persistLabResults==='function'){ const bestOut = results.slice(0, Math.min(10, results.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen:1, name:null })); await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut }); } }catch(_){ }
-    try{ await renderLabFromStorage(); }catch(_){ }
+    try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
     setStatus('Palmarès mis à jour'); closeBtProgress();
   } else {
     // Persister uniquement dans Supabase
     try{ if(window.SUPA && typeof SUPA.persistLabResults==='function'){ const bestOut = results.slice(0, Math.min(10, results.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen: (x.gen||1), name: x.name||null })); await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut }); } }catch(_){ }
-    try{ await renderLabFromStorage(); }catch(_){ }
+    try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
     setStatus('Amélioration terminée'); closeBtProgress();
   }
  }catch(e){ try{ addBtLog(`Erreur entraînement: ${e&&e.message?e.message:e}`); }catch(_){ } setStatus('Erreur entraînement'); try{ closeBtProgress(); }catch(_){ } } }); }
@@ -1473,9 +1536,9 @@ function loadPresetByName(name){ try{ const s=localStorage.getItem('lbcPreset:'+
 function deletePreset(name){ try{ localStorage.removeItem('lbcPreset:'+name); const names=loadPresetList().filter(n=>n!==name); savePresetList(names); loadPresetList(); }catch(_){} }
 loadPresetList();
 if(lbcPresetSave){ lbcPresetSave.addEventListener('click', ()=>{ const name=(lbcPresetName&&lbcPresetName.value||'').trim(); if(!name){ setStatus('Nom du preset requis'); return; } savePreset(name); setStatus('Preset sauvegardé'); }); }
-if(lbcPresetLoad){ lbcPresetLoad.addEventListener('click', ()=>{ const name=(lbcPresetSelect&&lbcPresetSelect.value)||''; if(!name){ setStatus('Aucun preset'); return; } if(loadPresetByName(name)){ setStatus('Preset chargé'); } }); }
+if(lbcPresetLoad){ lbcPresetLoad.addEventListener('click', ()=>{ const name=(lbcPresetSelect&&lbcPresetSelect.value)||''; if(!name){ setStatus('Aucun preset'); return; } if(loadPresetByName(name)){ setStatus('Preset chargé'); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } } }); }
 if(lbcPresetDelete){ lbcPresetDelete.addEventListener('click', ()=>{ const name=(lbcPresetSelect&&lbcPresetSelect.value)||''; if(!name) return; if(confirm(`Supprimer le preset "${name}" ?`)){ deletePreset(name); setStatus('Preset supprimé'); } }); }
-if(lbcResetBtn){ lbcResetBtn.addEventListener('click', ()=>{ lbcOpts = { ...defaultLBC }; saveLBCOpts(); renderLBC(); setStatus('Paramètres réinitialisés'); }); }
+if(lbcResetBtn){ lbcResetBtn.addEventListener('click', ()=>{ lbcOpts = { ...defaultLBC }; saveLBCOpts(); renderLBC(); setStatus('Paramètres réinitialisés'); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
 
 // Live (paper) minimal
 let liveSession=null; const liveStartBtn=document.getElementById('liveStart'); const liveStopBtn=document.getElementById('liveStop'); const liveStartCap=document.getElementById('liveStartCap'); const liveFee=document.getElementById('liveFee'); const liveLev=document.getElementById('liveLev');
