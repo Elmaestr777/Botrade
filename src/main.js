@@ -140,7 +140,7 @@ const supaUrlInp = document.getElementById('supaUrl');
 const supaAnonInp = document.getElementById('supaAnon');
 const supaMsgEl = document.getElementById('supaMsg');
 
-function setStatus(msg){ if(statusEl){ statusEl.textContent = msg||''; } }
+function setStatus(msg){ __statusMain = msg || ''; if(statusEl){ statusEl.textContent = __statusMain + (__statusBg ? (' • '+__statusBg) : ''); } }
 function setBtTitle(text){ try{ const h=btProgressEl && btProgressEl.querySelector('.modal-header h2'); if(h) h.textContent = text||'Simulation'; }catch(_){ } }
 
 let __lastLabTested = [];
@@ -230,6 +230,7 @@ const BATCH_LIMIT = 1000; let candles=[]; let ws=null;
 const PRELOAD_BARS = 1000;        // bars for instant display
 const BG_MAX_BARS = Infinity;     // upper bound for background history (max depth)
 const CACHE_SAVE_BARS = 5000;     // persist last N bars per symbol/TF for instant next load
+const LIVE_MAX_BARS = 200000;     // cap for in-memory candles during live updates; increase if needed
 let __bgLoadToken = 0;            // cancels previous background loaders
 
 function klinesCacheKey(symbol, interval){ return `klines:${symbol}:${interval}`; }
@@ -279,21 +280,33 @@ async function backgroundExtendKlines(symbol, interval, token){
       total = candles.length;
       earliest = candles[0].time;
       cursor = earliest*1000 - 1;
-      // Throttled status to avoid UI jank
+      // Throttled status + progressive series rehydrate to expose older bars
       const now = Date.now();
-      if(now - lastUiUpdate > 600){ setBgStatus(`hist: ${Math.round(total/1000)}k`); lastUiUpdate = now; }
+      if(now - lastUiUpdate > 600){
+        setBgStatus(`hist: ${Math.round(total/1000)}k`);
+        let vr=null; try{ vr=chart.timeScale().getVisibleRange(); }catch(_){ }
+        try{ candleSeries.setData(candles); updateEMAs(); renderLBC(); }catch(_){ }
+        try{ if(vr){ chart.timeScale().setVisibleRange(vr); } }catch(_){ }
+        lastUiUpdate = now;
+      }
       if(batch.length < need) break; // hit API boundary for now
       // Yield to UI
       await new Promise(r=> setTimeout(r, 0));
     }
-    // Final status clear if this is still the active token
-    if(token === __bgLoadToken){ try{ saveKlinesToCache(symbol, interval, candles); }catch(_){ } setBgStatus(''); }
+    // Final push if still active: save cache, rehydrate series, preserve view, clear status
+    if(token === __bgLoadToken){
+      let vr=null; try{ vr=chart.timeScale().getVisibleRange(); }catch(_){ }
+      try{ candleSeries.setData(candles); updateEMAs(); renderLBC(); }catch(_){ }
+      try{ if(vr){ chart.timeScale().setVisibleRange(vr); } }catch(_){ }
+      try{ saveKlinesToCache(symbol, interval, candles); }catch(_){ }
+      setBgStatus('');
+    }
   }catch(_){ /* silent */ }
 }
 
 function closeWs(){ try{ if(ws){ ws.onopen=ws.onmessage=ws.onerror=ws.onclose=null; ws.close(); } }catch(_){} ws=null; }
 function wsUrl(symbol, interval){ return `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_${interval}`; }
-function openWs(symbol, interval){ closeWs(); try{ ws=new WebSocket(wsUrl(symbol, interval)); }catch(e){ setStatus('WS erreur'); return; } ws.onopen=()=> setStatus('Temps réel'); ws.onmessage=(ev)=>{ try{ const msg=JSON.parse(ev.data); const k=(msg&&msg.k)||(msg&&msg.data&&msg.data.k); if(!k) return; const bar={ time:Math.floor(k.t/1000), open:+k.o, high:+k.h, low:+k.l, close:+k.c }; const last=candles[candles.length-1]; if(last && bar.time===last.time){ candles[candles.length-1]=bar; candleSeries.update(bar); } else if(!last || bar.time>last.time){ candles.push(bar); candleSeries.update(bar); if(candles.length>50000) candles=candles.slice(-50000); }
+function openWs(symbol, interval){ closeWs(); try{ ws=new WebSocket(wsUrl(symbol, interval)); }catch(e){ setStatus('WS erreur'); return; } ws.onopen=()=> setStatus('Temps réel'); ws.onmessage=(ev)=>{ try{ const msg=JSON.parse(ev.data); const k=(msg&&msg.k)||(msg&&msg.data&&msg.data.k); if(!k) return; const bar={ time:Math.floor(k.t/1000), open:+k.o, high:+k.h, low:+k.l, close:+k.c }; const last=candles[candles.length-1]; if(last && bar.time===last.time){ candles[candles.length-1]=bar; candleSeries.update(bar); } else if(!last || bar.time>last.time){ candles.push(bar); candleSeries.update(bar); if(candles.length>LIVE_MAX_BARS) candles=candles.slice(-LIVE_MAX_BARS); }
 updateEMAs(); renderLBC(); if(typeof anyLiveActive==='function' && anyLiveActive()){ try{ multiLiveOnBar(bar); }catch(_){ } } else if(liveSession && liveSession.active){ try{ liveOnBar(bar); }catch(_){ } }
     }catch(_){ } }; ws.onerror=()=> setStatus('WS erreur'); ws.onclose=()=> {/* keep silent */}; }
 async function load(symbol, interval){
