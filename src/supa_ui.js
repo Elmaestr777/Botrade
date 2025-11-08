@@ -88,8 +88,17 @@
     const c = ensureClient(); if(!c) return null;
     try{
       const { data, error } = await c.from('palmares_sets').insert(row).select('id').single();
-      if(error) return null; return data && data.id || null;
-    }catch(_){ return null; }
+      if(error){ slog('Supabase: create palmares_set erreur — '+(error.message||error));
+        // Fallback: réessayer sans user_id si la colonne est NOT NULL/protégée
+        try{
+          const r2 = { ...row }; delete r2.user_id;
+          const { data: d2, error: e2 } = await c.from('palmares_sets').insert(r2).select('id').single();
+          if(e2){ slog('Supabase: create palmares_set fallback erreur — '+(e2.message||e2)); return null; }
+          return (d2 && d2.id) || null;
+        }catch(e){ slog('Supabase: create palmares_set fallback exception — '+(e&&e.message?e.message:e)); return null; }
+      }
+      return (data && data.id) || null;
+    }catch(e){ slog('Supabase: create palmares_set exception — '+(e&&e.message?e.message:e)); return null; }
   }
 
   async function insertPalmaresEntries(rows){
