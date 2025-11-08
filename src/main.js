@@ -816,7 +816,10 @@ if(btOptimizeBtn){ btOptimizeBtn.addEventListener('click', async ()=>{ try{
   if(usePrior){ try{ const priorArr=readLabStorage(currentSymbol, tfSel).slice(0, topN); for(const it of priorArr){ if(it&&it.params){ combos.unshift({ ...it.params }); } } }catch(_){ } }
   if(combos.length>maxComb){ const sample=[]; while(sample.length<maxComb){ const i=Math.floor(Math.random()*combos.length); sample.push(combos[i]); combos.splice(i,1); } combos=sample; }
   let bars=candles; if(tfSel!==currentInterval){ try{ bars = await fetchAllKlines(currentSymbol, tfSel, 5000); }catch(_){ bars=candles; } }
-  let from=null,to=null; if(tfSel===currentInterval){ if(btRangeDates&&btRangeDates.checked){ const f=(btFrom&&btFrom.value)||''; const t=(btTo&&btTo.value)||''; from = f? Math.floor(new Date(f).getTime()/1000): null; to = t? Math.floor(new Date(t).getTime()/1000): null; } else if(btRangeAll&&btRangeAll.checked){ from=null; to=null; } else { const r=getVisibleRange(); if(r){ from=r.from; to=r.to; } } }
+  let from=null,to=null;
+  if(btRangeDates&&btRangeDates.checked){ const f=(btFrom&&btFrom.value)||''; const t=(btTo&&btTo.value)||''; from = f? Math.floor(new Date(f).getTime()/1000): null; to = t? Math.floor(new Date(t).getTime()/1000): null; }
+  else if(btRangeAll&&btRangeAll.checked){ from=null; to=null; }
+  else { const r=getVisibleRange(); if(r){ from=r.from; to=r.to; } }
   const idxFromTimeLocal=(bars,from,to)=>{ let s=0,e=bars.length-1; if(from!=null){ for(let i=0;i<bars.length;i++){ if(bars[i].time>=from){ s=i; break; } } } if(to!=null){ for(let j=bars.length-1;j>=0;j--){ if(bars[j].time<=to){ e=j; break; } } } return [s,e]; };
   const [sIdx,eIdx]=idxFromTimeLocal(bars,from,to);
   openBtProgress('Optimisation...'); btAbort=false; const best=[]; const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
