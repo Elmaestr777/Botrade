@@ -1074,7 +1074,7 @@ const conf={ startCap: Math.max(0, parseFloat((document.getElementById('labStart
   let bars=candles; if(tfSel!==currentInterval){ try{ bars=await fetchAllKlines(sym, tfSel, 5000); try{ addBtLog(`Chargement des données: ${sym} @ ${tfSel} — ${bars.length} bougies`); }catch(_){ } }catch(_){ bars=candles; try{ addBtLog('Échec du chargement — utilisation des bougies visibles'); }catch(__){} } } else { try{ addBtLog(`Données visibles: ${bars.length} bougies`); }catch(_){ } }
   let from=null,to=null; const rangeMode=(document.getElementById('labRangeMode')&&document.getElementById('labRangeMode').value)||'visible';
   if(rangeMode==='dates'){ const f=(document.getElementById('labFrom')&&document.getElementById('labFrom').value)||''; const t=(document.getElementById('labTo')&&document.getElementById('labTo').value)||''; from = f? Math.floor(new Date(f).getTime()/1000): null; to = t? Math.floor(new Date(t).getTime()/1000): null; }
-  else if(rangeMode==='visible' && tfSel===currentInterval){ const r=getVisibleRange(); if(r){ from=r.from; to=r.to; } }
+  else if(rangeMode==='visible'){ const r=getVisibleRange(); if(r){ from=r.from; to=r.to; } }
   else { from=null; to=null; }
   const idxFromTimeLocal=(bars,from,to)=>{ let s=0,e=bars.length-1; if(from!=null){ for(let i=0;i<bars.length;i++){ if(bars[i].time>=from){ s=i; break; } } } if(to!=null){ for(let j=bars.length-1;j>=0;j--){ if(bars[j].time<=to){ e=j; break; } } } return [s,e]; };
   const [sIdx,eIdx]=idxFromTimeLocal(bars,from,to);
