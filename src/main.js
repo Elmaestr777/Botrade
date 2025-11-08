@@ -1511,15 +1511,21 @@ btAbort=false; btPaused=false; updateProgress('Entraînement...', 0);
   if(strategy==='bayes'){ bayOut = await runBayes(seeds); }
 if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(eaOut); }
   const results = (strategy==='ea'? eaOut : (strategy==='bayes'? bayOut : bayOut));
+  try{ addBtLog && addBtLog(`Résultats finaux — EA:${(eaOut||[]).length} Bayes:${(bayOut||[]).length} Choisi:${(results||[]).length}`); }catch(_){ }
+  // Fallback: si aucun résultat (cas rare), prendre le top des évaluations accumulées
+  let finalResults = Array.isArray(results)? results.slice() : [];
+  if(!finalResults.length && Array.isArray(allTested) && allTested.length){
+    try{ const sorted = allTested.slice().sort((a,b)=> (b.score||0)-(a.score||0)); finalResults = sorted.slice(0, Math.min(10, sorted.length)).map(it=>({ p: it.params||{}, res: it.metrics||{}, score: it.score||0, gen:1, name:null })); addBtLog && addBtLog(`Fallback best depuis évaluations: ${finalResults.length}`); }catch(_){ }
+  }
 
   if(goal==='new'){
     // Persister uniquement dans Supabase
-    try{ if(window.SUPA && typeof SUPA.persistLabResults==='function'){ const bestOut = results.slice(0, Math.min(10, results.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen:1, name:null })); await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut }); } }catch(_){ }
+    try{ if(window.SUPA && typeof SUPA.persistLabResults==='function'){ const bestOut = finalResults.slice(0, Math.min(10, finalResults.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen:1, name:null })); await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut }); } }catch(_){ }
     try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
     setStatus('Palmarès mis à jour'); closeBtProgress();
   } else {
     // Persister uniquement dans Supabase
-    try{ if(window.SUPA && typeof SUPA.persistLabResults==='function'){ const bestOut = results.slice(0, Math.min(10, results.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen: (x.gen||1), name: x.name||null })); await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut }); } }catch(_){ }
+    try{ if(window.SUPA && typeof SUPA.persistLabResults==='function'){ const bestOut = finalResults.slice(0, Math.min(10, finalResults.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen: (x.gen||1), name: x.name||null })); await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut }); } }catch(_){ }
     try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
     setStatus('Amélioration terminée'); closeBtProgress();
   }
