@@ -269,7 +269,9 @@
   async function fetchPalmares(symbol, tf, limit=25){
     const c=ensureClient(); if(!c) return [];
     const profileId = await getBalanceeProfileId();
+    function mapRows(rows){ const out=[]; let idx=1; for(const row of rows||[]){ const paramsUI=uiParamsFromCanonical(row.params||{}); const metrics=row.metrics||{}; const score=(typeof row.score==='number')? row.score:0; out.push({ id:'db_'+(idx++), name:null, gen:1, params:paramsUI, res:metrics, score, ts:Date.now() }); } return out; }
     try{
+      // Primary source: selected strategies
       let q = c
         .from('strategy_evaluations')
         .select('params,metrics,score')
@@ -279,17 +281,30 @@
         .order('score', { ascending: false })
         .limit(Math.max(1, limit));
       if(profileId!=null) q = q.eq('profile_id', profileId); else q = q.is('profile_id', null);
-      const { data, error } = await q;
-      if(error || !Array.isArray(data)) return [];
-      const out=[];
-      let idx=1;
-      for(const row of data){
-        const paramsUI = uiParamsFromCanonical(row.params||{});
-        const metrics = row.metrics||{};
-        const score = (typeof row.score==='number')? row.score : 0;
-        out.push({ id: 'db_'+(idx++), name: null, gen: 1, params: paramsUI, res: metrics, score, ts: Date.now() });
-      }
-      return out;
+      let { data, error } = await q;
+      if(!error && Array.isArray(data) && data.length){ return mapRows(data); }
+      // Fallback: read latest palmarès set entries
+      let qs = c
+        .from('palmares_sets')
+        .select('id')
+        .eq('symbol', symbol)
+        .eq('tf', tf)
+        .order('id', { ascending:false })
+        .limit(1);
+      if(profileId!=null) qs = qs.eq('profile_id', profileId); else qs = qs.is('profile_id', null);
+      const { data:sets, error:err2 } = await qs;
+      if(err2 || !Array.isArray(sets) || !sets.length) return [];
+      const setId = sets[0]?.id;
+      if(!setId) return [];
+      const qe = c
+        .from('palmares_entries')
+        .select('params,metrics,score,rank')
+        .eq('set_id', setId)
+        .order('rank', { ascending:true })
+        .limit(Math.max(1, limit));
+      const { data:entries, error:err3 } = await qe;
+      if(err3 || !Array.isArray(entries) || !entries.length) return [];
+      return mapRows(entries);
     }catch(_){ return []; }
   }
 
