@@ -275,7 +275,7 @@
         .select('params,metrics,score')
         .eq('symbol', symbol)
         .eq('tf', tf)
-        .is('selected', true)
+        .eq('selected', true)
         .order('score', { ascending: false })
         .limit(Math.max(1, limit));
       if(profileId!=null) q = q.eq('profile_id', profileId); else q = q.is('profile_id', null);

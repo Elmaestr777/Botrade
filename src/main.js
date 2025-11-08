@@ -438,9 +438,9 @@ async function computeLabBenchmarkAndUpdate(){
 
     const fmtPF=(v)=> v===Infinity? '∞' : (Number.isFinite(v)? Number(v).toFixed(2) : '—');
     const scStr = `Heaven: ${scoreH.toFixed(2)} • Palmarès: ${Number.isFinite(palScore)? palScore.toFixed(2): '—'}`;
-    const pfStr = `Heaven: ${fmtPF(resH.profitFactor)} • Palmarès: ${fmtPF(palRes&&palRes.profitFactor)}`;
-    const winStr= `Heaven: ${Number(resH.winrate||0).toFixed(1)}% • Palmarès: ${Number(palRes&&palRes.winrate||0).toFixed(1)}%`;
-    const ddStr = `Heaven: ${Number(resH.maxDDAbs||0).toFixed(0)} • Palmarès: ${Number(palRes&&palRes.maxDDAbs||0).toFixed(0)}`;
+    const pfStr = `Heaven: ${fmtPF(resH.profitFactor)} • Palmarès: ${fmtPF(palRes && palRes.profitFactor)}`;
+    const winStr= `Heaven: ${Number(resH.winrate||0).toFixed(1)}% • Palmarès: ${((palRes && Number.isFinite(palRes.winrate))? Number(palRes.winrate).toFixed(1)+'%':'—')}`;
+    const ddStr = `Heaven: ${Number(resH.maxDDAbs||0).toFixed(0)} • Palmarès: ${((palRes && Number.isFinite(palRes.maxDDAbs))? Number(palRes.maxDDAbs).toFixed(0):'—')}`;
 
     if(kpiScoreEl) kpiScoreEl.textContent = scStr;
     if(kpiPFEl) kpiPFEl.textContent = pfStr;
