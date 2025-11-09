@@ -124,13 +124,11 @@ rows.push('<tr>' + `<td>${idx}</td>` + `<td style=\\\"text-align:left\\\">${(r.n
         showStrategyResult(rec.res||{}, {symbol: currentSymbol, tf: tfNow});
       } else if(act==='detail'){
         try{
-          // Log textual detail as fallback (always)
+          // Normalise structure et log fallback
           const item = rec && (rec.params ? rec : (rec.p ? { params: rec.p, res: rec.res, name: rec.name, score: rec.score } : rec));
           await logStrategyDetailForLab(item, { symbol: currentSymbol, tf: tfNow });
-          // Try opening the visual modal too
-          if(detailModalEl){ openModalEl(detailModalEl); }
-          if(typeof detailCtxEl!=='undefined' && detailCtxEl){ detailCtxEl.textContent = `${symbolToDisplay(symNow)} • ${tfNow} — ${(rec.name||'Stratégie')} — chargement...`; }
-          await showStrategyDetail(item, { symbol: currentSymbol, tf: tfNow });
+          // Analyse complète sur tout l'historique dans une vraie pop‑up
+          await analyzeStrategyDetailFull(item, { symbol: currentSymbol, tf: tfNow });
         }catch(_){ }
       }
     });
@@ -1084,15 +1082,20 @@ function drawBars(canvas, labels, vals){ if(!canvas) return; const ctx=canvas.ge
 function drawRobust(canvas, complexity, robustness){ if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, 10, 20, 'Complexité & Robustesse', 'left'); // bars
   const labels=['Complexité (params actifs)','Robustesse (stabilité)']; const vals=[complexity, robustness]; for(let i=0;i<2;i++){ const y=40+i*40; ctx.fillStyle='#e5e7eb'; ctx.fillRect(220, y, w-240, 14); ctx.fillStyle=i===0?'#f59e0b':'#10b981'; ctx.fillRect(220, y, (w-240)*Math.max(0,Math.min(100, vals[i]))/100, 14); __drawText(ctx, 210, y+7, String(Math.round(vals[i]))+'%', 'right'); __drawText(ctx, 10, y+7, labels[i], 'left'); } }
 
-async function showStrategyDetail(item, ctx){ try{ const sym=ctx.symbol, tf=ctx.tf; const p=item.params||{}; const conf={ startCap: Math.max(0, +((document.getElementById('labStartCap')||{}).value||10000)), fee: Math.max(0, +((document.getElementById('labFee')||{}).value||0.1)), lev: Math.max(1, +((document.getElementById('labLev')||{}).value||1)), maxPct:100, base:'initial' };
-  // Open modal first to show immediate feedback
-  openModalEl(detailModalEl);
-  try{ ensureFloatingModal(detailModalEl, 'detail', { left: 120, top: 80, width: 1000, height: 700, zIndex: bumpZ() }); }catch(_){ }
-  if(detailCtxEl){ detailCtxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — ${item.name||'Stratégie'} — chargement...`; }
-  let bars=candles; if(tf!==currentInterval){ try{ bars=await fetchAllKlines(sym, tf, 5000); }catch(_){ bars=candles; } }
-  const sIdx=Math.max(0, bars.length-Math.min(5000, bars.length)); const eIdx=bars.length-1;
+// Analyse complète (tout l'historique) + vrai pop‑up
+async function analyzeStrategyDetailFull(item, ctx){ try{
+  const sym=ctx.symbol, tf=ctx.tf; const p=item.params||{};
+  const conf={ startCap: Math.max(0, +((document.getElementById('labStartCap')||{}).value||10000)), fee: Math.max(0, +((document.getElementById('labFee')||{}).value||0.1)), lev: Math.max(1, +((document.getElementById('labLev')||{}).value||1)), maxPct:100, base:'initial' };
+  // Ouvre la modale immédiatement
+  if(detailModalEl){ openModalEl(detailModalEl); try{ ensureFloatingModal(detailModalEl, 'detail', { left: 120, top: 80, width: 1000, height: 700, zIndex: bumpZ() }); }catch(_){ } }
+  if(detailCtxEl){ detailCtxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — ${item.name||'Stratégie'} — chargement (tout l'historique)...`; }
+  // Récupère tout l'historique pour la TF demandée
+  let bars=candles;
+  if(tf!==currentInterval){ try{ bars = await fetchAllKlines(sym, tf, BG_MAX_BARS); }catch(_){ bars=candles; } }
+  else { try{ bars = await fetchAllKlines(sym, tf, BG_MAX_BARS); }catch(_){ /* garde candles */ } }
+  const sIdx=0; const eIdx=Math.max(0, (bars.length||1)-1);
   const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, p, true);
-  renderStrategyDetailIntoModal(res, { symbol: sym, tf, name: item.name||'Stratégie', conf, bars, sIdx, eIdx });
+  renderStrategyDetailIntoModal(res, { symbol: sym, tf, name: item.name||'Stratégie', conf, bars, sIdx, eIdx, params: p });
  }catch(e){ if(detailCtxEl){ detailCtxEl.textContent = 'Erreur analyse'; } setStatus('Erreur analyse'); }
 }
 
