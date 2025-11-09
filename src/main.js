@@ -110,7 +110,13 @@ rows.push('<tr>' + `<td>${idx}</td>` + `<td style=\\\"text-align:left\\\">${(r.n
       } else if(act==='view'){
         showStrategyResult(rec.res||{}, {symbol: currentSymbol, tf: tfNow});
       } else if(act==='detail'){
-        try{ await showStrategyDetail(rec, { symbol: currentSymbol, tf: tfNow }); }catch(_){ }
+        try{
+          if(detailModalEl){ openModalEl(detailModalEl); }
+          if(typeof detailCtxEl!=='undefined' && detailCtxEl){ detailCtxEl.textContent = `${symbolToDisplay(symNow)} • ${tfNow} — ${(rec.name||'Stratégie')} — chargement...`; }
+          // tolerate objects from different sources
+          const item = rec && (rec.params ? rec : (rec.p ? { params: rec.p, res: rec.res, name: rec.name, score: rec.score } : rec));
+          await showStrategyDetail(item, { symbol: currentSymbol, tf: tfNow });
+        }catch(_){ }
       }
     });
     labTBody.dataset.wired='1';
