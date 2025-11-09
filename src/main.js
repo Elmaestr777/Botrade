@@ -124,10 +124,12 @@ rows.push('<tr>' + `<td>${idx}</td>` + `<td style=\\\"text-align:left\\\">${(r.n
         showStrategyResult(rec.res||{}, {symbol: currentSymbol, tf: tfNow});
       } else if(act==='detail'){
         try{
+          // Log textual detail as fallback (always)
+          const item = rec && (rec.params ? rec : (rec.p ? { params: rec.p, res: rec.res, name: rec.name, score: rec.score } : rec));
+          await logStrategyDetailForLab(item, { symbol: currentSymbol, tf: tfNow });
+          // Try opening the visual modal too
           if(detailModalEl){ openModalEl(detailModalEl); }
           if(typeof detailCtxEl!=='undefined' && detailCtxEl){ detailCtxEl.textContent = `${symbolToDisplay(symNow)} • ${tfNow} — ${(rec.name||'Stratégie')} — chargement...`; }
-          // tolerate objects from different sources
-          const item = rec && (rec.params ? rec : (rec.p ? { params: rec.p, res: rec.res, name: rec.name, score: rec.score } : rec));
           await showStrategyDetail(item, { symbol: currentSymbol, tf: tfNow });
         }catch(_){ }
       }
@@ -1093,6 +1095,21 @@ async function showStrategyDetail(item, ctx){ try{ const sym=ctx.symbol, tf=ctx.
   renderStrategyDetailIntoModal(res, { symbol: sym, tf, name: item.name||'Stratégie', conf, bars, sIdx, eIdx });
  }catch(e){ if(detailCtxEl){ detailCtxEl.textContent = 'Erreur analyse'; } setStatus('Erreur analyse'); }
 }
+
+async function logStrategyDetailForLab(item, ctx){ try{
+  const sym=ctx.symbol, tf=ctx.tf; const p=item.params||{};
+  const conf={ startCap: Math.max(0, +((document.getElementById('labStartCap')||{}).value||10000)), fee: Math.max(0, +((document.getElementById('labFee')||{}).value||0.1)), lev: Math.max(1, +((document.getElementById('labLev')||{}).value||1)), maxPct:100, base:'initial' };
+  let bars=candles; if(tf!==currentInterval){ try{ bars=await fetchAllKlines(sym, tf, 5000); }catch(_){ bars=candles; } }
+  const sIdx=Math.max(0, bars.length-Math.min(5000, bars.length)); const eIdx=bars.length-1;
+  const fromTs=(bars[sIdx]&&bars[sIdx].time)||null, toTs=(bars[eIdx]&&bars[eIdx].time)||null;
+  const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, p, true);
+  const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee'); const score=scoreResult(res, weights);
+  addLabLog && addLabLog(`Détail — ${symbolToDisplay(sym)} @ ${tf} — ${item.name||'Stratégie'}`);
+  addLabLog && addLabLog(`Période analysée: ${fromTs? new Date(fromTs*1000).toLocaleString(): '—'} → ${toTs? new Date(toTs*1000).toLocaleString(): '—'} (${Math.max(0,eIdx-sIdx+1)} bars)`);
+  addLabLog && addLabLog(`PF ${(res.profitFactor===Infinity?'∞':(+res.profitFactor||0).toFixed(2))} • Trades ${res.tradesCount} • Win ${(Number(res.winrate||0)).toFixed(1)}% • AvgRR ${(Number.isFinite(res.avgRR)? res.avgRR.toFixed(2):'—')} • MaxDD ${Number(res.maxDDAbs||0).toFixed(0)}`);
+  addLabLog && addLabLog(`P&L ${Number(res.totalPnl||0).toFixed(2)} • Cap. final ${Number(res.equityFinal||0).toFixed(2)} • Score ${score.toFixed(2)}`);
+  addLabLog && addLabLog(`Params: nol=${p.nol} prd=${p.prd} sl=${p.slInitPct}% be=${p.beAfterBars}/${p.beLockPct}% ema=${p.emaLen} entry=${p.entryMode||'Both'} fibRet=${p.useFibRet?1:0} confirm=${p.confirmMode||'Bounce'}`);
+}catch(_){ try{ addLabLog && addLabLog('Détail — erreur'); }catch(__){} } }
 
 function renderStrategyDetailIntoModal(res, ctx){ try{
   const sym = ctx.symbol, tf = ctx.tf; const name = ctx.name||'Stratégie'; const conf = ctx.conf; const bars = ctx.bars; const sIdx = ctx.sIdx, eIdx=ctx.eIdx;
