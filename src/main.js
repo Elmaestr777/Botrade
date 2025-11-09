@@ -1064,6 +1064,9 @@ function drawRobust(canvas, complexity, robustness){ if(!canvas) return; const c
   const labels=['Complexité (params actifs)','Robustesse (stabilité)']; const vals=[complexity, robustness]; for(let i=0;i<2;i++){ const y=40+i*40; ctx.fillStyle='#e5e7eb'; ctx.fillRect(220, y, w-240, 14); ctx.fillStyle=i===0?'#f59e0b':'#10b981'; ctx.fillRect(220, y, (w-240)*Math.max(0,Math.min(100, vals[i]))/100, 14); __drawText(ctx, 210, y+7, String(Math.round(vals[i]))+'%', 'right'); __drawText(ctx, 10, y+7, labels[i], 'left'); } }
 
 async function showStrategyDetail(item, ctx){ try{ const sym=ctx.symbol, tf=ctx.tf; const p=item.params||{}; const conf={ startCap: Math.max(0, +((document.getElementById('labStartCap')||{}).value||10000)), fee: Math.max(0, +((document.getElementById('labFee')||{}).value||0.1)), lev: Math.max(1, +((document.getElementById('labLev')||{}).value||1)), maxPct:100, base:'initial' };
+  // Open modal first to show immediate feedback
+  openModalEl(detailModalEl);
+  if(detailCtxEl){ detailCtxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — ${item.name||'Stratégie'} — chargement...`; }
   let bars=candles; if(tf!==currentInterval){ try{ bars=await fetchAllKlines(sym, tf, 5000); }catch(_){ bars=candles; } }
   const sIdx=Math.max(0, bars.length-Math.min(5000, bars.length)); const eIdx=bars.length-1;
   const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, p, true);
@@ -1096,8 +1099,7 @@ async function showStrategyDetail(item, ctx){ try{ const sym=ctx.symbol, tf=ctx.
   const complexity = (6 + (p.useFibRet?1:0) + (p.confirmMode?1:0) + (Array.isArray(p.tp)? p.tp.length:0)); const compN = Math.max(0, Math.min(100, (complexity/20)*100));
   drawRobust(canRob, compN, edgeN);
   if(detailCtxEl){ detailCtxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — ${item.name||'Stratégie'} — PF ${(res.profitFactor===Infinity?'∞':(+res.profitFactor||0).toFixed(2))} • Trades ${res.tradesCount}`; }
-  openModalEl(detailModalEl);
- }catch(_){ setStatus('Erreur analyse'); }
+ }catch(e){ if(detailCtxEl){ detailCtxEl.textContent = 'Erreur analyse'; } setStatus('Erreur analyse'); }
 }
 
 // Lab actions: refresh/export/weights
