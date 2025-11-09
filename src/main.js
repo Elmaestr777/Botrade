@@ -1090,36 +1090,29 @@ async function showStrategyDetail(item, ctx){ try{ const sym=ctx.symbol, tf=ctx.
   let bars=candles; if(tf!==currentInterval){ try{ bars=await fetchAllKlines(sym, tf, 5000); }catch(_){ bars=candles; } }
   const sIdx=Math.max(0, bars.length-Math.min(5000, bars.length)); const eIdx=bars.length-1;
   const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, p, true);
+  renderStrategyDetailIntoModal(res, { symbol: sym, tf, name: item.name||'Stratégie', conf, bars, sIdx, eIdx });
+ }catch(e){ if(detailCtxEl){ detailCtxEl.textContent = 'Erreur analyse'; } setStatus('Erreur analyse'); }
+}
+
+function renderStrategyDetailIntoModal(res, ctx){ try{
+  const sym = ctx.symbol, tf = ctx.tf; const name = ctx.name||'Stratégie'; const conf = ctx.conf; const bars = ctx.bars; const sIdx = ctx.sIdx, eIdx=ctx.eIdx;
   const eq = (res.eqSeries||[]).map(x=>({ time:x.time, equity:x.equity }));
   // returns per trade
-  const rets=[]; let totalDur=0; let minTs=Infinity, maxTs=-Infinity; let wins=0, losses=0; for(const t of (res.trades||[])){ const cap=Math.max(1, t.eqBefore||conf.startCap); rets.push((t.net/cap)*100); if(t.net>=0) wins++; else losses++; totalDur += Math.max(0, (t.exitTime||0)-(t.entryTime||0)); if(Number.isFinite(t.entryTime)&&t.entryTime<minTs) minTs=t.entryTime; if(Number.isFinite(t.exitTime)&&t.exitTime>maxTs) maxTs=t.exitTime; }
+  const rets=[]; let totalDur=0; let minTs=Infinity, maxTs=-Infinity; for(const t of (res.trades||[])){ const cap=Math.max(1, t.eqBefore||conf.startCap); rets.push((t.net/cap)*100); totalDur += Math.max(0, (t.exitTime||0)-(t.entryTime||0)); if(Number.isFinite(t.entryTime)&&t.entryTime<minTs) minTs=t.entryTime; if(Number.isFinite(t.exitTime)&&t.exitTime>maxTs) maxTs=t.exitTime; }
   const mean=(arr)=> arr.length? arr.reduce((a,b)=>a+b,0)/arr.length : 0; const m=mean(rets); const sd=Math.sqrt(mean(rets.map(x=> (x-m)*(x-m)))); const sharpe = (sd>0? (m/sd*Math.sqrt(Math.max(1, rets.length))) : 0);
-  // Radar metrics (0..100)
-  const pf = (res.profitFactor===Infinity? 3 : Math.max(0, Math.min(3, +res.profitFactor||0))); const pfN = (pf/3)*100;
-  const sharpeN = Math.max(0, Math.min(100, (sharpe/3)*100));
-  const recov = (res.maxDDAbs>0? (res.totalPnl/Math.max(1e-9, res.maxDDAbs)) : 0); const recovN = Math.max(0, Math.min(100, (recov/3)*100));
-  const consN = Math.max(0, Math.min(100, 100*(1 - Math.min(1, sd/3))));
-  const cpiN = Math.max(0, Math.min(100, 100*(1 - Math.min(1, (res.maxDDAbs/Math.max(1, conf.startCap)) / 0.5))));
+  const pf = (res.profitFactor===Infinity? 3 : Math.max(0, Math.min(3, +res.profitFactor||0))); const pfN = (pf/3)*100; const sharpeN = Math.max(0, Math.min(100, (sharpe/3)*100)); const recov = (res.maxDDAbs>0? (res.totalPnl/Math.max(1e-9, res.maxDDAbs)) : 0); const recovN = Math.max(0, Math.min(100, (recov/3)*100)); const consN = Math.max(0, Math.min(100, 100*(1 - Math.min(1, sd/3)))); const cpiN = Math.max(0, Math.min(100, 100*(1 - Math.min(1, (res.maxDDAbs/Math.max(1, conf.startCap)) / 0.5))));
   const r2 = (()=>{ const n=eq.length; if(n<3) return 0; const xs=eq.map((_,i)=>i); const ys=eq.map(p=>p.equity); const xm=mean(xs), ym=mean(ys); let num=0, den=0; for(let i=0;i<n;i++){ const xv=xs[i]-xm, yv=ys[i]-ym; num += xv*yv; den += xv*xv; } const a=num/(den||1); const b=ym - a*xm; let ssTot=0, ssRes=0; for(let i=0;i<n;i++){ const y=ys[i]; const yhat=a*xs[i]+b; ssTot += (y-ym)*(y-ym); ssRes += (y-yhat)*(y-yhat); } return 1 - (ssRes/(ssTot||1)); })();
-  const r2N = Math.max(0, Math.min(100, r2*100));
-  const winrate = +res.winrate||0; const avgRR = +res.avgRR||0; const teN = Math.max(0, Math.min(100, (winrate/100) * (pf/(pf+1))*100));
-  const edgeN = Math.max(0, Math.min(100, (pf/(pf+1)) * (1 - Math.min(1, sd/5))*100));
+  const r2N = Math.max(0, Math.min(100, r2*100)); const winrate = +res.winrate||0; const avgRR = +res.avgRR||0; const teN = Math.max(0, Math.min(100, (winrate/100) * (pf/(pf+1))*100)); const edgeN = Math.max(0, Math.min(100, (pf/(pf+1)) * (1 - Math.min(1, sd/5))*100));
   drawRadar(canRadar, ['Profit Factor','Sharpe','Recovery','Consistency','Cap. Protection','R² equity','Trade Efficiency','Edge Robustness'], [pfN, sharpeN, recovN, consN, cpiN, r2N, teN, edgeN]);
   drawEquity(canEquity, eq);
   drawDD(canDD, eq);
   drawHist(canHist, rets);
-  // Efficiency
-  const totalSecs=Math.max(1, (maxTs>minTs? (maxTs-minTs) : (bars[eIdx].time-bars[sIdx].time)));
-  const days=totalSecs/86400; const freq = (res.tradesCount||0)/(days||1);
-  const timeInMkt = Math.max(0, Math.min(100, 100*(totalDur/Math.max(1, totalSecs))));
-  const effLabels=['Win Rate','Avg R:R','Trade Efficiency','Time in Market','Trades / jour'];
-  const effVals=[winrate, Math.max(0, Math.min(100, (avgRR/2)*100)), teN, timeInMkt, Math.max(0, Math.min(100, (freq/20)*100))];
+  const totalSecs=Math.max(1, (maxTs>minTs? (maxTs-minTs) : (bars[eIdx].time-bars[sIdx].time))); const days=totalSecs/86400; const freq = (res.tradesCount||0)/(days||1); const timeInMkt = Math.max(0, Math.min(100, 100*(totalDur/Math.max(1, totalSecs)))); const effLabels=['Win Rate','Avg R:R','Trade Efficiency','Time in Market','Trades / jour']; const effVals=[winrate, Math.max(0, Math.min(100, (avgRR/2)*100)), teN, timeInMkt, Math.max(0, Math.min(100, (freq/20)*100))];
   drawBars(canEff, effLabels, effVals);
-  // Complexity & robustness
-  const complexity = (6 + (p.useFibRet?1:0) + (p.confirmMode?1:0) + (Array.isArray(p.tp)? p.tp.length:0)); const compN = Math.max(0, Math.min(100, (complexity/20)*100));
+  const complexity = (6 + (+!!(ctx.params&&ctx.params.useFibRet)) + (ctx.params&&ctx.params.confirmMode?1:0) + (Array.isArray((ctx.params&&ctx.params.tp))? ctx.params.tp.length:0)); const compN = Math.max(0, Math.min(100, (complexity/20)*100));
   drawRobust(canRob, compN, edgeN);
-  if(detailCtxEl){ detailCtxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — ${item.name||'Stratégie'} — PF ${(res.profitFactor===Infinity?'∞':(+res.profitFactor||0).toFixed(2))} • Trades ${res.tradesCount}`; }
- }catch(e){ if(detailCtxEl){ detailCtxEl.textContent = 'Erreur analyse'; } setStatus('Erreur analyse'); }
+  if(detailCtxEl){ detailCtxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — ${name} — PF ${(res.profitFactor===Infinity?'∞':(+res.profitFactor||0).toFixed(2))} • Trades ${res.tradesCount}`; }
+ }catch(_){ if(detailCtxEl){ detailCtxEl.textContent = 'Erreur analyse'; } }
 }
 
 // Lab actions: refresh/export/weights
