@@ -45,6 +45,7 @@ header h1 {
 header .brand-logo {
   height: 40px;
   display: block;
+  margin-left: 12px;
 }
 .marker-hint { position:absolute; transform: translate(-50%, -100%); background: var(--bg); color: var(--fg); border:1px solid var(--header-border); border-radius:6px; padding:2px 6px; font-size:12px; pointer-events:none; box-shadow:0 4px 12px rgba(0,0,0,0.15); display:none; z-index:1001; }
 .controls {
