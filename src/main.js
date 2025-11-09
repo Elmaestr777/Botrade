@@ -47,10 +47,17 @@ rows.push('<tr>' + `<td>${idx}</td>` + `<td style=\\\"text-align:left\\\">${(r.n
   labTBody.innerHTML = rows.join('');
   if(!labTBody.dataset || labTBody.dataset.wired!=='1'){
     labTBody.addEventListener('click', async (ev)=>{
-      const btn = ev.target && ev.target.closest ? ev.target.closest('button[data-action]') : null;
+      // robust target resolution: handle text nodes and nested spans
+      let t = ev.target;
+      // 3 = TEXT_NODE, 1 = ELEMENT_NODE
+      if(t && t.nodeType === 3 && t.parentElement) t = t.parentElement;
+      let btn = null;
+      if(t && typeof t.closest === 'function') btn = t.closest('button[data-action]');
+      if(!btn && t && t.parentElement && typeof t.parentElement.closest === 'function') btn = t.parentElement.closest('button[data-action]');
       if(!btn) return;
       const act=btn.getAttribute('data-action'); if(!act) return;
       const i=parseInt(btn.getAttribute('data-idx')||'-1',10);
+      try{ addLabLog && addLabLog(`Action ${act} sur rang ${i}`); }catch(_){ }
       // Re-read current sym/TF at click time to avoid stale closures
       const tfNow = labTFSelect? labTFSelect.value : (intervalSelect? intervalSelect.value:'');
       const symNow = currentSymbol;
