@@ -47,9 +47,10 @@ rows.push('<tr>' + `<td>${idx}</td>` + `<td style=\\\"text-align:left\\\">${(r.n
   labTBody.innerHTML = rows.join('');
   if(!labTBody.dataset || labTBody.dataset.wired!=='1'){
     labTBody.addEventListener('click', async (ev)=>{
-      const t=ev.target; if(!t || !t.getAttribute) return;
-      const act=t.getAttribute('data-action'); if(!act) return;
-      const i=parseInt(t.getAttribute('data-idx')||'-1',10);
+      const btn = ev.target && ev.target.closest ? ev.target.closest('button[data-action]') : null;
+      if(!btn) return;
+      const act=btn.getAttribute('data-action'); if(!act) return;
+      const i=parseInt(btn.getAttribute('data-idx')||'-1',10);
       // Re-read current sym/TF at click time to avoid stale closures
       const tfNow = labTFSelect? labTFSelect.value : (intervalSelect? intervalSelect.value:'');
       const symNow = currentSymbol;
@@ -105,7 +106,7 @@ rows.push('<tr>' + `<td>${idx}</td>` + `<td style=\\\"text-align:left\\\">${(r.n
         const tpAL=document.getElementById('optTPAllLast'); if(tpAL) tpAL.checked=!!lbcOpts.tpCloseAllLast;
         const __optSLEnable=document.getElementById('optSLEnable'); if(__optSLEnable) __optSLEnable.checked=!!lbcOpts.slEnable;
         try{ populateHeavenModal(); }catch(_){ }
-        renderLBC(); setStatus('Paramètres appliqués depuis Lab'); try{ computeLabBenchmarkAndUpdate(); }catch(_){ }
+        renderLBC(); setStatus('Paramètres appliqués depuis Lab');
       } else if(act==='view'){
         showStrategyResult(rec.res||{}, {symbol: currentSymbol, tf: tfNow});
       } else if(act==='detail'){
