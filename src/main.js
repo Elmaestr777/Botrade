@@ -56,8 +56,14 @@ rows.push('<tr>' + `<td>${idx}</td>` + `<td style=\\\"text-align:left\\\">${(r.n
       if(!btn && t && t.parentElement && typeof t.parentElement.closest === 'function') btn = t.parentElement.closest('button[data-action]');
       if(!btn) return;
       const act=btn.getAttribute('data-action'); if(!act) return;
-      const i=parseInt(btn.getAttribute('data-idx')||'-1',10);
-      try{ addLabLog && addLabLog(`Action ${act} sur rang ${i}`); }catch(_){ }
+      let i=parseInt(btn.getAttribute('data-idx')||'-1',10);
+      if(!(i>=0)){
+        const tr = btn.closest && btn.closest('tr');
+        const numCell = tr && tr.querySelector ? tr.querySelector('td:first-child') : null;
+        const n = numCell && numCell.textContent ? parseInt(String(numCell.textContent).trim(),10) : NaN;
+        if(Number.isFinite(n) && n>0) i = n-1;
+      }
+      try{ addLabLog && addLabLog(`Action ${act} sur rang ${isNaN(i)?'NaN':i}`); }catch(_){ }
       // Re-read current sym/TF at click time to avoid stale closures
       const tfNow = labTFSelect? labTFSelect.value : (intervalSelect? intervalSelect.value:'');
       const symNow = currentSymbol;
