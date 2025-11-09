@@ -1072,6 +1072,7 @@ function drawRobust(canvas, complexity, robustness){ if(!canvas) return; const c
 async function showStrategyDetail(item, ctx){ try{ const sym=ctx.symbol, tf=ctx.tf; const p=item.params||{}; const conf={ startCap: Math.max(0, +((document.getElementById('labStartCap')||{}).value||10000)), fee: Math.max(0, +((document.getElementById('labFee')||{}).value||0.1)), lev: Math.max(1, +((document.getElementById('labLev')||{}).value||1)), maxPct:100, base:'initial' };
   // Open modal first to show immediate feedback
   openModalEl(detailModalEl);
+  try{ ensureFloatingModal(detailModalEl, 'detail', { left: 120, top: 80, width: 1000, height: 700, zIndex: bumpZ() }); }catch(_){ }
   if(detailCtxEl){ detailCtxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — ${item.name||'Stratégie'} — chargement...`; }
   let bars=candles; if(tf!==currentInterval){ try{ bars=await fetchAllKlines(sym, tf, 5000); }catch(_){ bars=candles; } }
   const sIdx=Math.max(0, bars.length-Math.min(5000, bars.length)); const eIdx=bars.length-1;
