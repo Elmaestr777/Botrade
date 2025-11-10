@@ -45,7 +45,7 @@ async function renderLabFromStorage(){
     const penalty = Math.max(0, raw - robust);
     const pairDisp = symbolToDisplay(sym);
     const tfDisp = tf;
-rows.push('<tr>' + `<td>${idx}</td>` + `<td>${pairDisp}</td>` + `<td>${tfDisp}</td>` + `<td style=\\\"text-align:left\\\">${(r.name||'—')}</td>` + `<td>${(r.gen||1)}</td>` + `<td style=\\\"text-align:left\\\">${paramsStr}</td>` + `<td>${raw.toFixed(2)}</td>` + `<td title=\\\"brut: ${raw.toFixed(2)} • pénalité: ${penalty.toFixed(2)}\\\">${robust.toFixed(2)}</td>` + `<td>${pf.toFixed(2)}</td>` + `<td>${pnl.toFixed(0)}</td>` + `<td>${eq1.toFixed(0)}</td>` + `<td>${cnt}</td>` + `<td>${wr.toFixed(1)}</td>` + `<td>${Number.isFinite(rr)? rr.toFixed(2): '—'}</td>` + `<td>${mdd.toFixed(0)}</td>` + `<td style=\\\"white-space:nowrap;\\\"><button class=\\\"btn\\\" data-action=\\\"apply\\\" data-idx=\\\"${idx-1}\\\">Appliquer</button> <button class=\\\"btn\\\" data-action=\\\"view\\\" data-idx=\\\"${idx-1}\\\">Voir</button> <button class=\\\"btn\\\" data-action=\\\"detail\\\" data-idx=\\\"${idx-1}\\\">Détail</button> <button class=\\\"btn\\\" data-action=\\\"tf\\\" data-idx=\\\"${idx-1}\\\" title=\\\"Sélectionner TF\\\">TF</button></td>` + '</tr>');
+rows.push('<tr>' + `<td>${idx}</td>` + `<td>${pairDisp}</td>` + `<td>${tfDisp}</td>` + `<td style=\\\"text-align:left\\\">${(r.name||'—')}</td>` + `<td>${(r.gen||1)}</td>` + `<td style=\\\"text-align:left\\\">${paramsStr}</td>` + `<td>${raw.toFixed(2)}</td>` + `<td title=\\\"brut: ${raw.toFixed(2)} • pénalité: ${penalty.toFixed(2)}\\\">${robust.toFixed(2)}</td>` + `<td>${pf.toFixed(2)}</td>` + `<td>${pnl.toFixed(0)}</td>` + `<td>${eq1.toFixed(0)}</td>` + `<td>${cnt}</td>` + `<td>${wr.toFixed(1)}</td>` + `<td>${Number.isFinite(rr)? rr.toFixed(2): '—'}</td>` + `<td>${mdd.toFixed(0)}</td>` + `<td style=\\\"white-space:nowrap;\\\"><button class=\\\"btn\\\" data-action=\\\"apply\\\" data-idx=\\\"${idx-1}\\\">Appliquer</button> <button class=\\\"btn\\\" data-action=\\\"view\\\" data-idx=\\\"${idx-1}\\\">Voir</button> <button class=\\\"btn\\\" data-action=\\\"detail\\\" data-idx=\\\"${idx-1}\\\">Détail</button> <button class=\\\"btn\\\" data-action=\\\"tf\\\" data-idx=\\\"${idx-1}\\\" data-tf=\\\"${tfDisp}\\\" title=\\\"Sélectionner TF\\\">TF</button></td>` + '</tr>');
     idx++;
   }
   labTBody.innerHTML = rows.join('');
@@ -131,7 +131,8 @@ rows.push('<tr>' + `<td>${idx}</td>` + `<td>${pairDisp}</td>` + `<td>${tfDisp}</
         }catch(_){ }
       } else if(act==='tf'){
         try{
-          const sel=document.getElementById('labTFSelect'); if(sel){ sel.value = tfNow; try{ localStorage.setItem('lab:tf', tfNow); }catch(_){ } setStatus(`TF sélectionnée: ${tfNow}`); }
+          const sel=document.getElementById('labTFSelect'); const newTf = btn && btn.getAttribute ? (btn.getAttribute('data-tf')||tfNow) : tfNow;
+          if(sel){ sel.value = newTf; try{ localStorage.setItem('lab:tf', newTf); }catch(_){ } setStatus(`TF sélectionnée: ${newTf}`); try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(__){} }
         }catch(_){ }
       }
     });
