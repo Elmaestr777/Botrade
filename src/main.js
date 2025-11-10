@@ -33,7 +33,7 @@ async function renderLabFromStorage(){
   window.labPalmaresCache = Array.isArray(arr)? arr.slice() : [];
   if(labSummaryEl) labSummaryEl.textContent = arr.length? `Palmarès: ${arr.length} stratégies (symbole ${symbolToDisplay(sym)} • TF ${tf}) — Supabase` : 'Aucun palmarès';
   if(!labTBody){ return; }
-  if(!arr.length){ labTBody.innerHTML = '<tr><td colspan=\"14\">Aucune donnée</td></tr>'; return; }
+  if(!arr.length){ labTBody.innerHTML = '<tr><td colspan=\"16\">Aucune donnée</td></tr>'; return; }
   const rows=[]; let idx=1; const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
   const sorted=arr.slice().sort((a,b)=> (b.score||scoreResult(b.res||{},weights)) - (a.score||scoreResult(a.res||{},weights)));
   for(const r of sorted){
@@ -43,7 +43,9 @@ async function renderLabFromStorage(){
     const robust = Number.isFinite(r.score)? r.score : scoreResult(st, weights);
     const raw = scoreResult(st, weights);
     const penalty = Math.max(0, raw - robust);
-rows.push('<tr>' + `<td>${idx}</td>` + `<td style=\\\"text-align:left\\\">${(r.name||'—')}</td>` + `<td>${(r.gen||1)}</td>` + `<td style=\\\"text-align:left\\\">${paramsStr}</td>` + `<td>${raw.toFixed(2)}</td>` + `<td title=\\\"brut: ${raw.toFixed(2)} • pénalité: ${penalty.toFixed(2)}\\\">${robust.toFixed(2)}</td>` + `<td>${pf.toFixed(2)}</td>` + `<td>${pnl.toFixed(0)}</td>` + `<td>${eq1.toFixed(0)}</td>` + `<td>${cnt}</td>` + `<td>${wr.toFixed(1)}</td>` + `<td>${Number.isFinite(rr)? rr.toFixed(2): '—'}</td>` + `<td>${mdd.toFixed(0)}</td>` + `<td style=\\\"white-space:nowrap;\\\"><button class=\\\"btn\\\" data-action=\\\"apply\\\" data-idx=\\\"${idx-1}\\\">Appliquer</button> <button class=\\\"btn\\\" data-action=\\\"view\\\" data-idx=\\\"${idx-1}\\\">Voir</button> <button class=\\\"btn\\\" data-action=\\\"detail\\\" data-idx=\\\"${idx-1}\\\">Détail</button></td>` + '</tr>');
+    const pairDisp = symbolToDisplay(sym);
+    const tfDisp = tf;
+rows.push('<tr>' + `<td>${idx}</td>` + `<td>${pairDisp}</td>` + `<td>${tfDisp}</td>` + `<td style=\\\"text-align:left\\\">${(r.name||'—')}</td>` + `<td>${(r.gen||1)}</td>` + `<td style=\\\"text-align:left\\\">${paramsStr}</td>` + `<td>${raw.toFixed(2)}</td>` + `<td title=\\\"brut: ${raw.toFixed(2)} • pénalité: ${penalty.toFixed(2)}\\\">${robust.toFixed(2)}</td>` + `<td>${pf.toFixed(2)}</td>` + `<td>${pnl.toFixed(0)}</td>` + `<td>${eq1.toFixed(0)}</td>` + `<td>${cnt}</td>` + `<td>${wr.toFixed(1)}</td>` + `<td>${Number.isFinite(rr)? rr.toFixed(2): '—'}</td>` + `<td>${mdd.toFixed(0)}</td>` + `<td style=\\\"white-space:nowrap;\\\"><button class=\\\"btn\\\" data-action=\\\"apply\\\" data-idx=\\\"${idx-1}\\\">Appliquer</button> <button class=\\\"btn\\\" data-action=\\\"view\\\" data-idx=\\\"${idx-1}\\\">Voir</button> <button class=\\\"btn\\\" data-action=\\\"detail\\\" data-idx=\\\"${idx-1}\\\">Détail</button> <button class=\\\"btn\\\" data-action=\\\"tf\\\" data-idx=\\\"${idx-1}\\\" title=\\\"Sélectionner TF\\\">TF</button></td>` + '</tr>');
     idx++;
   }
   labTBody.innerHTML = rows.join('');
@@ -126,6 +128,10 @@ rows.push('<tr>' + `<td>${idx}</td>` + `<td style=\\\"text-align:left\\\">${(r.n
         try{
           const item = rec && (rec.params ? rec : (rec.p ? { params: rec.p, res: rec.res, name: rec.name, score: rec.score } : rec));
           await openLabStrategyDetail(item, { symbol: currentSymbol, tf: tfNow });
+        }catch(_){ }
+      } else if(act==='tf'){
+        try{
+          const sel=document.getElementById('labTFSelect'); if(sel){ sel.value = tfNow; try{ localStorage.setItem('lab:tf', tfNow); }catch(_){ } setStatus(`TF sélectionnée: ${tfNow}`); }
         }catch(_){ }
       }
     });
