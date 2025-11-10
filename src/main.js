@@ -4,6 +4,8 @@
 
 // --- Lab: lecture et palmarès (localStorage) ---
 const labTBody = document.getElementById('labTBody'); const labSummaryEl=document.getElementById('labSummary'); const labTFSelect=document.getElementById('labTFSelect');
+// TF d'exécution du Lab: restitue la dernière valeur utilisée
+try{ const savedLabTf=localStorage.getItem('lab:tf'); if(savedLabTf && labTFSelect){ labTFSelect.value=savedLabTf; } }catch(_){ }
 function labKey(sym, tf){ return `lab:results:${sym}:${tf}`; }
 function readLabStorage(sym, tf){ try{ const s=localStorage.getItem(labKey(sym,tf)); return s? JSON.parse(s): []; }catch(_){ return []; } }
 function writeLabStorage(sym, tf, arr){ try{ localStorage.setItem(labKey(sym,tf), JSON.stringify(arr)); }catch(_){} }
@@ -124,11 +126,8 @@ rows.push('<tr>' + `<td>${idx}</td>` + `<td style=\\\"text-align:left\\\">${(r.n
         showStrategyResult(rec.res||{}, {symbol: currentSymbol, tf: tfNow});
       } else if(act==='detail'){
         try{
-          // Normalise structure et log fallback
           const item = rec && (rec.params ? rec : (rec.p ? { params: rec.p, res: rec.res, name: rec.name, score: rec.score } : rec));
-          await logStrategyDetailForLab(item, { symbol: currentSymbol, tf: tfNow });
-          // Analyse complète sur tout l'historique dans une vraie pop‑up
-          await analyzeStrategyDetailFull(item, { symbol: currentSymbol, tf: tfNow });
+          await openLabStrategyDetail(item, { symbol: currentSymbol, tf: tfNow });
         }catch(_){ }
       }
     });
@@ -1082,37 +1081,31 @@ function drawBars(canvas, labels, vals){ if(!canvas) return; const ctx=canvas.ge
 function drawRobust(canvas, complexity, robustness){ if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, 10, 20, 'Complexité & Robustesse', 'left'); // bars
   const labels=['Complexité (params actifs)','Robustesse (stabilité)']; const vals=[complexity, robustness]; for(let i=0;i<2;i++){ const y=40+i*40; ctx.fillStyle='#e5e7eb'; ctx.fillRect(220, y, w-240, 14); ctx.fillStyle=i===0?'#f59e0b':'#10b981'; ctx.fillRect(220, y, (w-240)*Math.max(0,Math.min(100, vals[i]))/100, 14); __drawText(ctx, 210, y+7, String(Math.round(vals[i]))+'%', 'right'); __drawText(ctx, 10, y+7, labels[i], 'left'); } }
 
-// Analyse complète (tout l'historique) + vrai pop‑up
-async function analyzeStrategyDetailFull(item, ctx){ try{
-  const sym=ctx.symbol, tf=ctx.tf; const p=item.params||{};
+// Nouveau flux: pop‑up simple via showStrategyResult (métriques & trades)
+async function openLabStrategyDetail(item, ctx){ try{
+  const sym=ctx.symbol, tf=ctx.tf; const p=item.params||item.p||{};
   const conf={ startCap: Math.max(0, +((document.getElementById('labStartCap')||{}).value||10000)), fee: Math.max(0, +((document.getElementById('labFee')||{}).value||0.1)), lev: Math.max(1, +((document.getElementById('labLev')||{}).value||1)), maxPct:100, base:'initial' };
-  // Ouvre la modale immédiatement
-  if(detailModalEl){ openModalEl(detailModalEl); try{ ensureFloatingModal(detailModalEl, 'detail', { left: 120, top: 80, width: 1000, height: 700, zIndex: bumpZ() }); }catch(_){ } }
-  if(detailCtxEl){ detailCtxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — ${item.name||'Stratégie'} — chargement (tout l'historique)...`; }
-  // Récupère tout l'historique pour la TF demandée
+  // Progress UI
+  try{ openBtProgress('Analyse stratégie...'); }catch(_){ }
+  // Fetch full history for selected TF
   let bars=candles;
   if(tf!==currentInterval){ try{ bars = await fetchAllKlines(sym, tf, BG_MAX_BARS); }catch(_){ bars=candles; } }
-  else { try{ bars = await fetchAllKlines(sym, tf, BG_MAX_BARS); }catch(_){ /* garde candles */ } }
-  const sIdx=0; const eIdx=Math.max(0, (bars.length||1)-1);
+  else { try{ bars = await fetchAllKlines(sym, tf, BG_MAX_BARS); }catch(_){ /* keep candles */ } }
+  const sIdx=0, eIdx=Math.max(0,(bars.length||1)-1);
   const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, p, true);
-  renderStrategyDetailIntoModal(res, { symbol: sym, tf, name: item.name||'Stratégie', conf, bars, sIdx, eIdx, params: p });
- }catch(e){ if(detailCtxEl){ detailCtxEl.textContent = 'Erreur analyse'; } setStatus('Erreur analyse'); }
-}
-
-async function logStrategyDetailForLab(item, ctx){ try{
-  const sym=ctx.symbol, tf=ctx.tf; const p=item.params||{};
-  const conf={ startCap: Math.max(0, +((document.getElementById('labStartCap')||{}).value||10000)), fee: Math.max(0, +((document.getElementById('labFee')||{}).value||0.1)), lev: Math.max(1, +((document.getElementById('labLev')||{}).value||1)), maxPct:100, base:'initial' };
-  let bars=candles; if(tf!==currentInterval){ try{ bars=await fetchAllKlines(sym, tf, 5000); }catch(_){ bars=candles; } }
-  const sIdx=Math.max(0, bars.length-Math.min(5000, bars.length)); const eIdx=bars.length-1;
-  const fromTs=(bars[sIdx]&&bars[sIdx].time)||null, toTs=(bars[eIdx]&&bars[eIdx].time)||null;
-  const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, p, true);
-  const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee'); const score=scoreResult(res, weights);
-  addLabLog && addLabLog(`Détail — ${symbolToDisplay(sym)} @ ${tf} — ${item.name||'Stratégie'}`);
-  addLabLog && addLabLog(`Période analysée: ${fromTs? new Date(fromTs*1000).toLocaleString(): '—'} → ${toTs? new Date(toTs*1000).toLocaleString(): '—'} (${Math.max(0,eIdx-sIdx+1)} bars)`);
-  addLabLog && addLabLog(`PF ${(res.profitFactor===Infinity?'∞':(+res.profitFactor||0).toFixed(2))} • Trades ${res.tradesCount} • Win ${(Number(res.winrate||0)).toFixed(1)}% • AvgRR ${(Number.isFinite(res.avgRR)? res.avgRR.toFixed(2):'—')} • MaxDD ${Number(res.maxDDAbs||0).toFixed(0)}`);
-  addLabLog && addLabLog(`P&L ${Number(res.totalPnl||0).toFixed(2)} • Cap. final ${Number(res.equityFinal||0).toFixed(2)} • Score ${score.toFixed(2)}`);
-  addLabLog && addLabLog(`Params: nol=${p.nol} prd=${p.prd} sl=${p.slInitPct}% be=${p.beAfterBars}/${p.beLockPct}% ema=${p.emaLen} entry=${p.entryMode||'Both'} fibRet=${p.useFibRet?1:0} confirm=${p.confirmMode||'Bounce'}`);
-}catch(_){ try{ addLabLog && addLabLog('Détail — erreur'); }catch(__){} } }
+  try{ closeBtProgress(); }catch(_){ }
+  // Ouvre la nouvelle fenêtre de Détail et rend l'analyse complète; fallback sur l'ancienne modale si besoin
+  try{
+    if(detailCtxEl){ detailCtxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — Analyse en cours...`; }
+    openModalEl(detailModalEl);
+    try{ ensureFloatingModal(detailModalEl, 'detail', { left: 60, top: 60, width: 1000, height: 660, zIndex: bumpZ() }); }catch(_){ }
+    const ctxFull = { symbol: sym, tf, name: (item && item.name) || 'Stratégie', conf, bars, sIdx, eIdx, params: p };
+    renderStrategyDetailIntoModal(res, ctxFull);
+  }catch(__err){
+    // Fallback: modales Résultats+Trades existantes
+    try{ showStrategyResult(res, { symbol: sym, tf, startCap: conf.startCap }); }catch(__){ }
+  }
+}catch(e){ try{ closeBtProgress(); }catch(_){ } setStatus('Erreur détail'); try{ addLabLog && addLabLog('Erreur détail: '+(e&&e.message?e.message:e)); }catch(__){} }}
 
 function renderStrategyDetailIntoModal(res, ctx){ try{
   const sym = ctx.symbol, tf = ctx.tf; const name = ctx.name||'Stratégie'; const conf = ctx.conf; const bars = ctx.bars; const sIdx = ctx.sIdx, eIdx=ctx.eIdx;
@@ -1138,7 +1131,7 @@ function renderStrategyDetailIntoModal(res, ctx){ try{
 // Lab actions: refresh/export/weights
 const labExportBtn=document.getElementById('labExport'); const labWeightsBtn=document.getElementById('labWeights'); const labRunNewBtn=document.getElementById('labRunNew');
 const weightsModalEl=document.getElementById('weightsModal'); const weightsClose=document.getElementById('weightsClose'); const weightsSave=document.getElementById('weightsSave'); const weightsProfile=document.getElementById('weightsProfile'); const weightsBody=document.getElementById('weightsBody');
-if(labTFSelect){ labTFSelect.addEventListener('change', async ()=>{ try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
+if(labTFSelect){ labTFSelect.addEventListener('change', async ()=>{ try{ localStorage.setItem('lab:tf', labTFSelect.value); await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
 // Lab range controls: mode + date inputs trigger KPI recompute
 try{
   const labRangeModeEl=document.getElementById('labRangeMode');
