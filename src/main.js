@@ -139,7 +139,6 @@ rows.push('<tr>' + `<td>${idx}</td>` + `<td>${pairDisp}</td>` + `<td>${tfDisp}</
           const sel=document.getElementById('labTFSelect'); const newTf = btn && btn.getAttribute ? (btn.getAttribute('data-tf')||tfNow) : tfNow;
           if(sel){ sel.value = newTf; try{ localStorage.setItem('lab:tf', newTf); }catch(_){ } setStatus(`TF sélectionnée: ${newTf}`); try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(__){} }
         }catch(_){ }
-      }
     });
     labTBody.dataset.wired='1';
   }
