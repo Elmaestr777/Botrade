@@ -1220,11 +1220,14 @@ async function openLabStrategyDetail(item, ctx){ try{
   const conf={ startCap: Math.max(0, +((document.getElementById('labStartCap')||{}).value||10000)), fee: Math.max(0, +((document.getElementById('labFee')||{}).value||0.1)), lev: Math.max(1, +((document.getElementById('labLev')||{}).value||1)), maxPct:100, base:'initial' };
   // Progress UI
   try{ openBtProgress('Analyse stratégie...'); }catch(_){ }
-  // Fetch full history for selected TF
+  // Charger les données en cohérence avec le mode de plage du Lab (visible/dates/tout)
   let bars=candles;
-  if(tf!==currentInterval){ try{ bars = await fetchAllKlines(sym, tf, BG_MAX_BARS); }catch(_){ bars=candles; } }
-  else { try{ bars = await fetchAllKlines(sym, tf, BG_MAX_BARS); }catch(_){ /* keep candles */ } }
-  const sIdx=0, eIdx=Math.max(0,(bars.length||1)-1);
+  if(tf!==currentInterval){ try{ bars = await fetchAllKlines(sym, tf, 5000); }catch(_){ bars=candles; } }
+  else { try{ bars = await fetchAllKlines(sym, tf, 5000); }catch(_){ /* keep candles */ } }
+  // Déterminer la plage temporelle comme dans le Lab
+  let from=null, to=null; try{ const modeEl=document.getElementById('labRangeMode'); const mode=(modeEl&&modeEl.value)||'visible'; if(mode==='dates'){ const f=(document.getElementById('labFrom')&&document.getElementById('labFrom').value)||''; const t=(document.getElementById('labTo')&&document.getElementById('labTo').value)||''; from = f? Math.floor(new Date(f).getTime()/1000): null; to = t? Math.floor(new Date(t).getTime()/1000): null; } else if(mode==='visible'){ const r=getVisibleRange(); if(r){ from=r.from; to=r.to; } } else { from=null; to=null; } }catch(_){ from=null; to=null; }
+  const idxFromTimeLocal=(bars,from,to)=>{ let s=0,e=bars.length-1; if(from!=null){ for(let i=0;i<bars.length;i++){ if(bars[i].time>=from){ s=i; break; } } } if(to!=null){ for(let j=bars.length-1;j>=0;j--){ if(bars[j].time<=to){ e=j; break; } } } return [s,e]; };
+  const [sIdx,eIdx]=idxFromTimeLocal(bars,from,to);
   const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, p, true);
   try{ closeBtProgress(); }catch(_){ }
   // Ouvre la nouvelle fenêtre de Détail et rend l'analyse complète; fallback sur l'ancienne modale si besoin
@@ -1345,11 +1348,18 @@ function updateGlobalProgressUI(){ try{ let tot=Math.max(0,__labSimTotal), dn=Ma
   const rSL=[0.5,1,1.5,2,2.5,3]; const rBEb=[3,4,5,6,7,8]; const rBEL=[3,4,5,6,7,8,9,10];
   const rEMALen=[]; for(let v=21; v<=89; v+=4){ rEMALen.push(v); }
   const keyOf=(p)=> JSON.stringify([p.nol,p.prd,p.slInitPct,p.beAfterBars,p.beLockPct,p.emaLen,p.entryMode,p.useFibRet,p.confirmMode,p.ent382,p.ent500,p.ent618,p.ent786,Array.isArray(p.tp)? p.tp.slice(0,10):[], Array.isArray(p.sl)? p.sl.slice(0,10):[]]);
-  const canonKey=(p)=>{ try{
+const canonKey=(p)=>{ try{
       const tp = Array.isArray(p.tp) ? p.tp.slice(0,10) : [];
       const tp_types = new Array(10).fill('Fib');
       const tp_r = new Array(10).fill(0.0);
       const tp_p = new Array(10).fill(0.0);
+      const tp_be = new Array(10).fill(0);
+      const tp_trail_m = new Array(10).fill(0); // 0 none,1 be,2 prev,3 ema,4 percent
+      const tp_trail_v = new Array(10).fill(0); // emaLen or pct
+      const tp_sl_type = new Array(10).fill(0); // 0 Fib,1 Percent,2 EMA
+      const tp_sl_r = new Array(10).fill(0);
+      const tp_sl_trail_m = new Array(10).fill(0); // 0 none,1 ema,2 percent
+      const tp_sl_trail_v = new Array(10).fill(0);
       let sumW = 0;
       for(let i=0;i<tp.length && i<10;i++){
         const t = tp[i] || {};
@@ -1364,14 +1374,15 @@ function updateGlobalProgressUI(){ try{ let tot=Math.max(0,__labSimTotal), dn=Ma
           tp_types[i] = 'Fib';
           tp_r[i] = Number(t.fib != null ? t.fib : t.value) || 0;
         }
-        let w = t.qty;
-        if(w != null) w = (w > 1 ? Number(w) : Number(w) * 100);
-        tp_p[i] = Number.isFinite(w) ? Math.max(0, w) : 0;
-        sumW += tp_p[i];
+        let w = t.qty; if(w != null) w = (w > 1 ? Number(w) : Number(w) * 100); tp_p[i] = Number.isFinite(w) ? Math.max(0, w) : 0; sumW += tp_p[i];
+        // be
+        tp_be[i] = t.beOn? 1:0;
+        // trail per TP
+        const tr = t.trail || null; if(tr){ tp_trail_m[i] = (tr.mode==='be')?1 : (tr.mode==='prev')?2 : (tr.mode==='ema')?3 : (tr.mode==='percent')?4 : 0; tp_trail_v[i] = (tr.mode==='ema')? (parseInt(tr.emaLen)||0) : (tr.mode==='percent'? (+tr.pct||0): 0); }
+        // attached SL + trail
+        const s = t.sl || null; if(s){ const st = String(s.type||'Percent'); tp_sl_type[i] = (st==='Fib')?0 : (st==='Percent')?1 : 2; tp_sl_r[i] = (st==='Fib')? (+s.fib||0) : (st==='Percent'? (+s.pct||0): 0); const str = s.trail||null; if(str){ tp_sl_trail_m[i] = (str.mode==='ema')?1 : (str.mode==='percent')?2 : 0; tp_sl_trail_v[i] = (str.mode==='ema')? (parseInt(str.emaLen)||0) : (str.mode==='percent'? (+str.pct||0): 0); } }
       }
-      if(sumW > 0){
-        for(let i=0;i<10;i++) tp_p[i] = +(tp_p[i] / sumW * 100).toFixed(6);
-      }
+      if(sumW > 0){ for(let i=0;i<10;i++) tp_p[i] = +(tp_p[i] / sumW * 100).toFixed(6); }
       const obj = {
         nol: p.nol|0,
         prd: p.prd|0,
@@ -1382,7 +1393,9 @@ function updateGlobalProgressUI(){ try{ let tot=Math.max(0,__labSimTotal), dn=Ma
         entry_mode: String(p.entryMode||'Both').replace('Fib Retracement','Fib'),
         use_fib_ret: !!p.useFibRet,
         confirm_mode: String(p.confirmMode||'Bounce'),
-        tp_types, tp_r, tp_p,
+        tp_compound: !!p.tpCompound,
+        tp_close_all_last: !!p.tpCloseAllLast,
+        tp_types, tp_r, tp_p, tp_be, tp_trail_m, tp_trail_v, tp_sl_type, tp_sl_r, tp_sl_trail_m, tp_sl_trail_v,
       };
       return JSON.stringify(obj, Object.keys(obj).sort());
     }catch(_){ return ''; } };
@@ -1400,33 +1413,84 @@ function updateGlobalProgressUI(){ try{ let tot=Math.max(0,__labSimTotal), dn=Ma
     }
   }
   function randWeights(n){ const arr=new Array(n).fill(0).map(()=> Math.random()+0.05); const s=arr.reduce((a,b)=>a+b,0); return arr.map(x=> x/s); }
-  function sampleTPList(tpCfg){
-    const { allowFib, allowPct, allowEMA, pctMin, pctMax, fibs } = tpCfg || {};
-    const n = Math.max(1, Math.min(10, Number(tpCfg && tpCfg.count) || 10));
-    const types=[]; if(allowFib) types.push('Fib'); if(allowPct) types.push('Percent'); if(allowEMA) types.push('EMA'); if(!types.length) types.push('Fib');
-    const ws=randWeights(n);
-    const list=[];
-    for(let i=0;i<n;i++){
-      const t=types[(Math.random()*types.length)|0];
-      if(t==='Fib'){
-        const r=fibs[(Math.random()*fibs.length)|0];
-        list.push({ type:'Fib', fib:r, value:r, qty: ws[i] });
-      } else if(t==='Percent'){
-        const p = pctMin + Math.random()*(Math.max(0,pctMax-pctMin));
-        list.push({ type:'Percent', pct:+p.toFixed(3), value:+p.toFixed(3), qty: ws[i] });
-      } else {
-        const len = rEMALen[(Math.random()*rEMALen.length)|0];
-        list.push({ type:'EMA', emaLen: len, qty: ws[i] });
-      }
+function sampleTPList(tpCfg){
+  const { allowFib, allowPct, allowEMA, pctMin, pctMax, fibs } = tpCfg || {};
+  const n = Math.max(1, Math.min(10, Number(tpCfg && tpCfg.count) || 10));
+  const types=[]; if(allowFib) types.push('Fib'); if(allowPct) types.push('Percent'); if(allowEMA) types.push('EMA'); if(!types.length) types.push('Fib');
+  const ws=randWeights(n);
+  const list=[];
+  // ranges for trailing percent (fallback if no UI): 0.2% .. 2.0%
+  const trailPctMin = 0.2, trailPctMax = 2.0;
+  const slCfgLocal = readSLOpt();
+  function sampleAttachedSL(){
+    const tps=[]; const ty=[]; const allowSTypes=[]; if(slCfgLocal.allowFib) allowSTypes.push('Fib'); if(slCfgLocal.allowPct) allowSTypes.push('Percent'); if(slCfgLocal.allowEMA) allowSTypes.push('EMA'); if(!allowSTypes.length) allowSTypes.push('Percent');
+    const st=allowSTypes[(Math.random()*allowSTypes.length)|0];
+    if(st==='Fib'){
+      const r=slCfgLocal.fibs[(Math.random()*slCfgLocal.fibs.length)|0];
+      return { type:'Fib', fib:r, value:r };
+    } else if(st==='Percent'){
+      const p = slCfgLocal.pctMin + Math.random()*(Math.max(0,slCfgLocal.pctMax-slCfgLocal.pctMin));
+      return { type:'Percent', pct:+p.toFixed(3), value:+p.toFixed(3) };
+    } else {
+      const len = rEMALen[(Math.random()*rEMALen.length)|0];
+      return { type:'EMA', emaLen: len };
     }
-    return list;
   }
-  function mutateTP(list,tpCfg){ if(!Array.isArray(list)||!list.length) return list; const out=list.map(x=> ({...x})); const i=(Math.random()*out.length)|0; const t=out[i]; const r=Math.random(); if(t.type==='Fib' && (r<0.5)){ const fibs=tpCfg.fibs; out[i].fib = fibs[(Math.random()*fibs.length)|0]; out[i].value=out[i].fib; } else if(t.type==='Percent' && (r<0.5)){ const p = tpCfg.pctMin + Math.random()*(Math.max(0,tpCfg.pctMax-tpCfg.pctMin)); out[i].pct=+p.toFixed(3); out[i].value=out[i].pct; } else if(t.type==='EMA' && (r<0.5)){ out[i].emaLen = rEMALen[(Math.random()*rEMALen.length)|0]; } else { // change type
-    const types=[]; if(tpCfg.allowFib) types.push('Fib'); if(tpCfg.allowPct) types.push('Percent'); if(tpCfg.allowEMA) types.push('EMA'); if(types.length){ const nt=types[(Math.random()*types.length)|0]; if(nt==='Fib'){ const fibs=tpCfg.fibs; out[i]={ type:'Fib', fib:fibs[(Math.random()*fibs.length)|0], qty:t.qty||null }; } else if(nt==='Percent'){ const p=tpCfg.pctMin + Math.random()*(Math.max(0,tpCfg.pctMax-tpCfg.pctMin)); out[i]={ type:'Percent', pct:+p.toFixed(3), qty:t.qty||null }; } else { out[i]={ type:'EMA', emaLen: rEMALen[(Math.random()*rEMALen.length)|0], qty:t.qty||null }; } }
+  function sampleTrailTP(){
+    const modes=['none','be','prev','ema','percent'];
+    const m = modes[(Math.random()*modes.length)|0];
+    if(m==='none') return null;
+    if(m==='ema') return { mode:'ema', emaLen: rEMALen[(Math.random()*rEMALen.length)|0] };
+    if(m==='percent'){ const p = trailPctMin + Math.random()*(trailPctMax-trailPctMin); return { mode:'percent', pct:+p.toFixed(3) }; }
+    return { mode:m };
   }
-    // mutate weights slightly
-    const ws=out.map(x=> x.qty||0); const j=(Math.random()*ws.length)|0; ws[j] = Math.max(0.01, ws[j] + (Math.random()*0.2-0.1)); const s=ws.reduce((a,b)=>a+b,0); for(let k=0;k<out.length;k++){ out[k].qty = ws[k]/s; }
-    return out; }
+  function sampleTrailSL(){
+    const modes=['none','ema','percent'];
+    const m = modes[(Math.random()*modes.length)|0];
+    if(m==='none') return null;
+    if(m==='ema') return { mode:'ema', emaLen: rEMALen[(Math.random()*rEMALen.length)|0] };
+    if(m==='percent'){ const p = slCfgLocal.pctMin + Math.random()*(Math.max(0,slCfgLocal.pctMax-slCfgLocal.pctMin)); return { mode:'percent', pct:+p.toFixed(3) }; }
+    return null;
+  }
+  for(let i=0;i<n;i++){
+    const t=types[(Math.random()*types.length)|0];
+    let entry=null;
+    if(t==='Fib'){
+      const r=fibs[(Math.random()*fibs.length)|0];
+      entry={ type:'Fib', fib:r, value:r, qty: ws[i] };
+    } else if(t==='Percent'){
+      const p = pctMin + Math.random()*(Math.max(0,pctMax-pctMin));
+      entry={ type:'Percent', pct:+p.toFixed(3), value:+p.toFixed(3), qty: ws[i] };
+    } else {
+      const len = rEMALen[(Math.random()*rEMALen.length)|0];
+      entry={ type:'EMA', emaLen: len, qty: ws[i] };
+    }
+    // beOn
+    entry.beOn = Math.random() < 0.4;
+    // per‑TP trail
+    const tr = sampleTrailTP(); if(tr) entry.trail = tr;
+    // attached SL + its trail
+    const atSL = sampleAttachedSL(); if(atSL){ entry.sl = atSL; const st=sampleTrailSL(); if(st){ entry.sl.trail = st; } }
+    list.push(entry);
+  }
+  return list;
+}
+function mutateTP(list,tpCfg){ if(!Array.isArray(list)||!list.length) return list; const out=list.map(x=> ({...x})); const i=(Math.random()*out.length)|0; const t=out[i]; const r=Math.random(); if(t.type==='Fib' && (r<0.5)){ const fibs=tpCfg.fibs; out[i].fib = fibs[(Math.random()*fibs.length)|0]; out[i].value=out[i].fib; } else if(t.type==='Percent' && (r<0.5)){ const p = tpCfg.pctMin + Math.random()*(Math.max(0,tpCfg.pctMax-tpCfg.pctMin)); out[i].pct=+p.toFixed(3); out[i].value=out[i].pct; } else if(t.type==='EMA' && (r<0.5)){ out[i].emaLen = rEMALen[(Math.random()*rEMALen.length)|0]; } else { // change type
+    const types=[]; if(tpCfg.allowFib) types.push('Fib'); if(tpCfg.allowPct) types.push('Percent'); if(tpCfg.allowEMA) types.push('EMA'); if(types.length){ const nt=types[(Math.random()*types.length)|0]; const baseQty = t.qty||null; if(nt==='Fib'){ const fibs=tpCfg.fibs; out[i]={ type:'Fib', fib:fibs[(Math.random()*fibs.length)|0], qty: baseQty }; } else if(nt==='Percent'){ const p=tpCfg.pctMin + Math.random()*(Math.max(0,tpCfg.pctMax-tpCfg.pctMin)); out[i]={ type:'Percent', pct:+p.toFixed(3), qty: baseQty }; } else { out[i]={ type:'EMA', emaLen: rEMALen[(Math.random()*rEMALen.length)|0], qty: baseQty }; } }
+  }
+  // mutate beOn
+  if(Math.random()<0.2){ out[i].beOn = !out[i].beOn; }
+  // mutate per‑TP trail
+  if(Math.random()<0.3){ const modes=['none','be','prev','ema','percent']; const m=modes[(Math.random()*modes.length)|0]; if(m==='none'){ delete out[i].trail; } else if(m==='ema'){ out[i].trail={ mode:'ema', emaLen: rEMALen[(Math.random()*rEMALen.length)|0] }; } else if(m==='percent'){ const p = (tpCfg.pctMin||0.2) + Math.random()*((tpCfg.pctMax||2.0)-(tpCfg.pctMin||0.2)); out[i].trail={ mode:'percent', pct:+p.toFixed(3) }; } else { out[i].trail={ mode:m }; } }
+  // mutate attached SL basic
+  function mutAttachedSL(s){ const slCfg=readSLOpt(); const u={ ...(s||{}) }; const rr=Math.random(); if((u.type||'Percent')==='Fib' && rr<0.5){ const fibs=slCfg.fibs; u.fib = fibs[(Math.random()*fibs.length)|0]; u.value=u.fib; } else if((u.type||'Percent')==='Percent' && rr<0.5){ const p=slCfg.pctMin + Math.random()*(Math.max(0,slCfg.pctMax-slCfg.pctMin)); u.pct=+p.toFixed(3); u.value=u.pct; } else if((u.type||'Percent')==='EMA' && rr<0.5){ u.emaLen = rEMALen[(Math.random()*rEMALen.length)|0]; } else { const types=[]; if(slCfg.allowFib) types.push('Fib'); if(slCfg.allowPct) types.push('Percent'); if(slCfg.allowEMA) types.push('EMA'); if(types.length){ const nt=types[(Math.random()*types.length)|0]; if(nt==='Fib'){ const fibs=slCfg.fibs; return { type:'Fib', fib:fibs[(Math.random()*fibs.length)|0] }; } else if(nt==='Percent'){ const p=slCfg.pctMin + Math.random()*(Math.max(0,slCfg.pctMax-slCfg.pctMin)); return { type:'Percent', pct:+p.toFixed(3) }; } else { return { type:'EMA', emaLen: rEMALen[(Math.random()*rEMALen.length)|0] }; } } }
+    return u; }
+  if(Math.random()<0.3){ out[i].sl = mutAttachedSL(out[i].sl); }
+  // mutate SL trail
+  if(Math.random()<0.3){ const modes=['none','ema','percent']; const m=modes[(Math.random()*modes.length)|0]; if(!out[i].sl) out[i].sl={ type:'Percent', pct:1.0 }; if(m==='none'){ if(out[i].sl) delete out[i].sl.trail; } else if(m==='ema'){ out[i].sl.trail={ mode:'ema', emaLen: rEMALen[(Math.random()*rEMALen.length)|0] }; } else { const sc=readSLOpt(); const p=sc.pctMin + Math.random()*(Math.max(0,sc.pctMax-sc.pctMin)); out[i].sl.trail={ mode:'percent', pct:+p.toFixed(3) }; } }
+  // mutate weights slightly
+  const ws=out.map(x=> x.qty||0); const j=(Math.random()*ws.length)|0; ws[j] = Math.max(0.01, ws[j] + (Math.random()*0.2-0.1)); const s=ws.reduce((a,b)=>a+b,0); for(let k=0;k<out.length;k++){ out[k].qty = ws[k]/s; }
+  return out; }
 
   function readSLOpt(){
     try{
@@ -1484,15 +1548,22 @@ function updateGlobalProgressUI(){ try{ let tot=Math.max(0,__labSimTotal), dn=Ma
     }
     return res;
   }
-  function crossoverTP(a,b,tpCfg){ const n=Math.max(1, tpCfg.count|0); const res=[]; for(let i=0;i<n;i++){ const src=(Math.random()<0.5? a:b); res[i] = src[i%src.length]? {...src[i%src.length]} : (a[i]||b[i]||null); if(!res[i]){ res[i]={ type:'Fib', fib:(tpCfg.fibs[0]||0.382), qty: 1/n }; } } const s=res.reduce((u,x)=> u+(x.qty||0),0)||1; for(const x of res){ x.qty = (x.qty||0)/s; } return res; }
+function crossoverTP(a,b,tpCfg){ const n=Math.max(1, tpCfg.count|0); const res=[]; for(let i=0;i<n;i++){ const as=a[i%Math.max(1,a.length||1)], bs=b[i%Math.max(1,b.length||1)]; const src=(Math.random()<0.5? as:bs); let t = src? {...src}: null; if(!t){ t = { type:'Fib', fib:(tpCfg.fibs[0]||0.382), qty: 1/n }; }
+  // mix extras
+  const other = (src===as? bs: as) || {};
+  if(Math.random()<0.5) t.beOn = !!(other.beOn); // inherit from other sometimes
+  if(Math.random()<0.5) t.trail = other.trail? {...other.trail} : t.trail;
+  if(Math.random()<0.5){ t.sl = other.sl? {...other.sl} : t.sl; if(other.sl && other.sl.trail){ t.sl.trail = {...other.sl.trail}; } }
+  res[i]=t; }
+  const s=res.reduce((u,x)=> u+(x.qty||0),0)||1; for(const x of res){ x.qty = (x.qty||0)/s; } return res; }
 
-  function randomParams(){ const tpCfg=readTPOpt(); const slCfg=readSLOpt(); const p={ nol: pick(rNol), prd: pick(rPrd), slInitPct: pick(rSL), beAfterBars: pick(rBEb), beLockPct: pick(rBEL), emaLen: pick(rEMALen), entryMode: lbcOpts.entryMode||'Both', useFibRet: !!lbcOpts.useFibRet, confirmMode: lbcOpts.confirmMode||'Bounce', ent382: !!lbcOpts.ent382, ent500: !!lbcOpts.ent500, ent618: !!lbcOpts.ent618, ent786: !!lbcOpts.ent786, tpEnable: true, tp: [], slEnable: true, sl: [] };
+function randomParams(){ const tpCfg=readTPOpt(); const slCfg=readSLOpt(); const p={ nol: pick(rNol), prd: pick(rPrd), slInitPct: pick(rSL), beAfterBars: pick(rBEb), beLockPct: pick(rBEL), emaLen: pick(rEMALen), entryMode: lbcOpts.entryMode||'Both', useFibRet: !!lbcOpts.useFibRet, confirmMode: lbcOpts.confirmMode||'Bounce', ent382: !!lbcOpts.ent382, ent500: !!lbcOpts.ent500, ent618: !!lbcOpts.ent618, ent786: !!lbcOpts.ent786, tpEnable: true, tpCompound: (Math.random()<0.6), tpCloseAllLast: (Math.random()<0.7), tp: [], slEnable: true, sl: [] };
     p.tp = sampleTPList(tpCfg).slice(0,10);
     p.sl = sampleSLList(slCfg).slice(0,10);
     return p; }
   function neighbor(arr, v){ const i=arr.indexOf(v); const out=[]; if(i>0) out.push(arr[i-1]); out.push(v); if(i>=0 && i<arr.length-1) out.push(arr[i+1]); return pick(out.length?out:arr); }
-  function mutate(p, rate){ const tpCfg=readTPOpt(); const slCfg=readSLOpt(); const q={...p}; if(Math.random()<rate) q.nol = neighbor(rNol, q.nol); if(Math.random()<rate) q.prd = neighbor(rPrd, q.prd); if(Math.random()<rate) q.slInitPct = neighbor(rSL, q.slInitPct); if(Math.random()<rate) q.beAfterBars = neighbor(rBEb, q.beAfterBars); if(Math.random()<rate) q.beLockPct = neighbor(rBEL, q.beLockPct); if(Math.random()<rate) q.emaLen = neighbor(rEMALen, q.emaLen); if(Math.random()<rate){ q.tp = mutateTP(Array.isArray(q.tp)? q.tp: [], tpCfg).slice(0,10); q.tpEnable=true; } if(Math.random()<rate){ q.sl = mutateSL(Array.isArray(q.sl)? q.sl: [], slCfg).slice(0,10); q.slEnable=true; } return q; }
-  function crossover(a,b){ const tpCfg=readTPOpt(); const slCfg=readSLOpt(); return { nol: Math.random()<0.5?a.nol:b.nol, prd: Math.random()<0.5?a.prd:b.prd, slInitPct: Math.random()<0.5?a.slInitPct:b.slInitPct, beAfterBars: Math.random()<0.5?a.beAfterBars:b.beAfterBars, beLockPct: Math.random()<0.5?a.beLockPct:b.beLockPct, emaLen: Math.random()<0.5?a.emaLen:b.emaLen, entryMode: a.entryMode, useFibRet: a.useFibRet, confirmMode: a.confirmMode, ent382:a.ent382, ent500:a.ent500, ent618:a.ent618, ent786:a.ent786, tpEnable:true, tp: crossoverTP(a.tp||[], b.tp||[], tpCfg).slice(0,10), slEnable:true, sl: crossoverSL(a.sl||[], b.sl||[], slCfg).slice(0,10) }; }
+function mutate(p, rate){ const tpCfg=readTPOpt(); const slCfg=readSLOpt(); const q={...p}; if(Math.random()<rate) q.nol = neighbor(rNol, q.nol); if(Math.random()<rate) q.prd = neighbor(rPrd, q.prd); if(Math.random()<rate) q.slInitPct = neighbor(rSL, q.slInitPct); if(Math.random()<rate) q.beAfterBars = neighbor(rBEb, q.beAfterBars); if(Math.random()<rate) q.beLockPct = neighbor(rBEL, q.beLockPct); if(Math.random()<rate) q.emaLen = neighbor(rEMALen, q.emaLen); if(Math.random()<rate){ q.tp = mutateTP(Array.isArray(q.tp)? q.tp: [], tpCfg).slice(0,10); q.tpEnable=true; } if(Math.random()<rate){ q.sl = mutateSL(Array.isArray(q.sl)? q.sl: [], slCfg).slice(0,10); q.slEnable=true; } if(Math.random()<rate){ q.tpCompound = !q.tpCompound; } if(Math.random()<rate){ q.tpCloseAllLast = !q.tpCloseAllLast; } return q; }
+function crossover(a,b){ const tpCfg=readTPOpt(); const slCfg=readSLOpt(); return { nol: Math.random()<0.5?a.nol:b.nol, prd: Math.random()<0.5?a.prd:b.prd, slInitPct: Math.random()<0.5?a.slInitPct:b.slInitPct, beAfterBars: Math.random()<0.5?a.beAfterBars:b.beAfterBars, beLockPct: Math.random()<0.5?a.beLockPct:b.beLockPct, emaLen: Math.random()<0.5?a.emaLen:b.emaLen, entryMode: a.entryMode, useFibRet: a.useFibRet, confirmMode: a.confirmMode, ent382:a.ent382, ent500:a.ent500, ent618:a.ent618, ent786:a.ent786, tpEnable:true, tpCompound: (Math.random()<0.5? a.tpCompound : b.tpCompound), tpCloseAllLast: (Math.random()<0.5? a.tpCloseAllLast : b.tpCloseAllLast), tp: crossoverTP(a.tp||[], b.tp||[], tpCfg).slice(0,10), slEnable:true, sl: crossoverSL(a.sl||[], b.sl||[], slCfg).slice(0,10) }; }
 async function evalParamsList(list, phase='Eval'){
     const out=[]; let idx=0; const N=list.length||0;
     function fmtTP(tp){ try{ if(!Array.isArray(tp)||!tp.length) return '—'; return tp.map(t=>{ const typ=(t.type||'Fib'); if(typ==='Fib'){ return `F:${t.fib}`; } if(typ==='Percent'){ return `P:${t.pct}%`; } if(typ==='EMA'){ return `E:${t.emaLen}`; } return typ; }).slice(0,10).join(';'); }catch(_){ return '—'; } }
