@@ -5,7 +5,11 @@
 // --- Lab: lecture et palmarès (localStorage) ---
 const labTBody = document.getElementById('labTBody'); const labSummaryEl=document.getElementById('labSummary'); const labTFSelect=document.getElementById('labTFSelect');
 // TF d'exécution du Lab: restitue la dernière valeur utilisée
+const labSymbolSelect=document.getElementById('labSymbolSelect');
 try{ const savedLabTf=localStorage.getItem('lab:tf'); if(savedLabTf && labTFSelect){ labTFSelect.value=savedLabTf; } }catch(_){ }
+try{ const savedLabSym=localStorage.getItem('lab:sym'); if(savedLabSym && labSymbolSelect){ labSymbolSelect.value=savedLabSym; } }catch(_){ }
+// Populate lab symbol list from chart symbol select
+try{ if(labSymbolSelect && symbolSelect){ labSymbolSelect.innerHTML = symbolSelect.innerHTML; const savedLabSym=localStorage.getItem('lab:sym'); if(savedLabSym){ labSymbolSelect.value=savedLabSym; } else { labSymbolSelect.value = symbolSelect.value; } } }catch(_){ }
 function labKey(sym, tf){ return `lab:results:${sym}:${tf}`; }
 function readLabStorage(sym, tf){ try{ const s=localStorage.getItem(labKey(sym,tf)); return s? JSON.parse(s): []; }catch(_){ return []; } }
 function writeLabStorage(sym, tf, arr){ try{ localStorage.setItem(labKey(sym,tf), JSON.stringify(arr)); }catch(_){} }
@@ -21,7 +25,7 @@ const DICT_PL=["rzeka","kamień","dąb","iskra","gwiazda","księżyc","słońce"
 function randomName(){ const dicts=[DICT_FR,DICT_EN,DICT_ES,DICT_PL]; const d=dicts[Math.floor(Math.random()*dicts.length)]; return d[Math.floor(Math.random()*d.length)]; }
 function uniqueNameFor(sym, tf, base){ const pal=readPalmares(sym, tf); const names=new Set(pal.map(x=>x.name)); let n=base; let k=2; while(names.has(n)){ n=base+"-"+k; k++; } return n; }
 async function renderLabFromStorage(){
-  const tf = labTFSelect? labTFSelect.value: (intervalSelect? intervalSelect.value:''), sym=currentSymbol;
+  const tf = labTFSelect? labTFSelect.value: (intervalSelect? intervalSelect.value:''), sym=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol;
   let arr=[]; let source='local';
   try{
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchPalmares==='function'){
@@ -127,9 +131,10 @@ rows.push('<tr>' + `<td>${idx}</td>` + `<td>${pairDisp}</td>` + `<td>${tfDisp}</
       } else if(act==='detail'){
         try{
           const item = rec && (rec.params ? rec : (rec.p ? { params: rec.p, res: rec.res, name: rec.name, score: rec.score } : rec));
-          await openLabStrategyDetail(item, { symbol: currentSymbol, tf: tfNow });
+          const symNow = (labSymbolSelect&&labSymbolSelect.value)||currentSymbol;
+          await openLabStrategyDetail(item, { symbol: symNow, tf: tfNow });
         }catch(_){ }
-      } else if(act==='tf'){
+      }
         try{
           const sel=document.getElementById('labTFSelect'); const newTf = btn && btn.getAttribute ? (btn.getAttribute('data-tf')||tfNow) : tfNow;
           if(sel){ sel.value = newTf; try{ localStorage.setItem('lab:tf', newTf); }catch(_){ } setStatus(`TF sélectionnée: ${newTf}`); try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(__){} }
@@ -1275,6 +1280,7 @@ function renderStrategyDetailIntoModal(res, ctx){ try{
 const labExportBtn=document.getElementById('labExport'); const labWeightsBtn=document.getElementById('labWeights'); const labRunNewBtn=document.getElementById('labRunNew');
 const weightsModalEl=document.getElementById('weightsModal'); const weightsClose=document.getElementById('weightsClose'); const weightsSave=document.getElementById('weightsSave'); const weightsProfile=document.getElementById('weightsProfile'); const weightsBody=document.getElementById('weightsBody');
 if(labTFSelect){ labTFSelect.addEventListener('change', async ()=>{ try{ localStorage.setItem('lab:tf', labTFSelect.value); await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
+if(labSymbolSelect){ labSymbolSelect.addEventListener('change', async ()=>{ try{ localStorage.setItem('lab:sym', labSymbolSelect.value); await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
 // Lab range controls: mode + date inputs trigger KPI recompute
 try{
   const labRangeModeEl=document.getElementById('labRangeMode');
@@ -1307,7 +1313,7 @@ const labRunBtn=document.getElementById('labRun');
 if(labRunBtn){ labRunBtn.addEventListener('click', async ()=>{ try{
   const profSel = (document.getElementById('labProfile') && document.getElementById('labProfile').value) || (localStorage.getItem('labWeightsProfile')||'balancee');
   try{ localStorage.setItem('labWeightsProfile', profSel); }catch(_){ }
-  const sym=currentSymbol;
+  const sym=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol;
   const tfSel=(labTFSelect&&labTFSelect.value)||currentInterval;
   const goal = (window.__labGoalOverride || ((document.getElementById('labGoal')&&document.getElementById('labGoal').value) || 'improve'));
   try{ window.__labGoalOverride = null; }catch(_){ }
