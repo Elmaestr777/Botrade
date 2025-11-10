@@ -91,7 +91,7 @@
               <label>Lock % move <input id="optBELockPct" type="number" min="0" step="0.1" value="5.0" style="width:5.5rem" /></label>
             </fieldset>
             <fieldset>
-              <legend>SL Ladder</legend>
+              <legend>Stops (SL) — global (utiliser plutôt SL par TP)</legend>
               <label><input type="checkbox" id="optSLEnable" /> Activer</label>
               <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px;">
                 <div>
@@ -124,7 +124,7 @@
                 <!-- We'll keep minimal rows for now (1 shown) to avoid UI bloat; additional rows can be toggled later -->
                 
               </div>
-              <p style="color:var(--muted); font-size:12px; margin:4px 0 0;">Le premier SL valide (sous l'entrée pour un long, au-dessus pour un short) est utilisé; sinon, on revient à "SL initial %".</p>
+              <p style="color:var(--muted); font-size:12px; margin:4px 0 0;">Le premier SL global valide (sous l'entrée pour un long, au-dessus pour un short) est utilisé à l'entrée; préférez configurer les SL par TP dans la section suivante.</p>
             </fieldset>
             <fieldset>
               <legend>ZigZag & Fibonacci</legend>
@@ -146,7 +146,7 @@
               <label><input type="checkbox" id="optEnt786" /> 0.786</label>
             </fieldset>
             <fieldset>
-              <legend>TP Ladder</legend>
+              <legend>Cibles & Stops (TP + SL + BE)</legend>
               <label><input type="checkbox" id="optTPEnable" checked /> Activer</label>
               <label>EMA trail len <input id="optEMALen" type="number" min="1" value="55" style="width:4.5rem" /></label>
               <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px;">
@@ -180,6 +180,30 @@
                     </select>
                     <select id="optTP1Ema" style="width:8rem; display:none;"></select>
                   </label>
+                  <label>SL1 type
+                    <select id="optTP1SLType">
+                      <option value="Percent" selected>Percent</option>
+                      <option value="Fib">Fibonacci</option>
+                      <option value="EMA">EMA</option>
+                    </select>
+                  </label>
+                  <label>SL1 value
+                    <input id="optTP1SLR" type="number" step="0.001" value="2.000" style="width:6rem" />
+                    <select id="optTP1SLFib" style="width:8rem; display:none;">
+                      <option value="0.236">0.236</option>
+                      <option value="0.382" selected>0.382</option>
+                      <option value="0.5">0.500</option>
+                      <option value="0.618">0.618</option>
+                      <option value="0.786">0.786</option>
+                      <option value="1">1.000</option>
+                      <option value="1.272">1.272</option>
+                      <option value="1.414">1.414</option>
+                      <option value="1.618">1.618</option>
+                      <option value="2">2.000</option>
+                    </select>
+                    <select id="optTP1SLEma" style="width:8rem; display:none;"></select>
+                  </label>
+                  <label><input type="checkbox" id="optTP1BEOn" /> BE à ce TP</label>
                   <label>% capital TP1 <input id="optTP1P" type="number" min="0" max="100" step="1" value="10" style="width:5rem" /></label>
                 </div>
                 <div>
@@ -212,6 +236,30 @@
                     </select>
                     <select id="optTP2Ema" style="width:8rem; display:none;"></select>
                   </label>
+                  <label>SL2 type
+                    <select id="optTP2SLType">
+                      <option value="Percent" selected>Percent</option>
+                      <option value="Fib">Fibonacci</option>
+                      <option value="EMA">EMA</option>
+                    </select>
+                  </label>
+                  <label>SL2 value
+                    <input id="optTP2SLR" type="number" step="0.001" value="2.000" style="width:6rem" />
+                    <select id="optTP2SLFib" style="width:8rem; display:none;">
+                      <option value="0.236">0.236</option>
+                      <option value="0.382" selected>0.382</option>
+                      <option value="0.5">0.500</option>
+                      <option value="0.618">0.618</option>
+                      <option value="0.786">0.786</option>
+                      <option value="1">1.000</option>
+                      <option value="1.272">1.272</option>
+                      <option value="1.414">1.414</option>
+                      <option value="1.618">1.618</option>
+                      <option value="2">2.000</option>
+                    </select>
+                    <select id="optTP2SLEma" style="width:8rem; display:none;"></select>
+                  </label>
+                  <label><input type="checkbox" id="optTP2BEOn" /> BE à ce TP</label>
                   <label>% capital TP2 <input id="optTP2P" type="number" min="0" max="100" step="1" value="15" style="width:5rem" /></label>
                 </div>
                 <div>
@@ -244,6 +292,30 @@
                     </select>
                     <select id="optTP3Ema" style="width:8rem; display:none;"></select>
                   </label>
+                  <label>SL3 type
+                    <select id="optTP3SLType">
+                      <option value="Percent" selected>Percent</option>
+                      <option value="Fib">Fibonacci</option>
+                      <option value="EMA">EMA</option>
+                    </select>
+                  </label>
+                  <label>SL3 value
+                    <input id="optTP3SLR" type="number" step="0.001" value="2.000" style="width:6rem" />
+                    <select id="optTP3SLFib" style="width:8rem; display:none;">
+                      <option value="0.236">0.236</option>
+                      <option value="0.382" selected>0.382</option>
+                      <option value="0.5">0.500</option>
+                      <option value="0.618">0.618</option>
+                      <option value="0.786">0.786</option>
+                      <option value="1">1.000</option>
+                      <option value="1.272">1.272</option>
+                      <option value="1.414">1.414</option>
+                      <option value="1.618">1.618</option>
+                      <option value="2">2.000</option>
+                    </select>
+                    <select id="optTP3SLEma" style="width:8rem; display:none;"></select>
+                  </label>
+                  <label><input type="checkbox" id="optTP3BEOn" /> BE à ce TP</label>
                   <label>% capital TP3 <input id="optTP3P" type="number" min="0" max="100" step="1" value="15" style="width:5rem" /></label>
                 </div>
                 <div>
@@ -276,6 +348,30 @@
                     </select>
                     <select id="optTP4Ema" style="width:8rem; display:none;"></select>
                   </label>
+                  <label>SL4 type
+                    <select id="optTP4SLType">
+                      <option value="Percent" selected>Percent</option>
+                      <option value="Fib">Fibonacci</option>
+                      <option value="EMA">EMA</option>
+                    </select>
+                  </label>
+                  <label>SL4 value
+                    <input id="optTP4SLR" type="number" step="0.001" value="2.000" style="width:6rem" />
+                    <select id="optTP4SLFib" style="width:8rem; display:none;">
+                      <option value="0.236">0.236</option>
+                      <option value="0.382" selected>0.382</option>
+                      <option value="0.5">0.500</option>
+                      <option value="0.618">0.618</option>
+                      <option value="0.786">0.786</option>
+                      <option value="1">1.000</option>
+                      <option value="1.272">1.272</option>
+                      <option value="1.414">1.414</option>
+                      <option value="1.618">1.618</option>
+                      <option value="2">2.000</option>
+                    </select>
+                    <select id="optTP4SLEma" style="width:8rem; display:none;"></select>
+                  </label>
+                  <label><input type="checkbox" id="optTP4BEOn" /> BE à ce TP</label>
                   <label>% capital TP4 <input id="optTP4P" type="number" min="0" max="100" step="1" value="10" style="width:5rem" /></label>
                 </div>
                 <div>
@@ -308,6 +404,30 @@
                     </select>
                     <select id="optTP5Ema" style="width:8rem; display:none;"></select>
                   </label>
+                  <label>SL5 type
+                    <select id="optTP5SLType">
+                      <option value="Percent" selected>Percent</option>
+                      <option value="Fib">Fibonacci</option>
+                      <option value="EMA">EMA</option>
+                    </select>
+                  </label>
+                  <label>SL5 value
+                    <input id="optTP5SLR" type="number" step="0.001" value="2.000" style="width:6rem" />
+                    <select id="optTP5SLFib" style="width:8rem; display:none;">
+                      <option value="0.236">0.236</option>
+                      <option value="0.382" selected>0.382</option>
+                      <option value="0.5">0.500</option>
+                      <option value="0.618">0.618</option>
+                      <option value="0.786">0.786</option>
+                      <option value="1">1.000</option>
+                      <option value="1.272">1.272</option>
+                      <option value="1.414">1.414</option>
+                      <option value="1.618">1.618</option>
+                      <option value="2">2.000</option>
+                    </select>
+                    <select id="optTP5SLEma" style="width:8rem; display:none;"></select>
+                  </label>
+                  <label><input type="checkbox" id="optTP5BEOn" /> BE à ce TP</label>
                   <label>% capital TP5 <input id="optTP5P" type="number" min="0" max="100" step="1" value="10" style="width:5rem" /></label>
                 </div>
                 <div>
@@ -340,6 +460,30 @@
                     </select>
                     <select id="optTP6Ema" style="width:8rem; display:none;"></select>
                   </label>
+                  <label>SL6 type
+                    <select id="optTP6SLType">
+                      <option value="Percent" selected>Percent</option>
+                      <option value="Fib">Fibonacci</option>
+                      <option value="EMA">EMA</option>
+                    </select>
+                  </label>
+                  <label>SL6 value
+                    <input id="optTP6SLR" type="number" step="0.001" value="2.000" style="width:6rem" />
+                    <select id="optTP6SLFib" style="width:8rem; display:none;">
+                      <option value="0.236">0.236</option>
+                      <option value="0.382" selected>0.382</option>
+                      <option value="0.5">0.500</option>
+                      <option value="0.618">0.618</option>
+                      <option value="0.786">0.786</option>
+                      <option value="1">1.000</option>
+                      <option value="1.272">1.272</option>
+                      <option value="1.414">1.414</option>
+                      <option value="1.618">1.618</option>
+                      <option value="2">2.000</option>
+                    </select>
+                    <select id="optTP6SLEma" style="width:8rem; display:none;"></select>
+                  </label>
+                  <label><input type="checkbox" id="optTP6BEOn" /> BE à ce TP</label>
                   <label>% capital TP6 <input id="optTP6P" type="number" min="0" max="100" step="1" value="10" style="width:5rem" /></label>
                 </div>
                 <div>
@@ -372,6 +516,30 @@
                     </select>
                     <select id="optTP7Ema" style="width:8rem; display:none;"></select>
                   </label>
+                  <label>SL7 type
+                    <select id="optTP7SLType">
+                      <option value="Percent" selected>Percent</option>
+                      <option value="Fib">Fibonacci</option>
+                      <option value="EMA">EMA</option>
+                    </select>
+                  </label>
+                  <label>SL7 value
+                    <input id="optTP7SLR" type="number" step="0.001" value="2.000" style="width:6rem" />
+                    <select id="optTP7SLFib" style="width:8rem; display:none;">
+                      <option value="0.236">0.236</option>
+                      <option value="0.382" selected>0.382</option>
+                      <option value="0.5">0.500</option>
+                      <option value="0.618">0.618</option>
+                      <option value="0.786">0.786</option>
+                      <option value="1">1.000</option>
+                      <option value="1.272">1.272</option>
+                      <option value="1.414">1.414</option>
+                      <option value="1.618">1.618</option>
+                      <option value="2">2.000</option>
+                    </select>
+                    <select id="optTP7SLEma" style="width:8rem; display:none;"></select>
+                  </label>
+                  <label><input type="checkbox" id="optTP7BEOn" /> BE à ce TP</label>
                   <label>% capital TP7 <input id="optTP7P" type="number" min="0" max="100" step="1" value="10" style="width:5rem" /></label>
                 </div>
                 <div>
@@ -404,6 +572,30 @@
                     </select>
                     <select id="optTP8Ema" style="width:8rem; display:none;"></select>
                   </label>
+                  <label>SL8 type
+                    <select id="optTP8SLType">
+                      <option value="Percent" selected>Percent</option>
+                      <option value="Fib">Fibonacci</option>
+                      <option value="EMA">EMA</option>
+                    </select>
+                  </label>
+                  <label>SL8 value
+                    <input id="optTP8SLR" type="number" step="0.001" value="2.000" style="width:6rem" />
+                    <select id="optTP8SLFib" style="width:8rem; display:none;">
+                      <option value="0.236">0.236</option>
+                      <option value="0.382" selected>0.382</option>
+                      <option value="0.5">0.500</option>
+                      <option value="0.618">0.618</option>
+                      <option value="0.786">0.786</option>
+                      <option value="1">1.000</option>
+                      <option value="1.272">1.272</option>
+                      <option value="1.414">1.414</option>
+                      <option value="1.618">1.618</option>
+                      <option value="2">2.000</option>
+                    </select>
+                    <select id="optTP8SLEma" style="width:8rem; display:none;"></select>
+                  </label>
+                  <label><input type="checkbox" id="optTP8BEOn" /> BE à ce TP</label>
                   <label>% capital TP8 <input id="optTP8P" type="number" min="0" max="100" step="1" value="10" style="width:5rem" /></label>
                 </div>
                 <div>
@@ -436,6 +628,30 @@
                     </select>
                     <select id="optTP9Ema" style="width:8rem; display:none;"></select>
                   </label>
+                  <label>SL9 type
+                    <select id="optTP9SLType">
+                      <option value="Percent" selected>Percent</option>
+                      <option value="Fib">Fibonacci</option>
+                      <option value="EMA">EMA</option>
+                    </select>
+                  </label>
+                  <label>SL9 value
+                    <input id="optTP9SLR" type="number" step="0.001" value="2.000" style="width:6rem" />
+                    <select id="optTP9SLFib" style="width:8rem; display:none;">
+                      <option value="0.236">0.236</option>
+                      <option value="0.382" selected>0.382</option>
+                      <option value="0.5">0.500</option>
+                      <option value="0.618">0.618</option>
+                      <option value="0.786">0.786</option>
+                      <option value="1">1.000</option>
+                      <option value="1.272">1.272</option>
+                      <option value="1.414">1.414</option>
+                      <option value="1.618">1.618</option>
+                      <option value="2">2.000</option>
+                    </select>
+                    <select id="optTP9SLEma" style="width:8rem; display:none;"></select>
+                  </label>
+                  <label><input type="checkbox" id="optTP9BEOn" /> BE à ce TP</label>
                   <label>% capital TP9 <input id="optTP9P" type="number" min="0" max="100" step="1" value="5" style="width:5rem" /></label>
                 </div>
                 <div>
@@ -468,6 +684,30 @@
                     </select>
                     <select id="optTP10Ema" style="width:8rem; display:none;"></select>
                   </label>
+                  <label>SL10 type
+                    <select id="optTP10SLType">
+                      <option value="Percent" selected>Percent</option>
+                      <option value="Fib">Fibonacci</option>
+                      <option value="EMA">EMA</option>
+                    </select>
+                  </label>
+                  <label>SL10 value
+                    <input id="optTP10SLR" type="number" step="0.001" value="2.000" style="width:6rem" />
+                    <select id="optTP10SLFib" style="width:8rem; display:none;">
+                      <option value="0.236">0.236</option>
+                      <option value="0.382" selected>0.382</option>
+                      <option value="0.5">0.500</option>
+                      <option value="0.618">0.618</option>
+                      <option value="0.786">0.786</option>
+                      <option value="1">1.000</option>
+                      <option value="1.272">1.272</option>
+                      <option value="1.414">1.414</option>
+                      <option value="1.618">1.618</option>
+                      <option value="2">2.000</option>
+                    </select>
+                    <select id="optTP10SLEma" style="width:8rem; display:none;"></select>
+                  </label>
+                  <label><input type="checkbox" id="optTP10BEOn" /> BE à ce TP</label>
                   <label>% capital TP10 <input id="optTP10P" type="number" min="0" max="100" step="1" value="5" style="width:5rem" /></label>
                 </div>
               </div>

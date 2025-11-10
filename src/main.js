@@ -520,9 +520,26 @@ function populateHeavenModal(){ try{
   function rebuildEmaSelect(sel, current){ if(!sel) return; sel.innerHTML=''; const lens=emaCandidates(); for(const len of lens){ const opt=document.createElement('option'); opt.value=String(len); let label=`EMA ${len}`; try{ const ema=emaCalc(candles, Math.max(1, len|0)); const v=ema[ema.length-1]; if(isFinite(v)) label += ` — ${v.toFixed(2)}`; }catch(_){ }
       opt.textContent=label; sel.appendChild(opt); }
     if(current!=null){ sel.value=String(current); } }
-  function updateTPRow(i, t){ const tSel=document.getElementById(`optTP${i}Type`); const vNum=document.getElementById(`optTP${i}R`); const vFib=document.getElementById(`optTP${i}Fib`); const vEma=document.getElementById(`optTP${i}Ema`); if(!tSel) return; const typ=tSel.value||'Fib'; // show/hide
+function updateTPRow(i, t){
+  const tSel=document.getElementById(`optTP${i}Type`);
+  const vNum=document.getElementById(`optTP${i}R`);
+  const vFib=document.getElementById(`optTP${i}Fib`);
+  const vEma=document.getElementById(`optTP${i}Ema`);
+  if(tSel){ const typ=tSel.value||'Fib'; // show/hide
     if(vNum) vNum.style.display = (typ==='Percent')? '' : 'none'; if(vFib) vFib.style.display = (typ==='Fib')? '' : 'none'; if(vEma) vEma.style.display = (typ==='EMA')? '' : 'none'; if(typ==='Fib'){ rebuildFibSelect(vFib, (t&&t.fib!=null)? t.fib : (vFib&&vFib.value)); }
-    else if(typ==='EMA'){ rebuildEmaSelect(vEma, (t&&t.emaLen!=null)? t.emaLen : (vEma&&vEma.value)); } }
+    else if(typ==='EMA'){ rebuildEmaSelect(vEma, (t&&t.emaLen!=null)? t.emaLen : (vEma&&vEma.value)); }
+  }
+  // Attached SL per TP
+  const sSel=document.getElementById(`optTP${i}SLType`);
+  const sNum=document.getElementById(`optTP${i}SLR`);
+  const sFib=document.getElementById(`optTP${i}SLFib`);
+  const sEma=document.getElementById(`optTP${i}SLEma`);
+  const st=(t&&t.sl)||{};
+  if(sSel){ const styp=sSel.value||'Percent';
+    if(sNum) sNum.style.display = (styp==='Percent')? '' : 'none'; if(sFib) sFib.style.display = (styp==='Fib')? '' : 'none'; if(sEma) sEma.style.display = (styp==='EMA')? '' : 'none'; if(styp==='Fib'){ rebuildFibSelect(sFib, (st&&st.fib!=null)? st.fib : (sFib&&sFib.value)); }
+    else if(styp==='EMA'){ rebuildEmaSelect(sEma, (st&&st.emaLen!=null)? st.emaLen : (sEma&&sEma.value)); }
+  }
+}
   function updateSLRow(i, t){ const tSel=document.getElementById(`optSL${i}Type`); const vNum=document.getElementById(`optSL${i}R`); const vFib=document.getElementById(`optSL${i}Fib`); const vEma=document.getElementById(`optSL${i}Ema`); if(!tSel) return; const typ=tSel.value||'Percent';
     if(vNum) vNum.style.display = (typ==='Percent')? '' : 'none'; if(vFib) vFib.style.display = (typ==='Fib')? '' : 'none'; if(vEma) vEma.style.display = (typ==='EMA')? '' : 'none'; if(typ==='Fib'){ rebuildFibSelect(vFib, (t&&t.fib!=null)? t.fib : (vFib&&vFib.value)); }
     else if(typ==='EMA'){ rebuildEmaSelect(vEma, (t&&t.emaLen!=null)? t.emaLen : (vEma&&vEma.value)); } }
@@ -536,8 +553,16 @@ function populateHeavenModal(){ try{
     if(vEma && (t.emaLen!=null)) vEma.value=String(t.emaLen);
     if(pPct && (t.value!=null)) pPct.value=String(t.value);
     if(qPct && (t.qty!=null)) qPct.value=String(t.qty);
+    // attached SL & BE per TP
+    const st=(t&&t.sl)||{}; const sSel=document.getElementById(`optTP${i}SLType`); const sNum=document.getElementById(`optTP${i}SLR`); const sFib=document.getElementById(`optTP${i}SLFib`); const sEma=document.getElementById(`optTP${i}SLEma`); const beOn=document.getElementById(`optTP${i}BEOn`);
+    if(sSel){ sSel.value=st.type||'Percent'; }
+    if(sFib && (st.fib!=null)) sFib.value=String(st.fib);
+    if(sNum && (st.pct!=null)) sNum.value=String(st.pct);
+    if(sEma && (st.emaLen!=null)) sEma.value=String(st.emaLen);
+    if(beOn) beOn.checked = !!(t && t.beOn);
     updateTPRow(i, t);
     if(tSel && (!tSel.dataset || tSel.dataset.wired!=='1')){ tSel.addEventListener('change', ()=> updateTPRow(i, arr[i-1]||{})); if(!tSel.dataset) tSel.dataset={}; tSel.dataset.wired='1'; }
+    if(sSel && (!sSel.dataset || sSel.dataset.wired!=='1')){ sSel.addEventListener('change', ()=> updateTPRow(i, arr[i-1]||{})); if(!sSel.dataset) sSel.dataset={}; sSel.dataset.wired='1'; }
   }
   const arrSL=lbcOpts.sl||[];
   for(let i=1;i<=10;i++){
@@ -715,23 +740,23 @@ function runBacktestSlice(sIdx, eIdx, conf){
     if(lbcOpts.tpEnable && Array.isArray(lbcOpts.tp) && lbcOpts.tp.length){
       const seg=segAtIdx();
       const A=seg?seg.a.price:null, B=seg?seg.b.price:null, move=seg?Math.abs(B-A):null;
-      for(const t of lbcOpts.tp){
-        let price=null; const typ=(t.type||'Fib');
+      for(let idx=0; idx<lbcOpts.tp.length; idx++){
+        const t=lbcOpts.tp[idx]; let price=null; const typ=(t.type||'Fib');
         if(typ==='Fib' && seg && move!=null){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)) price = (seg.dir==='up')? (B + move*r) : (B - move*r); }
         else if(typ==='Percent'){ const p=parseFloat(t.pct!=null? t.pct : t.value); if(isFinite(p)) price = dir==='long'? (entry*(1+p/100)) : (entry*(1-p/100)); }
-        else if(typ==='EMA'){ const len=Math.max(1, parseInt(((t&&t.emaLen)!=null? t.emaLen : (lbcOpts.emaLen||55)),10)); const ema=emaCalc(candles, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) price=v; }
+        else if(typ==='EMA'){ const len=Math.max(1, parseInt(((t&&t.emaLen)!=null? t.emaLen : (lbcOpts.emaLen||55)),10)); const ema=emaCalc(candles, len); const v = ema[Math.min(i, ema.length-1)]; if(isFinite(v)) price=v; }
         if(price!=null){ if((dir==='long' && price>entry) || (dir==='short' && price<entry)){
             let w=null; const q=t.qty; if(q!=null && isFinite(q)){ w = (q>1? q/100 : q); }
-            list.push({price, w});
+            list.push({price, w, srcIdx: idx});
         } }
       }
       if(dir==='long') list.sort((a,b)=>a.price-b.price); else list.sort((a,b)=>b.price-a.price);
       let sumW=0, hasW=false; for(const it of list){ if(it.w!=null && it.w>0){ sumW+=it.w; hasW=true; } }
-      if(!hasW){ if(list.length){ const even=1/list.length; list=list.map(it=>({ price:it.price, w:even })); } else { list=[{price: (dir==='long'? entry + riskAbs*(lbcOpts.tp1R||1) : entry - riskAbs*(lbcOpts.tp1R||1)), w:1}]; } }
+      if(!hasW){ if(list.length){ const even=1/list.length; list=list.map(it=>({ price:it.price, w:even, srcIdx: it.srcIdx })); } else { list=[{price: (dir==='long'? entry + riskAbs*(lbcOpts.tp1R||1) : entry - riskAbs*(lbcOpts.tp1R||1)), w:1, srcIdx: 0}]; } }
       else { if(sumW>1){ const k=1/sumW; for(const it of list){ if(it.w!=null) it.w*=k; } } else if(lbcOpts.tpCloseAllLast && sumW<1 && list.length){ list[list.length-1].w = (list[list.length-1].w||0) + (1-sumW); } }
       return list;
     } else {
-      return [{ price: dir==='long'? (entry + riskAbs*(lbcOpts.tp1R||1)) : (entry - riskAbs*(lbcOpts.tp1R||1)), w:1 }];
+      return [{ price: dir==='long'? (entry + riskAbs*(lbcOpts.tp1R||1)) : (entry - riskAbs*(lbcOpts.tp1R||1)), w:1, srcIdx: 0 }];
     }
   }
   let equity=conf.startCap; let peak=equity; let maxDDAbs=0; let grossProfit=0, grossLoss=0; let wins=0, losses=0; let rrSum=0; let tradesCount=0;
@@ -785,8 +810,37 @@ function runBacktestSlice(sIdx, eIdx, conf){
           trades.push({ dir:pos.dir, entryTime:candles[pos.entryIdx].time, entry:pos.entry, initSL:pos.initSL, exitTime:candles[i].time, exit:exitPx, reason:`TP${pos.tpIdx+1}`, qty:usedQty, pnl, fees, net, rr: (Math.abs(pos.entry-pos.initSL)*usedQty>0? net/(Math.abs(pos.entry-pos.initSL)*usedQty) : null) });
           try{ addTPHitMarker(candles[i].time, pos.dir); }catch(_){ }
           pos.qty -= usedQty; pos.anyTP=true;
-          if(lbcOpts.tpAfterHit==='be'){ pos.sl = pos.entry; }
-          else if(lbcOpts.tpAfterHit==='prev'){ if(pos.dir==='long') pos.sl=Math.max(pos.sl, exitPx); else pos.sl=Math.min(pos.sl, exitPx); }
+          // Apply per-TP rules (BE/SL); fallback to DOM if not persisted
+          let applied=false; let tCfg = (Array.isArray(lbcOpts.tp)&&tp.srcIdx!=null)? lbcOpts.tp[tp.srcIdx] : null;
+          if(!tCfg){ tCfg = {}; }
+          if(!tCfg.sl && typeof tCfg.beOn==='undefined'){
+            try{
+              const idx = (tp.srcIdx!=null? (tp.srcIdx+1) : (pos.tpIdx+1));
+              const sSel=document.getElementById(`optTP${idx}SLType`);
+              const sNum=document.getElementById(`optTP${idx}SLR`);
+              const sFib=document.getElementById(`optTP${idx}SLFib`);
+              const sEma=document.getElementById(`optTP${idx}SLEma`);
+              const beOn=document.getElementById(`optTP${idx}BEOn`);
+              if(sSel){ const styp=sSel.value||'Percent'; const slEntry={ type:styp };
+                if(styp==='Fib'){ const r2=parseFloat(((sFib && sFib.value) || (sNum && sNum.value) || '')); if(isFinite(r2)) slEntry.fib=r2; }
+                else if(styp==='Percent'){ const p2=parseFloat(((sNum && sNum.value) || (sFib && sFib.value) || '')); if(isFinite(p2)) slEntry.pct=p2; }
+                else if(styp==='EMA'){ const len2=parseInt(((sEma && sEma.value) || (lbcOpts.emaLen||55)),10); if(isFinite(len2) && len2>0) slEntry.emaLen=len2; }
+                tCfg.sl = slEntry;
+              }
+              tCfg.beOn = !!(beOn && beOn.checked);
+            }catch(_){ }
+          }
+          if(tCfg){ if(tCfg.beOn){ pos.sl = pos.entry; applied=true; }
+            const slNew = (function(){ try{
+              const seg=segAtIdx(); if(!(tCfg&&tCfg.sl)) return null; const s=tCfg.sl; let price=null; if(s.type==='Fib' && seg){ const A=seg.a.price, B=seg.b.price; const move=Math.abs(B-A); const r=parseFloat(s.fib!=null? s.fib : s.value); if(isFinite(r)) price = (seg.dir==='up')? (B - move*r) : (B + move*r); }
+              else if(s.type==='Percent'){ const p=parseFloat(s.pct!=null? s.pct : s.value); if(isFinite(p)) price = pos.dir==='long'? (pos.entry*(1 - p/100)) : (pos.entry*(1 + p/100)); }
+              else if(s.type==='EMA'){ const len=Math.max(1, parseInt(((s&&s.emaLen)!=null? s.emaLen : (lbcOpts.emaLen||55)),10)); const ema=emaCalc(candles, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) price=v; }
+              return price;
+            }catch(_){ return null; } })();
+            if(slNew!=null){ let b=slNew; if(!pos.beActive){ b=(pos.dir==='long')? Math.min(slNew, pos.entry) : Math.max(slNew, pos.entry); } pos.sl = (pos.dir==='long')? Math.max(pos.sl, b) : Math.min(pos.sl, b); applied=true; }
+          }
+          if(!applied){ if(lbcOpts.tpAfterHit==='be'){ pos.sl = pos.entry; }
+            else if(lbcOpts.tpAfterHit==='prev'){ if(pos.dir==='long') pos.sl=Math.max(pos.sl, exitPx); else pos.sl=Math.min(pos.sl, exitPx); } }
           pos.tpIdx++;
           if(!lbcOpts.tpCompound || pos.qty<=1e-12){ pos=null; break; }
         }
@@ -816,15 +870,15 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
     const tps=[];
     if(params.tpEnable && Array.isArray(params.tp) && params.tp.length){
       const seg=segAtIdx(); const A=seg?seg.a.price:null, B=seg?seg.b.price:null, move=seg?Math.abs(B-A):null;
-      for(const t of params.tp){ let price=null; const typ=(t.type||'Fib');
+      for(let idx=0; idx<params.tp.length; idx++){ let price=null; const t=params.tp[idx]; const typ=(t.type||'Fib');
         if(typ==='Fib' && seg && move!=null){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)){ price = (seg.dir==='up')? (B + move*r) : (B - move*r); } }
         else if(typ==='Percent'){ const p=parseFloat(t.pct!=null? t.pct : t.value); if(isFinite(p)){ price = dir==='long'? (entry*(1+p/100)) : (entry*(1-p/100)); } }
         else if(typ==='EMA'){ const len=Math.max(1, parseInt(((t&&t.emaLen)!=null? t.emaLen : (params.emaLen||55)),10)); let ema=emaTargetCache.get(len); if(!ema){ ema=emaCalc(bars, len); emaTargetCache.set(len, ema); } const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) price=v; }
-        if(price!=null){ if((dir==='long' && price>entry) || (dir==='short' && price<entry)){ tps.push(price); } }
+        if(price!=null){ if((dir==='long' && price>entry) || (dir==='short' && price<entry)){ tps.push({ price, srcIdx: idx }); } }
       }
-      if(dir==='long') tps.sort((a,b)=>a-b); else tps.sort((a,b)=>b-a);
+      if(dir==='long') tps.sort((a,b)=>a.price-b.price); else tps.sort((a,b)=>b.price-a.price);
     } else {
-      const mult=(typeof params.tp1R==='number' && params.tp1R>0)? params.tp1R : 1; const price=dir==='long'? (entry + riskAbs*mult) : (entry - riskAbs*mult); tps.push(price);
+      const mult=(typeof params.tp1R==='number' && params.tp1R>0)? params.tp1R : 1; const price=dir==='long'? (entry + riskAbs*mult) : (entry - riskAbs*mult); tps.push({ price, srcIdx: 0 });
     }
     return tps;
   }
@@ -857,11 +911,11 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
       let exit=null;
       if(pos.dir==='long'){
         if(bar.low <= pos.sl){ exit = pos.sl; }
-        else if(pos.targets && pos.targets.length && bar.high >= pos.targets[0]){ exit = pos.targets[0]; }
+        else if(pos.targets && pos.targets.length && bar.high >= (pos.targets[0].price||pos.targets[0])){ exit = (pos.targets[0].price||pos.targets[0]); }
         else if(trendNow!==trendPrev && trendNow!==1){ exit = bar.close; }
       } else {
         if(bar.high >= pos.sl){ exit = pos.sl; }
-        else if(pos.targets && pos.targets.length && bar.low <= pos.targets[0]){ exit = pos.targets[0]; }
+        else if(pos.targets && pos.targets.length && bar.low <= (pos.targets[0].price||pos.targets[0])){ exit = (pos.targets[0].price||pos.targets[0]); }
         else if(trendNow!==trendPrev && trendNow!==-1){ exit = bar.close; }
       }
       if(exit!=null){ const eqBefore=equity; const pnl = (pos.dir==='long'? (exit - pos.entry) : (pos.entry - exit)) * pos.qty; const fees = (pos.entry*pos.qty + exit*pos.qty) * feePct; const net = pnl - fees; equity += net; if(equity<0) equity=0; tradesCount++; if(pos.risk>0){ rrSum += (net/pos.risk); } if(net>=0){ grossProfit += net; wins++; } else { grossLoss += net; losses++; } if(equity>peak){ peak=equity; } const dd = peak - equity; if(dd>maxDDAbs){ maxDDAbs=dd; } if(trades){ trades.push({ dir:pos.dir, entryTime:bars[pos.entryIdx].time, entry:pos.entry, exitTime:bars[i].time, exit, qty:pos.qty, net, fees, rr: (pos.risk>0? net/pos.risk:null), eqBefore }); } pos=null; }
