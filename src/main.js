@@ -428,9 +428,10 @@ function updateLabKpiFrom(score, res){ try{ if(kpiScoreEl) kpiScoreEl.textConten
 async function computeLabBenchmarkAndUpdate(){
   try{
     const tfSel = (labTFSelect&&labTFSelect.value) || currentInterval;
+    const symSel = (labSymbolSelect&&labSymbolSelect.value) || currentSymbol;
     let bars = candles;
-    if(tfSel !== currentInterval){
-      try{ bars = await fetchAllKlines(currentSymbol, tfSel, 5000); }catch(_){ bars=candles; }
+    if(tfSel !== currentInterval || symSel !== currentSymbol){
+      try{ bars = await fetchAllKlines(symSel, tfSel, 5000); }catch(_){ bars=candles; }
     }
     if(!bars || !bars.length){ if(kpiScoreEl) kpiScoreEl.textContent='—'; if(kpiPFEl) kpiPFEl.textContent='—'; if(kpiWinEl) kpiWinEl.textContent='—'; if(kpiDDEl) kpiDDEl.textContent='—'; return; }
 
@@ -459,7 +460,7 @@ async function computeLabBenchmarkAndUpdate(){
     // Top palmarès (robust score if present; otherwise recompute)
     let palArr = Array.isArray(window.labPalmaresCache)? window.labPalmaresCache.slice() : [];
     if(!palArr.length && window.SUPA && typeof SUPA.fetchPalmares==='function'){
-      try{ palArr = await SUPA.fetchPalmares(currentSymbol, tfSel, 1); }catch(_){ palArr=[]; }
+      try{ palArr = await SUPA.fetchPalmares(symSel, tfSel, 1); }catch(_){ palArr=[]; }
     }
     let palTop=null; if(Array.isArray(palArr) && palArr.length){ palTop = palArr.slice().sort((a,b)=> ((b.score!=null?b.score:scoreResult(b.res||{},weights)) - (a.score!=null?a.score:scoreResult(a.res||{},weights))) )[0]; }
     const palRes = palTop&&palTop.res? palTop.res : null;
@@ -1029,7 +1030,7 @@ try{
   const btExportDetails=document.getElementById('btExportDetails');
   if(btPauseBtn2){ btPauseBtn2.addEventListener('click', ()=>{ btPaused=!btPaused; addBtLog(btPaused?'Pause':'Reprise'); if(labRunStatusEl) labRunStatusEl.textContent = btPaused? 'Pause' : 'En cours'; btPauseBtn2.textContent = btPaused? 'Reprendre' : 'Pause'; }); }
   if(btStopBtn2){ btStopBtn2.addEventListener('click', ()=>{ btAbort=true; addBtLog('Arrêt demandé'); if(labRunStatusEl) labRunStatusEl.textContent='Arrêt'; }); }
-  if(btShowDetails){ btShowDetails.addEventListener('click', ()=> openEvalsModal(currentSymbol, (labTFSelect&&labTFSelect.value)||currentInterval)); }
+if(btShowDetails){ btShowDetails.addEventListener('click', ()=> openEvalsModal((labSymbolSelect&&labSymbolSelect.value)||currentSymbol, (labTFSelect&&labTFSelect.value)||currentInterval)); }
   if(btExportDetails){ btExportDetails.addEventListener('click', ()=> exportEvalsCSV()); }
 }catch(_){ }
 if(btOptimizeBtn){ btOptimizeBtn.addEventListener('click', async ()=>{ try{
@@ -1291,7 +1292,7 @@ try{
   wireDate(labFromEl); wireDate(labToEl);
 }catch(_){ }
 if(labRunNewBtn){ labRunNewBtn.addEventListener('click', ()=>{ try{ window.__labGoalOverride='new'; if(labRunBtn){ labRunBtn.click(); } }catch(_){ } }); }
-if(labExportBtn){ labExportBtn.addEventListener('click', ()=>{ try{ const tf=(labTFSelect&&labTFSelect.value)||(intervalSelect&&intervalSelect.value)||''; const arr=Array.isArray(window.labPalmaresCache)? window.labPalmaresCache : []; if(!arr.length){ setStatus('Rien à exporter'); return; } let csv='idx,nom,gen,nol,prd,slInitPct,beAfterBars,beLockPct,emaLen,tp1R,entryMode,useFibRet,useFibDraw,confirmMode,ent382,ent500,ent618,ent786,tpEnable,tp,score,profitFactor,totalPnl,equityFinal,tradesCount,winrate,avgRR,maxDDAbs\n'; let idx=1; const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee'); for(const r of arr){ const p=r.params||{}; const st=r.res||{}; const tpStr = Array.isArray(p.tp)? JSON.stringify(p.tp).replaceAll(',', ';') : ''; const score = Number.isFinite(r.score)? r.score : scoreResult(st, weights); csv+=`${idx},\"${r.name||''}\",${r.gen||1},${p.nol||''},${p.prd||''},${p.slInitPct||''},${p.beAfterBars||''},${p.beLockPct||''},${p.emaLen||''},${p.tp1R||''},${p.entryMode||''},${p.useFibRet??''},${p.useFibDraw??''},${p.confirmMode||''},${p.ent382??''},${p.ent500??''},${p.ent618??''},${p.ent786??''},${p.tpEnable??''},\"${tpStr}\",${score.toFixed(2)},${st.profitFactor||''},${st.totalPnl||''},${st.equityFinal||''},${st.tradesCount||''},${st.winrate||''},${st.avgRR||''},${st.maxDDAbs||''}\\n`; idx++; } const blob=new Blob([csv], {type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`palmares_${currentSymbol}_${tf}.csv`; a.click(); }catch(_){ } }); }
+if(labExportBtn){ labExportBtn.addEventListener('click', ()=>{ try{ const tf=(labTFSelect&&labTFSelect.value)||(intervalSelect&&intervalSelect.value)||''; const sym=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol; const arr=Array.isArray(window.labPalmaresCache)? window.labPalmaresCache : []; if(!arr.length){ setStatus('Rien à exporter'); return; } let csv='idx,nom,gen,nol,prd,slInitPct,beAfterBars,beLockPct,emaLen,tp1R,entryMode,useFibRet,useFibDraw,confirmMode,ent382,ent500,ent618,ent786,tpEnable,tp,score,profitFactor,totalPnl,equityFinal,tradesCount,winrate,avgRR,maxDDAbs\n'; let idx=1; const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee'); for(const r of arr){ const p=r.params||{}; const st=r.res||{}; const tpStr = Array.isArray(p.tp)? JSON.stringify(p.tp).replaceAll(',', ';') : ''; const score = Number.isFinite(r.score)? r.score : scoreResult(st, weights); csv+=`${idx},\"${r.name||''}\",${r.gen||1},${p.nol||''},${p.prd||''},${p.slInitPct||''},${p.beAfterBars||''},${p.beLockPct||''},${p.emaLen||''},${p.tp1R||''},${p.entryMode||''},${p.useFibRet??''},${p.useFibDraw??''},${p.confirmMode||''},${p.ent382??''},${p.ent500??''},${p.ent618??''},${p.ent786??''},${p.tpEnable??''},\"${tpStr}\",${score.toFixed(2)},${st.profitFactor||''},${st.totalPnl||''},${st.equityFinal||''},${st.tradesCount||''},${st.winrate||''},${st.avgRR||''},${st.maxDDAbs||''}\\n`; idx++; } const blob=new Blob([csv], {type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`palmares_${sym}_${tf}.csv`; a.click(); }catch(_){ } }); }
 function buildWeightsUI(){ if(!weightsBody) return; const prof=(weightsProfile&&weightsProfile.value)||(localStorage.getItem('labWeightsProfile')||'balancee'); const w=getWeights(prof); weightsBody.innerHTML = `
   <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
     <label>Profit Factor <input id="w_pf" type="number" min="0" max="100" step="1" value="${w.pf}" /></label>
