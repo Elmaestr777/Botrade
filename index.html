@@ -103,9 +103,8 @@
               <label><input type="checkbox" id="optEnt786" /> 0.786</label>
             </fieldset>
             <fieldset>
-              <legend>Cibles & Stops (TP + SL + BE)</legend>
-              <label><input type="checkbox" id="optTPEnable" checked /> Activer</label>
-              <label>EMA trail len <input id="optEMALen" type="number" min="1" value="55" style="width:4.5rem" /></label>
+              <legend>Cibles & Stops (TP + SL + BE) — par TP uniquement</legend>
+              <p style="color:var(--muted); font-size:12px; margin:4px 0;">Info: Les stops sont définis uniquement par TP. Utilisez « SLi … » et « BE à ce TP » pour chaque cible.</p>
               <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px;">
                 <div>
                   <label>TP1 type
@@ -162,6 +161,26 @@
                   </label>
                   <label><input type="checkbox" id="optTP1BEOn" /> BE à ce TP</label>
                   <label>% capital TP1 <input id="optTP1P" type="number" min="0" max="100" step="1" value="10" style="width:5rem" /></label>
+                  <label>TP1 trailing
+                    <select id="optTP1TrailType">
+                      <option value="none" selected>Aucun</option>
+                      <option value="be">BE</option>
+                      <option value="prev">Précédent</option>
+                      <option value="ema">EMA</option>
+                      <option value="percent">Percent</option>
+                    </select>
+                  </label>
+                  <select id="optTP1TrailEma" style="width:8rem; display:none;"></select>
+                  <input id="optTP1TrailPct" type="number" step="0.1" min="0" style="width:6rem; display:none;" />
+                  <label>SL1 trailing
+                    <select id="optTP1SLTrailType">
+                      <option value="none" selected>Aucun</option>
+                      <option value="ema">EMA</option>
+                      <option value="percent">Percent</option>
+                    </select>
+                  </label>
+                  <select id="optTP1SLTrailEma" style="width:8rem; display:none;"></select>
+                  <input id="optTP1SLTrailPct" type="number" step="0.1" min="0" style="width:6rem; display:none;" />
                 </div>
                 <div>
                   <label>TP2 type
@@ -218,6 +237,26 @@
                   </label>
                   <label><input type="checkbox" id="optTP2BEOn" /> BE à ce TP</label>
                   <label>% capital TP2 <input id="optTP2P" type="number" min="0" max="100" step="1" value="15" style="width:5rem" /></label>
+                  <label>TP2 trailing
+                    <select id="optTP2TrailType">
+                      <option value="none" selected>Aucun</option>
+                      <option value="be">BE</option>
+                      <option value="prev">Précédent</option>
+                      <option value="ema">EMA</option>
+                      <option value="percent">Percent</option>
+                    </select>
+                  </label>
+                  <select id="optTP2TrailEma" style="width:8rem; display:none;"></select>
+                  <input id="optTP2TrailPct" type="number" step="0.1" min="0" style="width:6rem; display:none;" />
+                  <label>SL2 trailing
+                    <select id="optTP2SLTrailType">
+                      <option value="none" selected>Aucun</option>
+                      <option value="ema">EMA</option>
+                      <option value="percent">Percent</option>
+                    </select>
+                  </label>
+                  <select id="optTP2SLTrailEma" style="width:8rem; display:none;"></select>
+                  <input id="optTP2SLTrailPct" type="number" step="0.1" min="0" style="width:6rem; display:none;" />
                 </div>
                 <div>
                   <label>TP3 type
@@ -274,6 +313,26 @@
                   </label>
                   <label><input type="checkbox" id="optTP3BEOn" /> BE à ce TP</label>
                   <label>% capital TP3 <input id="optTP3P" type="number" min="0" max="100" step="1" value="15" style="width:5rem" /></label>
+                  <label>TP3 trailing
+                    <select id="optTP3TrailType">
+                      <option value="none" selected>Aucun</option>
+                      <option value="be">BE</option>
+                      <option value="prev">Précédent</option>
+                      <option value="ema">EMA</option>
+                      <option value="percent">Percent</option>
+                    </select>
+                  </label>
+                  <select id="optTP3TrailEma" style="width:8rem; display:none;"></select>
+                  <input id="optTP3TrailPct" type="number" step="0.1" min="0" style="width:6rem; display:none;" />
+                  <label>SL3 trailing
+                    <select id="optTP3SLTrailType">
+                      <option value="none" selected>Aucun</option>
+                      <option value="ema">EMA</option>
+                      <option value="percent">Percent</option>
+                    </select>
+                  </label>
+                  <select id="optTP3SLTrailEma" style="width:8rem; display:none;"></select>
+                  <input id="optTP3SLTrailPct" type="number" step="0.1" min="0" style="width:6rem; display:none;" />
                 </div>
                 <div>
                   <label>TP4 type
@@ -330,6 +389,26 @@
                   </label>
                   <label><input type="checkbox" id="optTP4BEOn" /> BE à ce TP</label>
                   <label>% capital TP4 <input id="optTP4P" type="number" min="0" max="100" step="1" value="10" style="width:5rem" /></label>
+                  <label>TP4 trailing
+                    <select id="optTP4TrailType">
+                      <option value="none" selected>Aucun</option>
+                      <option value="be">BE</option>
+                      <option value="prev">Précédent</option>
+                      <option value="ema">EMA</option>
+                      <option value="percent">Percent</option>
+                    </select>
+                  </label>
+                  <select id="optTP4TrailEma" style="width:8rem; display:none;"></select>
+                  <input id="optTP4TrailPct" type="number" step="0.1" min="0" style="width:6rem; display:none;" />
+                  <label>SL4 trailing
+                    <select id="optTP4SLTrailType">
+                      <option value="none" selected>Aucun</option>
+                      <option value="ema">EMA</option>
+                      <option value="percent">Percent</option>
+                    </select>
+                  </label>
+                  <select id="optTP4SLTrailEma" style="width:8rem; display:none;"></select>
+                  <input id="optTP4SLTrailPct" type="number" step="0.1" min="0" style="width:6rem; display:none;" />
                 </div>
                 <div>
                   <label>TP5 type
@@ -386,6 +465,26 @@
                   </label>
                   <label><input type="checkbox" id="optTP5BEOn" /> BE à ce TP</label>
                   <label>% capital TP5 <input id="optTP5P" type="number" min="0" max="100" step="1" value="10" style="width:5rem" /></label>
+                  <label>TP5 trailing
+                    <select id="optTP5TrailType">
+                      <option value="none" selected>Aucun</option>
+                      <option value="be">BE</option>
+                      <option value="prev">Précédent</option>
+                      <option value="ema">EMA</option>
+                      <option value="percent">Percent</option>
+                    </select>
+                  </label>
+                  <select id="optTP5TrailEma" style="width:8rem; display:none;"></select>
+                  <input id="optTP5TrailPct" type="number" step="0.1" min="0" style="width:6rem; display:none;" />
+                  <label>SL5 trailing
+                    <select id="optTP5SLTrailType">
+                      <option value="none" selected>Aucun</option>
+                      <option value="ema">EMA</option>
+                      <option value="percent">Percent</option>
+                    </select>
+                  </label>
+                  <select id="optTP5SLTrailEma" style="width:8rem; display:none;"></select>
+                  <input id="optTP5SLTrailPct" type="number" step="0.1" min="0" style="width:6rem; display:none;" />
                 </div>
                 <div>
                   <label>TP6 type
@@ -442,6 +541,26 @@
                   </label>
                   <label><input type="checkbox" id="optTP6BEOn" /> BE à ce TP</label>
                   <label>% capital TP6 <input id="optTP6P" type="number" min="0" max="100" step="1" value="10" style="width:5rem" /></label>
+                  <label>TP6 trailing
+                    <select id="optTP6TrailType">
+                      <option value="none" selected>Aucun</option>
+                      <option value="be">BE</option>
+                      <option value="prev">Précédent</option>
+                      <option value="ema">EMA</option>
+                      <option value="percent">Percent</option>
+                    </select>
+                  </label>
+                  <select id="optTP6TrailEma" style="width:8rem; display:none;"></select>
+                  <input id="optTP6TrailPct" type="number" step="0.1" min="0" style="width:6rem; display:none;" />
+                  <label>SL6 trailing
+                    <select id="optTP6SLTrailType">
+                      <option value="none" selected>Aucun</option>
+                      <option value="ema">EMA</option>
+                      <option value="percent">Percent</option>
+                    </select>
+                  </label>
+                  <select id="optTP6SLTrailEma" style="width:8rem; display:none;"></select>
+                  <input id="optTP6SLTrailPct" type="number" step="0.1" min="0" style="width:6rem; display:none;" />
                 </div>
                 <div>
                   <label>TP7 type
@@ -498,6 +617,26 @@
                   </label>
                   <label><input type="checkbox" id="optTP7BEOn" /> BE à ce TP</label>
                   <label>% capital TP7 <input id="optTP7P" type="number" min="0" max="100" step="1" value="10" style="width:5rem" /></label>
+                  <label>TP7 trailing
+                    <select id="optTP7TrailType">
+                      <option value="none" selected>Aucun</option>
+                      <option value="be">BE</option>
+                      <option value="prev">Précédent</option>
+                      <option value="ema">EMA</option>
+                      <option value="percent">Percent</option>
+                    </select>
+                  </label>
+                  <select id="optTP7TrailEma" style="width:8rem; display:none;"></select>
+                  <input id="optTP7TrailPct" type="number" step="0.1" min="0" style="width:6rem; display:none;" />
+                  <label>SL7 trailing
+                    <select id="optTP7SLTrailType">
+                      <option value="none" selected>Aucun</option>
+                      <option value="ema">EMA</option>
+                      <option value="percent">Percent</option>
+                    </select>
+                  </label>
+                  <select id="optTP7SLTrailEma" style="width:8rem; display:none;"></select>
+                  <input id="optTP7SLTrailPct" type="number" step="0.1" min="0" style="width:6rem; display:none;" />
                 </div>
                 <div>
                   <label>TP8 type
@@ -554,6 +693,26 @@
                   </label>
                   <label><input type="checkbox" id="optTP8BEOn" /> BE à ce TP</label>
                   <label>% capital TP8 <input id="optTP8P" type="number" min="0" max="100" step="1" value="10" style="width:5rem" /></label>
+                  <label>TP8 trailing
+                    <select id="optTP8TrailType">
+                      <option value="none" selected>Aucun</option>
+                      <option value="be">BE</option>
+                      <option value="prev">Précédent</option>
+                      <option value="ema">EMA</option>
+                      <option value="percent">Percent</option>
+                    </select>
+                  </label>
+                  <select id="optTP8TrailEma" style="width:8rem; display:none;"></select>
+                  <input id="optTP8TrailPct" type="number" step="0.1" min="0" style="width:6rem; display:none;" />
+                  <label>SL8 trailing
+                    <select id="optTP8SLTrailType">
+                      <option value="none" selected>Aucun</option>
+                      <option value="ema">EMA</option>
+                      <option value="percent">Percent</option>
+                    </select>
+                  </label>
+                  <select id="optTP8SLTrailEma" style="width:8rem; display:none;"></select>
+                  <input id="optTP8SLTrailPct" type="number" step="0.1" min="0" style="width:6rem; display:none;" />
                 </div>
                 <div>
                   <label>TP9 type
@@ -610,6 +769,26 @@
                   </label>
                   <label><input type="checkbox" id="optTP9BEOn" /> BE à ce TP</label>
                   <label>% capital TP9 <input id="optTP9P" type="number" min="0" max="100" step="1" value="5" style="width:5rem" /></label>
+                  <label>TP9 trailing
+                    <select id="optTP9TrailType">
+                      <option value="none" selected>Aucun</option>
+                      <option value="be">BE</option>
+                      <option value="prev">Précédent</option>
+                      <option value="ema">EMA</option>
+                      <option value="percent">Percent</option>
+                    </select>
+                  </label>
+                  <select id="optTP9TrailEma" style="width:8rem; display:none;"></select>
+                  <input id="optTP9TrailPct" type="number" step="0.1" min="0" style="width:6rem; display:none;" />
+                  <label>SL9 trailing
+                    <select id="optTP9SLTrailType">
+                      <option value="none" selected>Aucun</option>
+                      <option value="ema">EMA</option>
+                      <option value="percent">Percent</option>
+                    </select>
+                  </label>
+                  <select id="optTP9SLTrailEma" style="width:8rem; display:none;"></select>
+                  <input id="optTP9SLTrailPct" type="number" step="0.1" min="0" style="width:6rem; display:none;" />
                 </div>
                 <div>
                   <label>TP10 type
@@ -666,6 +845,26 @@
                   </label>
                   <label><input type="checkbox" id="optTP10BEOn" /> BE à ce TP</label>
                   <label>% capital TP10 <input id="optTP10P" type="number" min="0" max="100" step="1" value="5" style="width:5rem" /></label>
+                  <label>TP10 trailing
+                    <select id="optTP10TrailType">
+                      <option value="none" selected>Aucun</option>
+                      <option value="be">BE</option>
+                      <option value="prev">Précédent</option>
+                      <option value="ema">EMA</option>
+                      <option value="percent">Percent</option>
+                    </select>
+                  </label>
+                  <select id="optTP10TrailEma" style="width:8rem; display:none;"></select>
+                  <input id="optTP10TrailPct" type="number" step="0.1" min="0" style="width:6rem; display:none;" />
+                  <label>SL10 trailing
+                    <select id="optTP10SLTrailType">
+                      <option value="none" selected>Aucun</option>
+                      <option value="ema">EMA</option>
+                      <option value="percent">Percent</option>
+                    </select>
+                  </label>
+                  <select id="optTP10SLTrailEma" style="width:8rem; display:none;"></select>
+                  <input id="optTP10SLTrailPct" type="number" step="0.1" min="0" style="width:6rem; display:none;" />
                 </div>
               </div>
             </fieldset>
