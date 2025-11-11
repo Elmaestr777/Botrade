@@ -56,17 +56,24 @@ rows.push('<tr>' + `<td>${idx}</td>` + `<td>${pairDisp}</td>` + `<td>${tfDisp}</
   // Wire only the Détail action on palmarès rows (simple popup)
   if(!labTBody.dataset || labTBody.dataset.wiredDetail!=="1"){
     // Fallback local handler on tbody (best effort)
-    labTBody.addEventListener('click', (ev)=>{ try{ handleLabDetailClick(ev); }catch(_){ } });
+    labTBody.addEventListener('click', (ev)=>{ try{ __labDetailLog('tbody click'); handleLabDetailClick(ev); }catch(e){ __labDetailLog('tbody handler error: '+(e&&e.message?e.message:e)); } });
     labTBody.dataset.wiredDetail='1';
+    __labDetailLog('tbody wired');
   }
 }
 // Global capture fallback (ensures it works even if tbody handler misses)
 try{
   if(!window.__wiredDetailGlobal){
-    document.addEventListener('click', (ev)=>{ try{ handleLabDetailClick(ev); }catch(_){ } }, true);
+    document.addEventListener('click', (ev)=>{ try{ __labDetailLog('global capture click'); handleLabDetailClick(ev); }catch(e){ __labDetailLog('global handler error: '+(e&&e.message?e.message:e)); } }, true);
     window.__wiredDetailGlobal = 1;
+    __labDetailLog('global capture wired');
   }
-}catch(_){ }
+}catch(e){ try{ __labDetailLog('global capture wire error: '+(e&&e.message?e.message:e)); }catch(_){ } }
+// Debug logger for Lab Detail
+function __labDetailLog(msg){
+  try{ console.debug('[lab:detail]', msg); }catch(_){ }
+  try{ addLabLog && addLabLog(`[detail] ${msg}`); }catch(_){ }
+}
 // Ensure simple modal exists (create on the fly if missing)
 function ensureLabSimpleModal(){
   let el=document.getElementById('labSimpleDetailModal');
@@ -90,18 +97,22 @@ function ensureLabSimpleModal(){
 // Unified handler
 function handleLabDetailClick(ev){
   let t = ev && ev.target;
+  __labDetailLog('click start; target='+(t&&t.tagName)+' id='+(t&&t.id)+' class='+(t&&t.className));
   if(t && t.nodeType === 3 && t.parentElement) t = t.parentElement;
   let btn = null;
   if(t && typeof t.closest === 'function') btn = t.closest('button[data-action="detail"]');
-  if(!btn) return;
+  if(!btn){ __labDetailLog('no button[data-action="detail"] in path'); return; }
+  __labDetailLog('detail button found');
   try{
     const el = ensureLabSimpleModal();
+    __labDetailLog('modal ensured: '+!!el);
     const body = document.getElementById('labSimpleDetailBody');
     if(body){ const tfNow = labTFSelect? labTFSelect.value : (intervalSelect? intervalSelect.value:''); const symSel=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol; body.textContent = `${symbolToDisplay(symSel)} • ${tfNow}`; }
     openModalEl(el);
-    try{ ensureFloatingModal(el, 'lab-simple-detail', { left: 80, top: 80, width: 520, height: 320, zIndex: bumpZ() }); }catch(_){ }
+    __labDetailLog('modal opened');
+    try{ ensureFloatingModal(el, 'lab-simple-detail', { left: 80, top: 80, width: 520, height: 320, zIndex: bumpZ() }); __labDetailLog('floating applied'); }catch(e2){ __labDetailLog('floating error: '+(e2&&e2.message?e2.message:e2)); }
     if(ev){ try{ ev.stopPropagation(); ev.preventDefault(); }catch(_){ } }
-  }catch(_){ }
+  }catch(e){ __labDetailLog('error: '+(e&&e.message?e.message:e)); }
 }
 
 
