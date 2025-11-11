@@ -1277,6 +1277,23 @@
               <div style="font-weight:600; margin-bottom:4px;">Commentaire & analyse</div>
               <div id="detailSummaryBody" style="color:var(--muted); white-space:pre-wrap;">—</div>
             </div>
+            <div style="display:grid; grid-template-columns: 1fr; gap:8px; margin-top:10px;">
+              <div style="font-weight:600;">Rolling metrics (fenêtre 30 trades)</div>
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                <canvas id="detailRollPF" width="480" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+                <canvas id="detailRollWin" width="480" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+                <canvas id="detailRollRR" width="480" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+                <canvas id="detailRollExp" width="480" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr; gap:8px; margin-top:10px;">
+              <div style="font-weight:600;">Diagnostics trades</div>
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                <canvas id="detailDurHist" width="480" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+                <canvas id="detailStreaks" width="480" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              </div>
+              <canvas id="detailLSHist" width="980" height="160" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+            </div>
           </div>
         </div>
       </div>
