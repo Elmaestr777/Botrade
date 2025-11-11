@@ -1227,6 +1227,7 @@ const detailModalEl=document.getElementById('detailModal'); const detailClose=do
 const canRadar=document.getElementById('detailRadar'); const canEquity=document.getElementById('detailEquity'); const canDD=document.getElementById('detailDD'); const canHist=document.getElementById('detailHist'); const canEff=document.getElementById('detailEff'); const canRob=document.getElementById('detailRobust');
 const canRollPF=document.getElementById('detailRollPF'); const canRollWin=document.getElementById('detailRollWin'); const canRollRR=document.getElementById('detailRollRR'); const canRollExp=document.getElementById('detailRollExp');
 const canDur=document.getElementById('detailDurHist'); const canStreaks=document.getElementById('detailStreaks'); const canLS=document.getElementById('detailLSHist');
+const canMAEMFE=document.getElementById('detailMAEMFE'); const canMonthly=document.getElementById('detailMonthly'); const canRegime=document.getElementById('detailRegime');
 const detailSummaryEl = document.getElementById('detailSummaryBody');
 if(detailClose){ detailClose.addEventListener('click', ()=> closeModalEl(detailModalEl)); }
 if(detailModalEl){ detailModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close){ closeModalEl(detailModalEl); } }); }
@@ -1268,6 +1269,27 @@ function drawStreaks(canvas, winCounts, loseCounts){ if(!canvas) return; const c
 
 function drawHistLongShort(canvas, longs, shorts){ if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'Distribution retours (%) — Long vs Short', 'center'); const padL=36, padR=10, padT=18, padB=22; const all=longs.concat(shorts); if(!all.length) return; const min=Math.min(...all), max=Math.max(...all); const bins=20; const step=(max-min)/(bins||1)||1; const histL=new Array(bins).fill(0), histS=new Array(bins).fill(0); for(const v of longs){ let b=Math.floor((v-min)/step); if(b<0) b=0; if(b>=bins) b=bins-1; histL[b]++; } for(const v of shorts){ let b=Math.floor((v-min)/step); if(b<0) b=0; if(b>=bins) b=bins-1; histS[b]++; } const mcount=Math.max(1, ...histL, ...histS); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); for(let i=0;i<bins;i++){ const xx=i/bins*(w-padL-padR)+padL; const hhL=(histL[i]/mcount)*(h-padT-padB); const hhS=(histS[i]/mcount)*(h-padT-padB); const bw=(w-padL-padR)/bins-3; ctx.fillStyle='rgba(16,185,129,0.6)'; ctx.fillRect(xx, h-padB-hhL, bw, hhL); ctx.fillStyle='rgba(239,68,68,0.6)'; ctx.fillRect(xx, h-padB-hhS, bw, hhS); }
   __drawText(ctx, padL, h-6, `${min.toFixed(2)}%`, 'left'); __drawText(ctx, w-8, h-6, `${max.toFixed(2)}%`, 'right'); __drawText(ctx, w-8, padT+2, 'Vert: Long  Rouge: Short', 'right'); }
+
+function drawMAEMFEScatter(canvas, points){ if(!canvas||!points||!points.length) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'MAE/MFE Scatter (R units)', 'center'); const padL=40, padR=10, padT=18, padB=24; const maxX=Math.max(1, ...points.map(p=>p.maeR)); const maxY=Math.max(1, ...points.map(p=>p.mfeR)); const x=(v)=> padL + (v/Math.max(1e-9,maxX))*(w-padL-padR); const y=(v)=> h-padB - (v/Math.max(1e-9,maxY))*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); for(let g=0; g<=5; g++){ const gx=padL + (w-padL-padR)*g/5; const gy=h-padB - (h-padT-padB)*g/5; ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(gx, padT); ctx.lineTo(gx, h-padB); ctx.stroke(); ctx.beginPath(); ctx.moveTo(padL, gy); ctx.lineTo(w-padR, gy); ctx.stroke(); } __drawText(ctx, w-8, h-6, 'MAE (R) →', 'right'); __drawText(ctx, padL+2, padT, 'MFE (R) ↑', 'left');
+  for(const p of points){ const col = p.win? 'rgba(16,185,129,0.85)' : 'rgba(239,68,68,0.85)'; ctx.fillStyle=col; const xx=x(p.maeR), yy=y(p.mfeR); ctx.beginPath(); ctx.arc(xx, yy, 3, 0, Math.PI*2); ctx.fill(); }
+}
+
+function drawMonthlyHeatmap(canvas, cells){ if(!canvas||!cells||!cells.length) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'Monthly returns (%)', 'center'); const padL=60, padR=10, padT=22, padB=12; const years=Array.from(new Set(cells.map(c=>c.y))).sort((a,b)=>a-b); const months=['J','F','M','A','M','J','J','A','S','O','N','D']; const rows=years.length, cols=12; const cw=(w-padL-padR)/cols, ch=(h-padT-padB)/Math.max(1,rows); const vals=cells.map(c=>c.r); const vMin=Math.min(...vals, -10), vMax=Math.max(...vals, 10); function color(v){ const x=(v - vMin)/(vMax-vMin+1e-9); const r=Math.round(239*(1-x)); const g=Math.round(68 + (185-68)*x); const b=Math.round(68*(1-x)); return `rgb(${r},${g},${b})`; }
+  // axes labels
+  for(let m=0;m<12;m++){ __drawText(ctx, padL + m*cw + cw/2, padT-8, months[m], 'center'); }
+  for(let i=0;i<years.length;i++){ __drawText(ctx, padL-6, padT + i*ch + ch/2, String(years[i]), 'right'); }
+  const map=new Map(); for(const c of cells){ map.set(`${c.y}-${c.m}`, c.r); }
+  for(let i=0;i<years.length;i++){
+    for(let m=0;m<12;m++){
+      const key=`${years[i]}-${m+1}`; const v=map.has(key)? map.get(key): null; const x=padL + m*cw, y=padT + i*ch; ctx.fillStyle = v==null? '#e5e7eb' : color(v); ctx.fillRect(x+1,y+1,cw-2,ch-2); if(v!=null){ __drawText(ctx, x+cw/2, y+ch/2, String((v).toFixed(1)), 'center'); }
+    }
+  }
+}
+
+function drawRegimeHeatmap(canvas, mat){ if(!canvas||!mat) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'PF par régime (Trend × Vol)', 'center'); const padL=80, padR=10, padT=22, padB=12; const rows=['Up','Down'], cols=['Low','Med','High']; const cw=(w-padL-padR)/cols.length, ch=(h-padT-padB)/rows.length; for(let r=0;r<rows.length;r++){ __drawText(ctx, padL-6, padT + r*ch + ch/2, rows[r], 'right'); for(let c=0;c<cols.length;c++){ const cell=mat[rows[r]][cols[c]]||{pf:0,count:0}; const pf=(cell.pf===Infinity? 5 : Math.max(0, Math.min(5, cell.pf||0))); const x=padL + c*cw, y=padT + r*ch; // green scale by PF
+      const g=Math.round(255*Math.min(1, pf/3)); const col=`rgb(${255-g},${g},120)`; ctx.fillStyle=col; ctx.fillRect(x+1,y+1,cw-2,ch-2); __drawText(ctx, x+cw/2, y+ch/2, `${(cell.pf===Infinity?'∞':pf.toFixed(2))} (${cell.count})`, 'center'); __drawText(ctx, x+cw/2, padT-8, cols[c], 'center'); }
+  }
+}
 function drawRobust(canvas, complexity, robustness){ if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 14, 'Complexité & Robustesse (0–100)', 'center'); // grid
   ctx.strokeStyle=__clr().border; for(let g=0; g<=5; g++){ const x=220 + (w-240)*(g/5); ctx.beginPath(); ctx.moveTo(x, 24); ctx.lineTo(x, h-14); ctx.stroke(); __drawText(ctx, x, h-6, String(g*20)+'%', 'center'); }
   const labels=['Complexité (params actifs)','Robustesse (stabilité)']; const vals=[complexity, robustness]; for(let i=0;i<2;i++){ const y=40+i*40; ctx.fillStyle='#e5e7eb'; ctx.fillRect(220, y, w-240, 14); ctx.fillStyle=i===0?'#f59e0b':'#10b981'; ctx.fillRect(220, y, (w-240)*Math.max(0,Math.min(100, vals[i]))/100, 14); __drawText(ctx, 210, y+7, String(Math.round(vals[i]))+'%', 'right'); __drawText(ctx, 10, y+7, labels[i], 'left'); } }
@@ -1395,7 +1417,34 @@ drawRobust(canRob, compN, edgeN);
   // Diagnostics charts
   try{ drawDurations(canDur, durationsMin); }catch(_){ }
   try{ drawStreaks(canStreaks, winCounts, loseCounts); }catch(_){ }
-  try{ drawHistLongShort(canLS, retLong, retShort); }catch(_){ }
+try{ drawHistLongShort(canLS, retLong, retShort); }catch(_){ }
+  // MAE/MFE points
+  try{
+    const timeToIdx=(ts)=>{ let lo=0, hi=bars.length-1, ans=0; while(lo<=hi){ const mid=(lo+hi)>>1; if(bars[mid].time<=ts){ ans=mid; lo=mid+1; } else hi=mid-1; } return ans; };
+    const maePts=[];
+    for(const g of groups){ if(!Number.isFinite(g.entryTime) || !Number.isFinite(g.exitTime) || !Number.isFinite(g.entry) || !Number.isFinite(g.initSL)) continue; const i0=timeToIdx(g.entryTime), i1=timeToIdx(g.exitTime); if(i1<=i0) continue; let hi=-Infinity, lo=Infinity; for(let i=i0;i<=i1;i++){ hi=Math.max(hi, bars[i].high); lo=Math.min(lo, bars[i].low); } const entry=g.entry; const risk=Math.max(1e-9, Math.abs(entry - g.initSL)); let maeR=0, mfeR=0; if(g.dir==='long'){ maeR = Math.max(0, (entry - lo)/risk); mfeR = Math.max(0, (hi - entry)/risk); } else { maeR = Math.max(0, (hi - entry)/risk); mfeR = Math.max(0, (entry - lo)/risk); } maePts.push({ maeR, mfeR, win: (g.net||0)>=0 }); }
+    drawMAEMFEScatter(canMAEMFE, maePts);
+  }catch(_){ }
+  // Monthly heatmap
+  try{
+    const cells=[]; if(eq && eq.length){ const toYM=(ts)=>{ const d=new Date(ts*1000); return {y:d.getUTCFullYear(), m:d.getUTCMonth()+1}; }; const endByYM=new Map(); for(const p of eq){ const ym=toYM(p.time); const key=`${ym.y}-${ym.m}`; endByYM.set(key, p.equity); }
+      const keys=Array.from(endByYM.keys()).sort((a,b)=>{ const [ay,am]=a.split('-').map(Number), [by,bm]=b.split('-').map(Number); return ay!==by? ay-by : am-bm; }); let prev=null; for(const k of keys){ const v=endByYM.get(k); if(prev!=null){ const r=((v-prev)/prev)*100; const [y,m]=k.split('-').map(Number); cells.push({ y, m, r }); } prev=v; }
+    }
+    drawMonthlyHeatmap(canMonthly, cells);
+  }catch(_){ }
+  // Regime heatmap (Trend × Vol)
+  try{
+    const prd=Math.max(2, lbcOpts.prd|0); const lb=computeLineBreakState(bars, Math.max(1, lbcOpts.nol|0));
+    // ATR% (Wilder 14)
+    function atrPct(data, len){ const tr=new Array(data.length).fill(0); for(let i=1;i<data.length;i++){ const h=data[i].high, l=data[i].low, cPrev=data[i-1].close; tr[i]=Math.max(h-l, Math.abs(h-cPrev), Math.abs(l-cPrev)); } const atr=new Array(data.length).fill(0); let s=0; for(let i=0;i<data.length;i++){ if(i<len){ s+=tr[i]; atr[i]=s/Math.max(1,i+1); } else { atr[i]=(atr[i-1]*(len-1)+tr[i])/len; } } return atr.map((a,i)=> (a/Math.max(1e-9, data[i].close))*100); }
+    const atrP = atrPct(bars, 14); const vals=atrP.filter(x=> Number.isFinite(x)); const sorted=vals.slice().sort((a,b)=>a-b); const q1=sorted[Math.floor(sorted.length*0.33)]||0, q2=sorted[Math.floor(sorted.length*0.66)]||0;
+    const bucketVol=(x)=> x<=q1? 'Low' : (x>=q2? 'High' : 'Med'); const bucketTrend=(i)=> lb.trend[i]===1? 'Up':'Down';
+    const mat={ Up:{Low:{pf:0,gp:0,gl:0,count:0}, Med:{pf:0,gp:0,gl:0,count:0}, High:{pf:0,gp:0,gl:0,count:0}}, Down:{Low:{pf:0,gp:0,gl:0,count:0}, Med:{pf:0,gp:0,gl:0,count:0}, High:{pf:0,gp:0,gl:0,count:0}} };
+    const idxOfTime=(ts)=>{ let lo=0, hi=bars.length-1, ans=0; while(lo<=hi){ const mid=(lo+hi)>>1; if(bars[mid].time<=ts){ ans=mid; lo=mid+1; } else hi=mid-1; } return ans; };
+    for(const g of groups){ const i=idxOfTime(g.entryTime); const tr=bucketTrend(Math.min(i, lb.trend.length-1)); const vol=bucketVol(atrP[Math.min(i, atrP.length-1)]||0); const cell=mat[tr][vol]; cell.count++; if((g.net||0)>=0) cell.gp += (g.net||0); else cell.gl += (g.net||0); }
+    for(const r of ['Up','Down']){ for(const c of ['Low','Med','High']){ const cell=mat[r][c]; cell.pf = (cell.gl<0? cell.gp/Math.abs(cell.gl) : (cell.count>0? Infinity:0)); } }
+    drawRegimeHeatmap(canRegime, mat);
+  }catch(_){ }
 if(detailCtxEl){ const gtxt = (ctx && ctx.gen && ctx.gen>1)? ` • Gen ${ctx.gen}` : ''; detailCtxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — ${name}${gtxt} — PF ${(res.profitFactor===Infinity?'∞':(+res.profitFactor||0).toFixed(2))} • Trades ${res.tradesCount}`; }
   // Summary/commentary (pass advanced metrics)
   try{ const sum = generateStrategySummary(res, ctx, { timeInMkt, freq, expectancy: expNet, avgDurMin, bestNet, worstNet, r2, pf: (res.profitFactor===Infinity? Infinity : (+res.profitFactor||0)), winrate, avgRR, maxDDAbs: +res.maxDDAbs||0 }); if(detailSummaryEl) detailSummaryEl.innerHTML = sum; }catch(_){ }
