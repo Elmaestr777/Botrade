@@ -55,22 +55,34 @@ rows.push('<tr>' + `<td>${idx}</td>` + `<td>${pairDisp}</td>` + `<td>${tfDisp}</
   labTBody.innerHTML = rows.join('');
   // Wire only the Détail action on palmarès rows (simple popup)
   if(!labTBody.dataset || labTBody.dataset.wiredDetail!=="1"){
-    labTBody.addEventListener('click', (ev)=>{
-      let t = ev.target;
-      if(t && t.nodeType === 3 && t.parentElement) t = t.parentElement;
-      let btn = null;
-      if(t && typeof t.closest === 'function') btn = t.closest('button[data-action="detail"]');
-      if(!btn) return;
-      try{
-        const el = document.getElementById('labSimpleDetailModal');
-        const body = document.getElementById('labSimpleDetailBody');
-        if(body){ const tfNow = labTFSelect? labTFSelect.value : (intervalSelect? intervalSelect.value:''); const symSel=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol; body.textContent = `${symbolToDisplay(symSel)} • ${tfNow}`; }
-        openModalEl(el);
-        try{ ensureFloatingModal(el, 'lab-simple-detail', { left: 80, top: 80, width: 520, height: 320, zIndex: bumpZ() }); }catch(_){ }
-      }catch(_){ }
-    });
+    // Fallback local handler on tbody (best effort)
+    labTBody.addEventListener('click', (ev)=>{ try{ handleLabDetailClick(ev); }catch(_){ } });
     labTBody.dataset.wiredDetail='1';
   }
+}
+// Global capture fallback (ensures it works even if tbody handler misses)
+try{
+  if(!window.__wiredDetailGlobal){
+    document.addEventListener('click', (ev)=>{ try{ handleLabDetailClick(ev); }catch(_){ } }, true);
+    window.__wiredDetailGlobal = 1;
+  }
+}catch(_){ }
+// Unified handler
+function handleLabDetailClick(ev){
+  let t = ev && ev.target;
+  if(t && t.nodeType === 3 && t.parentElement) t = t.parentElement;
+  let btn = null;
+  if(t && typeof t.closest === 'function') btn = t.closest('button[data-action="detail"]');
+  if(!btn) return;
+  try{
+    const el = document.getElementById('labSimpleDetailModal');
+    const body = document.getElementById('labSimpleDetailBody');
+    if(body){ const tfNow = labTFSelect? labTFSelect.value : (intervalSelect? intervalSelect.value:''); const symSel=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol; body.textContent = `${symbolToDisplay(symSel)} • ${tfNow}`; }
+    openModalEl(el);
+    try{ ensureFloatingModal(el, 'lab-simple-detail', { left: 80, top: 80, width: 520, height: 320, zIndex: bumpZ() }); }catch(_){ }
+    ev.stopPropagation();
+    ev.preventDefault();
+  }catch(_){ }
 }
 
 
