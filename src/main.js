@@ -53,47 +53,21 @@ rows.push('<tr>' + `<td>${idx}</td>` + `<td>${pairDisp}</td>` + `<td>${tfDisp}</
     idx++;
   }
   labTBody.innerHTML = rows.join('');
-  // Wire only the Détail action on palmarès rows
+  // Wire only the Détail action on palmarès rows (simple popup)
   if(!labTBody.dataset || labTBody.dataset.wiredDetail!=="1"){
-    labTBody.addEventListener('click', async (ev)=>{
+    labTBody.addEventListener('click', (ev)=>{
       let t = ev.target;
       if(t && t.nodeType === 3 && t.parentElement) t = t.parentElement;
       let btn = null;
       if(t && typeof t.closest === 'function') btn = t.closest('button[data-action="detail"]');
       if(!btn) return;
-      let i = parseInt(btn.getAttribute('data-idx')||'-1', 10);
-      if(!(i>=0)){
-        const tr = btn.closest && btn.closest('tr');
-        const numCell = tr && tr.querySelector ? tr.querySelector('td:first-child') : null;
-        const n = numCell && numCell.textContent ? parseInt(String(numCell.textContent).trim(),10) : NaN;
-        if(Number.isFinite(n) && n>0) i = n-1;
-      }
-      const tfNow = labTFSelect? labTFSelect.value : (intervalSelect? intervalSelect.value:'');
-      const symNow = currentSymbol;
-      const w=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
-      const base = Array.isArray(window.labPalmaresCache)? window.labPalmaresCache.slice() : [];
-      const cur=base.slice().sort((a,b)=> (b.score||scoreResult(b.res||{},w)) - (a.score||scoreResult(a.res||{},w)));
-      if(!(i>=0 && i<cur.length)) return;
-      const rec=cur[i]||{};
       try{
-        // Simple, robust detail: run a backtest and open metrics/trades modals
-        const p = rec.params || rec.p || {};
-        const symSel = (labSymbolSelect&&labSymbolSelect.value)||symNow;
-        // Determine bars for selected TF; if different from current, fetch fresh; else use current candles
-        let bars = candles;
-        if(tfNow !== currentInterval){ try{ bars = await fetchAllKlines(symSel, tfNow, 5000); }catch(_){ bars=candles; } }
-        // Use Lab range selection (visible/dates/tout)
-        let from=null, to=null;
-        try{ const modeEl=document.getElementById('labRangeMode'); const mode=(modeEl&&modeEl.value)||'visible';
-          if(mode==='dates'){ const f=(document.getElementById('labFrom')&&document.getElementById('labFrom').value)||''; const t=(document.getElementById('labTo')&&document.getElementById('labTo').value)||''; from = f? Math.floor(new Date(f).getTime()/1000) : null; to = t? Math.floor(new Date(t).getTime()/1000) : null; }
-          else if(mode==='visible'){ const r=getVisibleRange(); if(r){ from=r.from; to=r.to; } }
-        }catch(_){ from=null; to=null; }
-        const idxFromTimeLocal=(bars,from,to)=>{ let s=0,e=bars.length-1; if(from!=null){ for(let k=0;k<bars.length;k++){ if(bars[k].time>=from){ s=k; break; } } } if(to!=null){ for(let k=bars.length-1;k>=0;k--){ if(bars[k].time<=to){ e=k; break; } } } return [s,e]; };
-        const [sIdx,eIdx]=idxFromTimeLocal(bars, from, to);
-        const conf={ startCap: Math.max(0, parseFloat((document.getElementById('labStartCap')&&document.getElementById('labStartCap').value)||'10000')), fee: Math.max(0, parseFloat((document.getElementById('labFee')&&document.getElementById('labFee').value)||'0.1')), lev: Math.max(1, parseFloat((document.getElementById('labLev')&&document.getElementById('labLev').value)||'1')), maxPct:100, base:'initial' };
-        const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, p, true);
-        showStrategyResult(res, { symbol: symSel, tf: tfNow, startCap: conf.startCap });
-      }catch(err){ try{ addLabLog && addLabLog('Détail: '+(err&&err.message?err.message:err)); }catch(_){} }
+        const el = document.getElementById('labSimpleDetailModal');
+        const body = document.getElementById('labSimpleDetailBody');
+        if(body){ const tfNow = labTFSelect? labTFSelect.value : (intervalSelect? intervalSelect.value:''); const symSel=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol; body.textContent = `${symbolToDisplay(symSel)} • ${tfNow}`; }
+        openModalEl(el);
+        try{ ensureFloatingModal(el, 'lab-simple-detail', { left: 80, top: 80, width: 520, height: 320, zIndex: bumpZ() }); }catch(_){ }
+      }catch(_){ }
     });
     labTBody.dataset.wiredDetail='1';
   }
@@ -1193,6 +1167,13 @@ const detailModalEl=document.getElementById('detailModal'); const detailClose=do
 const canRadar=document.getElementById('detailRadar'); const canEquity=document.getElementById('detailEquity'); const canDD=document.getElementById('detailDD'); const canHist=document.getElementById('detailHist'); const canEff=document.getElementById('detailEff'); const canRob=document.getElementById('detailRobust');
 if(detailClose){ detailClose.addEventListener('click', ()=> closeModalEl(detailModalEl)); }
 if(detailModalEl){ detailModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close){ closeModalEl(detailModalEl); } }); }
+// Simple Lab detail modal (empty)
+try{
+  const labSimpleDetailModal=document.getElementById('labSimpleDetailModal');
+  const labSimpleDetailClose=document.getElementById('labSimpleDetailClose');
+  if(labSimpleDetailClose){ labSimpleDetailClose.addEventListener('click', ()=> closeModalEl(labSimpleDetailModal)); }
+  if(labSimpleDetailModal){ labSimpleDetailModal.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close){ closeModalEl(labSimpleDetailModal); } }); }
+}catch(_){ }
 
 function __drawText(ctx, x, y, txt, align='left'){ ctx.save(); ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--fg')||'#111827'; ctx.font='12px Segoe UI, Arial'; ctx.textAlign=align; ctx.textBaseline='middle'; ctx.fillText(txt, x, y); ctx.restore(); }
 function __clr(){ const cs=getComputedStyle(document.documentElement); return { fg: cs.getPropertyValue('--fg')||'#111827', muted: cs.getPropertyValue('--muted')||'#6b7280', border: cs.getPropertyValue('--header-border')||'#e5e7eb' }; }
