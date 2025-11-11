@@ -1227,7 +1227,7 @@ const detailModalEl=document.getElementById('detailModal'); const detailClose=do
 const canRadar=document.getElementById('detailRadar'); const canEquity=document.getElementById('detailEquity'); const canDD=document.getElementById('detailDD'); const canHist=document.getElementById('detailHist'); const canEff=document.getElementById('detailEff'); const canRob=document.getElementById('detailRobust');
 const canRollPF=document.getElementById('detailRollPF'); const canRollWin=document.getElementById('detailRollWin'); const canRollRR=document.getElementById('detailRollRR'); const canRollExp=document.getElementById('detailRollExp');
 const canDur=document.getElementById('detailDurHist'); const canStreaks=document.getElementById('detailStreaks'); const canLS=document.getElementById('detailLSHist');
-const canMAEMFE=document.getElementById('detailMAEMFE'); const canWeekly=document.getElementById('detailWeekly'); const canRegime=document.getElementById('detailRegime');
+const canMAEMFE=document.getElementById('detailMAEMFE'); const canWeekly=document.getElementById('detailWeekly'); const canDOW=document.getElementById('detailDOW'); const canRegime=document.getElementById('detailRegime');
 const canPareto=document.getElementById('detailPareto'); const canMC=document.getElementById('detailMC'); const canQQ=document.getElementById('detailQQ'); const canACF=document.getElementById('detailACF');
 const detailSummaryEl = document.getElementById('detailSummaryBody');
 if(detailClose){ detailClose.addEventListener('click', ()=> closeModalEl(detailModalEl)); }
@@ -1275,7 +1275,7 @@ function drawHistLongShort(canvas, longs, shorts){ if(!canvas) return; const ctx
   __drawText(ctx, padL, h-8, `${min.toFixed(2)}%`, 'left'); __drawText(ctx, w-8, h-8, `${max.toFixed(2)}%`, 'right'); __drawText(ctx, w-8, padT+2, 'Vert: Long  Rouge: Short', 'right'); }
 
 function drawMAEMFEScatter(canvas, points){ if(!canvas||!points||!points.length) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'MAE/MFE Scatter (R units)', 'center'); const padL=46, padR=12, padT=20, padB=28; const maxX=Math.max(1, ...points.map(p=>p.maeR)); const maxY=Math.max(1, ...points.map(p=>p.mfeR)); const x=(v)=> padL + (v/Math.max(1e-9,maxX))*(w-padL-padR); const y=(v)=> h-padB - (v/Math.max(1e-9,maxY))*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; for(let t=0;t<=ticks;t++){ const xx=padL + (w-padL-padR)*t/ticks; const yy=h-padB - (h-padT-padB)*t/ticks; ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(xx, padT); ctx.lineTo(xx, h-padB); ctx.stroke(); ctx.beginPath(); ctx.moveTo(padL, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, xx, h-8, (maxX*t/ticks).toFixed(1), 'center'); __drawText(ctx, padL-8, yy, (maxY*t/ticks).toFixed(1), 'right'); }
-  __drawText(ctx, w-8, h-8, 'MAE (R) →', 'right'); __drawText(ctx, padL+2, padT, 'MFE (R) ↑', 'left');
+  __drawText(ctx, w-8, h-8, 'MAE (R) →', 'right'); __drawText(ctx, padL+2, padT, 'MFE (R) ↑', 'left'); __drawText(ctx, w-8, padT+2, 'Vert = Gain  Rouge = Perte', 'right');
   for(const p of points){ const col = p.win? 'rgba(16,185,129,0.85)' : 'rgba(239,68,68,0.85)'; ctx.fillStyle=col; const xx=x(p.maeR), yy=y(p.mfeR); ctx.beginPath(); ctx.arc(xx, yy, 3, 0, Math.PI*2); ctx.fill(); }
 }
 
@@ -1301,7 +1301,10 @@ function drawWeeklyHeatmap(canvas, cells){ if(!canvas||!cells||!cells.length) re
       const key=`${years[i]}-${wIdx}`; const v=map.has(key)? map.get(key): null; const x=padL + (wIdx-1)*cw, y=padT + i*ch; ctx.fillStyle = v==null? '#e5e7eb' : color(v); ctx.fillRect(x+1,y+1,cw-2,ch-2); if(v!=null){ __drawText(ctx, x+cw/2, y+ch/2, String(v.toFixed(1)), 'center'); }
     }
   }
-  __drawText(ctx, w-8, h-6, 'Semaines (1–53) →', 'right');
+__drawText(ctx, w-8, h-6, 'Semaines (1–53) →', 'right');
+}
+
+function drawDOWBars(canvas, vals){ if(!canvas||!vals||vals.length!==7) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); const padL=46, padR=12, padT=20, padB=28; __drawText(ctx, w/2, 12, 'Retours moyens par jour de semaine (%)', 'center'); const min=Math.min(0, ...vals.map(v=>v.v)), max=Math.max(0, ...vals.map(v=>v.v)); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB); for(let t=0;t<=ticks;t++){ const val=min + (max-min)*t/ticks; const yy=y(val); ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-8, yy, val.toFixed(2)+'%', 'right'); } const bw=(w-padL-padR)/7 - 6; for(let i=0;i<7;i++){ const x0=padL + i*((w-padL-padR)/7) + 3; const v=vals[i].v; const y0=y(0), yv=y(v); ctx.fillStyle = v>=0? 'rgba(16,185,129,0.75)' : 'rgba(239,68,68,0.75)'; ctx.fillRect(x0, Math.min(y0,yv), bw, Math.abs(y0-yv)); __drawText(ctx, x0+bw/2, h-10, vals[i].k, 'center'); }
 }
 
 function drawRegimeHeatmap(canvas, mat){ if(!canvas||!mat) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'PF par régime (Trend × Vol)', 'center'); const padL=80, padR=10, padT=22, padB=12; const rows=['Up','Down'], cols=['Low','Med','High']; const cw=(w-padL-padR)/cols.length, ch=(h-padT-padB)/rows.length; for(let r=0;r<rows.length;r++){ __drawText(ctx, padL-6, padT + r*ch + ch/2, rows[r], 'right'); for(let c=0;c<cols.length;c++){ const cell=mat[rows[r]][cols[c]]||{pf:0,count:0}; const pf=(cell.pf===Infinity? 5 : Math.max(0, Math.min(5, cell.pf||0))); const x=padL + c*cw, y=padT + r*ch; // green scale by PF
@@ -1472,7 +1475,15 @@ try{ drawHistLongShort(canLS, retLong, retShort); }catch(_){ }
     const endByYW=new Map(); if(eq && eq.length){ for(const p of eq){ const yw=isoYearWeek(p.time); const key=`${yw.y}-${yw.w}`; endByYW.set(key, p.equity); } }
     const keys=Array.from(endByYW.keys()).sort((a,b)=>{ const [ay,aw]=a.split('-').map(Number), [by,bw]=b.split('-').map(Number); return ay!==by? ay-by : aw-bw; });
     const cells=[]; let prev=null; for(const k of keys){ const v=endByYW.get(k); if(prev!=null){ const [y,w]=k.split('-').map(Number); const r=((v-prev)/prev)*100; cells.push({ y, w, r }); } prev=v; }
-    drawWeeklyHeatmap(canWeekly, cells);
+drawWeeklyHeatmap(canWeekly, cells);
+  }catch(_){ }
+  // Seasonality — day-of-week bars
+  try{
+    function toYMD(ts){ const d=new Date(ts*1000); return `${d.getUTCFullYear()}-${d.getUTCMonth()+1}-${d.getUTCDate()}`; }
+    const eod=new Map(); if(eq && eq.length){ for(const p of eq){ const key=toYMD(p.time); eod.set(key, p.equity); } }
+    const days=Array.from(eod.keys()).sort(); const dowVals=[0,0,0,0,0,0,0], dowCnt=[0,0,0,0,0,0,0]; let prev=null; for(const d of days){ const v=eod.get(d); if(prev!=null){ const ret=((v-prev)/prev)*100; const [y,m,dd]=d.split('-').map(Number); const dt=new Date(Date.UTC(y,m-1,dd)); const dow=(dt.getUTCDay()+6)%7; dowVals[dow]+=ret; dowCnt[dow]++; } prev=v; }
+    const labels=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']; const arr=labels.map((k,i)=>({k, v: (dowCnt[i]>0? dowVals[i]/dowCnt[i] : 0)}));
+    drawDOWBars(canDOW, arr);
   }catch(_){ }
   // Regime heatmap (Trend × Vol)
   try{
