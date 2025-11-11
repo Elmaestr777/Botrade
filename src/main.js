@@ -1225,6 +1225,7 @@ try{ const evalsClose=document.getElementById('evalsClose'); if(evalsClose){ eva
 // Strategy detail modal
 const detailModalEl=document.getElementById('detailModal'); const detailClose=document.getElementById('detailClose'); const detailCtxEl=document.getElementById('detailCtx');
 const canRadar=document.getElementById('detailRadar'); const canEquity=document.getElementById('detailEquity'); const canDD=document.getElementById('detailDD'); const canHist=document.getElementById('detailHist'); const canEff=document.getElementById('detailEff'); const canRob=document.getElementById('detailRobust');
+const detailSummaryEl = document.getElementById('detailSummaryBody');
 if(detailClose){ detailClose.addEventListener('click', ()=> closeModalEl(detailModalEl)); }
 if(detailModalEl){ detailModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close){ closeModalEl(detailModalEl); } }); }
 // Simple Lab detail modal (empty)
@@ -1247,6 +1248,42 @@ function drawBars(canvas, labels, vals){ if(!canvas) return; const ctx=canvas.ge
 function drawRobust(canvas, complexity, robustness){ if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, 10, 20, 'Complexité & Robustesse', 'left'); // bars
   const labels=['Complexité (params actifs)','Robustesse (stabilité)']; const vals=[complexity, robustness]; for(let i=0;i<2;i++){ const y=40+i*40; ctx.fillStyle='#e5e7eb'; ctx.fillRect(220, y, w-240, 14); ctx.fillStyle=i===0?'#f59e0b':'#10b981'; ctx.fillRect(220, y, (w-240)*Math.max(0,Math.min(100, vals[i]))/100, 14); __drawText(ctx, 210, y+7, String(Math.round(vals[i]))+'%', 'right'); __drawText(ctx, 10, y+7, labels[i], 'left'); } }
 
+// Aide: synthèse et suggestions automatiques
+function generateStrategySummary(res, ctx, d){ try{
+  const pf = (res.profitFactor===Infinity? Infinity : (+res.profitFactor||0));
+  const wr = +res.winrate||0; const rr = +res.avgRR||0; const dd = +res.maxDDAbs||0;
+  const cap0 = +((ctx && ctx.conf && ctx.conf.startCap) || 0);
+  const ddPct = cap0>0? ((dd/cap0)*100) : NaN;
+  const tim = Math.max(0, Math.min(100, d && d.timeInMkt || 0));
+  const freq = Math.max(0, d && d.freq || 0);
+  const gen = Math.max(1, ctx && ctx.gen || 1);
+  const lines = [];
+  // Synthèse courte
+  lines.push(`• Profit Factor: ${pf===Infinity?'∞':pf.toFixed(2)}  • Win%: ${wr.toFixed(1)}%  • Avg R:R: ${Number.isFinite(rr)? rr.toFixed(2):'—'}`);
+  if(Number.isFinite(ddPct)) lines.push(`• Max DD: ${dd.toFixed(0)} (${ddPct.toFixed(1)}% du capital initial)`);
+  lines.push(`• Exposition: ${tim.toFixed(1)}%  • Trades/jour: ${freq.toFixed(2)}`);
+  // Interprétation
+  const insights = [];
+  if(pf<1.2 && pf!==Infinity) insights.push("rentabilité fragile (PF < 1.2)");
+  if(wr<45) insights.push("taux de réussite bas (<45%)");
+  if(Number.isFinite(rr) && rr<1.0) insights.push("R:R moyen < 1 (cibles trop proches vs SL)");
+  if(Number.isFinite(ddPct) && ddPct>20) insights.push("drawdown élevé (>20% du capital)");
+  if(tim>60) insights.push("exposition importante au marché (>60%)");
+  if(insights.length){ lines.push(`• Lecture: ${insights.join(' • ')}`); }
+  // Points d'amélioration pour gen ≥ 2
+  if(gen>=2){
+    const imp = [];
+    if(wr<45) imp.push("Renforcer la confirmation d'entrée (mode: Bounce/Touch), ou augmenter prd/NOL pour filtrer le bruit");
+    if(pf<1.3) imp.push("Rééquilibrer l'échelle de TP (plus de distance/poids sur TP ultérieurs) et réduire le nombre de trades");
+    if(Number.isFinite(rr) && rr<1.0) imp.push("Augmenter tp1R / ratios Fib, ou rapprocher le SL initial pour améliorer le R:R");
+    if(Number.isFinite(ddPct) && ddPct>20) imp.push("Activer/renforcer BE (beAfterBars, beLockPct) et envisager SL ladder plus strict");
+    if(tim>60) imp.push("Réduire l'exposition (prd↑, NOL↑) pour limiter le temps en position");
+    if(!imp.length) imp.push("Affiner légèrement TP/SL et confirmer sur 2–3 splits temporels");
+    lines.push("\nPoints d'amélioration (génération ≥ 2):\n- " + imp.join("\n- "));
+  }
+  return lines.join("\n");
+}catch(_){ return '—'; }}
+
 // Nouveau flux: pop‑up simple via showStrategyResult (métriques & trades)
 async function openLabStrategyDetail(item, ctx){ try{
   const sym=ctx.symbol, tf=ctx.tf; const p=item.params||item.p||{};
@@ -1266,7 +1303,7 @@ async function openLabStrategyDetail(item, ctx){ try{
     if(detailCtxEl){ detailCtxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — Analyse en cours...`; }
     openModalEl(detailModalEl);
     try{ ensureFloatingModal(detailModalEl, 'detail', { left: 60, top: 60, width: 1000, height: 660, zIndex: bumpZ() }); }catch(_){ }
-    const ctxFull = { symbol: sym, tf, name: (item && item.name) || 'Stratégie', conf, bars, sIdx, eIdx, params: p };
+const ctxFull = { symbol: sym, tf, name: (item && item.name) || 'Stratégie', conf, bars, sIdx, eIdx, params: p, gen: (item && item.gen) ? item.gen : 1 };
     renderStrategyDetailIntoModal(res, ctxFull);
   }catch(__err){
     // Fallback: modales Résultats+Trades existantes
@@ -1298,7 +1335,9 @@ function renderStrategyDetailIntoModal(res, ctx){ try{
   drawBars(canEff, effLabels, effVals);
   const complexity = (6 + (+!!(ctx.params&&ctx.params.useFibRet)) + (ctx.params&&ctx.params.confirmMode?1:0) + (Array.isArray((ctx.params&&ctx.params.tp))? ctx.params.tp.length:0)); const compN = Math.max(0, Math.min(100, (complexity/20)*100));
   drawRobust(canRob, compN, edgeN);
-  if(detailCtxEl){ detailCtxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — ${name} — PF ${(res.profitFactor===Infinity?'∞':(+res.profitFactor||0).toFixed(2))} • Trades ${res.tradesCount}`; }
+if(detailCtxEl){ const gtxt = (ctx && ctx.gen && ctx.gen>1)? ` • Gen ${ctx.gen}` : ''; detailCtxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — ${name}${gtxt} — PF ${(res.profitFactor===Infinity?'∞':(+res.profitFactor||0).toFixed(2))} • Trades ${res.tradesCount}`; }
+  // Summary/commentary
+  try{ const sum = generateStrategySummary(res, ctx, { winrate, avgRR, pf: +res.profitFactor||0, maxDDAbs: +res.maxDDAbs||0, timeInMkt, freq }); if(detailSummaryEl) detailSummaryEl.innerHTML = sum; }catch(_){ }
  }catch(_){ if(detailCtxEl){ detailCtxEl.textContent = 'Erreur analyse'; } } }
 
 // Lab actions: refresh/export/weights
