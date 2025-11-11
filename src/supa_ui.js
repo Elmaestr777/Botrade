@@ -340,6 +340,40 @@
     }catch(_){ return []; }
   }
 
+  // Heaven strategies API (Supabase)
+  async function persistHeavenStrategy(ctx){
+    try{
+      const c=ensureClient(); if(!c){ slog('Supabase: client indisponible'); return false; }
+      const row={ user_id: null, symbol: ctx.symbol, tf: ctx.tf, name: (ctx.name||null), params: ctx.params||{}, metrics: ctx.metrics||null };
+      const { error } = await c.from('heaven_strategies').upsert([row], { onConflict: 'symbol,tf,name', ignoreDuplicates: false, returning: 'minimal' });
+      if(error){ slog('Supabase: persistHeavenStrategy KO — '+(error.message||error)); return false; }
+      slog('Supabase: Heaven sauvegardée');
+      return true;
+    }catch(e){ slog('Supabase: persistHeavenStrategy exception — '+(e&&e.message?e.message:e)); return false; }
+  }
+  async function fetchHeavenStrategies(symbol, tf, limit=50){
+    const c=ensureClient(); if(!c) return [];
+    try{
+      const { data, error } = await c
+        .from('heaven_strategies')
+        .select('id,name,params,metrics,created_at')
+        .eq('symbol', symbol)
+        .eq('tf', tf)
+        .order('created_at', { ascending:false })
+        .limit(Math.max(1, limit));
+      if(error){ slog('Supabase: fetchHeavenStrategies KO — '+(error.message||error)); return []; }
+      return Array.isArray(data)? data : [];
+    }catch(_){ return []; }
+  }
+  async function deleteHeavenStrategy(id){
+    const c=ensureClient(); if(!c || !id) return false;
+    try{ const { error } = await c.from('heaven_strategies').delete().eq('id', id); if(error){ slog('Supabase: deleteHeavenStrategy KO — '+(error.message||error)); return false; } return true; }catch(_){ return false; }
+  }
+  async function renameHeavenStrategy(id, name){
+    const c=ensureClient(); if(!c || !id) return false;
+    try{ const { error } = await c.from('heaven_strategies').update({ name }).eq('id', id); if(error){ slog('Supabase: renameHeavenStrategy KO — '+(error.message||error)); return false; } return true; }catch(_){ return false; }
+  }
+
   window.SUPA = {
     isConfigured: ()=>{ const c=readCfg(); return !!(c.url && c.anon); },
     configSource: ()=>{ const s=staticCfg(); return (s.url&&s.anon)? 'static' : 'localStorage'; },
@@ -350,5 +384,10 @@
     getUserId,
     fetchKnownKeys: fetchKnownCanonicalKeys,
     fetchPalmares,
+    // Heaven
+    persistHeavenStrategy,
+    fetchHeavenStrategies,
+    deleteHeavenStrategy,
+    renameHeavenStrategy,
   };
 })();
