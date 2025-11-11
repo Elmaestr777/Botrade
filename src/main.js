@@ -152,6 +152,22 @@ let container = document.getElementById('chart');
 if(!container){ try{ const el=document.createElement('div'); el.id='chart'; el.style.width='100%'; el.style.height='calc(100vh - 100px)'; document.body.appendChild(el); container = el; }catch(_){ /* fallback */ } }
 const intervalSelect = document.getElementById('interval');
 const symbolSelect = document.getElementById('symbol');
+// Ensure Lab pair list mirrors chart symbol list (options only, selection stays independent)
+function syncLabSymbolListFromChart(){
+  try{
+    if(!labSymbolSelect || !symbolSelect) return;
+    let saved=null; try{ saved = localStorage.getItem('lab:sym'); }catch(_){ saved=null; }
+    const prefer = saved || labSymbolSelect.value || (symbolSelect && symbolSelect.value) || '';
+    labSymbolSelect.innerHTML = symbolSelect.innerHTML;
+    // Restore preferred selection if it exists in the refreshed list; else fallback to chart current
+    try{
+      if(prefer){ labSymbolSelect.value = prefer; }
+      if(!labSymbolSelect.value){ labSymbolSelect.value = (symbolSelect && symbolSelect.value) || ''; }
+    }catch(_){ }
+  }catch(_){ }
+}
+// Initial sync at startup (after symbolSelect is available)
+syncLabSymbolListFromChart();
 const titleEl = document.getElementById('pairTitle');
 const statusEl = document.getElementById('status');
 const gotoEndBtn = document.getElementById('gotoEndBtn');
