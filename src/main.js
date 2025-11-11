@@ -877,11 +877,11 @@ if(ok){ const dir=pendingFib.dir; const entry=bar.close; let sl=computeSLFromLad
         while(pos && pos.tpIdx < pos.targets.length){
           const tp=pos.targets[pos.tpIdx]; const hit = pos.dir==='long'? (bar.high >= tp.price) : (bar.low <= tp.price); if(!hit) break;
           const portionFrac = lbcOpts.tpCompound? (tp.w||1) : 1; const portionQty = pos.initQty * portionFrac; const usedQty = Math.min(portionQty, pos.qty);
-          const exitPx = tp.price; const pnl = (pos.dir==='long'? (exitPx - pos.entry) : (pos.entry - exitPx)) * usedQty; const fees = (pos.entry*usedQty + exitPx*usedQty) * feePct; const net = pnl - fees;
+const exitPx = tp.price; const pnl = (pos.dir==='long'? (exitPx - pos.entry) : (pos.entry - exitPx)) * usedQty; const fees = (pos.entry*usedQty + exitPx*usedQty) * feePct; const net = pnl - fees; const eqBeforeLocal=equity;
           equity += net; if(equity<0) equity=0; tradesCount++; if(pos.risk>0) rrSum += (net/pos.risk);
           if(net>=0){ grossProfit+=net; wins++; } else { grossLoss+=net; losses++; }
           if(equity>peak) peak=equity; const dd=peak-equity; if(dd>maxDDAbs) maxDDAbs=dd;
-trades.push({ dir:pos.dir, entryTime:bars[pos.entryIdx].time, entry:pos.entry, initSL:pos.initSL, exitTime:bars[i].time, exit:exitPx, reason:`TP${pos.tpIdx+1}`, qty:usedQty, net, fees, rr: (Math.abs(pos.entry-pos.initSL)*usedQty>0? net/(Math.abs(pos.entry-pos.initSL)*usedQty) : null), eqBefore: eqBeforeLocal });
+trades.push({ dir:pos.dir, entryTime:candles[pos.entryIdx].time, entry:pos.entry, initSL:pos.initSL, exitTime:candles[i].time, exit:exitPx, reason:`TP${pos.tpIdx+1}`, qty:usedQty, net, fees, rr: (Math.abs(pos.entry-pos.initSL)*usedQty>0? net/(Math.abs(pos.entry-pos.initSL)*usedQty) : null), eqBefore: eqBeforeLocal });
           try{ addTPHitMarker(candles[i].time, pos.dir); }catch(_){ }
           pos.qty -= usedQty; pos.anyTP=true;
           // Apply per-TP rules (BE/SL); fallback to DOM if not persisted
