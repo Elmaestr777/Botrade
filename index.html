@@ -1261,67 +1261,150 @@
         <div class="modal-body">
           <div id="detailCtx" style="margin-bottom:8px; color:var(--muted);"></div>
           <div style="display:grid; grid-template-columns: 1fr; gap:12px;">
-            <div style="display:grid; grid-template-columns: 420px 1fr; gap:12px; align-items:start;">
-              <canvas id="detailRadar" width="420" height="300" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
-              <div>
-                <canvas id="detailEquity" width="520" height="220" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
-                <canvas id="detailDD" width="520" height="100" style="margin-top:8px; background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
-              </div>
+            <div>
+              <div style="font-weight:600;">Radar critères</div>
+              <canvas id="detailRadar" width="980" height="300" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div id="detailRadarNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-              <canvas id="detailHist" width="480" height="180" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
-              <canvas id="detailEff" width="480" height="180" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+            <div>
+              <div style="font-weight:600;">Équity</div>
+              <canvas id="detailEquity" width="980" height="220" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div id="detailEquityNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
-            <canvas id="detailRobust" width="980" height="160" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+            <div>
+              <div style="font-weight:600;">Drawdown absolu</div>
+              <canvas id="detailDD" width="980" height="100" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div id="detailDDNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
+            </div>
+            <div>
+              <div style="font-weight:600;">Distribution des rendements</div>
+              <canvas id="detailHist" width="980" height="180" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div id="detailHistNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
+            </div>
+            <div>
+              <div style="font-weight:600;">Efficacité de la stratégie</div>
+              <canvas id="detailEff" width="980" height="180" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div id="detailEffNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
+            </div>
+            <div>
+              <div style="font-weight:600;">Complexité & Robustesse</div>
+              <canvas id="detailRobust" width="980" height="160" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div id="detailRobustNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
+            </div>
             <div id="detailSummary" style="padding:8px; border:1px solid var(--header-border); border-radius:8px; background:var(--bg);">
-              <div style="font-weight:600; margin-bottom:4px;">Commentaire & analyse</div>
+              <div style="display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-bottom:6px;">
+                <div style="font-weight:600;">Commentaire & analyse</div>
+                <div style="display:flex; gap:6px; align-items:center; font-size:12px;">
+                  <label>Slippage (bps)
+                    <input id="detailSlipBps" type="number" min="0" max="200" step="1" value="0" style="width:6rem;" />
+                  </label>
+                  <button id="detailSlipApply" class="btn">Appliquer</button>
+                  <span id="detailSlipNote" style="color:var(--muted);"></span>
+                </div>
+              </div>
               <div id="detailSummaryBody" style="color:var(--muted); white-space:pre-wrap;">—</div>
             </div>
-            <div style="display:grid; grid-template-columns: 1fr; gap:8px; margin-top:10px;">
-              <div style="font-weight:600;">Rolling metrics (fenêtre 30 trades)</div>
-              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-                <canvas id="detailRollPF" width="480" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
-                <canvas id="detailRollWin" width="480" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
-                <canvas id="detailRollRR" width="480" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
-                <canvas id="detailRollExp" width="480" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
-              </div>
+            <div>
+              <div style="font-weight:600;">IC (bootstrap 95%)</div>
+              <canvas id="detailCIs" width="980" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div id="detailCIsNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
-            <div style="display:grid; grid-template-columns: 1fr; gap:8px; margin-top:10px;">
-              <div style="font-weight:600;">Diagnostics trades</div>
-              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-                <canvas id="detailDurHist" width="480" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
-                <canvas id="detailStreaks" width="480" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
-              </div>
+            <div>
+              <div style="font-weight:600;">Rolling PF (fenêtre 30)</div>
+              <canvas id="detailRollPF" width="980" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div id="detailRollPFNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
+            </div>
+            <div>
+              <div style="font-weight:600;">Rolling Win% (fenêtre 30)</div>
+              <canvas id="detailRollWin" width="980" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div id="detailRollWinNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
+            </div>
+            <div>
+              <div style="font-weight:600;">Rolling Avg R:R (fenêtre 30)</div>
+              <canvas id="detailRollRR" width="980" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div id="detailRollRRNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
+            </div>
+            <div>
+              <div style="font-weight:600;">Rolling Expectancy (fenêtre 30)</div>
+              <canvas id="detailRollExp" width="980" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div id="detailRollExpNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
+            </div>
+            <div>
+              <div style="font-weight:600;">Durée des trades</div>
+              <canvas id="detailDurHist" width="980" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div id="detailDurHistNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
+            </div>
+            <div>
+              <div style="font-weight:600;">Séquences victoires/défaites</div>
+              <canvas id="detailStreaks" width="980" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div id="detailStreaksNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
+            </div>
+            <div>
+              <div style="font-weight:600;">Distribution retours — Long vs Short</div>
               <canvas id="detailLSHist" width="980" height="160" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div id="detailLSHistNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
-            <div style="display:grid; grid-template-columns: 1fr; gap:8px; margin-top:10px;">
+            <div>
               <div style="font-weight:600;">MAE/MFE (excursions en R)</div>
               <canvas id="detailMAEMFE" width="980" height="220" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div id="detailMAEMFENote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
-<div style="display:grid; grid-template-columns: 1fr; gap:8px; margin-top:10px;">
+            <div>
               <div style="font-weight:600;">Saisonnalité — Retours hebdomadaires (%)</div>
               <canvas id="detailWeekly" width="980" height="220" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div id="detailWeeklyNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
-            <div style="display:grid; grid-template-columns: 1fr; gap:8px;">
+            <div>
               <div style="font-weight:600;">Saisonnalité — par jour de semaine (%)</div>
               <canvas id="detailDOW" width="980" height="200" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div id="detailDOWNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
-            <div style="display:grid; grid-template-columns: 1fr; gap:8px; margin-top:10px;">
+            <div>
+              <div style="font-weight:600;">Saisonnalité — Jour × Heure (retours %)</div>
+              <canvas id="detailDOWHour" width="980" height="220" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div id="detailDOWHourNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
+            </div>
+            <div>
+              <div style="font-weight:600;">Jour × Heure — Long seulement</div>
+              <canvas id="detailDOWHourLong" width="980" height="200" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div id="detailDOWHourLongNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
+            </div>
+            <div>
+              <div style="font-weight:600;">Jour × Heure — Short seulement</div>
+              <canvas id="detailDOWHourShort" width="980" height="200" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div id="detailDOWHourShortNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
+            </div>
+            <div>
+              <div style="font-weight:600;">Walk-forward — splits temporels</div>
+              <canvas id="detailWF" width="980" height="200" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div id="detailWFNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
+            </div>
+            <div>
               <div style="font-weight:600;">Régimes (Trend × Volatilité)</div>
               <canvas id="detailRegime" width="980" height="200" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div id="detailRegimeNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
-            <div style="display:grid; grid-template-columns: 1fr; gap:8px; margin-top:10px;">
+            <div>
               <div style="font-weight:600;">Pareto — P&L vs Max DD (Palmarès)</div>
               <canvas id="detailPareto" width="980" height="220" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div id="detailParetoNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
-            <div style="display:grid; grid-template-columns: 1fr; gap:8px; margin-top:10px;">
+            <div>
               <div style="font-weight:600;">Monte Carlo — éventail d'équity (bootstrap trades)</div>
               <canvas id="detailMC" width="980" height="220" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div id="detailMCNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:10px;">
-              <canvas id="detailQQ" width="480" height="200" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
-              <canvas id="detailACF" width="480" height="200" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+            <div>
+              <div style="font-weight:600;">QQ-Plot (retours normalisés)</div>
+              <canvas id="detailQQ" width="980" height="200" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div id="detailQQNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
+            <div>
+              <div style="font-weight:600;">Autocorrélation (lags)</div>
+              <canvas id="detailACF" width="980" height="200" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <div id="detailACFNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
+            </div>
+          </div>
           </div>
         </div>
       </div>

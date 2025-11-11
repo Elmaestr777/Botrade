@@ -1227,7 +1227,7 @@ const detailModalEl=document.getElementById('detailModal'); const detailClose=do
 const canRadar=document.getElementById('detailRadar'); const canEquity=document.getElementById('detailEquity'); const canDD=document.getElementById('detailDD'); const canHist=document.getElementById('detailHist'); const canEff=document.getElementById('detailEff'); const canRob=document.getElementById('detailRobust');
 const canRollPF=document.getElementById('detailRollPF'); const canRollWin=document.getElementById('detailRollWin'); const canRollRR=document.getElementById('detailRollRR'); const canRollExp=document.getElementById('detailRollExp');
 const canDur=document.getElementById('detailDurHist'); const canStreaks=document.getElementById('detailStreaks'); const canLS=document.getElementById('detailLSHist');
-const canMAEMFE=document.getElementById('detailMAEMFE'); const canWeekly=document.getElementById('detailWeekly'); const canDOW=document.getElementById('detailDOW'); const canRegime=document.getElementById('detailRegime');
+const canMAEMFE=document.getElementById('detailMAEMFE'); const canWeekly=document.getElementById('detailWeekly'); const canDOW=document.getElementById('detailDOW'); const canDOWHour=document.getElementById('detailDOWHour'); const canDOWHourLong=document.getElementById('detailDOWHourLong'); const canDOWHourShort=document.getElementById('detailDOWHourShort'); const canRegime=document.getElementById('detailRegime'); const canWF=document.getElementById('detailWF'); const canCIs=document.getElementById('detailCIs');
 const canPareto=document.getElementById('detailPareto'); const canMC=document.getElementById('detailMC'); const canQQ=document.getElementById('detailQQ'); const canACF=document.getElementById('detailACF');
 const detailSummaryEl = document.getElementById('detailSummaryBody');
 if(detailClose){ detailClose.addEventListener('click', ()=> closeModalEl(detailModalEl)); }
@@ -1307,6 +1307,20 @@ __drawText(ctx, w-8, h-6, 'Semaines (1–53) →', 'right');
 function drawDOWBars(canvas, vals){ if(!canvas||!vals||vals.length!==7) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); const padL=46, padR=12, padT=20, padB=28; __drawText(ctx, w/2, 12, 'Retours moyens par jour de semaine (%)', 'center'); const min=Math.min(0, ...vals.map(v=>v.v)), max=Math.max(0, ...vals.map(v=>v.v)); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB); for(let t=0;t<=ticks;t++){ const val=min + (max-min)*t/ticks; const yy=y(val); ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-8, yy, val.toFixed(2)+'%', 'right'); } const bw=(w-padL-padR)/7 - 6; for(let i=0;i<7;i++){ const x0=padL + i*((w-padL-padR)/7) + 3; const v=vals[i].v; const y0=y(0), yv=y(v); ctx.fillStyle = v>=0? 'rgba(16,185,129,0.75)' : 'rgba(239,68,68,0.75)'; ctx.fillRect(x0, Math.min(y0,yv), bw, Math.abs(y0-yv)); __drawText(ctx, x0+bw/2, h-10, vals[i].k, 'center'); }
 }
 
+function drawDOWHourHeatmap(canvas, cells){ if(!canvas||!cells||!cells.length) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'Jour × Heure — retours (%)', 'center'); const padL=60, padR=10, padT=22, padB=18; const rows=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']; const cols=24; const cw=(w-padL-padR)/cols, ch=(h-padT-padB)/rows.length; const vals=cells.map(c=>c.r); const vMin=Math.min(...vals, -5), vMax=Math.max(...vals, 5); function color(v){ const x=(v - vMin)/(vMax-vMin+1e-9); const r=Math.round(239*(1-x)); const g=Math.round(68 + (185-68)*x); const b=Math.round(68*(1-x)); return `rgb(${r},${g},${b})`; }
+  for(let hcol=0; hcol<cols; hcol+=6){ __drawText(ctx, padL + hcol*cw + cw/2, padT-8, String(hcol), 'center'); }
+  for(let r=0;r<rows.length;r++){ __drawText(ctx, padL-6, padT + r*ch + ch/2, rows[r], 'right'); for(let c=0;c<cols;c++){ const cell=cells[r*cols + c]; const x=padL + c*cw, y=padT + r*ch; const v=(cell && Number.isFinite(cell.r))? cell.r : null; ctx.fillStyle = v==null? '#e5e7eb' : color(v); ctx.fillRect(x+1,y+1,cw-2,ch-2); if(v!=null){ __drawText(ctx, x+cw/2, y+ch/2, String((v).toFixed(1)), 'center'); } } }
+}
+
+function drawCIBars(canvas, ci){ if(!canvas||!ci) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'IC 95% — Win%, PF, Exp', 'center'); const padL=70, padR=12, padT=22, padB=12; const rows=[{k:'Win%', lo:(ci.win&&ci.win[0])||0, hi:(ci.win&&ci.win[1])||0, min:0, max:100, fmt:(v)=>v.toFixed(1)+'%'},{k:'PF', lo:(ci.pf&&ci.pf[0])||0, hi:(ci.pf&&ci.pf[1])||0, min:0, max:Math.max(3, (ci.pf&&ci.pf[1])||0), fmt:(v)=> (v===Infinity?'∞':v.toFixed(2))},{k:'Exp', lo:(ci.exp&&ci.exp[0])||0, hi:(ci.exp&&ci.exp[1])||0, min:Math.min((ci.exp&&ci.exp[0])||0,0), max:Math.max((ci.exp&&ci.exp[1])||0,0), fmt:(v)=> v.toFixed(2)}]; const rh=(h-padT-padB)/rows.length; ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); for(let r=0;r<rows.length;r++){ const row=rows[r]; const y=padT + r*rh + rh/2; const min=row.min, max=row.max; const x=(v)=> padL + (v-min)/(max-min+1e-9)*(w-padL-padR); // grid
+  const ticks=4; for(let t=0;t<=ticks;t++){ const xx=padL + (w-padL-padR)*t/ticks; ctx.beginPath(); ctx.moveTo(xx, y-rh/2+4); ctx.lineTo(xx, y+rh/2-4); ctx.stroke(); }
+  // CI segment
+  const xl=x(row.lo), xh=x(row.hi); ctx.strokeStyle='#2563eb'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(xl, y); ctx.lineTo(xh, y); ctx.stroke(); ctx.strokeStyle=__clr().border; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(xl, y-6); ctx.lineTo(xl, y+6); ctx.moveTo(xh, y-6); ctx.lineTo(xh, y+6); ctx.stroke(); __drawText(ctx, padL-8, y, row.k, 'right'); __drawText(ctx, xl-4, y-10, row.fmt(row.lo), 'right'); __drawText(ctx, xh+4, y-10, row.fmt(row.hi), 'left'); }
+}
+
+function drawWFTable(canvas, splits){ if(!canvas||!Array.isArray(splits)||!splits.length) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'Walk-forward — métriques par split', 'center'); const padL=60, padR=10, padT=22, padB=12; const cols=splits.length, rows=['PF','Win%','Exp','P&L']; const cw=(w-padL-padR)/cols, rh=(h-padT-padB)/rows.length; ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); for(let c=0;c<cols;c++){ __drawText(ctx, padL + c*cw + cw/2, padT-8, 'S'+(c+1), 'center'); for(let r=0;r<rows.length;r++){ const x=padL + c*cw, y=padT + r*rh; ctx.strokeStyle=__clr().border; ctx.strokeRect(x+0.5, y+0.5, cw-1, rh-1); let val='—'; if(r===0) val = (splits[c].pf===Infinity? '∞': splits[c].pf.toFixed(2)); else if(r===1) val = splits[c].win.toFixed(1)+'%'; else if(r===2) val = splits[c].exp.toFixed(2); else if(r===3) val = splits[c].pnl.toFixed(0); __drawText(ctx, x+cw/2, y+rh/2, val, 'center'); if(c===0){ __drawText(ctx, padL-8, y+rh/2, rows[r], 'right'); } } }
+}
+
 function drawRegimeHeatmap(canvas, mat){ if(!canvas||!mat) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'PF par régime (Trend × Vol)', 'center'); const padL=80, padR=10, padT=22, padB=12; const rows=['Up','Down'], cols=['Low','Med','High']; const cw=(w-padL-padR)/cols.length, ch=(h-padT-padB)/rows.length; for(let r=0;r<rows.length;r++){ __drawText(ctx, padL-6, padT + r*ch + ch/2, rows[r], 'right'); for(let c=0;c<cols.length;c++){ const cell=mat[rows[r]][cols[c]]||{pf:0,count:0}; const pf=(cell.pf===Infinity? 5 : Math.max(0, Math.min(5, cell.pf||0))); const x=padL + c*cw, y=padT + r*ch; // green scale by PF
       const g=Math.round(255*Math.min(1, pf/3)); const col=`rgb(${255-g},${g},120)`; ctx.fillStyle=col; ctx.fillRect(x+1,y+1,cw-2,ch-2); __drawText(ctx, x+cw/2, y+ch/2, `${(cell.pf===Infinity?'∞':pf.toFixed(2))} (${cell.count})`, 'center'); __drawText(ctx, x+cw/2, padT-8, cols[c], 'center'); }
   }
@@ -1355,6 +1369,7 @@ lines.push(`• Exposition: ${tim.toFixed(1)}%  • Trades/jour: ${freq.toFixed(
   if(Number.isFinite(ddPct) && ddPct>20) insights.push("drawdown élevé (>20% du capital)");
   if(tim>60) insights.push("exposition importante au marché (>60%)");
   if(insights.length){ lines.push(`• Lecture: ${insights.join(' • ')}`); }
+  if(d && d.ci){ try{ const winCI = d.ci.win||[]; const pfCI=d.ci.pf||[]; const expCI=d.ci.exp||[]; lines.push(`• IC95: Win% [${(winCI[0]||0).toFixed(1)}–${(winCI[1]||0).toFixed(1)}]  PF [${(pfCI[0]||0).toFixed(2)}–${(pfCI[1]||0).toFixed(2)}]  Exp [${(expCI[0]||0).toFixed(2)}–${(expCI[1]||0).toFixed(2)}]`); }catch(_){ } }
   // Points d'amélioration pour gen ≥ 2
   if(gen>=2){
     const imp = [];
@@ -1399,6 +1414,9 @@ const ctxFull = { symbol: sym, tf, name: (item && item.name) || 'Stratégie', co
 function renderStrategyDetailIntoModal(res, ctx){ try{
   const sym = ctx.symbol, tf = ctx.tf; const name = ctx.name||'Stratégie'; const conf = ctx.conf; const bars = ctx.bars; const sIdx = ctx.sIdx, eIdx=ctx.eIdx;
   const eq = (res.eqSeries||[]).map(x=>({ time:x.time, equity:x.equity }));
+  const setNote = (id, txt)=>{ try{ const el=document.getElementById(id); if(el) el.textContent = String(txt||''); }catch(_){ } };
+  // placeholders for per-chart summaries
+  let weeklyCells=null, dowArr=null, dowHourCells=null, dhLongCells=null, dhShortCells=null, wfSegs=null, regimeMat=null, maePtsVar=null, mcBands=null;
   // returns per trade
   const tArr = Array.isArray(res.trades)? res.trades.slice() : [];
   // Fallback: compute eqBefore sequentially if missing
@@ -1412,10 +1430,13 @@ function renderStrategyDetailIntoModal(res, ctx){ try{
   const pf = (res.profitFactor===Infinity? 3 : Math.max(0, Math.min(3, +res.profitFactor||0))); const pfN = (pf/3)*100; const sharpeN = Math.max(0, Math.min(100, (sharpe/3)*100)); const recov = (res.maxDDAbs>0? (res.totalPnl/Math.max(1e-9, res.maxDDAbs)) : 0); const recovN = Math.max(0, Math.min(100, (recov/3)*100)); const consN = Math.max(0, Math.min(100, 100*(1 - Math.min(1, sd/3)))); const cpiN = Math.max(0, Math.min(100, 100*(1 - Math.min(1, (res.maxDDAbs/Math.max(1, conf.startCap)) / 0.5))));
   const r2 = (()=>{ const n=eq.length; if(n<3) return 0; const xs=eq.map((_,i)=>i); const ys=eq.map(p=>p.equity); const xm=mean(xs), ym=mean(ys); let num=0, den=0; for(let i=0;i<n;i++){ const xv=xs[i]-xm, yv=ys[i]-ym; num += xv*yv; den += xv*xv; } const a=num/(den||1); const b=ym - a*xm; let ssTot=0, ssRes=0; for(let i=0;i<n;i++){ const y=ys[i]; const yhat=a*xs[i]+b; ssTot += (y-ym)*(y-ym); ssRes += (y-yhat)*(y-yhat); } return 1 - (ssRes/(ssTot||1)); })();
   const r2N = Math.max(0, Math.min(100, r2*100)); const winrate = +res.winrate||0; const avgRR = +res.avgRR||0; const teN = Math.max(0, Math.min(100, (winrate/100) * (pf/(pf+1))*100)); const edgeN = Math.max(0, Math.min(100, (pf/(pf+1)) * (1 - Math.min(1, sd/5))*100));
+  // CI bootstrap moved after groups are computed
   drawRadar(canRadar, ['Profit Factor','Sharpe','Recovery','Consistency','Cap. Protection','R² equity','Trade Efficiency','Edge Robustness'], [pfN, sharpeN, recovN, consN, cpiN, r2N, teN, edgeN]);
+  try{ const labs=['PF','Sharpe','Recovery','Consistency','CapProt','R²','TradeEff','Edge']; const vals=[pfN,sharpeN,recovN,consN,cpiN,r2N,teN,edgeN]; const idxs=vals.map((v,i)=>[v,i]).sort((a,b)=>b[0]-a[0]); const top=idxs.slice(0,2).map(([v,i])=>`${labs[i]} ${v.toFixed(0)}%`).join(', '); const bot=idxs.slice(-2).map(([v,i])=>`${labs[i]} ${v.toFixed(0)}%`).join(', '); setNote('detailRadarNote', `Forces: ${top} • Faiblesses: ${bot}`); }catch(_){ }
   drawEquity(canEquity, eq);
   drawDD(canDD, eq);
   drawHist(canHist, rets);
+  try{ if(eq && eq.length>1){ const ret=((eq[eq.length-1].equity-eq[0].equity)/Math.max(1e-9,eq[0].equity))*100; const ddAbs=+res.maxDDAbs||0; const ddPct=(conf.startCap>0? (ddAbs/conf.startCap*100):NaN); setNote('detailEquityNote', `Perf cumulée: ${ret.toFixed(1)}% • Max DD: ${ddAbs.toFixed(0)}${Number.isFinite(ddPct)? ' ('+ddPct.toFixed(1)+'%)':''}`); setNote('detailDDNote', `Taille et fréquence des creux: max ${ddAbs.toFixed(0)} • Surveiller la phase de stress.`); } const neg=rets.filter(x=>x<0).length, N=rets.length; setNote('detailHistNote', `Moyenne: ${m.toFixed(2)}% • Écart-type: ${sd.toFixed(2)} • Pertes: ${(N? (neg/N*100):0).toFixed(0)}% des trades`); }catch(_){ }
 const totalSecs=Math.max(1, (maxTs>minTs? (maxTs-minTs) : (bars[eIdx].time-bars[sIdx].time))); const days=totalSecs/86400; const freq = (res.tradesCount||0)/(days||1); const timeInMkt = Math.max(0, Math.min(100, 100*(totalDur/Math.max(1, totalSecs)))); const effLabels=['Win Rate','Avg R:R','Trade Efficiency','Time in Market','Trades / jour']; const effVals=[winrate, Math.max(0, Math.min(100, (avgRR/2)*100)), teN, timeInMkt, Math.max(0, Math.min(100, (freq/20)*100))];
   // Expectancy & trade stats (par position)
 const groups=(function(){ const t=(res.trades||[]).slice().sort((a,b)=> (a.exitTime||0)-(b.exitTime||0)); const map=new Map(); function keyOf(e){ return `${e.dir}|${e.entryTime}|${e.entry}|${e.initSL}`; } for(const ev of t){ const k=keyOf(ev); let g=map.get(k); if(!g){ g={ entryTime:ev.entryTime, exitTime:ev.exitTime, entry: (Number.isFinite(ev.entry)? ev.entry : null), initSL: (Number.isFinite(ev.initSL)? ev.initSL : null), net:0, dur:0, dir:ev.dir||'long', eq0: (Number(ev.eqBefore)||null) }; map.set(k,g); }
@@ -1439,27 +1460,39 @@ const rrByPos=(function(){ const map=new Map(); const t=(res.trades||[]); functi
   // Durations & streaks
   const durationsMin = groups.map(g=> Math.max(0, (Number(g.dur)||0)/60));
   const retLong=[], retShort=[]; for(const g of groups){ const eq0=Number.isFinite(g.eq0)&&g.eq0>0? g.eq0 : (Number(conf.startCap)||1); const rpct = (Number(g.net)||0)/eq0*100; if(g.dir==='long') retLong.push(rpct); else retShort.push(rpct); }
+  // Bootstrap CIs (95%) for Win%, PF, Expectancy (par position)
+  let ciBoot=null; try{ const nets=groups.map(g=> Number(g.net)||0); const L=nets.length; if(L>=8){ const B=200; const pfArr=[], wrArr=[], expArr=[]; function q(a,p){ const s=a.slice().sort((x,y)=>x-y); const idx=Math.max(0, Math.min(s.length-1, Math.floor((s.length-1)*p))); return s[idx]; }
+    for(let b=0;b<B;b++){ let gp=0, gl=0, wins=0, sum=0; for(let i=0;i<L;i++){ const v=nets[Math.floor(Math.random()*L)]; sum+=v; if(v>=0){ gp+=v; wins++; } else { gl+=v; } } const pfv = gl<0? (gp/Math.abs(gl)) : 10; pfArr.push(pfv); wrArr.push(100*wins/L); expArr.push(sum/L); }
+    ciBoot={ win:[q(wrArr,0.025), q(wrArr,0.975)], pf:[q(pfArr,0.025), q(pfArr,0.975)], exp:[q(expArr,0.025), q(expArr,0.975)] };
+  } }catch(_){ ciBoot=null; }
   // Streaks
   const sortedPos = groups.slice().sort((a,b)=> (a.exitTime||0)-(b.exitTime||0)); let curType=null, curLen=0; const winLen=[], loseLen=[]; function pushStreak(){ if(curLen>0){ if(curType==='win') winLen.push(curLen); else loseLen.push(curLen); } }
   for(const g of sortedPos){ const typ=(g.net>=0?'win':'lose'); if(typ===curType){ curLen++; } else { pushStreak(); curType=typ; curLen=1; } } pushStreak(); const maxStreak=Math.max(1,...winLen, ...loseLen); const winCounts=new Array(Math.max(1,maxStreak+1)).fill(0); const loseCounts=new Array(Math.max(1,maxStreak+1)).fill(0); for(const k of winLen) winCounts[k]=(winCounts[k]||0)+1; for(const k of loseLen) loseCounts[k]=(loseCounts[k]||0)+1;
   drawBars(canEff, effLabels, effVals);
+  try{ const idxs=effVals.map((v,i)=>[v,i]).sort((a,b)=>b[0]-a[0]); const best=effLabels[idxs[0][1]]; const worst=effLabels[idxs[idxs.length-1][1]]; setNote('detailEffNote', `Point fort: ${best} • À améliorer: ${worst}`); }catch(_){ }
   const complexity = (6 + (+!!(ctx.params&&ctx.params.useFibRet)) + (ctx.params&&ctx.params.confirmMode?1:0) + (Array.isArray((ctx.params&&ctx.params.tp))? ctx.params.tp.length:0)); const compN = Math.max(0, Math.min(100, (complexity/20)*100));
-drawRobust(canRob, compN, edgeN);
+  drawRobust(canRob, compN, edgeN);
+  try{ setNote('detailRobustNote', `Complexité ${compN.toFixed(0)}% • Robustesse ${edgeN.toFixed(0)}%`); }catch(_){ }
   // Rolling charts
   try{ drawLineChart(canRollPF, rollPF, { title:'Rolling PF (fenêtre 30)', yMin:0, yMax: Math.max(3, Math.min(5, Math.max(...rollPF,3))), fmt:(v)=> (v===Infinity?'∞':v.toFixed(2)) }); }catch(_){ }
   try{ drawLineChart(canRollWin, rollWin, { title:'Rolling Win% (fenêtre 30)', yMin:0, yMax:100, fmt:(v)=> v.toFixed(0)+'%' }); }catch(_){ }
   try{ drawLineChart(canRollRR, rollRR, { title:'Rolling Avg R:R (fenêtre 30)', yMin:0, yMax: Math.max(2, Math.max(...rollRR,1.5)), fmt:(v)=> v.toFixed(2) }); }catch(_){ }
   try{ drawLineChart(canRollExp, rollExp, { title:'Rolling Expectancy (USD, fen.30)', yMin: Math.min(0, Math.min(...rollExp,0)), yMax: Math.max(0, Math.max(...rollExp,0)), fmt:(v)=> v.toFixed(2) }); }catch(_){ }
+  try{ const med=(a)=>{ const s=a.slice().sort((x,y)=>x-y); return s.length? s[Math.floor(s.length/2)] : 0; }; setNote('detailRollPFNote', `Dernier ${rollPF.length? (rollPF[rollPF.length-1]).toFixed(2):'—'} • Médiane ${med(rollPF).toFixed(2)}`); setNote('detailRollWinNote', `Dernier ${rollWin.length? (rollWin[rollWin.length-1]).toFixed(0)+'%':'—'} • Médiane ${med(rollWin).toFixed(0)}%`); setNote('detailRollRRNote', `Dernier ${rollRR.length? (rollRR[rollRR.length-1]).toFixed(2):'—'} • Médiane ${med(rollRR).toFixed(2)}`); setNote('detailRollExpNote', `Dernier ${rollExp.length? (rollExp[rollExp.length-1]).toFixed(2):'—'} • Médiane ${med(rollExp).toFixed(2)}`); }catch(_){ }
   // Diagnostics charts
   try{ drawDurations(canDur, durationsMin); }catch(_){ }
+  try{ const srt=durationsMin.slice().sort((a,b)=>a-b); const p50=srt.length? srt[Math.floor(0.5*(srt.length-1))]:0; const p95=srt.length? srt[Math.floor(0.95*(srt.length-1))]:0; setNote('detailDurHistNote', `Durée médiane ${p50.toFixed(1)} min • 95% < ${p95.toFixed(1)} min`); }catch(_){ }
   try{ drawStreaks(canStreaks, winCounts, loseCounts); }catch(_){ }
+  try{ const lw = winLen.length? Math.max(...winLen) : 0; const ll = loseLen.length? Math.max(...loseLen) : 0; setNote('detailStreaksNote', `Plus longue série: ${lw} gains, ${ll} pertes`); }catch(_){ }
 try{ drawHistLongShort(canLS, retLong, retShort); }catch(_){ }
+  try{ const mean=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length:0; setNote('detailLSHistNote', `Moyenne Long ${mean(retLong).toFixed(2)}% • Short ${mean(retShort).toFixed(2)}%`); }catch(_){ }
   // MAE/MFE points
   try{
     const timeToIdx=(ts)=>{ let lo=0, hi=bars.length-1, ans=0; while(lo<=hi){ const mid=(lo+hi)>>1; if(bars[mid].time<=ts){ ans=mid; lo=mid+1; } else hi=mid-1; } return ans; };
     const maePts=[];
     for(const g of groups){ if(!Number.isFinite(g.entryTime) || !Number.isFinite(g.exitTime) || !Number.isFinite(g.entry) || !Number.isFinite(g.initSL)) continue; const i0=timeToIdx(g.entryTime), i1=timeToIdx(g.exitTime); if(i1<=i0) continue; let hi=-Infinity, lo=Infinity; for(let i=i0;i<=i1;i++){ hi=Math.max(hi, bars[i].high); lo=Math.min(lo, bars[i].low); } const entry=g.entry; const risk=Math.max(1e-9, Math.abs(entry - g.initSL)); let maeR=0, mfeR=0; if(g.dir==='long'){ maeR = Math.max(0, (entry - lo)/risk); mfeR = Math.max(0, (hi - entry)/risk); } else { maeR = Math.max(0, (hi - entry)/risk); mfeR = Math.max(0, (entry - lo)/risk); } maePts.push({ maeR, mfeR, win: (g.net||0)>=0 }); }
     drawMAEMFEScatter(canMAEMFE, maePts);
+    try{ maePtsVar = maePts.slice(); const mean=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length:0; const aMFE=mean(maePts.map(p=>p.mfeR)); const aMAE=mean(maePts.map(p=>p.maeR)); setNote('detailMAEMFENote', `MFE moyen ${aMFE.toFixed(2)}R • MAE moyen ${aMAE.toFixed(2)}R`); }catch(__){}
   }catch(_){ }
 // Seasonality — weekly heatmap
   try{
@@ -1475,7 +1508,8 @@ try{ drawHistLongShort(canLS, retLong, retShort); }catch(_){ }
     const endByYW=new Map(); if(eq && eq.length){ for(const p of eq){ const yw=isoYearWeek(p.time); const key=`${yw.y}-${yw.w}`; endByYW.set(key, p.equity); } }
     const keys=Array.from(endByYW.keys()).sort((a,b)=>{ const [ay,aw]=a.split('-').map(Number), [by,bw]=b.split('-').map(Number); return ay!==by? ay-by : aw-bw; });
     const cells=[]; let prev=null; for(const k of keys){ const v=endByYW.get(k); if(prev!=null){ const [y,w]=k.split('-').map(Number); const r=((v-prev)/prev)*100; cells.push({ y, w, r }); } prev=v; }
-drawWeeklyHeatmap(canWeekly, cells);
+ drawWeeklyHeatmap(canWeekly, cells);
+    try{ weeklyCells = cells.slice(); if(weeklyCells.length){ const r=weeklyCells.map(c=>c.r); const mn=Math.min(...r), mx=Math.max(...r); const avg=r.reduce((a,b)=>a+b,0)/r.length; setNote('detailWeeklyNote', `Moy. hebdo ${avg.toFixed(2)}% • Meilleure ${mx.toFixed(1)}% • Pire ${mn.toFixed(1)}%`); } }catch(__){}
   }catch(_){ }
   // Seasonality — day-of-week bars
   try{
@@ -1484,6 +1518,23 @@ drawWeeklyHeatmap(canWeekly, cells);
     const days=Array.from(eod.keys()).sort(); const dowVals=[0,0,0,0,0,0,0], dowCnt=[0,0,0,0,0,0,0]; let prev=null; for(const d of days){ const v=eod.get(d); if(prev!=null){ const ret=((v-prev)/prev)*100; const [y,m,dd]=d.split('-').map(Number); const dt=new Date(Date.UTC(y,m-1,dd)); const dow=(dt.getUTCDay()+6)%7; dowVals[dow]+=ret; dowCnt[dow]++; } prev=v; }
     const labels=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']; const arr=labels.map((k,i)=>({k, v: (dowCnt[i]>0? dowVals[i]/dowCnt[i] : 0)}));
     drawDOWBars(canDOW, arr);
+    try{ dowArr = arr.slice(); if(dowArr.length){ let best=dowArr[0], worst=dowArr[0]; for(const x of dowArr){ if(x.v>best.v) best=x; if(x.v<worst.v) worst=x; } setNote('detailDOWNote', `Jour le plus favorable: ${best.k} (${best.v.toFixed(2)}%) • Le moins: ${worst.k} (${worst.v.toFixed(2)}%)`); } }catch(__){}
+  }catch(_){ }
+  // Seasonality — day×hour heatmap
+  try{
+    function toYMDH(ts){ const d=new Date(ts*1000); return `${d.getUTCFullYear()}-${d.getUTCMonth()+1}-${d.getUTCDate()}-${d.getUTCHours()}`; }
+    const eoh=new Map(); if(eq && eq.length){ for(const p of eq){ const key=toYMDH(p.time); eoh.set(key, p.equity); } }
+    const keys=Array.from(eoh.keys()).map(k=>{ const [y,m,d,h]=k.split('-').map(Number); return { ts: Date.UTC(y,m-1,d,h)/1000, k }; }).sort((a,b)=> a.ts-b.ts);
+    const sum=Array.from({length:7},()=> new Array(24).fill(0)), cnt=Array.from({length:7},()=> new Array(24).fill(0)); let prev2=null; for(const it of keys){ const v=eoh.get(it.k); if(prev2!=null){ const ret=((v-prev2)/prev2)*100; const dt=new Date(it.ts*1000); const dow=(dt.getUTCDay()+6)%7; const hr=dt.getUTCHours(); sum[dow][hr]+=ret; cnt[dow][hr]++; } prev2=v; }
+    const cells2=[]; for(let r=0;r<7;r++){ for(let c=0;c<24;c++){ const v=cnt[r][c]>0? (sum[r][c]/cnt[r][c]) : 0; cells2.push({ r, c, d:r, h:c, r:v }); } }
+    drawDOWHourHeatmap(canDOWHour, cells2);
+    try{ dowHourCells=cells2.slice(); if(dowHourCells.length){ let best=dowHourCells[0], worst=dowHourCells[0]; for(const x of dowHourCells){ if(x.r>best.r) best=x; if(x.r<worst.r) worst=x; } const lab=(x)=> ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'][x.d]+' '+String(x.h).padStart(2,'0')+'h'; setNote('detailDOWHourNote', `Meilleur créneau: ${lab(best)} (${best.r.toFixed(2)}%) • Pire: ${lab(worst)} (${worst.r.toFixed(2)}%)`); } }catch(__){}
+  }catch(_){ }
+  // Day×Hour — Long-only and Short-only (by entry hour, mean % return per position)
+  try{
+    const mkCells=(dir)=>{ const sum=Array.from({length:7},()=> new Array(24).fill(0)); const cnt=Array.from({length:7},()=> new Array(24).fill(0)); for(const g of groups){ if(g && g.dir===dir && Number.isFinite(g.entryTime)){ const eq0=Number.isFinite(g.eq0)&&g.eq0>0? g.eq0 : (Number(conf.startCap)||1); const rpct=(Number(g.net)||0)/eq0*100; const dt=new Date((g.entryTime||0)*1000); const dow=(dt.getUTCDay()+6)%7; const hr=dt.getUTCHours(); sum[dow][hr]+=rpct; cnt[dow][hr]++; } } const cells=[]; for(let r=0;r<7;r++){ for(let c=0;c<24;c++){ const v=cnt[r][c]>0? (sum[r][c]/cnt[r][c]) : 0; cells.push({ r, c, d:r, h:c, r:v }); } } return cells; };
+    try{ if(canDOWHourLong){ const cL=mkCells('long'); dhLongCells=cL.slice(); drawDOWHourHeatmap(canDOWHourLong, cL); if(cL.length){ let best=cL[0], worst=cL[0]; for(const x of cL){ if(x.r>best.r) best=x; if(x.r<worst.r) worst=x; } const lab=(x)=> ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'][x.d]+' '+String(x.h).padStart(2,'0')+'h'; setNote('detailDOWHourLongNote', `Best: ${lab(best)} (${best.r.toFixed(2)}%) • Worst: ${lab(worst)} (${worst.r.toFixed(2)}%)`); } } }catch(__){}
+    try{ if(canDOWHourShort){ const cS=mkCells('short'); dhShortCells=cS.slice(); drawDOWHourHeatmap(canDOWHourShort, cS); if(cS.length){ let best=cS[0], worst=cS[0]; for(const x of cS){ if(x.r>best.r) best=x; if(x.r<worst.r) worst=x; } const lab=(x)=> ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'][x.d]+' '+String(x.h).padStart(2,'0')+'h'; setNote('detailDOWHourShortNote', `Best: ${lab(best)} (${best.r.toFixed(2)}%) • Worst: ${lab(worst)} (${worst.r.toFixed(2)}%)`); } } }catch(__){}
   }catch(_){ }
   // Regime heatmap (Trend × Vol)
   try{
@@ -1497,6 +1548,7 @@ drawWeeklyHeatmap(canWeekly, cells);
     for(const g of groups){ const i=idxOfTime(g.entryTime); const tr=bucketTrend(Math.min(i, lb.trend.length-1)); const vol=bucketVol(atrP[Math.min(i, atrP.length-1)]||0); const cell=mat[tr][vol]; cell.count++; if((g.net||0)>=0) cell.gp += (g.net||0); else cell.gl += (g.net||0); }
     for(const r of ['Up','Down']){ for(const c of ['Low','Med','High']){ const cell=mat[r][c]; cell.pf = (cell.gl<0? cell.gp/Math.abs(cell.gl) : (cell.count>0? Infinity:0)); } }
 drawRegimeHeatmap(canRegime, mat);
+    try{ regimeMat = mat; let best={r:'',c:'',pf:-Infinity,count:0}, worst={r:'',c:'',pf:Infinity,count:0}; for(const rr of ['Up','Down']){ for(const cc of ['Low','Med','High']){ const cell=mat[rr][cc]; const pf=(cell.pf===Infinity? 5: cell.pf||0); if(pf>best.pf){ best={r:rr,c:cc,pf, count:cell.count}; } if(pf<worst.pf){ worst={r:rr,c:cc,pf, count:cell.count}; } } } setNote('detailRegimeNote', `Meilleur régime: ${best.r}/${best.c} (PF ${best.pf.toFixed(2)}, n=${best.count}) • Pire: ${worst.r}/${worst.c}`); }catch(__){}
   }catch(_){ }
   // Pareto (Palmarès)
   try{
@@ -1507,12 +1559,15 @@ drawRegimeHeatmap(canRegime, mat);
       }
       if(!pts.length){ pts.push({ dd: Math.max(0, +res.maxDDAbs||0), pnl: +res.totalPnl||0, score: (Number.isFinite(res.score)? res.score:0) }); }
       drawPareto(canPareto, pts);
+      try{ const dd=+res.maxDDAbs||0, pnl=+res.totalPnl||0; const ratio = dd>0? (pnl/Math.abs(dd)) : Infinity; setNote('detailParetoNote', `Point courant: P&L ${pnl.toFixed(0)} • Max DD ${dd.toFixed(0)} • Ratio P&L/DD ${ratio===Infinity?'∞':ratio.toFixed(2)}`); }catch(__){}
     };
     if(pal.length){ drawFrom(pal); }
     else if(window.SUPA && typeof SUPA.fetchPalmares==='function'){
       try{ SUPA.fetchPalmares(sym, tf, 50).then(arr=>{ drawFrom(arr||[]); }).catch(()=> drawFrom([])); }catch(__){ drawFrom([]); }
     } else { drawFrom([]); }
   }catch(_){ }
+  // CI bars
+  try{ if(canCIs && ciBoot){ drawCIBars(canCIs, ciBoot); try{ const w=ciBoot.win||[0,0], p=ciBoot.pf||[0,0], e=ciBoot.exp||[0,0]; setNote('detailCIsNote', `Win% [${w[0].toFixed(1)} ; ${w[1].toFixed(1)}] • PF [${p[0].toFixed(2)} ; ${p[1].toFixed(2)}] • Exp [${e[0].toFixed(2)} ; ${e[1].toFixed(2)}]`); }catch(__){} } }catch(_){ }
 // Monte Carlo fan (bootstrap trades)
   try{
     const startCap = Number(conf.startCap)||10000; const rp = (retLong.concat(retShort)).filter(Number.isFinite);
@@ -1530,14 +1585,32 @@ drawRegimeHeatmap(canRegime, mat);
       ctx.fillStyle='rgba(37,99,235,0.15)'; ctx.beginPath(); ctx.moveTo(x(0), y(p10[0])); for(let i=1;i<steps;i++) ctx.lineTo(x(i), y(p10[i])); for(let i=steps-1;i>=0;i--) ctx.lineTo(x(i), y(p90[i])); ctx.closePath(); ctx.fill();
       // median
       ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<steps;i++){ const xx=x(i), yy=y(p50[i]); if(i===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy); } ctx.stroke(); __drawText(ctx, padL, h-8, 'Trades (bootstrap) →', 'left');
+      try{ mcBands = { p10, p50, p90, startCap }; const medEnd=p50[p50.length-1], p10e=p10[p10.length-1], p90e=p90[p90.length-1]; const g=((medEnd-startCap)/Math.max(1e-9,startCap))*100; setNote('detailMCNote', `Median fin: ${medEnd.toFixed(0)} (${g.toFixed(1)}%) • Bande [${p10e.toFixed(0)} ; ${p90e.toFixed(0)}]`); }catch(__){}
     }
   }catch(_){ }
   // QQ & ACF
-  try{ const retsAll = (retLong.concat(retShort)).slice(); drawQQ(canQQ, retsAll); }catch(_){ }
-  try{ const retsAll = (retLong.concat(retShort)).slice(); drawACF(canACF, retsAll, 10); }catch(_){ }
+  try{ const retsAll = (retLong.concat(retShort)).slice(); drawQQ(canQQ, retsAll); try{ const n=retsAll.length; const mean=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length:0; const m=mean(retsAll); const sd=Math.sqrt(mean(retsAll.map(x=>(x-m)*(x-m)))); const skew = (sd>0? mean(retsAll.map(x=>Math.pow((x-m)/sd,3))) : 0); const kurt = (sd>0? mean(retsAll.map(x=>Math.pow((x-m)/sd,4))) : 0); setNote('detailQQNote', `Skew ${skew.toFixed(2)} • Kurtosis ${kurt.toFixed(2)} (3≈normal)`); }catch(__){} }catch(_){ }
+  try{ const retsAll = (retLong.concat(retShort)).slice(); drawACF(canACF, retsAll, 10); try{ const n=retsAll.length; const z=1.96/Math.sqrt(Math.max(1,n)); let sig=0; const m=retsAll.reduce((a,b)=>a+b,0)/Math.max(1,n); const varr=retsAll.reduce((s,x)=>s+(x-m)*(x-m),0); for(let k=1;k<=10;k++){ let num=0; for(let i=0;i<n-k;i++){ num += (retsAll[i]-m)*(retsAll[i+k]-m); } const r = num/(varr||1); if(Math.abs(r)>z) sig++; } setNote('detailACFNote', `${sig} lags significatifs (>±${z.toFixed(2)})`); }catch(__){} }catch(_){ }
+  // Walk-forward splits (4 segments)
+  try{
+    const N=4; if(eq && eq.length>10){ const t0=eq[0].time, t1=eq[eq.length-1].time; const bounds=[]; for(let k=0;k<=N;k++){ bounds.push(t0 + Math.round((t1-t0)*k/N)); }
+      const segs=[]; for(let k=0;k<N;k++){ const a=bounds[k], b=bounds[k+1]; const gg=groups.filter(g=> Number.isFinite(g.exitTime) && g.exitTime>=a && g.exitTime<b); const L=gg.length; let gp=0, gl=0, wins=0; let exp=0, pnl=0; for(const g of gg){ const net=Number(g.net)||0; pnl+=net; if(net>=0){ gp+=net; wins++; } else { gl+=net; } } if(L>0){ exp = pnl/L; }
+        const pf = gl<0? (gp/Math.abs(gl)) : (L>0? Infinity:0); const win = L>0? (wins/L*100):0; segs.push({ pf: Number.isFinite(pf)? pf: Infinity, win, exp, pnl }); }
+      drawWFTable(canWF, segs); try{ wfSegs = segs.slice(); const ok=segs.filter(s=> (s.pf===Infinity || s.pf>=1.0)).length; const best=Math.max(...segs.map(s=> (s.pf===Infinity? 9 : s.pf))); const worst=Math.min(...segs.map(s=> (s.pf===Infinity? 9 : s.pf))); setNote('detailWFNote', `${ok}/${segs.length} splits PF≥1 • PF min ${worst.toFixed(2)} / max ${best.toFixed(2)}`); }catch(__){} }
+  }catch(_){ }
 if(detailCtxEl){ const gtxt = (ctx && ctx.gen && ctx.gen>1)? ` • Gen ${ctx.gen}` : ''; detailCtxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — ${name}${gtxt} — PF ${(res.profitFactor===Infinity?'∞':(+res.profitFactor||0).toFixed(2))} • Trades ${res.tradesCount}`; }
   // Summary/commentary (pass advanced metrics)
-  try{ const sum = generateStrategySummary(res, ctx, { timeInMkt, freq, expectancy: expNet, avgDurMin, bestNet, worstNet, r2, pf: (res.profitFactor===Infinity? Infinity : (+res.profitFactor||0)), winrate, avgRR, maxDDAbs: +res.maxDDAbs||0 }); if(detailSummaryEl) detailSummaryEl.innerHTML = sum; }catch(_){ }
+  try{ const sum = generateStrategySummary(res, ctx, { timeInMkt, freq, expectancy: expNet, avgDurMin, bestNet, worstNet, r2, pf: (res.profitFactor===Infinity? Infinity : (+res.profitFactor||0)), winrate, avgRR, maxDDAbs: +res.maxDDAbs||0, ci: ciBoot }); if(detailSummaryEl) detailSummaryEl.innerHTML = sum; }catch(_){ }
+  // Slippage what‑if (bps)
+  try{
+    const slipInp=document.getElementById('detailSlipBps'); const slipBtn=document.getElementById('detailSlipApply'); const slipNote=document.getElementById('detailSlipNote');
+    if(slipBtn && slipInp){ slipBtn.addEventListener('click', ()=>{ try{ const bps=Math.max(0, parseFloat(slipInp.value||'0')); if(!(bps>=0)) return; const evs=Array.isArray(res.trades)? res.trades.slice():[]; // compute adjusted nets per position
+      const map=new Map(); function keyOf(e){ return `${e.dir}|${e.entryTime}|${e.entry}|${e.initSL}`; }
+      for(const ev of evs){ const k=keyOf(ev); let g=map.get(k); if(!g){ g={ net:0 }; map.set(k,g); } const qty=Math.abs(Number(ev.qty)||0); const pe=Math.abs(Number(ev.entry)||0); const px=Math.abs(Number(ev.exit)||0); const extra=(pe*qty + px*qty)*(bps/10000); const newNet=(Number(ev.net)||0) - extra; g.net += newNet; }
+      const gs=Array.from(map.values()); const L=gs.length; let gp=0, gl=0, wins=0, sum=0; for(const g of gs){ const v=Number(g.net)||0; sum+=v; if(v>=0){ gp+=v; wins++; } else { gl+=v; } }
+      const pf = gl<0? (gp/Math.abs(gl)) : (L>0? Infinity:0); const win = L>0? (wins/L*100):0; const exp = L>0? (sum/L):0; if(slipNote){ slipNote.textContent = `→ PF ${(pf===Infinity?'∞':pf.toFixed(2))}, Win% ${win.toFixed(1)}%, Exp ${exp.toFixed(2)} USD`; }
+    }catch(__){} }); }
+  }catch(_){ }
  }catch(_){ if(detailCtxEl){ detailCtxEl.textContent = 'Erreur analyse'; } } }
 
 // Lab actions: refresh/export/weights
