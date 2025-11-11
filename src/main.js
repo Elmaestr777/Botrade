@@ -285,9 +285,7 @@ async function backgroundExtendKlines(symbol, interval, token){
       const now = Date.now();
       if(now - lastUiUpdate > 600){
         setBgStatus(`hist: ${Math.round(total/1000)}k`);
-        let vr=null; try{ vr=chart.timeScale().getVisibleRange(); }catch(_){ }
         try{ candleSeries.setData(candles); updateEMAs(); renderLBC(); }catch(_){ }
-        try{ if(vr){ chart.timeScale().setVisibleRange(vr); } }catch(_){ }
         lastUiUpdate = now;
       }
       if(batch.length < need) break; // hit API boundary for now
@@ -296,9 +294,7 @@ async function backgroundExtendKlines(symbol, interval, token){
     }
     // Final push if still active: save cache, rehydrate series, preserve view, clear status
     if(token === __bgLoadToken){
-      let vr=null; try{ vr=chart.timeScale().getVisibleRange(); }catch(_){ }
       try{ candleSeries.setData(candles); updateEMAs(); renderLBC(); }catch(_){ }
-      try{ if(vr){ chart.timeScale().setVisibleRange(vr); } }catch(_){ }
       try{ saveKlinesToCache(symbol, interval, candles); }catch(_){ }
       setBgStatus('');
     }
