@@ -141,7 +141,7 @@ const chart = LightweightCharts.createChart(container, {
     vertAlign: 'top'
   },
   rightPriceScale: { borderVisible: true, borderColor: isDark() ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)' },
-  timeScale: { borderColor: isDark() ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)', timeVisible: true },
+  timeScale: { borderColor: isDark() ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)', timeVisible: true, rightOffset: 20 },
 });
 const candleSeries = chart.addCandlestickSeries({ upColor:'#26a69a', downColor:'#ef5350', borderUpColor:'#26a69a', borderDownColor:'#ef5350', wickUpColor:'#26a69a', wickDownColor:'#ef5350' });
 const zzUpSeries = chart.addLineSeries({ color: '#00ff00', lineWidth: 2, priceScaleId: 'right' });
@@ -275,6 +275,7 @@ async function load(symbol, interval){
       candles = cached;
       candleSeries.setData(candles);
       chart.timeScale().fitContent();
+      chart.timeScale().applyOptions({ rightOffset: 20 });
       updateEMAs(); renderLBC();
     } else {
       setStatus('Chargement...');
@@ -283,6 +284,7 @@ async function load(symbol, interval){
     candles = await fetchAllKlines(symbol, interval, PRELOAD_BARS);
     candleSeries.setData(candles);
     chart.timeScale().fitContent();
+    chart.timeScale().applyOptions({ rightOffset: 20 });
     setStatus('');
     updateEMAs(); renderLBC();
     try{ saveKlinesToCache(symbol, interval, candles); }catch(_){ }
