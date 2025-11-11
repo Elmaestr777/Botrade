@@ -73,20 +73,13 @@ rows.push(`
   labTBody.innerHTML = rows.join('');
   // Wire only the Détail action on palmarès rows (simple popup)
   if(!labTBody.dataset || labTBody.dataset.wiredDetail!=="1"){
-    // Fallback local handler on tbody (best effort)
-    labTBody.addEventListener('click', (ev)=>{ try{ __labDetailLog('tbody click'); handleLabDetailClick(ev); }catch(e){ __labDetailLog('tbody handler error: '+(e&&e.message?e.message:e)); } });
+    // Only handle clicks on explicit Détail buttons within the Lab table body
+    labTBody.addEventListener('click', (ev)=>{ try{ const t=ev && ev.target; const btn = t && t.closest && t.closest('button[data-action="detail"]'); if(!btn) return; handleLabDetailClick(ev); }catch(e){ __labDetailLog('tbody handler error: '+(e&&e.message?e.message:e)); } });
     labTBody.dataset.wiredDetail='1';
     __labDetailLog('tbody wired');
   }
 }
 // Global capture fallback (ensures it works even if tbody handler misses)
-try{
-  if(!window.__wiredDetailGlobal){
-    document.addEventListener('click', (ev)=>{ try{ __labDetailLog('global capture click'); handleLabDetailClick(ev); }catch(e){ __labDetailLog('global handler error: '+(e&&e.message?e.message:e)); } }, true);
-    window.__wiredDetailGlobal = 1;
-    __labDetailLog('global capture wired');
-  }
-}catch(e){ try{ __labDetailLog('global capture wire error: '+(e&&e.message?e.message:e)); }catch(_){ } }
 // Debug logger for Lab Detail
 function __labDetailLog(msg){
   try{ console.debug('[lab:detail]', msg); }catch(_){ }
@@ -118,23 +111,9 @@ function handleLabDetailClick(ev){
   __labDetailLog('click start; target='+(t&&t.tagName)+' id='+(t&&t.id)+' class='+(t&&t.className));
   if(t && t.nodeType === 3 && t.parentElement) t = t.parentElement;
   let btn = null;
-  if(t && typeof t.closest === 'function') btn = t.closest('button[data-action=\"detail\"]');
-  // Fallbacks if attribute missing
-  let inLabBody = false;
-  try{ inLabBody = !!(t && t.closest && t.closest('#labTBody')); }catch(_){ }
-  if(!btn && inLabBody){
-    const anyBtn = t.closest && t.closest('#labTBody button');
-    if(anyBtn){ __labDetailLog('fallback: any button inside labTBody'); btn = anyBtn; }
-  }
-  if(!btn && inLabBody){
-    try{
-      const tr = t.closest && t.closest('#labTBody tr');
-      const td = t.closest && t.closest('td');
-      if(tr && td){ const cells = tr.querySelectorAll('td'); if(cells && cells.length && td === cells[cells.length-1]){ __labDetailLog('fallback: actions cell click'); btn = td; } }
-    }catch(_){ }
-  }
-  if(!btn){ __labDetailLog('no detail target found (ignored)'); return; }
-  __labDetailLog('detail target resolved');
+  if(t && typeof t.closest === 'function') btn = t.closest('button[data-action="detail"]');
+  if(!btn){ return; }
+  __labDetailLog('detail button found');
   try{
     const el = ensureLabSimpleModal();
     __labDetailLog('modal ensured: '+!!el);
