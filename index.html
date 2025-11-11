@@ -1489,8 +1489,8 @@
       </div>
     </div>
 
-    <!-- Lightweight Charts via ESM (CSP/SES friendly); exposes global on window -->
-    <script type="module" src="src/lw-globals.js"></script>
+    <!-- Lightweight Charts vendored (UMD) for static deploy -->
+    <script src="vendor/lightweight-charts.standalone.production.js"></script>
     <!-- Supabase UMD client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <!-- Centralized Supabase config (global constants) -->
