@@ -49,7 +49,25 @@ async function renderLabFromStorage(){
     const penalty = Math.max(0, raw - robust);
     const pairDisp = symbolToDisplay(sym);
     const tfDisp = tf;
-rows.push('<tr>' + `<td>${idx}</td>` + `<td>${pairDisp}</td>` + `<td>${tfDisp}</td>` + `<td style=\\\"text-align:left\\\">${(r.name||'—')}</td>` + `<td>${(r.gen||1)}</td>` + `<td style=\\\"text-align:left\\\">${paramsStr}</td>` + `<td>${raw.toFixed(2)}</td>` + `<td title=\\\"brut: ${raw.toFixed(2)} • pénalité: ${penalty.toFixed(2)}\\\">${robust.toFixed(2)}</td>` + `<td>${pf.toFixed(2)}</td>` + `<td>${pnl.toFixed(0)}</td>` + `<td>${eq1.toFixed(0)}</td>` + `<td>${cnt}</td>` + `<td>${wr.toFixed(1)}</td>` + `<td>${Number.isFinite(rr)? rr.toFixed(2): '—'}</td>` + `<td>${mdd.toFixed(0)}</td>` + `<td style=\\\"white-space:nowrap\\\"><button class=\\\"btn\\\" data-action=\\\"detail\\\" data-idx=\\\"${idx-1}\\\">Détail</button></td>` + '</tr>');
+rows.push(`
+<tr>
+  <td>${idx}</td>
+  <td>${pairDisp}</td>
+  <td>${tfDisp}</td>
+  <td style="text-align:left">${(r.name||'—')}</td>
+  <td>${(r.gen||1)}</td>
+  <td style="text-align:left">${paramsStr}</td>
+  <td>${raw.toFixed(2)}</td>
+  <td title="brut: ${raw.toFixed(2)} • pénalité: ${penalty.toFixed(2)}">${robust.toFixed(2)}</td>
+  <td>${pf.toFixed(2)}</td>
+  <td>${pnl.toFixed(0)}</td>
+  <td>${eq1.toFixed(0)}</td>
+  <td>${cnt}</td>
+  <td>${wr.toFixed(1)}</td>
+  <td>${Number.isFinite(rr)? rr.toFixed(2): '—'}</td>
+  <td>${mdd.toFixed(0)}</td>
+  <td style="white-space:nowrap;"><button class="btn" data-action="detail" data-idx="${idx-1}">Détail</button></td>
+</tr>`);
     idx++;
   }
   labTBody.innerHTML = rows.join('');
