@@ -2172,7 +2172,8 @@ try{ const pfStr = (res.profitFactor===Infinity?'∞':(Number(res.profitFactor||
     const init=[]; if(Array.isArray(seed)&&seed.length){ for(const s of seed){ if(isDup(s.p)) continue; pushSeen(s.p); init.push({ p:s.p, owner:s.owner||null }); if(init.length>=pop) break; } }
     while(init.length<pop){ const p=randomParams(); if(isDup(p)) continue; pushSeen(p); init.push({ p }); }
 __labSimTotal += init.length; updateGlobalProgressUI();
-let cur = await evalParamsList(init, 'EA:init');
+try{ addBtLog && addBtLog(`EA:init — scheduling ${init.length} évals`); }catch(_){ }
+    let cur = await evalParamsList(init, 'EA:init');
     cur.sort((a,b)=> b.score-a.score);
 try{ const top=cur[0]; if(top){ addBtLog(`EA init — best score ${top.score.toFixed(2)} • PF ${(top.res.profitFactor===Infinity?'∞':(top.res.profitFactor||0).toFixed(2))} • Trades ${top.res.tradesCount} • Win ${(top.res.winrate||0).toFixed(1)}%`); } }catch(_){ }
     bestGlobal = Math.max(bestGlobal, (cur[0]?.score ?? -Infinity));
@@ -2217,7 +2218,8 @@ try{ const top=cur[0]; if(top){ addBtLog(`EA g ${g-1}→${g-1} done — ${childr
     while(start.length<initN){ const p=randomParams(); if(isDup(p)) continue; pushSeen(p); start.push({ p }); }
     try{ setBtTitle('Bayes (EDA)'); addBtLog('Bayes: démarrage'); }catch(_){ }
 __labSimTotal += start.length; updateGlobalProgressUI();
-let cur = (await evalParamsList(start, 'Bayes:init')).sort((a,b)=> b.score - a.score);
+try{ addBtLog && addBtLog(`Bayes:init — scheduling ${start.length} évals`); }catch(_){ }
+    let cur = (await evalParamsList(start, 'Bayes:init')).sort((a,b)=> b.score - a.score);
 try{ const top=cur[0]; if(top){ addBtLog(`Bayes init — best ${top.score.toFixed(2)} PF ${(top.res.profitFactor===Infinity?'∞':(top.res.profitFactor||0).toFixed(2))}`); } }catch(_){ }
     bestGlobal = Math.max(bestGlobal, (cur[0]?.score ?? -Infinity));
     updateProgress(`Bayes 0/${iters}`, 0);

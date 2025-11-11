@@ -4,6 +4,9 @@ let BARS = [];
 let S_IDX = 0;
 let E_IDX = 0;
 let CONF = { startCap: 10000, fee: 0.1, lev: 1, maxPct: 100, base: 'initial' };
+// Simple caches per worker session to speed repeated evals
+const __LB_CACHE = new Map(); // nol -> lb
+const __PIV_CACHE = new Map(); // prd -> pivots
 
 function emaCalc(data, len){ const out=new Array(data.length); let k=2/(len+1); let prev=null; for(let i=0;i<data.length;i++){ const v=data[i].close; if(prev==null){ prev=v; } else { prev = v*k + prev*(1-k); } out[i]=prev; } return out; }
 function computeLineBreakState(bars, nol){ const n=bars.length; if(!n) return {trend:[], level:[], flips:[]}; const trend=new Array(n).fill(0); const level=new Array(n).fill(null); const flips=[]; let t=bars[0].close>=bars[0].open?1:-1; let opens=[bars[0].open]; let closes=[bars[0].close]; for(let i=0;i<n;i++){ const c=bars[i].close; if(t===1){ const cnt=Math.min(nol, opens.length); const minUp=Math.min(...opens.slice(0,cnt), ...closes.slice(0,cnt)); if(c<minUp) t=-1; if(c>closes[0]||t===-1){ const o=(t===-1? opens[0]:closes[0]); opens.unshift(o); closes.unshift(c); } } else { const cnt=Math.min(nol, opens.length); const maxDn=Math.max(...opens.slice(0,cnt), ...closes.slice(0,cnt)); if(c>maxDn) t=1; if(c<closes[0]||t===1){ const o=(t===1? opens[0]:closes[0]); opens.unshift(o); closes.unshift(c); } } trend[i]=t; const cnt2=Math.min(nol, opens.length); const minUp2=Math.min(...opens.slice(0,cnt2), ...closes.slice(0,cnt2)); const maxDn2=Math.max(...opens.slice(0,cnt2), ...closes.slice(0,cnt2)); level[i]=(t===1? minUp2: maxDn2); if(i>0 && trend[i]!==trend[i-1]) flips.push(i); } return {trend, level, flips}; }
@@ -11,9 +14,10 @@ function computePivots(bars, prd){ const piv=[]; for(let i=prd;i<bars.length-prd
 
 function runBacktestSliceFor(bars, sIdx, eIdx, conf, params){
   // Heaven-fidelity backtest (partial exits, per-TP BE/trails, attached SL per TP, compound/close-all-last)
-  const lb=computeLineBreakState(bars, Math.max(1, params.nol|0));
+  const nolVal=Math.max(1, params.nol|0);
+  const lb = (__LB_CACHE.get(nolVal) || (function(){ const v=computeLineBreakState(bars, nolVal); __LB_CACHE.set(nolVal, v); return v; })());
   const prd=Math.max(2, params.prd|0);
-  const pivAll=computePivots(bars, prd);
+  const pivAll = (__PIV_CACHE.get(prd) || (function(){ const v=computePivots(bars, prd); __PIV_CACHE.set(prd, v); return v; })());
   const emaTargetCache=new Map();
   const slEmaCache=new Map();
   let pivIdx=-1;
