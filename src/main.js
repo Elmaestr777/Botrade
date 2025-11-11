@@ -40,6 +40,7 @@ async function renderLabFromStorage(){
   if(!arr.length){ labTBody.innerHTML = '<tr><td colspan=\"16\">Aucune donnée</td></tr>'; return; }
   const rows=[]; let idx=1; const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
   const sorted=arr.slice().sort((a,b)=> (b.score||scoreResult(b.res||{},weights)) - (a.score||scoreResult(a.res||{},weights)));
+  try{ window.labPalmaresSorted = sorted.slice(); }catch(_){ }
   for(const r of sorted){
     const st=r.res||{}; const p=r.params||{};
     const pf=Number(st.profitFactor||0), pnl=Number(st.totalPnl||0), eq1=Number(st.equityFinal||0), cnt=Number(st.tradesCount||0), wr=Number(st.winrate||0), rr=Number(st.avgRR||0), mdd=Number(st.maxDDAbs||0);
@@ -113,15 +114,21 @@ function handleLabDetailClick(ev){
   let btn = null;
   if(t && typeof t.closest === 'function') btn = t.closest('button[data-action="detail"]');
   if(!btn){ return; }
-  __labDetailLog('detail button found');
+  const idxStr = (btn && btn.getAttribute && btn.getAttribute('data-idx')) || (btn && btn.dataset && btn.dataset.idx);
+  const idx = Math.max(0, parseInt(idxStr||'0',10));
+  __labDetailLog('detail button found; idx='+idx);
   try{
-    const el = ensureLabSimpleModal();
-    __labDetailLog('modal ensured: '+!!el);
-    const body = document.getElementById('labSimpleDetailBody');
-    if(body){ const tfNow = labTFSelect? labTFSelect.value : (intervalSelect? intervalSelect.value:''); const symSel=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol; body.textContent = `${symbolToDisplay(symSel)} • ${tfNow}`; }
-    openModalEl(el);
-    __labDetailLog('modal opened');
-    try{ ensureFloatingModal(el, 'lab-simple-detail', { left: 80, top: 80, width: 520, height: 320, zIndex: bumpZ() }); __labDetailLog('floating applied'); }catch(e2){ __labDetailLog('floating error: '+(e2&&e2.message?e2.message:e2)); }
+    const tfNow = labTFSelect? labTFSelect.value : (intervalSelect? intervalSelect.value:'');
+    const symSel=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol;
+    let item=null;
+    try{
+      const arr = (window.labPalmaresSorted && Array.isArray(window.labPalmaresSorted))? window.labPalmaresSorted : (Array.isArray(window.labPalmaresCache)? (function(){ const w=getWeights(localStorage.getItem('labWeightsProfile')||'balancee'); return window.labPalmaresCache.slice().sort((a,b)=> (b.score||scoreResult(b.res||{},w)) - (a.score||scoreResult(a.res||{},w))); })() : []);
+      item = arr[idx] || null;
+    }catch(_){ item=null; }
+    if(!item){ __labDetailLog('no item for idx'); return; }
+    __labDetailLog('running backtest (full period) for '+(item.name||'strat'));
+    // Lance l'analyse détaillée (période complète)
+    openLabStrategyDetail(item, { symbol: symSel, tf: tfNow, full: true });
     if(ev){ try{ ev.stopPropagation(); ev.preventDefault(); }catch(_){ } }
   }catch(e){ __labDetailLog('error: '+(e&&e.message?e.message:e)); }
 }
@@ -874,7 +881,7 @@ if(ok){ const dir=pendingFib.dir; const entry=bar.close; let sl=computeSLFromLad
           equity += net; if(equity<0) equity=0; tradesCount++; if(pos.risk>0) rrSum += (net/pos.risk);
           if(net>=0){ grossProfit+=net; wins++; } else { grossLoss+=net; losses++; }
           if(equity>peak) peak=equity; const dd=peak-equity; if(dd>maxDDAbs) maxDDAbs=dd;
-          trades.push({ dir:pos.dir, entryTime:candles[pos.entryIdx].time, entry:pos.entry, initSL:pos.initSL, exitTime:candles[i].time, exit:exitPx, reason:`TP${pos.tpIdx+1}`, qty:usedQty, pnl, fees, net, rr: (Math.abs(pos.entry-pos.initSL)*usedQty>0? net/(Math.abs(pos.entry-pos.initSL)*usedQty) : null) });
+trades.push({ dir:pos.dir, entryTime:bars[pos.entryIdx].time, entry:pos.entry, initSL:pos.initSL, exitTime:bars[i].time, exit:exitPx, reason:`TP${pos.tpIdx+1}`, qty:usedQty, net, fees, rr: (Math.abs(pos.entry-pos.initSL)*usedQty>0? net/(Math.abs(pos.entry-pos.initSL)*usedQty) : null), eqBefore: eqBeforeLocal });
           try{ addTPHitMarker(candles[i].time, pos.dir); }catch(_){ }
           pos.qty -= usedQty; pos.anyTP=true;
           // Apply per-TP rules (BE/SL); fallback to DOM if not persisted
@@ -1009,9 +1016,9 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
       if(pos.slTrailCfg){ try{ let cand=null; if(pos.slTrailCfg.mode==='ema'){ const len=Math.max(1, parseInt((pos.slTrailCfg.emaLen!=null? pos.slTrailCfg.emaLen : (params.emaLen||55)),10)); const ema=emaCalc(bars, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) cand=v; } else if(pos.slTrailCfg.mode==='percent'){ const pct=Number(pos.slTrailCfg.pct)||0; cand = (pos.dir==='long')? ( (pos.hiSince||bar.high)*(1 - pct/100) ) : ( (pos.loSince||bar.low)*(1 + pct/100) ); } if(cand!=null){ let b=cand; if(!pos.beActive){ b=(pos.dir==='long')? Math.min(cand, pos.entry) : Math.max(cand, pos.entry); } pos.sl = (pos.dir==='long')? Math.max(pos.sl, b) : Math.min(pos.sl, b); } }catch(_){ } }
       { const sl2=computeSLFromLadder(pos.dir, pos.entry, i); if(sl2!=null){ let b=sl2; if(!pos.beActive){ b=(pos.dir==='long')? Math.min(sl2, pos.entry) : Math.max(sl2, pos.entry); } pos.sl = (pos.dir==='long')? Math.max(pos.sl, b) : Math.min(pos.sl, b); } }
       if(pos.dir==='long'){
-        if(bar.low <= pos.sl){ const portionQty = pos.qty; const pnl = (pos.sl - pos.entry) * portionQty; const fees = (pos.entry*portionQty + pos.sl*portionQty) * feePct; const net=pnl-fees; equity+=net; if(equity<0) equity=0; tradesCount++; if(pos.risk>0) rrSum+=(net/pos.risk); if(net>=0){ grossProfit+=net; wins++; } else { grossLoss+=net; losses++; } if(equity>peak) peak=equity; const dd=peak-equity; if(dd>maxDDAbs) maxDDAbs=dd; if(trades){ trades.push({ dir:pos.dir, entryTime:bars[pos.entryIdx].time, entry:pos.entry, initSL:pos.initSL, exitTime:bars[i].time, exit:pos.sl, reason:'SL', qty:portionQty, net, fees, rr: (Math.abs(pos.entry-pos.initSL)*portionQty>0? net/(Math.abs(pos.entry-pos.initSL)*portionQty) : null) }); } pos=null; continue; }
+if(bar.low <= pos.sl){ const portionQty = pos.qty; const pnl = (pos.sl - pos.entry) * portionQty; const fees = (pos.entry*portionQty + pos.sl*portionQty) * feePct; const net=pnl-fees; const eqBeforeLocal=equity; equity+=net; if(equity<0) equity=0; tradesCount++; if(pos.risk>0) rrSum+=(net/pos.risk); if(net>=0){ grossProfit+=net; wins++; } else { grossLoss+=net; losses++; } if(equity>peak) peak=equity; const dd=peak-equity; if(dd>maxDDAbs) maxDDAbs=dd; if(trades){ trades.push({ dir:pos.dir, entryTime:bars[pos.entryIdx].time, entry:pos.entry, initSL:pos.initSL, exitTime:bars[i].time, exit:pos.sl, reason:'SL', qty:portionQty, net, fees, rr: (Math.abs(pos.entry-pos.initSL)*portionQty>0? net/(Math.abs(pos.entry-pos.initSL)*portionQty) : null), eqBefore: eqBeforeLocal }); } pos=null; continue; }
       } else {
-        if(bar.high >= pos.sl){ const portionQty = pos.qty; const pnl = (pos.entry - pos.sl) * portionQty; const fees = (pos.entry*portionQty + pos.sl*portionQty) * feePct; const net=pnl-fees; equity+=net; if(equity<0) equity=0; tradesCount++; if(pos.risk>0) rrSum+=(net/pos.risk); if(net>=0){ grossProfit+=net; wins++; } else { grossLoss+=net; losses++; } if(equity>peak) peak=equity; const dd=peak-equity; if(dd>maxDDAbs) maxDDAbs=dd; if(trades){ trades.push({ dir:pos.dir, entryTime:bars[pos.entryIdx].time, entry:pos.entry, initSL:pos.initSL, exitTime:bars[i].time, exit:pos.sl, reason:'SL', qty:portionQty, net, fees, rr: (Math.abs(pos.entry-pos.initSL)*portionQty>0? net/(Math.abs(pos.entry-pos.initSL)*portionQty) : null) }); } pos=null; continue; }
+if(bar.high >= pos.sl){ const portionQty = pos.qty; const pnl = (pos.entry - pos.sl) * portionQty; const fees = (pos.entry*portionQty + pos.sl*portionQty) * feePct; const net=pnl-fees; const eqBeforeLocal=equity; equity+=net; if(equity<0) equity=0; tradesCount++; if(pos.risk>0) rrSum+=(net/pos.risk); if(net>=0){ grossProfit+=net; wins++; } else { grossLoss+=net; losses++; } if(equity>peak) peak=equity; const dd=peak-equity; if(dd>maxDDAbs) maxDDAbs=dd; if(trades){ trades.push({ dir:pos.dir, entryTime:bars[pos.entryIdx].time, entry:pos.entry, initSL:pos.initSL, exitTime:bars[i].time, exit:pos.sl, reason:'SL', qty:portionQty, net, fees, rr: (Math.abs(pos.entry-pos.initSL)*portionQty>0? net/(Math.abs(pos.entry-pos.initSL)*portionQty) : null), eqBefore: eqBeforeLocal }); } pos=null; continue; }
       }
       if(pos && pos.targets && pos.tpIdx < pos.targets.length){
         while(pos && pos.tpIdx < pos.targets.length){ const tp=pos.targets[pos.tpIdx]; const hit = pos.dir==='long'? (bar.high >= tp.price) : (bar.low <= tp.price); if(!hit) break; const portionFrac = tpCompound? (tp.w||1) : 1; const portionQty = pos.initQty * portionFrac; const usedQty = Math.min(portionQty, pos.qty); const exitPx = tp.price; const pnl = (pos.dir==='long'? (exitPx - pos.entry) : (pos.entry - exitPx)) * usedQty; const fees = (pos.entry*usedQty + exitPx*usedQty) * feePct; const net = pnl - fees; equity += net; if(equity<0) equity=0; tradesCount++; if(pos.risk>0) rrSum += (net/pos.risk); if(net>=0){ grossProfit+=net; wins++; } else { grossLoss+=net; losses++; } if(equity>peak) peak=equity; const dd=peak-equity; if(dd>maxDDAbs) maxDDAbs=dd; if(trades){ trades.push({ dir:pos.dir, entryTime:bars[pos.entryIdx].time, entry:pos.entry, initSL:pos.initSL, exitTime:bars[i].time, exit:exitPx, reason:`TP${pos.tpIdx+1}`, qty:usedQty, net, fees, rr: (Math.abs(pos.entry-pos.initSL)*usedQty>0? net/(Math.abs(pos.entry-pos.initSL)*usedQty) : null) }); } pos.qty -= usedQty; pos.anyTP=true; let tCfg = (Array.isArray(params.tp) && tp.srcIdx!=null)? params.tp[tp.srcIdx] : null; if(!tCfg){ tCfg={}; } if(tCfg.beOn){ pos.sl = pos.entry; } const slNew=(function(){ try{ const seg=segAtIdx(); const s=tCfg.sl; if(!(seg && s)) return null; let price=null; if(s.type==='Fib'){ const A=seg.a.price, B=seg.b.price; const move=Math.abs(B-A); const r=parseFloat(s.fib!=null? s.fib : s.value); if(isFinite(r)) price = (seg.dir==='up')? (B - move*r) : (B + move*r); } else if(s.type==='Percent'){ const p=parseFloat(s.pct!=null? s.pct : s.value); if(isFinite(p)) price = pos.dir==='long'? (pos.entry*(1 - p/100)) : (pos.entry*(1 + p/100)); } else if(s.type==='EMA'){ const len=Math.max(1, parseInt(((s&&s.emaLen)!=null? s.emaLen : (params.emaLen||55)),10)); const ema=emaCalc(bars, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) price=v; } return price; }catch(_){ return null; } })(); if(slNew!=null){ let b=slNew; if(!pos.beActive){ b=(pos.dir==='long')? Math.min(slNew, pos.entry) : Math.max(slNew, pos.entry); } pos.sl = (pos.dir==='long')? Math.max(pos.sl, b) : Math.min(pos.sl, b); } if(tCfg.trail && tCfg.trail.mode){ let cand=null; const m=tCfg.trail.mode; if(m==='be'){ cand=pos.entry; } else if(m==='prev'){ cand=exitPx; } else if(m==='ema'){ const len=Math.max(1, parseInt(((tCfg.trail.emaLen!=null? tCfg.trail.emaLen : (params.emaLen||55))),10)); const ema=emaCalc(bars, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) cand=v; } else if(m==='percent'){ const pct=Number(tCfg.trail.pct)||0; cand = (pos.dir==='long')? ( (pos.hiSince||bar.high)*(1 - pct/100) ) : ( (pos.loSince||bar.low)*(1 + pct/100) ); } if(cand!=null){ let b=cand; if(!pos.beActive){ b=(pos.dir==='long')? Math.min(cand, pos.entry) : Math.max(cand, pos.entry); } pos.sl = (pos.dir==='long')? Math.max(pos.sl, b) : Math.min(pos.sl, b); } if(m==='ema' || m==='percent'){ pos.tpTrailCfg = { mode:m, emaLen: tCfg.trail.emaLen, pct: tCfg.trail.pct }; } } if(tCfg.sl && tCfg.sl.trail && tCfg.sl.trail.mode){ const m2=tCfg.sl.trail.mode; if(m2==='ema' || m2==='percent'){ pos.slTrailCfg = { mode:m2, emaLen: tCfg.sl.trail.emaLen, pct: tCfg.sl.trail.pct }; } } pos.tpIdx++; if(!tpCompound || pos.qty<=1e-12){ pos=null; break; } }
@@ -1246,14 +1253,12 @@ async function openLabStrategyDetail(item, ctx){ try{
   const conf={ startCap: Math.max(0, +((document.getElementById('labStartCap')||{}).value||10000)), fee: Math.max(0, +((document.getElementById('labFee')||{}).value||0.1)), lev: Math.max(1, +((document.getElementById('labLev')||{}).value||1)), maxPct:100, base:'initial' };
   // Progress UI
   try{ openBtProgress('Analyse stratégie...'); }catch(_){ }
-  // Charger les données en cohérence avec le mode de plage du Lab (visible/dates/tout)
+  // Charger les données (toujours pleine période pour le détail)
   let bars=candles;
-  if(tf!==currentInterval){ try{ bars = await fetchAllKlines(sym, tf, 5000); }catch(_){ bars=candles; } }
-  else { try{ bars = await fetchAllKlines(sym, tf, 5000); }catch(_){ /* keep candles */ } }
-  // Déterminer la plage temporelle comme dans le Lab
-  let from=null, to=null; try{ const modeEl=document.getElementById('labRangeMode'); const mode=(modeEl&&modeEl.value)||'visible'; if(mode==='dates'){ const f=(document.getElementById('labFrom')&&document.getElementById('labFrom').value)||''; const t=(document.getElementById('labTo')&&document.getElementById('labTo').value)||''; from = f? Math.floor(new Date(f).getTime()/1000): null; to = t? Math.floor(new Date(t).getTime()/1000): null; } else if(mode==='visible'){ const r=getVisibleRange(); if(r){ from=r.from; to=r.to; } } else { from=null; to=null; } }catch(_){ from=null; to=null; }
-  const idxFromTimeLocal=(bars,from,to)=>{ let s=0,e=bars.length-1; if(from!=null){ for(let i=0;i<bars.length;i++){ if(bars[i].time>=from){ s=i; break; } } } if(to!=null){ for(let j=bars.length-1;j>=0;j--){ if(bars[j].time<=to){ e=j; break; } } } return [s,e]; };
-  const [sIdx,eIdx]=idxFromTimeLocal(bars,from,to);
+  try{ bars = await fetchAllKlines(sym, tf, 5000); }catch(_){ /* keep current candles if same TF */ }
+  // Période complète
+  let from=null, to=null;
+  const [sIdx,eIdx]=(()=>{ let s=0,e=bars.length-1; return [s,e]; })();
   const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, p, true);
   try{ closeBtProgress(); }catch(_){ }
   // Ouvre la nouvelle fenêtre de Détail et rend l'analyse complète; fallback sur l'ancienne modale si besoin
@@ -1273,7 +1278,14 @@ function renderStrategyDetailIntoModal(res, ctx){ try{
   const sym = ctx.symbol, tf = ctx.tf; const name = ctx.name||'Stratégie'; const conf = ctx.conf; const bars = ctx.bars; const sIdx = ctx.sIdx, eIdx=ctx.eIdx;
   const eq = (res.eqSeries||[]).map(x=>({ time:x.time, equity:x.equity }));
   // returns per trade
-  const rets=[]; let totalDur=0; let minTs=Infinity, maxTs=-Infinity; for(const t of (res.trades||[])){ const cap=Math.max(1, t.eqBefore||conf.startCap); rets.push((t.net/cap)*100); totalDur += Math.max(0, (t.exitTime||0)-(t.entryTime||0)); if(Number.isFinite(t.entryTime)&&t.entryTime<minTs) minTs=t.entryTime; if(Number.isFinite(t.exitTime)&&t.exitTime>maxTs) maxTs=t.exitTime; }
+  const tArr = Array.isArray(res.trades)? res.trades.slice() : [];
+  // Fallback: compute eqBefore sequentially if missing
+  if(tArr.length && !tArr.some(t=> t && t.eqBefore!=null)){
+    const sorted = tArr.slice().sort((a,b)=> (a.exitTime||0)-(b.exitTime||0));
+    let eqBefore = Number(conf.startCap)||0;
+    for(const ev of sorted){ ev.eqBefore = eqBefore; eqBefore += Number(ev.net)||0; }
+  }
+  const rets=[]; let totalDur=0; let minTs=Infinity, maxTs=-Infinity; for(const t of tArr){ const cap=Math.max(1, t.eqBefore||conf.startCap); rets.push((t.net/cap)*100); totalDur += Math.max(0, (t.exitTime||0)-(t.entryTime||0)); if(Number.isFinite(t.entryTime)&&t.entryTime<minTs) minTs=t.entryTime; if(Number.isFinite(t.exitTime)&&t.exitTime>maxTs) maxTs=t.exitTime; }
   const mean=(arr)=> arr.length? arr.reduce((a,b)=>a+b,0)/arr.length : 0; const m=mean(rets); const sd=Math.sqrt(mean(rets.map(x=> (x-m)*(x-m)))); const sharpe = (sd>0? (m/sd*Math.sqrt(Math.max(1, rets.length))) : 0);
   const pf = (res.profitFactor===Infinity? 3 : Math.max(0, Math.min(3, +res.profitFactor||0))); const pfN = (pf/3)*100; const sharpeN = Math.max(0, Math.min(100, (sharpe/3)*100)); const recov = (res.maxDDAbs>0? (res.totalPnl/Math.max(1e-9, res.maxDDAbs)) : 0); const recovN = Math.max(0, Math.min(100, (recov/3)*100)); const consN = Math.max(0, Math.min(100, 100*(1 - Math.min(1, sd/3)))); const cpiN = Math.max(0, Math.min(100, 100*(1 - Math.min(1, (res.maxDDAbs/Math.max(1, conf.startCap)) / 0.5))));
   const r2 = (()=>{ const n=eq.length; if(n<3) return 0; const xs=eq.map((_,i)=>i); const ys=eq.map(p=>p.equity); const xm=mean(xs), ym=mean(ys); let num=0, den=0; for(let i=0;i<n;i++){ const xv=xs[i]-xm, yv=ys[i]-ym; num += xv*yv; den += xv*xv; } const a=num/(den||1); const b=ym - a*xm; let ssTot=0, ssRes=0; for(let i=0;i<n;i++){ const y=ys[i]; const yhat=a*xs[i]+b; ssTot += (y-ym)*(y-ym); ssRes += (y-yhat)*(y-yhat); } return 1 - (ssRes/(ssTot||1)); })();
@@ -1287,7 +1299,7 @@ function renderStrategyDetailIntoModal(res, ctx){ try{
   const complexity = (6 + (+!!(ctx.params&&ctx.params.useFibRet)) + (ctx.params&&ctx.params.confirmMode?1:0) + (Array.isArray((ctx.params&&ctx.params.tp))? ctx.params.tp.length:0)); const compN = Math.max(0, Math.min(100, (complexity/20)*100));
   drawRobust(canRob, compN, edgeN);
   if(detailCtxEl){ detailCtxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — ${name} — PF ${(res.profitFactor===Infinity?'∞':(+res.profitFactor||0).toFixed(2))} • Trades ${res.tradesCount}`; }
- }catch(_){ if(detailCtxEl){ detailCtxEl.textContent = 'Erreur analyse'; } }
+ }catch(_){ if(detailCtxEl){ detailCtxEl.textContent = 'Erreur analyse'; } } }
 }
 
 // Lab actions: refresh/export/weights
