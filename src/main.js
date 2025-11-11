@@ -174,6 +174,21 @@ const chart = LightweightCharts.createChart(container, {
   timeScale: { borderColor: isDark() ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)', timeVisible: true, rightOffset: 10, shiftVisibleRangeOnNewBar: false, rightBarStaysOnScroll: false, lockVisibleTimeRangeOnResize: true },
 });
 const candleSeries = chart.addCandlestickSeries({ upColor:'#26a69a', downColor:'#ef5350', borderUpColor:'#26a69a', borderDownColor:'#ef5350', wickUpColor:'#26a69a', wickDownColor:'#ef5350' });
+// Flexible right space control
+try{
+  const RIGHT_OFF_KEY='chart:rightOffset';
+  let __rightOff = Math.max(0, parseInt(localStorage.getItem(RIGHT_OFF_KEY)||'10',10));
+  function setRightOffset(v){
+    __rightOff = Math.max(0, v|0);
+    try{ chart.timeScale().applyOptions({ rightOffset: __rightOff }); localStorage.setItem(RIGHT_OFF_KEY, String(__rightOff)); }catch(_){ }
+  }
+  // Apply stored value at startup (overrides default option if needed)
+  setRightOffset(__rightOff);
+  // Ctrl+Molette (wheel) pour ajuster l'espace à droite dynamiquement
+  if(container){ container.addEventListener('wheel', (e)=>{ try{ if(e && e.ctrlKey){ e.preventDefault(); setRightOffset(__rightOff + (e.deltaY<0? 1:-1)); } }catch(_){ } }, { passive:false }); }
+  // Raccourcis: Alt+Flèche → / ←
+  window.addEventListener('keydown', (e)=>{ try{ if(!e || !e.altKey) return; if(e.key==='ArrowRight'){ e.preventDefault(); setRightOffset(__rightOff+1); } else if(e.key==='ArrowLeft'){ e.preventDefault(); setRightOffset(__rightOff-1); } }catch(_){ } });
+}catch(_){ }
 const zzUpSeries = chart.addLineSeries({ color: '#00ff00', lineWidth: 2, priceScaleId: 'right' });
 const zzDnSeries = chart.addLineSeries({ color: '#ff0000', lineWidth: 2, priceScaleId: 'right' });
 let heavenCloseLine=null, heavenTrendLine=null; let heavenTPPriceLines=[];
@@ -321,7 +336,7 @@ async function load(symbol, interval){
 
 if(intervalSelect){ intervalSelect.addEventListener('change', ()=>{ currentInterval=intervalSelect.value; try{ localStorage.setItem('chart:tf', currentInterval); }catch(_){} updateWatermark(); closeWs(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval)); }); }
 if(symbolSelect){ symbolSelect.addEventListener('change', ()=>{ currentSymbol=symbolSelect.value; updateTitle(currentSymbol); updateWatermark(); closeWs(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval)); }); }
-if(gotoEndBtn){ gotoEndBtn.addEventListener('click', ()=>{ try{ chart.timeScale().scrollToPosition(10, false); }catch(_){ } }); }
+if(gotoEndBtn){ gotoEndBtn.addEventListener('click', ()=>{ try{ const v=(window.__rightOff|0)||10; chart.timeScale().scrollToPosition(v, false); }catch(_){ } }); }
 updateTitle(currentSymbol); updateWatermark(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval));
 
 // Wire Supabase config button/modal
