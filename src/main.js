@@ -2184,13 +2184,21 @@ for(let g=2; g<=gens+1 && !btAbort; g++){
       const elites = cur.slice(0, Math.max(2, Math.floor(pop*0.3)));
       // children
       const children=[];
-      while(children.length<pop){ const a=pick(elites), b=pick(elites);
-        let child = (Math.random()<cxPct)? crossover(a.p, b.p) : {...(pick(elites).p)};
+      let guardCtr=0;
+      while(children.length<pop && guardCtr<pop*4){
+        guardCtr++;
+        const hasElites = elites && elites.length>0;
+        const a = hasElites? pick(elites) : null;
+        const b = hasElites? pick(elites) : null;
+        let baseP = hasElites && a && a.p ? a.p : randomParams();
+        let child = (hasElites && a && b && (Math.random()<cxPct))? crossover(a.p, b.p) : { ...baseP };
         child = mutate(child, mutPct);
-        if(isDup(child)) continue; pushSeen(child); children.push({ p:child, owner: (a.owner||b.owner||null) }); }
+        if(isDup(child)) continue; pushSeen(child); children.push({ p:child, owner: (a&&a.owner) || (b&&b.owner) || null }); }
 const t0g=performance.now();
       __labSimTotal += children.length; updateGlobalProgressUI();
-      const evald = await evalParamsList(children, 'EA');
+      const evald = await evalParamsList(children, 'EA'); if(!Array.isArray(evald)||!evald.length){ if(!elites.length){ // nothing to build upon
+          break; }
+        }
       const dtg=performance.now()-t0g;
       cur = elites.concat(evald).sort((x,y)=> y.score-x.score).slice(0,pop);
 try{ const top=cur[0]; if(top){ addBtLog(`EA g ${g-1}→${g-1} done — ${children.length} évals en ${Math.round(dtg)} ms (${Math.round(dtg/Math.max(1,children.length))} ms/éval) — best ${top.score.toFixed(2)} PF ${(top.res.profitFactor===Infinity?'∞':(top.res.profitFactor||0).toFixed(2))} Trades ${top.res.tradesCount}`); } }catch(_){ }
