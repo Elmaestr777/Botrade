@@ -49,99 +49,10 @@ async function renderLabFromStorage(){
     const penalty = Math.max(0, raw - robust);
     const pairDisp = symbolToDisplay(sym);
     const tfDisp = tf;
-rows.push('<tr>' + `<td>${idx}</td>` + `<td>${pairDisp}</td>` + `<td>${tfDisp}</td>` + `<td style=\\\"text-align:left\\\">${(r.name||'—')}</td>` + `<td>${(r.gen||1)}</td>` + `<td style=\\\"text-align:left\\\">${paramsStr}</td>` + `<td>${raw.toFixed(2)}</td>` + `<td title=\\\"brut: ${raw.toFixed(2)} • pénalité: ${penalty.toFixed(2)}\\\">${robust.toFixed(2)}</td>` + `<td>${pf.toFixed(2)}</td>` + `<td>${pnl.toFixed(0)}</td>` + `<td>${eq1.toFixed(0)}</td>` + `<td>${cnt}</td>` + `<td>${wr.toFixed(1)}</td>` + `<td>${Number.isFinite(rr)? rr.toFixed(2): '—'}</td>` + `<td>${mdd.toFixed(0)}</td>` + `<td style=\\\"white-space:nowrap;\\\"><button class=\\\"btn\\\" data-action=\\\"apply\\\" data-idx=\\\"${idx-1}\\\">Appliquer</button> <button class=\\\"btn\\\" data-action=\\\"view\\\" data-idx=\\\"${idx-1}\\\">Voir</button> <button class=\\\"btn\\\" data-action=\\\"detail\\\" data-idx=\\\"${idx-1}\\\">Détail</button> <button class=\\\"btn\\\" data-action=\\\"tf\\\" data-idx=\\\"${idx-1}\\\" data-tf=\\\"${tfDisp}\\\" title=\\\"Sélectionner TF\\\">TF</button></td>` + '</tr>');
+rows.push('<tr>' + `<td>${idx}</td>` + `<td>${pairDisp}</td>` + `<td>${tfDisp}</td>` + `<td style=\\\"text-align:left\\\">${(r.name||'—')}</td>` + `<td>${(r.gen||1)}</td>` + `<td style=\\\"text-align:left\\\">${paramsStr}</td>` + `<td>${raw.toFixed(2)}</td>` + `<td title=\\\"brut: ${raw.toFixed(2)} • pénalité: ${penalty.toFixed(2)}\\\">${robust.toFixed(2)}</td>` + `<td>${pf.toFixed(2)}</td>` + `<td>${pnl.toFixed(0)}</td>` + `<td>${eq1.toFixed(0)}</td>` + `<td>${cnt}</td>` + `<td>${wr.toFixed(1)}</td>` + `<td>${Number.isFinite(rr)? rr.toFixed(2): '—'}</td>` + `<td>${mdd.toFixed(0)}</td>` + `<td style=\\\"white-space:nowrap\\\">—</td>` + '</tr>');
     idx++;
   }
   labTBody.innerHTML = rows.join('');
-  if(!labTBody.dataset || labTBody.dataset.wired!=='1'){
-    labTBody.addEventListener('click', async (ev)=>{
-      // robust target resolution: handle text nodes and nested spans
-      let t = ev.target;
-      // 3 = TEXT_NODE, 1 = ELEMENT_NODE
-      if(t && t.nodeType === 3 && t.parentElement) t = t.parentElement;
-      let btn = null;
-      if(t && typeof t.closest === 'function') btn = t.closest('button[data-action]');
-      if(!btn && t && t.parentElement && typeof t.parentElement.closest === 'function') btn = t.parentElement.closest('button[data-action]');
-      if(!btn) return;
-      const act=btn.getAttribute('data-action'); if(!act) return;
-      let i=parseInt(btn.getAttribute('data-idx')||'-1',10);
-      if(!(i>=0)){
-        const tr = btn.closest && btn.closest('tr');
-        const numCell = tr && tr.querySelector ? tr.querySelector('td:first-child') : null;
-        const n = numCell && numCell.textContent ? parseInt(String(numCell.textContent).trim(),10) : NaN;
-        if(Number.isFinite(n) && n>0) i = n-1;
-      }
-      try{ addLabLog && addLabLog(`Action ${act} sur rang ${isNaN(i)?'NaN':i}`); }catch(_){ }
-      // Re-read current sym/TF at click time to avoid stale closures
-      const tfNow = labTFSelect? labTFSelect.value : (intervalSelect? intervalSelect.value:'');
-      const symNow = currentSymbol;
-      // Use the same sorted order as rendered
-      const w=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
-      const base = Array.isArray(window.labPalmaresCache)? window.labPalmaresCache.slice() : [];
-      const cur=base.slice().sort((a,b)=> (b.score||scoreResult(b.res||{},w)) - (a.score||scoreResult(a.res||{},w)));
-      if(!(i>=0 && i<cur.length)) return;
-      const rec=cur[i]||{};
-      if(act==='apply'){
-        const p=rec.params||{};
-        lbcOpts.nol=(p.nol!=null)?p.nol:lbcOpts.nol;
-        lbcOpts.prd=(p.prd!=null)?p.prd:lbcOpts.prd;
-        if(p.slInitPct!=null) lbcOpts.slInitPct=p.slInitPct;
-        if(p.beAfterBars!=null) lbcOpts.beAfterBars=p.beAfterBars;
-        if(p.beLockPct!=null) lbcOpts.beLockPct=p.beLockPct;
-        if(p.emaLen!=null) lbcOpts.emaLen=p.emaLen;
-        if(p.tp1R!=null) lbcOpts.tp1R=p.tp1R;
-        if(p.entryMode) lbcOpts.entryMode=p.entryMode;
-        if(p.useFibRet!=null) lbcOpts.useFibRet=!!p.useFibRet;
-        if(p.useFibDraw!=null) lbcOpts.useFibDraw=!!p.useFibDraw;
-        if(p.confirmMode) lbcOpts.confirmMode=p.confirmMode;
-        if(p.ent382!=null) lbcOpts.ent382=!!p.ent382;
-        if(p.ent500!=null) lbcOpts.ent500=!!p.ent500;
-        if(p.ent618!=null) lbcOpts.ent618=!!p.ent618;
-        if(p.ent786!=null) lbcOpts.ent786=!!p.ent786;
-        if(p.tpEnable!=null) lbcOpts.tpEnable=!!p.tpEnable;
-        if(p.tpCompound!=null) lbcOpts.tpCompound=!!p.tpCompound;
-        if(p.tpCloseAllLast!=null) lbcOpts.tpCloseAllLast=!!p.tpCloseAllLast;
-        if(Array.isArray(p.tp)) lbcOpts.tp=p.tp;
-        if(p.slEnable!=null) lbcOpts.slEnable=!!p.slEnable;
-        if(Array.isArray(p.sl)) lbcOpts.sl=p.sl.slice(0,10);
-        saveLBCOpts();
-        if(nolEl) nolEl.value=String(lbcOpts.nol);
-        if(optNol) optNol.value=String(lbcOpts.nol);
-        if(optPrd) optPrd.value=String(lbcOpts.prd);
-        if(optSLInitPct) optSLInitPct.value=String(lbcOpts.slInitPct);
-        if(optBEBars) optBEBars.value=String(lbcOpts.beAfterBars);
-        if(optBELockPct) optBELockPct.value=String(lbcOpts.beLockPct);
-        if(optEMALen) optEMALen.value=String(lbcOpts.emaLen);
-        const eM=document.getElementById('optEntryMode'); if(eM) eM.value=lbcOpts.entryMode;
-        const ufR=document.getElementById('optUseFibRet'); if(ufR) ufR.checked=!!lbcOpts.useFibRet;
-        const ufD=document.getElementById('optUseFibDraw'); if(ufD) ufD.checked=!!lbcOpts.useFibDraw;
-        const cM=document.getElementById('optConfirmMode'); if(cM) cM.value=lbcOpts.confirmMode;
-        if(optEnt382) optEnt382.checked=!!lbcOpts.ent382;
-        if(optEnt500) optEnt500.checked=!!lbcOpts.ent500;
-        if(optEnt618) optEnt618.checked=!!lbcOpts.ent618;
-        if(optEnt786) optEnt786.checked=!!lbcOpts.ent786;
-        const tpEn=document.getElementById('optTPEnable'); if(tpEn) tpEn.checked=!!lbcOpts.tpEnable;
-        const tpC=document.getElementById('optTPCompound'); if(tpC) tpC.checked=!!lbcOpts.tpCompound;
-        const tpAL=document.getElementById('optTPAllLast'); if(tpAL) tpAL.checked=!!lbcOpts.tpCloseAllLast;
-        const __optSLEnable=document.getElementById('optSLEnable'); if(__optSLEnable) __optSLEnable.checked=!!lbcOpts.slEnable;
-        try{ populateHeavenModal(); }catch(_){ }
-        renderLBC(); setStatus('Paramètres appliqués depuis Lab');
-      } else if(act==='view'){
-        showStrategyResult(rec.res||{}, {symbol: currentSymbol, tf: tfNow});
-      } else if(act==='detail'){
-        try{
-          const item = rec && (rec.params ? rec : (rec.p ? { params: rec.p, res: rec.res, name: rec.name, score: rec.score } : rec));
-          const symNow = (labSymbolSelect&&labSymbolSelect.value)||currentSymbol;
-          await openLabStrategyDetail(item, { symbol: symNow, tf: tfNow });
-        }catch(_){ }
-      }
-        try{
-          const sel=document.getElementById('labTFSelect'); const newTf = btn && btn.getAttribute ? (btn.getAttribute('data-tf')||tfNow) : tfNow;
-          if(sel){ sel.value = newTf; try{ localStorage.setItem('lab:tf', newTf); }catch(_){ } setStatus(`TF sélectionnée: ${newTf}`); try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(__){} }
-        }catch(_){ }
-    });
-    labTBody.dataset.wired='1';
-  }
 }
 
 
