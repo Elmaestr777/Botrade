@@ -67,6 +67,26 @@ try{
     window.__wiredDetailGlobal = 1;
   }
 }catch(_){ }
+// Ensure simple modal exists (create on the fly if missing)
+function ensureLabSimpleModal(){
+  let el=document.getElementById('labSimpleDetailModal');
+  if(el) return el;
+  try{
+    el=document.createElement('div'); el.id='labSimpleDetailModal'; el.className='modal hidden'; el.setAttribute('aria-hidden','true');
+    const backdrop=document.createElement('div'); backdrop.className='modal-backdrop'; backdrop.dataset.close='1'; el.appendChild(backdrop);
+    const content=document.createElement('div'); content.className='modal-content small'; content.style.maxWidth='600px'; el.appendChild(content);
+    const header=document.createElement('div'); header.className='modal-header'; content.appendChild(header);
+    const h2=document.createElement('h2'); h2.textContent='Détail stratégie'; header.appendChild(h2);
+    const close=document.createElement('button'); close.id='labSimpleDetailClose'; close.className='icon-btn'; close.setAttribute('aria-label','Fermer'); close.textContent='×'; header.appendChild(close);
+    const bodyWrap=document.createElement('div'); bodyWrap.className='modal-body'; content.appendChild(bodyWrap);
+    const body=document.createElement('div'); body.id='labSimpleDetailBody'; body.style.color='var(--muted)'; body.textContent='—'; bodyWrap.appendChild(body);
+    document.body.appendChild(el);
+    // wire close
+    close.addEventListener('click', ()=> closeModalEl(el));
+    el.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close){ closeModalEl(el); } });
+  }catch(_){ }
+  return el;
+}
 // Unified handler
 function handleLabDetailClick(ev){
   let t = ev && ev.target;
@@ -75,13 +95,12 @@ function handleLabDetailClick(ev){
   if(t && typeof t.closest === 'function') btn = t.closest('button[data-action="detail"]');
   if(!btn) return;
   try{
-    const el = document.getElementById('labSimpleDetailModal');
+    const el = ensureLabSimpleModal();
     const body = document.getElementById('labSimpleDetailBody');
     if(body){ const tfNow = labTFSelect? labTFSelect.value : (intervalSelect? intervalSelect.value:''); const symSel=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol; body.textContent = `${symbolToDisplay(symSel)} • ${tfNow}`; }
     openModalEl(el);
     try{ ensureFloatingModal(el, 'lab-simple-detail', { left: 80, top: 80, width: 520, height: 320, zIndex: bumpZ() }); }catch(_){ }
-    ev.stopPropagation();
-    ev.preventDefault();
+    if(ev){ try{ ev.stopPropagation(); ev.preventDefault(); }catch(_){ } }
   }catch(_){ }
 }
 
