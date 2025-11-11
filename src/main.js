@@ -49,10 +49,40 @@ async function renderLabFromStorage(){
     const penalty = Math.max(0, raw - robust);
     const pairDisp = symbolToDisplay(sym);
     const tfDisp = tf;
-rows.push('<tr>' + `<td>${idx}</td>` + `<td>${pairDisp}</td>` + `<td>${tfDisp}</td>` + `<td style=\\\"text-align:left\\\">${(r.name||'—')}</td>` + `<td>${(r.gen||1)}</td>` + `<td style=\\\"text-align:left\\\">${paramsStr}</td>` + `<td>${raw.toFixed(2)}</td>` + `<td title=\\\"brut: ${raw.toFixed(2)} • pénalité: ${penalty.toFixed(2)}\\\">${robust.toFixed(2)}</td>` + `<td>${pf.toFixed(2)}</td>` + `<td>${pnl.toFixed(0)}</td>` + `<td>${eq1.toFixed(0)}</td>` + `<td>${cnt}</td>` + `<td>${wr.toFixed(1)}</td>` + `<td>${Number.isFinite(rr)? rr.toFixed(2): '—'}</td>` + `<td>${mdd.toFixed(0)}</td>` + `<td style=\\\"white-space:nowrap\\\">—</td>` + '</tr>');
+rows.push('<tr>' + `<td>${idx}</td>` + `<td>${pairDisp}</td>` + `<td>${tfDisp}</td>` + `<td style=\\\"text-align:left\\\">${(r.name||'—')}</td>` + `<td>${(r.gen||1)}</td>` + `<td style=\\\"text-align:left\\\">${paramsStr}</td>` + `<td>${raw.toFixed(2)}</td>` + `<td title=\\\"brut: ${raw.toFixed(2)} • pénalité: ${penalty.toFixed(2)}\\\">${robust.toFixed(2)}</td>` + `<td>${pf.toFixed(2)}</td>` + `<td>${pnl.toFixed(0)}</td>` + `<td>${eq1.toFixed(0)}</td>` + `<td>${cnt}</td>` + `<td>${wr.toFixed(1)}</td>` + `<td>${Number.isFinite(rr)? rr.toFixed(2): '—'}</td>` + `<td>${mdd.toFixed(0)}</td>` + `<td style=\\\"white-space:nowrap\\\"><button class=\\\"btn\\\" data-action=\\\"detail\\\" data-idx=\\\"${idx-1}\\\">Détail</button></td>` + '</tr>');
     idx++;
   }
   labTBody.innerHTML = rows.join('');
+  // Wire only the Détail action on palmarès rows
+  if(!labTBody.dataset || labTBody.dataset.wiredDetail!=="1"){
+    labTBody.addEventListener('click', async (ev)=>{
+      let t = ev.target;
+      if(t && t.nodeType === 3 && t.parentElement) t = t.parentElement;
+      let btn = null;
+      if(t && typeof t.closest === 'function') btn = t.closest('button[data-action="detail"]');
+      if(!btn) return;
+      let i = parseInt(btn.getAttribute('data-idx')||'-1', 10);
+      if(!(i>=0)){
+        const tr = btn.closest && btn.closest('tr');
+        const numCell = tr && tr.querySelector ? tr.querySelector('td:first-child') : null;
+        const n = numCell && numCell.textContent ? parseInt(String(numCell.textContent).trim(),10) : NaN;
+        if(Number.isFinite(n) && n>0) i = n-1;
+      }
+      const tfNow = labTFSelect? labTFSelect.value : (intervalSelect? intervalSelect.value:'');
+      const symNow = currentSymbol;
+      const w=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
+      const base = Array.isArray(window.labPalmaresCache)? window.labPalmaresCache.slice() : [];
+      const cur=base.slice().sort((a,b)=> (b.score||scoreResult(b.res||{},w)) - (a.score||scoreResult(a.res||{},w)));
+      if(!(i>=0 && i<cur.length)) return;
+      const rec=cur[i]||{};
+      try{
+        const item = rec && (rec.params ? rec : (rec.p ? { params: rec.p, res: rec.res, name: rec.name, score: rec.score } : rec));
+        const symSel = (labSymbolSelect&&labSymbolSelect.value)||symNow;
+        await openLabStrategyDetail(item, { symbol: symSel, tf: tfNow });
+      }catch(_){ }
+    });
+    labTBody.dataset.wiredDetail='1';
+  }
 }
 
 
