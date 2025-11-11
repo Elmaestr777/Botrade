@@ -1306,6 +1306,18 @@
               <div style="font-weight:600;">Régimes (Trend × Volatilité)</div>
               <canvas id="detailRegime" width="980" height="200" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
             </div>
+            <div style="display:grid; grid-template-columns: 1fr; gap:8px; margin-top:10px;">
+              <div style="font-weight:600;">Pareto — P&L vs Max DD (Palmarès)</div>
+              <canvas id="detailPareto" width="980" height="220" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr; gap:8px; margin-top:10px;">
+              <div style="font-weight:600;">Monte Carlo — éventail d'équity (bootstrap trades)</div>
+              <canvas id="detailMC" width="980" height="220" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:10px;">
+              <canvas id="detailQQ" width="480" height="200" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+              <canvas id="detailACF" width="480" height="200" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
+            </div>
           </div>
         </div>
       </div>

@@ -1228,6 +1228,7 @@ const canRadar=document.getElementById('detailRadar'); const canEquity=document.
 const canRollPF=document.getElementById('detailRollPF'); const canRollWin=document.getElementById('detailRollWin'); const canRollRR=document.getElementById('detailRollRR'); const canRollExp=document.getElementById('detailRollExp');
 const canDur=document.getElementById('detailDurHist'); const canStreaks=document.getElementById('detailStreaks'); const canLS=document.getElementById('detailLSHist');
 const canMAEMFE=document.getElementById('detailMAEMFE'); const canMonthly=document.getElementById('detailMonthly'); const canRegime=document.getElementById('detailRegime');
+const canPareto=document.getElementById('detailPareto'); const canMC=document.getElementById('detailMC'); const canQQ=document.getElementById('detailQQ'); const canACF=document.getElementById('detailACF');
 const detailSummaryEl = document.getElementById('detailSummaryBody');
 if(detailClose){ detailClose.addEventListener('click', ()=> closeModalEl(detailModalEl)); }
 if(detailModalEl){ detailModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close){ closeModalEl(detailModalEl); } }); }
@@ -1290,6 +1291,19 @@ function drawRegimeHeatmap(canvas, mat){ if(!canvas||!mat) return; const ctx=can
       const g=Math.round(255*Math.min(1, pf/3)); const col=`rgb(${255-g},${g},120)`; ctx.fillStyle=col; ctx.fillRect(x+1,y+1,cw-2,ch-2); __drawText(ctx, x+cw/2, y+ch/2, `${(cell.pf===Infinity?'∞':pf.toFixed(2))} (${cell.count})`, 'center'); __drawText(ctx, x+cw/2, padT-8, cols[c], 'center'); }
   }
 }
+
+function drawPareto(canvas, pts){ if(!canvas||!pts||!pts.length) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'Pareto — P&L vs Max DD', 'center'); const padL=50, padR=10, padT=20, padB=26; const minX=0, maxX=Math.max(1, ...pts.map(p=>p.dd)); const minY=Math.min(0, ...pts.map(p=>p.pnl)), maxY=Math.max(1, ...pts.map(p=>p.pnl)); const x=(v)=> padL + (v-minX)/(maxX-minX+1e-9)*(w-padL-padR); const y=(v)=> h-padB - (v-minY)/(maxY-minY+1e-9)*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); for(let t=0;t<=4;t++){ const tx=padL + (w-padL-padR)*t/4; const ty=h-padB - (h-padT-padB)*t/4; ctx.beginPath(); ctx.moveTo(tx, padT); ctx.lineTo(tx, h-padB); ctx.stroke(); ctx.beginPath(); ctx.moveTo(padL, ty); ctx.lineTo(w-padR, ty); ctx.stroke(); } __drawText(ctx, w-8, h-6, 'Max DD →', 'right'); __drawText(ctx, padL+2, padT, 'P&L ↑', 'left');
+  function colFromScore(s){ if(!Number.isFinite(s)) return 'rgba(37,99,235,0.85)'; const x=Math.max(0, Math.min(1, s/100)); const g=Math.round(180*x+40); const r=Math.round(220*(1-x)); return `rgba(${r},${g},120,0.9)`; }
+  for(const p of pts){ ctx.fillStyle=colFromScore(p.score); ctx.beginPath(); ctx.arc(x(p.dd), y(p.pnl), 3, 0, Math.PI*2); ctx.fill(); }
+}
+
+function drawQQ(canvas, arr){ if(!canvas||!arr||arr.length<3) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'QQ-Plot (retours normalisés)', 'center'); const padL=40, padR=10, padT=18, padB=22; const xs=arr.slice().filter(Number.isFinite).sort((a,b)=>a-b); const n=xs.length; const mean=xs.reduce((s,x)=>s+x,0)/n; const sd=Math.sqrt(xs.reduce((s,x)=> s+(x-mean)*(x-mean),0)/Math.max(1,n-1)); const zs=xs.map(x=> (x-mean)/(sd||1)); function qnorm(p){ // inverse CDF normal approx (Beasley-Springer/Moro) simple poly
+  const a=[-39.696830,220.946098,-275.928510,138.357751,-30.664798,2.506628]; const b=[-54.476098,161.585836,-155.698979,66.801311,-13.280681]; const c=[-0.007784894, -0.322396, -2.400758, -2.549732, 4.374664, 2.938163]; const d=[0.007784695, 0.322467, 2.445134, 3.754408]; const plow=0.02425, phigh=1-plow; let q,r; if(p<plow){ q=Math.sqrt(-2*Math.log(p)); return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); } if(p>phigh){ q=Math.sqrt(-2*Math.log(1-p)); return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); } q=p-0.5; r=q*q; return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*1; }
+  const theo=[]; for(let i=1;i<=n;i++){ const p=(i-0.5)/n; theo.push(qnorm(p)); }
+  const minV=Math.min(...zs, ...theo), maxV=Math.max(...zs, ...theo); const x=(v)=> padL + (v-minV)/(maxV-minV+1e-9)*(w-padL-padR); const y=(v)=> h-padB - (v-minV)/(maxV-minV+1e-9)*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); // diagonal
+  ctx.strokeStyle='#10b981'; ctx.beginPath(); ctx.moveTo(x(minV), y(minV)); ctx.lineTo(x(maxV), y(maxV)); ctx.stroke(); ctx.fillStyle='rgba(37,99,235,0.85)'; for(let i=0;i<n;i++){ ctx.beginPath(); ctx.arc(x(theo[i]), y(zs[i]), 2.5, 0, Math.PI*2); ctx.fill(); } }
+
+function drawACF(canvas, arr, maxLag){ if(!canvas||!arr||arr.length<3) return; maxLag=Math.max(1, maxLag||10); const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'Autocorrélation (lags)', 'center'); const padL=30, padR=10, padT=18, padB=22; const xs=arr.slice().filter(Number.isFinite); const n=xs.length; const mean=xs.reduce((s,x)=>s+x,0)/n; const varr=xs.reduce((s,x)=> s+(x-mean)*(x-mean),0); const acf=[]; for(let k=1;k<=maxLag;k++){ let num=0; for(let i=0;i<n-k;i++){ num += (xs[i]-mean)*(xs[i+k]-mean); } acf.push(num/(varr||1)); } const yMin=Math.min(0, ...acf), yMax=Math.max(0, ...acf); const x=(i)=> padL + (i-1)/(maxLag-1)*(w-padL-padR); const y=(v)=> h-padB - (v-yMin)/(yMax-yMin+1e-9)*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const z=1.96/Math.sqrt(Math.max(1,n)); ctx.strokeStyle='#ef4444'; ctx.beginPath(); ctx.moveTo(padL, y(z)); ctx.lineTo(w-padR, y(z)); ctx.moveTo(padL, y(-z)); ctx.lineTo(w-padR, y(-z)); ctx.stroke(); for(let k=1;k<=maxLag;k++){ const xx=x(k); const hh=(acf[k-1]-0)/(yMax-yMin+1e-9)*(h-padT-padB); ctx.fillStyle='#2563eb'; const y0=y(0), yk=y(acf[k-1]); ctx.fillRect(xx-6, Math.min(y0,yk), 12, Math.abs(y0-yk)); __drawText(ctx, xx, h-6, String(k), 'center'); } }
 function drawRobust(canvas, complexity, robustness){ if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 14, 'Complexité & Robustesse (0–100)', 'center'); // grid
   ctx.strokeStyle=__clr().border; for(let g=0; g<=5; g++){ const x=220 + (w-240)*(g/5); ctx.beginPath(); ctx.moveTo(x, 24); ctx.lineTo(x, h-14); ctx.stroke(); __drawText(ctx, x, h-6, String(g*20)+'%', 'center'); }
   const labels=['Complexité (params actifs)','Robustesse (stabilité)']; const vals=[complexity, robustness]; for(let i=0;i<2;i++){ const y=40+i*40; ctx.fillStyle='#e5e7eb'; ctx.fillRect(220, y, w-240, 14); ctx.fillStyle=i===0?'#f59e0b':'#10b981'; ctx.fillRect(220, y, (w-240)*Math.max(0,Math.min(100, vals[i]))/100, 14); __drawText(ctx, 210, y+7, String(Math.round(vals[i]))+'%', 'right'); __drawText(ctx, 10, y+7, labels[i], 'left'); } }
@@ -1443,8 +1457,42 @@ try{ drawHistLongShort(canLS, retLong, retShort); }catch(_){ }
     const idxOfTime=(ts)=>{ let lo=0, hi=bars.length-1, ans=0; while(lo<=hi){ const mid=(lo+hi)>>1; if(bars[mid].time<=ts){ ans=mid; lo=mid+1; } else hi=mid-1; } return ans; };
     for(const g of groups){ const i=idxOfTime(g.entryTime); const tr=bucketTrend(Math.min(i, lb.trend.length-1)); const vol=bucketVol(atrP[Math.min(i, atrP.length-1)]||0); const cell=mat[tr][vol]; cell.count++; if((g.net||0)>=0) cell.gp += (g.net||0); else cell.gl += (g.net||0); }
     for(const r of ['Up','Down']){ for(const c of ['Low','Med','High']){ const cell=mat[r][c]; cell.pf = (cell.gl<0? cell.gp/Math.abs(cell.gl) : (cell.count>0? Infinity:0)); } }
-    drawRegimeHeatmap(canRegime, mat);
+drawRegimeHeatmap(canRegime, mat);
   }catch(_){ }
+  // Pareto (Palmarès)
+  try{
+    let pal = (Array.isArray(window.labPalmaresCache) && window.labPalmaresCache.length)? window.labPalmaresCache.slice() : [];
+    const drawFrom = (arr)=>{
+      const pts=[]; if(Array.isArray(arr)){
+        for(const it of arr){ const st=it.res||{}; const score=(typeof it.score==='number')? it.score : 0; if(Number.isFinite(st.maxDDAbs)&&Number.isFinite(st.totalPnl)){ pts.push({ dd:+st.maxDDAbs, pnl:+st.totalPnl, score }); } }
+      }
+      if(!pts.length){ pts.push({ dd: Math.max(0, +res.maxDDAbs||0), pnl: +res.totalPnl||0, score: (Number.isFinite(res.score)? res.score:0) }); }
+      drawPareto(canPareto, pts);
+    };
+    if(pal.length){ drawFrom(pal); }
+    else if(window.SUPA && typeof SUPA.fetchPalmares==='function'){
+      try{ SUPA.fetchPalmares(sym, tf, 50).then(arr=>{ drawFrom(arr||[]); }).catch(()=> drawFrom([])); }catch(__){ drawFrom([]); }
+    } else { drawFrom([]); }
+  }catch(_){ }
+  // Monte Carlo fan (bootstrap trades)
+  try{
+    const startCap = Number(conf.startCap)||10000; const rp = (retLong.concat(retShort)).filter(Number.isFinite);
+    const L = Math.min(300, rp.length||0); const N = Math.min(50, 5 + Math.floor((rp.length||0)/2)); if(L>5 && N>1){
+      const paths=[]; for(let s=0;s<N;s++){ let eq=startCap; const path=[eq]; for(let i=0;i<L;i++){ const r = rp[Math.floor(Math.random()*rp.length)]/100; eq = eq*(1+r); path.push(eq); } paths.push(path); }
+      // compute percentiles per step
+      const steps=paths[0].length; const p10=[], p50=[], p90=[]; for(let i=0;i<steps;i++){ const col=paths.map(p=> p[i]); col.sort((a,b)=>a-b); const q=(q)=> col[Math.max(0, Math.min(col.length-1, Math.floor((col.length-1)*q)))]; p10.push(q(0.10)); p50.push(q(0.50)); p90.push(q(0.90)); }
+      // draw
+      const ctx=canMC.getContext('2d'); const w=canMC.width, h=canMC.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, "Monte Carlo — éventail d'équity", 'center'); const padL=46, padR=10, padT=18, padB=24; const min=Math.min(...p10), max=Math.max(...p90); const x=(i)=> i/(steps-1)*(w-padL-padR)+padL; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB); // axes
+      ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke();
+      // band 10-90
+      ctx.fillStyle='rgba(37,99,235,0.15)'; ctx.beginPath(); ctx.moveTo(x(0), y(p10[0])); for(let i=1;i<steps;i++) ctx.lineTo(x(i), y(p10[i])); for(let i=steps-1;i>=0;i--) ctx.lineTo(x(i), y(p90[i])); ctx.closePath(); ctx.fill();
+      // median
+      ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<steps;i++){ const xx=x(i), yy=y(p50[i]); if(i===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy); } ctx.stroke(); __drawText(ctx, padL, h-6, 'Trades (bootstrap) →', 'left');
+    }
+  }catch(_){ }
+  // QQ & ACF
+  try{ const retsAll = (retLong.concat(retShort)).slice(); drawQQ(canQQ, retsAll); }catch(_){ }
+  try{ const retsAll = (retLong.concat(retShort)).slice(); drawACF(canACF, retsAll, 10); }catch(_){ }
 if(detailCtxEl){ const gtxt = (ctx && ctx.gen && ctx.gen>1)? ` • Gen ${ctx.gen}` : ''; detailCtxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — ${name}${gtxt} — PF ${(res.profitFactor===Infinity?'∞':(+res.profitFactor||0).toFixed(2))} • Trades ${res.tradesCount}`; }
   // Summary/commentary (pass advanced metrics)
   try{ const sum = generateStrategySummary(res, ctx, { timeInMkt, freq, expectancy: expNet, avgDurMin, bestNet, worstNet, r2, pf: (res.profitFactor===Infinity? Infinity : (+res.profitFactor||0)), winrate, avgRR, maxDDAbs: +res.maxDDAbs||0 }); if(detailSummaryEl) detailSummaryEl.innerHTML = sum; }catch(_){ }
