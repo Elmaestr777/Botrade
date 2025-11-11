@@ -1300,7 +1300,6 @@ function renderStrategyDetailIntoModal(res, ctx){ try{
   drawRobust(canRob, compN, edgeN);
   if(detailCtxEl){ detailCtxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — ${name} — PF ${(res.profitFactor===Infinity?'∞':(+res.profitFactor||0).toFixed(2))} • Trades ${res.tradesCount}`; }
  }catch(_){ if(detailCtxEl){ detailCtxEl.textContent = 'Erreur analyse'; } } }
-}
 
 // Lab actions: refresh/export/weights
 const labExportBtn=document.getElementById('labExport'); const labWeightsBtn=document.getElementById('labWeights'); const labRunNewBtn=document.getElementById('labRunNew');
