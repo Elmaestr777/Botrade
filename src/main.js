@@ -171,7 +171,7 @@ const chart = LightweightCharts.createChart(container, {
     vertAlign: 'top'
   },
   rightPriceScale: { borderVisible: true, borderColor: isDark() ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)' },
-  timeScale: { borderColor: isDark() ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)', timeVisible: true, rightOffset: 30, rightBarStaysOnScroll: true, shiftVisibleRangeOnNewBar: true },
+  timeScale: { borderColor: isDark() ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)', timeVisible: true, shiftVisibleRangeOnNewBar: false },
 });
 const candleSeries = chart.addCandlestickSeries({ upColor:'#26a69a', downColor:'#ef5350', borderUpColor:'#26a69a', borderDownColor:'#ef5350', wickUpColor:'#26a69a', wickDownColor:'#ef5350' });
 const zzUpSeries = chart.addLineSeries({ color: '#00ff00', lineWidth: 2, priceScaleId: 'right' });
@@ -293,7 +293,7 @@ async function backgroundExtendKlines(symbol, interval, token){
 function closeWs(){ try{ if(ws){ ws.onopen=ws.onmessage=ws.onerror=ws.onclose=null; ws.close(); } }catch(_){} ws=null; }
 function wsUrl(symbol, interval){ return `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_${interval}`; }
 function openWs(symbol, interval){ closeWs(); try{ ws=new WebSocket(wsUrl(symbol, interval)); }catch(e){ setStatus('WS erreur'); return; } ws.onopen=()=> setStatus('Temps réel'); ws.onmessage=(ev)=>{ try{ const msg=JSON.parse(ev.data); const k=(msg&&msg.k)||(msg&&msg.data&&msg.data.k); if(!k) return; const bar={ time:Math.floor(k.t/1000), open:+k.o, high:+k.h, low:+k.l, close:+k.c }; const last=candles[candles.length-1]; if(last && bar.time===last.time){ candles[candles.length-1]=bar; candleSeries.update(bar); } else if(!last || bar.time>last.time){ candles.push(bar); candleSeries.update(bar); if(candles.length>LIVE_MAX_BARS) candles=candles.slice(-LIVE_MAX_BARS); }
-updateEMAs(); renderLBC(); try{ chart.timeScale().applyOptions({ rightOffset: 30 }); chart.timeScale().scrollToPosition(30, false); }catch(_){ } if(typeof anyLiveActive==='function' && anyLiveActive()){ try{ multiLiveOnBar(bar); }catch(_){ } } else if(liveSession && liveSession.active){ try{ liveOnBar(bar); }catch(_){ } }
+updateEMAs(); renderLBC(); if(typeof anyLiveActive==='function' && anyLiveActive()){ try{ multiLiveOnBar(bar); }catch(_){ } } else if(liveSession && liveSession.active){ try{ liveOnBar(bar); }catch(_){ } }
     }catch(_){ } }; ws.onerror=()=> setStatus('WS erreur'); ws.onclose=()=> {/* keep silent */}; }
 async function load(symbol, interval){
   try{
@@ -305,8 +305,6 @@ async function load(symbol, interval){
       candles = cached;
       candleSeries.setData(candles);
       chart.timeScale().fitContent();
-      chart.timeScale().applyOptions({ rightOffset: 30 });
-      try{ chart.timeScale().scrollToPosition(30, false); }catch(_){ }
       updateEMAs(); renderLBC();
     } else {
       setStatus('Chargement...');
@@ -315,8 +313,6 @@ async function load(symbol, interval){
     candles = await fetchAllKlines(symbol, interval, PRELOAD_BARS);
     candleSeries.setData(candles);
     chart.timeScale().fitContent();
-    chart.timeScale().applyOptions({ rightOffset: 30 });
-    try{ chart.timeScale().scrollToPosition(30, false); }catch(_){ }
     setStatus('');
     updateEMAs(); renderLBC();
     try{ saveKlinesToCache(symbol, interval, candles); }catch(_){ }
@@ -327,7 +323,7 @@ async function load(symbol, interval){
 
 if(intervalSelect){ intervalSelect.addEventListener('change', ()=>{ currentInterval=intervalSelect.value; try{ localStorage.setItem('chart:tf', currentInterval); }catch(_){} updateWatermark(); closeWs(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval)); }); }
 if(symbolSelect){ symbolSelect.addEventListener('change', ()=>{ currentSymbol=symbolSelect.value; updateTitle(currentSymbol); updateWatermark(); closeWs(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval)); }); }
-if(gotoEndBtn){ gotoEndBtn.addEventListener('click', ()=>{ try{ chart.timeScale().scrollToRealTime(); }catch(_){ } try{ chart.timeScale().applyOptions({ rightOffset: 30 }); chart.timeScale().scrollToPosition(30, false); }catch(_){ } }); }
+if(gotoEndBtn){ gotoEndBtn.addEventListener('click', ()=>{ try{ chart.timeScale().scrollToRealTime(); }catch(_){ } }); }
 updateTitle(currentSymbol); updateWatermark(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval));
 
 // Wire Supabase config button/modal
