@@ -76,10 +76,24 @@ rows.push('<tr>' + `<td>${idx}</td>` + `<td>${pairDisp}</td>` + `<td>${tfDisp}</
       if(!(i>=0 && i<cur.length)) return;
       const rec=cur[i]||{};
       try{
-        const item = rec && (rec.params ? rec : (rec.p ? { params: rec.p, res: rec.res, name: rec.name, score: rec.score } : rec));
+        // Simple, robust detail: run a backtest and open metrics/trades modals
+        const p = rec.params || rec.p || {};
         const symSel = (labSymbolSelect&&labSymbolSelect.value)||symNow;
-        await openLabStrategyDetail(item, { symbol: symSel, tf: tfNow });
-      }catch(_){ }
+        // Determine bars for selected TF; if different from current, fetch fresh; else use current candles
+        let bars = candles;
+        if(tfNow !== currentInterval){ try{ bars = await fetchAllKlines(symSel, tfNow, 5000); }catch(_){ bars=candles; } }
+        // Use Lab range selection (visible/dates/tout)
+        let from=null, to=null;
+        try{ const modeEl=document.getElementById('labRangeMode'); const mode=(modeEl&&modeEl.value)||'visible';
+          if(mode==='dates'){ const f=(document.getElementById('labFrom')&&document.getElementById('labFrom').value)||''; const t=(document.getElementById('labTo')&&document.getElementById('labTo').value)||''; from = f? Math.floor(new Date(f).getTime()/1000) : null; to = t? Math.floor(new Date(t).getTime()/1000) : null; }
+          else if(mode==='visible'){ const r=getVisibleRange(); if(r){ from=r.from; to=r.to; } }
+        }catch(_){ from=null; to=null; }
+        const idxFromTimeLocal=(bars,from,to)=>{ let s=0,e=bars.length-1; if(from!=null){ for(let k=0;k<bars.length;k++){ if(bars[k].time>=from){ s=k; break; } } } if(to!=null){ for(let k=bars.length-1;k>=0;k--){ if(bars[k].time<=to){ e=k; break; } } } return [s,e]; };
+        const [sIdx,eIdx]=idxFromTimeLocal(bars, from, to);
+        const conf={ startCap: Math.max(0, parseFloat((document.getElementById('labStartCap')&&document.getElementById('labStartCap').value)||'10000')), fee: Math.max(0, parseFloat((document.getElementById('labFee')&&document.getElementById('labFee').value)||'0.1')), lev: Math.max(1, parseFloat((document.getElementById('labLev')&&document.getElementById('labLev').value)||'1')), maxPct:100, base:'initial' };
+        const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, p, true);
+        showStrategyResult(res, { symbol: symSel, tf: tfNow, startCap: conf.startCap });
+      }catch(err){ try{ addLabLog && addLabLog('Détail: '+(err&&err.message?err.message:err)); }catch(_){} }
     });
     labTBody.dataset.wiredDetail='1';
   }
