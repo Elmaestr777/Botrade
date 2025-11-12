@@ -19,11 +19,15 @@
     try{ const plane=document.getElementById('preloadPlane'); if(plane){ const url=canv.toDataURL('image/jpeg', 0.9); plane.style.backgroundImage = `url(${url})`; } }catch(_){ }
   }catch(_){ } }
   // Bezier flight to logo (JS, for arc path + scale)
-  function animateToLogoBezier(durMs){ try{ const lg=document.getElementById('brandLogo'); const lr=lg? lg.getBoundingClientRect() : {left:12, top:12, width:40, height:40}; const cr=clip.getBoundingClientRect(); const startX=window.innerWidth/2, startY=window.innerHeight/2; const endX=lr.left+(lr.width/2), endY=lr.top+(lr.height/2); const ctrlX=(startX+endX)/2, ctrlY=Math.min(startY,endY) - (window.innerHeight*0.18);
-    const sEnd = Math.max(0.14, Math.min((lr.width||40)/Math.max(1, cr.width), 0.22)); const rot=-8*(Math.PI/180);
+  function animateToLogoBezier(durMs, spin){ try{ const lg=document.getElementById('brandLogo'); const lr=lg? lg.getBoundingClientRect() : {left:12, top:12, width:40, height:40}; const cr=clip.getBoundingClientRect(); const startX=window.innerWidth/2, startY=window.innerHeight/2; const endX=lr.left+(lr.width/2), endY=lr.top+(lr.height/2); const ctrlX=(startX+endX)/2, ctrlY=Math.min(startY,endY) - (window.innerHeight*0.18);
+    const sEnd = Math.max(0.14, Math.min((lr.width||40)/Math.max(1, cr.width), 0.22)); const baseTilt=-8*(Math.PI/180);
     const d=Math.max(300, parseInt(durMs||__preParams.FLIGHT_DUR,10)); const t0=performance.now(); function easeInOutCubic(t){ return t<0.5? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
     function at(t){ const u=1-t; const x = u*u*startX + 2*u*t*ctrlX + t*t*endX; const y = u*u*startY + 2*u*t*ctrlY + t*t*endY; return {x,y}; }
-    function loop(){ const now=performance.now(); let p=(now-t0)/d; if(p>1) p=1; const e=easeInOutCubic(p); const {x,y}=at(e); const dx = x - startX, dy = y - startY; const s = 1 - (1 - sEnd)*e; clip.style.willChange='transform'; clip.style.transform = `translate(-50%, -50%) translate(${dx}px, ${dy}px) scale(${s}) rotate(${rot}rad)`; if(p<1){ requestAnimationFrame(loop); } else { try{ overlay.remove(); }catch(_){ overlay.style.display='none'; } } }
+    let lastTs=t0; let angleZ=(spin&&spin.angle0)||0; const omega0=(spin&&spin.omega0)||0; // rad/s
+    function loop(){ const now=performance.now(); let p=(now-t0)/d; if(p>1) p=1; const e=easeInOutCubic(p); const {x,y}=at(e); const dx = x - startX, dy = y - startY; const s = 1 - (1 - sEnd)*e;
+      // continue spin with progressive decay to near-zero on arrival
+      const dt=(now-lastTs)/1000; lastTs=now; const omega = omega0*(1 - e); angleZ += omega*dt; const rotZ = angleZ + baseTilt;
+      clip.style.willChange='transform'; clip.style.transform = `translate(-50%, -50%) translate(${dx}px, ${dy}px) scale(${s}) rotate(${rotZ}rad)`; if(p<1){ requestAnimationFrame(loop); } else { try{ overlay.remove(); }catch(_){ overlay.style.display='none'; } } }
     requestAnimationFrame(loop);
   }catch(_){ try{ overlay.remove(); }catch(__){} } }
   // WebGL crumple (displacement + lighting) on last frame
@@ -61,7 +65,8 @@
   function startRouletteSpin(done){ try{
     const rc=document.getElementById('preloadRoulette'); if(!rc) { done&&done(); return; }
     const ctx=rc.getContext('2d'); const parent=rc.parentElement; const W=parent.clientWidth||window.innerWidth; const H=parent.clientHeight||window.innerHeight; rc.width=W; rc.height=H; rc.classList.add('show');
-    const cx=W/2, cy=H/2; const t0=performance.now(); const DUR=__preParams.SPIN_DUR|0 || 1200; const spinTurns=__preParams.SPIN_TURNS||2.6; function easeOutCubic(x){ return 1- Math.pow(1-x,3);} 
+    const cx=W/2, cy=H/2; const t0=performance.now(); const DUR=__preParams.SPIN_DUR|0 || 1200; const spinTurns=__preParams.SPIN_TURNS||2.6; function easeInCubic(x){ return x*x*x; } 
+    let prevT=t0, prevA=0, lastOmega=0, lastAngle=0;
     function draw(angle){ ctx.clearRect(0,0,W,H);
       const cv=document.getElementById('preloadCanvas');
       // static background (cover)
@@ -81,8 +86,11 @@
       // vignette for overall focus
       const grd=ctx.createRadialGradient(cx,cy,Math.min(W,H)*0.12, cx,cy, Math.max(W,H)*0.78); grd.addColorStop(0,'rgba(0,0,0,0.0)'); grd.addColorStop(1,'rgba(0,0,0,0.22)'); ctx.fillStyle=grd; ctx.fillRect(0,0,W,H);
     }
-    (function loop(){ const p=Math.min(1,(performance.now()-t0)/DUR); const a= (spinTurns*Math.PI*2) * easeOutCubic(p); draw(a); if(p<1){ requestAnimationFrame(loop); } else { // fade out
-        rc.classList.add('fade'); setTimeout(()=>{ rc.classList.remove('show','fade'); done&&done(); }, 240); }
+    (function loop(){ const now=performance.now(); const p=Math.min(1,(now-t0)/DUR); const a= (spinTurns*Math.PI*2) * easeInCubic(p); draw(a); const dt=Math.max(1, now-prevT)/1000; lastOmega = (a - prevA)/dt; prevA=a; prevT=now; lastAngle=a; if(p<1){ requestAnimationFrame(loop); } else { // fade out with slight overlap to next phase
+        rc.classList.add('fade');
+        // overlap: trigger next phase immediately (rotation continuity), keep roulette fading for ~240ms
+        done&&done(lastAngle, lastOmega);
+        setTimeout(()=>{ rc.classList.remove('show','fade'); }, 240); }
     })();
   }catch(_){ done&&done(); } }
 
@@ -91,9 +99,9 @@
     if(__prefs && __prefs.reducedMotion){ animateToLogoBezier(350); return; }
     // Immediately hide the sheet image; we'll show roulette, then transform plane
     sheet.classList.add('sheet-hide');
-    startRouletteSpin(()=>{
+    startRouletteSpin((lastAngle, lastOmega)=>{
       const plane=document.getElementById('preloadPlane'); if(plane){ plane.classList.add('plane-on','plane-fold'); plane.style.animationDuration = Math.max(300, __preParams.FOLD_DUR||800)+'ms'; plane.addEventListener('animationend', ()=>{ try{ plane.classList.remove('plane-fold'); plane.classList.add('plane-flight'); plane.style.animationDuration = Math.max(300, __preParams.FLIGHT_DUR||1100)+'ms'; }catch(_){ } }, { once:true }); }
-      animateToLogoBezier(__preParams.FLIGHT_DUR||1100);
+      animateToLogoBezier(__preParams.FLIGHT_DUR||1100, { angle0: lastAngle||0, omega0: lastOmega||0 });
     });
   }catch(_){ animateToLogoBezier(); } }
   function afterEnd(){ setTimeout(runPaperSequence, 500); }
