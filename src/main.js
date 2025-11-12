@@ -23,10 +23,12 @@
     const sEnd = Math.max(0.14, Math.min((lr.width||40)/Math.max(1, cr.width), 0.22)); const baseTilt=-8*(Math.PI/180);
     const d=Math.max(300, parseInt(durMs||__preParams.FLIGHT_DUR,10)); const t0=performance.now(); function easeInOutCubic(t){ return t<0.5? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
     function at(t){ const u=1-t; const x = u*u*startX + 2*u*t*ctrlX + t*t*endX; const y = u*u*startY + 2*u*t*ctrlY + t*t*endY; return {x,y}; }
-    let lastTs=t0; let angleZ=(spin&&spin.angle0)||0; const omega0=(spin&&spin.omega0)||0; // rad/s
+    // Rotation planning: finish horizontal (0 mod 2π) and add a small extra number of rotations during flight
+    const TAU = Math.PI*2; const a0 = (spin && Number.isFinite(spin.angle0))? spin.angle0 : 0; const w0 = (spin && Number.isFinite(spin.omega0))? spin.omega0 : 0; const hasSpin = Math.abs(a0)>1e-6 || Math.abs(w0)>1e-3;
+    let totalDelta=0, alpha=0; if(hasSpin){ let phi0 = a0 % TAU; if(phi0<0) phi0 += TAU; const deltaMin = (TAU - phi0) % TAU; const extraTurns = 1; totalDelta = deltaMin + extraTurns*TAU; alpha = (w0 * d) / Math.max(1e-6, totalDelta); }
+    function sHermite(p){ const p2=p*p, p3=p2*p; return (-2*p3 + 3*p2) + alpha*(p3 - 2*p2 + p); }
     function loop(){ const now=performance.now(); let p=(now-t0)/d; if(p>1) p=1; const e=easeInOutCubic(p); const {x,y}=at(e); const dx = x - startX, dy = y - startY; const s = 1 - (1 - sEnd)*e;
-      // continue spin with progressive decay to near-zero on arrival
-      const dt=(now-lastTs)/1000; lastTs=now; const omega = omega0*(1 - e); angleZ += omega*dt; const rotZ = angleZ + baseTilt;
+      let rotZ = baseTilt * (1 - e); if(hasSpin){ const spinProg = sHermite(p); const ang = a0 + totalDelta*spinProg; rotZ += ang; }
       clip.style.willChange='transform'; clip.style.transform = `translate(-50%, -50%) translate(${dx}px, ${dy}px) scale(${s}) rotate(${rotZ}rad)`; if(p<1){ requestAnimationFrame(loop); } else { try{ overlay.remove(); }catch(_){ overlay.style.display='none'; } } }
     requestAnimationFrame(loop);
   }catch(_){ try{ overlay.remove(); }catch(__){} } }
