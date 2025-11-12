@@ -2648,21 +2648,11 @@ function ensureLiveDrawer(){ try{ if(document.getElementById('liveDrawer')) retu
   // Apply filter immediately
 try{ if(Array.isArray(candles)){ candles = candles.filter(b=> b.time>=window.__liveChartMinTimeSec); candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge(); } }catch(_){ }
   if(typeof populateLiveWalletsUI==='function') populateLiveWalletsUI(); if(typeof populateLiveTFOptions==='function') populateLiveTFOptions(); if(typeof populateLiveStrategyOptions==='function') populateLiveStrategyOptions(); openModalEl(liveModalEl); }catch(_){ } }); } }catch(_){ }
-  // Side tab showing current wallet name + quick active toggle
-  if(!document.getElementById('liveDrawerTab')){
-    const tab=document.createElement('div'); tab.id='liveDrawerTab'; tab.style.position='fixed'; tab.style.left='0'; tab.style.top='100px'; tab.style.zIndex='1502'; tab.style.background= isDark()? '#111827' : '#e5e7eb'; tab.style.color= isDark()? '#e5e7eb' : '#111827'; tab.style.border= isDark()? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(0,0,0,0.15)'; tab.style.borderLeft='none'; tab.style.borderTopRightRadius='8px'; tab.style.borderBottomRightRadius='8px'; tab.style.padding='6px 10px'; tab.style.display='inline-flex'; tab.style.alignItems='center'; tab.style.gap='8px'; tab.style.cursor='pointer'; tab.innerHTML = '<span id="liveDrawerTabArrow">⟩</span><span id="liveDrawerTabName" style="max-width:140px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">—</span><label style="font-size:12px; display:flex; align-items:center; gap:6px; cursor:pointer;">Actif <input type="checkbox" id="liveDrawerTabActive" /></label>';
-    tab.addEventListener('click', (ev)=>{ try{ if(ev && ev.target && (ev.target.id==='liveDrawerTabActive')) return; const open = d.dataset.open==='1'; updateLiveDrawerOpen(!open); }catch(_){ } });
-    document.body.appendChild(tab);
-    // Header collapse button wires the same behavior
-    const col=document.getElementById('liveDrawerCollapse'); if(col){ col.addEventListener('click', ()=>{ const open = d.dataset.open==='1'; updateLiveDrawerOpen(!open); }); }
-    // Active toggle in tab
-    const ck=()=> document.getElementById('liveDrawerTabActive');
-    const onActChange=()=>{ try{ const c=ck(); if(!c) return; const id=activeLiveId; if(!id) return; const s=liveSessions[id]; if(!s) return; s.active = !!c.checked; renderLBC(); }catch(_){ } };
-    try{ ck().addEventListener('change', onActChange); }catch(_){ }
-  }
+  // Collapse button toggles drawer
+  try{ const col=document.getElementById('liveDrawerCollapse'); if(col){ col.addEventListener('click', ()=>{ const open = d.dataset.open==='1'; updateLiveDrawerOpen(!open); }); } }catch(_){ }
 }catch(_){ } }
 // Update drawer open/close state + tab arrow
-function updateLiveDrawerOpen(open){ try{ const d=document.getElementById('liveDrawer'); const tab=document.getElementById('liveDrawerTab'); const arrow=document.getElementById('liveDrawerTabArrow'); if(!d) return; d.dataset.open = open?'1':'0'; d.style.transform = open? 'translateX(0)' : 'translateX(-240px)'; if(arrow){ arrow.textContent = open? '⟨':'⟩'; } if(tab){ tab.style.opacity='1'; } }catch(_){ }
+function updateLiveDrawerOpen(open){ try{ const d=document.getElementById('liveDrawer'); if(!d) return; d.dataset.open = open?'1':'0'; d.style.transform = open? 'translateX(0)' : 'translateX(-240px)'; }catch(_){ }
 }
 // Update tab content (name + active)
 function updateLiveDrawerTab(){ try{ const nameEl=document.getElementById('liveDrawerTabName'); const actEl=document.getElementById('liveDrawerTabActive'); if(nameEl){ nameEl.textContent = __headlessActiveName || '—'; } if(actEl){ /* status updated on list refresh */ } }catch(_){ } }
