@@ -6,20 +6,24 @@ alter table if exists public.wallets
   add column if not exists settings jsonb;
 
 -- Public policies (rows with user_id IS NULL)
-create policy if not exists wallets_public_select
+drop policy if exists wallets_public_select on public.wallets;
+create policy wallets_public_select
   on public.wallets for select
   using (user_id is null);
 
-create policy if not exists wallets_public_insert
+drop policy if exists wallets_public_insert on public.wallets;
+create policy wallets_public_insert
   on public.wallets for insert
   with check (user_id is null);
 
-create policy if not exists wallets_public_update
+drop policy if exists wallets_public_update on public.wallets;
+create policy wallets_public_update
   on public.wallets for update
   using (user_id is null)
   with check (user_id is null);
 
-create policy if not exists wallets_public_delete
+drop policy if exists wallets_public_delete on public.wallets;
+create policy wallets_public_delete
   on public.wallets for delete
   using (user_id is null);
 

@@ -47,59 +47,75 @@ alter table public.live_sessions enable row level security;
 alter table public.live_events enable row level security;
 
 -- Owner policies
-create policy if not exists live_sessions_select
+drop policy if exists live_sessions_select on public.live_sessions;
+create policy live_sessions_select
   on public.live_sessions for select
   using (user_id is not null and auth.uid() = user_id);
-create policy if not exists live_sessions_insert
+drop policy if exists live_sessions_insert on public.live_sessions;
+create policy live_sessions_insert
   on public.live_sessions for insert
   with check (user_id is not null and auth.uid() = user_id);
-create policy if not exists live_sessions_update
+drop policy if exists live_sessions_update on public.live_sessions;
+create policy live_sessions_update
   on public.live_sessions for update
   using (user_id is not null and auth.uid() = user_id)
   with check (user_id is not null and auth.uid() = user_id);
-create policy if not exists live_sessions_delete
+drop policy if exists live_sessions_delete on public.live_sessions;
+create policy live_sessions_delete
   on public.live_sessions for delete
   using (user_id is not null and auth.uid() = user_id);
 
-create policy if not exists live_events_select
+drop policy if exists live_events_select on public.live_events;
+create policy live_events_select
   on public.live_events for select
   using (exists (select 1 from public.live_sessions s where s.id = session_id and s.user_id is not null and s.user_id = auth.uid()));
-create policy if not exists live_events_insert
+drop policy if exists live_events_insert on public.live_events;
+create policy live_events_insert
   on public.live_events for insert
   with check (exists (select 1 from public.live_sessions s where s.id = session_id and s.user_id is not null and s.user_id = auth.uid()));
-create policy if not exists live_events_update
+drop policy if exists live_events_update on public.live_events;
+create policy live_events_update
   on public.live_events for update
   using (exists (select 1 from public.live_sessions s where s.id = session_id and s.user_id is not null and s.user_id = auth.uid()))
   with check (exists (select 1 from public.live_sessions s where s.id = session_id and s.user_id is not null and s.user_id = auth.uid()));
-create policy if not exists live_events_delete
+drop policy if exists live_events_delete on public.live_events;
+create policy live_events_delete
   on public.live_events for delete
   using (exists (select 1 from public.live_sessions s where s.id = session_id and s.user_id is not null and s.user_id = auth.uid()));
 
 -- Public (no-auth) policies: allow pooled operation for rows with user_id IS NULL
-create policy if not exists live_sessions_public_select
+drop policy if exists live_sessions_public_select on public.live_sessions;
+create policy live_sessions_public_select
   on public.live_sessions for select
   using (user_id is null);
-create policy if not exists live_sessions_public_insert
+drop policy if exists live_sessions_public_insert on public.live_sessions;
+create policy live_sessions_public_insert
   on public.live_sessions for insert
   with check (user_id is null);
-create policy if not exists live_sessions_public_update
+drop policy if exists live_sessions_public_update on public.live_sessions;
+create policy live_sessions_public_update
   on public.live_sessions for update
   using (user_id is null)
   with check (user_id is null);
-create policy if not exists live_sessions_public_delete
+drop policy if exists live_sessions_public_delete on public.live_sessions;
+create policy live_sessions_public_delete
   on public.live_sessions for delete
   using (user_id is null);
 
-create policy if not exists live_events_public_select
+drop policy if exists live_events_public_select on public.live_events;
+create policy live_events_public_select
   on public.live_events for select
   using (exists (select 1 from public.live_sessions s where s.id = session_id and s.user_id is null));
-create policy if not exists live_events_public_insert
+drop policy if exists live_events_public_insert on public.live_events;
+create policy live_events_public_insert
   on public.live_events for insert
   with check (exists (select 1 from public.live_sessions s where s.id = session_id and s.user_id is null));
-create policy if not exists live_events_public_update
+drop policy if exists live_events_public_update on public.live_events;
+create policy live_events_public_update
   on public.live_events for update
   using (exists (select 1 from public.live_sessions s where s.id = session_id and s.user_id is null))
   with check (exists (select 1 from public.live_sessions s where s.id = session_id and s.user_id is null));
-create policy if not exists live_events_public_delete
+drop policy if exists live_events_public_delete on public.live_events;
+create policy live_events_public_delete
   on public.live_events for delete
   using (exists (select 1 from public.live_sessions s where s.id = session_id and s.user_id is null));
