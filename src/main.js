@@ -345,16 +345,22 @@ const ma13Series = chart.addLineSeries({ color:'#22c55e', lineWidth: 1, priceSca
 
 const ro = new ResizeObserver(entries=>{ for(const e of entries){ chart.resize(Math.floor(e.contentRect.width), Math.floor(e.contentRect.height)); try{ updateMkPositions(); }catch(_){ } } });
 ro.observe(container);
-try{ chart.timeScale().subscribeVisibleTimeRangeChange(()=>{ try{ updateMkPositions(); }catch(_){ } try{ const modeEl=document.getElementById('labRangeMode'); const labMode=modeEl&&modeEl.value; const open = !!(labModalEl && labModalEl.getAttribute && labModalEl.getAttribute('aria-hidden')==='false' && !labModalEl.classList.contains('hidden')); if(labMode==='visible' && open){ if(window.__labKpiRangeTimer){ try{ clearTimeout(window.__labKpiRangeTimer); }catch(_){ } } window.__labKpiRangeTimer = setTimeout(()=>{ try{ computeLabBenchmarkAndUpdate(); }catch(_){ } }, 300); } }catch(_){ } }); }catch(_){ }
+try{ chart.timeScale().subscribeVisibleTimeRangeChange(()=>{ try{ updateMkPositions(); }catch(_){ } try{ const modeEl=document.getElementById('labRangeMode'); const labMode=modeEl&&modeEl.value; const open = !!(labModalEl && labModalEl.getAttribute && labModalEl.getAttribute('aria-hidden')==='false' && !labModalEl.classList.contains('hidden')); if(labMode==='visible' && open){ if(window.__labKpiRangeTimer){ try{ clearTimeout(window.__labKpiRangeTimer); }catch(_){ } } window.__labKpiRangeTimer = setTimeout(()=>{ try{ computeLabBenchmarkAndUpdate(); }catch(_){ } }, 300); } }catch(_){ } }); try{ chart.timeScale().subscribeVisibleLogicalRangeChange((r)=> expandDisplayLeftIfNear(r)); }catch(__){} }catch(_){ }
 
 // --- Data loading (REST + WS) ---
-const BATCH_LIMIT = 1000; let candles=[]; let ws=null;
+const BATCH_LIMIT = 1000; let candles=[]; let candlesAll=[]; let ws=null;
 // Progressive history loading: fast first paint, then deep background fetch
 const PRELOAD_BARS = 1000;        // bars for instant display
 const BG_MAX_BARS = Infinity;     // upper bound for background history (max depth)
 const CACHE_SAVE_BARS = 5000;     // persist last N bars per symbol/TF for instant next load
 const LIVE_MAX_BARS = 200000;     // cap for in-memory candles during live updates; increase if needed
+const DISPLAY_MAX_BARS = 5000;    // limit rendering to last N bars to avoid lag
+const DISPLAY_PAD_BARS = 1000;    // how many bars to prepend when user scrolls to left edge
 let __bgLoadToken = 0;            // cancels previous background loaders
+
+function __baseAfterCutoff(){ let base=candlesAll||[]; if(typeof window.__liveChartMinTimeSec==='number' && isFinite(window.__liveChartMinTimeSec)){ base = base.filter(b=> b.time >= window.__liveChartMinTimeSec); } return base; }
+function applyDisplayFromAll(){ const base=__baseAfterCutoff(); candles = base.length>DISPLAY_MAX_BARS? base.slice(-DISPLAY_MAX_BARS) : base.slice(); }
+function expandDisplayLeftIfNear(range){ try{ const base=__baseAfterCutoff(); if(!Array.isArray(candles)||!candles.length||!Array.isArray(base)||!base.length) return; if(!range||typeof range.from!=='number') return; if(range.from>2) return; const first=candles[0]; const idx=base.findIndex(b=> b.time===first.time); if(idx>0){ const newStart=Math.max(0, idx - DISPLAY_PAD_BARS); const newSlice = base.slice(newStart, Math.min(base.length, newStart + DISPLAY_MAX_BARS)); candles = newSlice; candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge(); } }catch(_){ } }
 
 function klinesCacheKey(symbol, interval){ return `klines:${symbol}:${interval}`; }
 function loadKlinesFromCache(symbol, interval){ try{ const s=localStorage.getItem(klinesCacheKey(symbol, interval)); if(!s) return []; const arr=JSON.parse(s); if(Array.isArray(arr) && arr.length && arr[0].time){ return arr; } }catch(_){ } return []; }
@@ -385,10 +391,10 @@ async function fetchAllKlines(symbol, interval, max=5000){ let all=[]; let curso
 
 async function backgroundExtendKlines(symbol, interval, token){
   try{
-    if(!Array.isArray(candles) || !candles.length) return;
-    let earliest = candles[0]?.time;
+    if(!Array.isArray(candlesAll) || !candlesAll.length) return;
+    let earliest = candlesAll[0]?.time;
     let cursor = (earliest? earliest*1000 - 1 : Date.now());
-    let total = candles.length;
+    let total = candlesAll.length;
     let lastUiUpdate = 0;
     while(token === __bgLoadToken && total < BG_MAX_BARS){
       // Stop extending if we've reached the minimal time constraint
@@ -406,22 +412,22 @@ async function backgroundExtendKlines(symbol, interval, token){
       if(!filtered.length){
         break;
       }
-      candles = filtered.concat(candles);
-      total = candles.length;
-      earliest = candles[0].time;
+      candlesAll = filtered.concat(candlesAll);
+      total = candlesAll.length;
+      earliest = candlesAll[0].time;
       cursor = earliest*1000 - 1;
       const now = Date.now();
       if(now - lastUiUpdate > 600){
         setBgStatus(`hist: ${Math.round(total/1000)}k`);
-try{ candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge(); }catch(_){ }
+try{ applyDisplayFromAll(); candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge(); }catch(_){ }
         lastUiUpdate = now;
       }
       if(batch.length < need) break;
       await new Promise(r=> setTimeout(r, 0));
     }
     if(token === __bgLoadToken){
-try{ candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge(); }catch(_){ }
-      try{ saveKlinesToCache(symbol, interval, candles); }catch(_){ }
+try{ applyDisplayFromAll(); candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge(); }catch(_){ }
+      try{ saveKlinesToCache(symbol, interval, candlesAll); }catch(_){ }
       setBgStatus('');
     }
   }catch(_){ /* silent */ }
@@ -429,8 +435,8 @@ try{ candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge
 
 function closeWs(){ try{ if(ws){ ws.onopen=ws.onmessage=ws.onerror=ws.onclose=null; ws.close(); } }catch(_){} ws=null; }
 function wsUrl(symbol, interval){ return `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_${interval}`; }
-function openWs(symbol, interval){ closeWs(); try{ ws=new WebSocket(wsUrl(symbol, interval)); }catch(e){ setStatus('WS erreur'); return; } ws.onopen=()=> setStatus('Temps réel'); ws.onmessage=(ev)=>{ try{ const msg=JSON.parse(ev.data); const k=(msg&&msg.k)||(msg&&msg.data&&msg.data.k); if(!k) return; const bar={ time:Math.floor(k.t/1000), open:+k.o, high:+k.h, low:+k.l, close:+k.c }; const last=candles[candles.length-1]; if(last && bar.time===last.time){ candles[candles.length-1]=bar; candleSeries.update(bar); } else if(!last || bar.time>last.time){ candles.push(bar); candleSeries.update(bar); if(candles.length>LIVE_MAX_BARS) candles=candles.slice(-LIVE_MAX_BARS); }
-updateEMAs(); renderLBC(); if(typeof anyLiveActive==='function' && anyLiveActive()){ try{ multiLiveOnBar(bar); }catch(_){ } } else if(liveSession && liveSession.active){ try{ liveOnBar(bar); }catch(_){ } }
+function openWs(symbol, interval){ closeWs(); try{ ws=new WebSocket(wsUrl(symbol, interval)); }catch(e){ setStatus('WS erreur'); return; } ws.onopen=()=> setStatus('Temps réel'); ws.onmessage=(ev)=>{ try{ const msg=JSON.parse(ev.data); const k=(msg&&msg.k)||(msg&&msg.data&&msg.data.k); if(!k) return; const bar={ time:Math.floor(k.t/1000), open:+k.o, high:+k.h, low:+k.l, close:+k.c }; const lastAll=candlesAll[candlesAll.length-1]; if(lastAll && bar.time===lastAll.time){ candlesAll[candlesAll.length-1]=bar; } else if(!lastAll || bar.time>lastAll.time){ candlesAll.push(bar); if(candlesAll.length>LIVE_MAX_BARS) candlesAll=candlesAll.slice(-LIVE_MAX_BARS); }
+applyDisplayFromAll(); candleSeries.setData(candles); updateEMAs(); renderLBC(); if(typeof anyLiveActive==='function' && anyLiveActive()){ try{ multiLiveOnBar(bar); }catch(_){ } } else if(liveSession && liveSession.active){ try{ liveOnBar(bar); }catch(_){ } }
     }catch(_){ } }; ws.onerror=()=> setStatus('WS erreur'); ws.onclose=()=> {/* keep silent */}; }
 async function load(symbol, interval){
   try{
@@ -438,27 +444,21 @@ async function load(symbol, interval){
     const token = __bgLoadToken;
     // Try cache for instant paint
     const cached = loadKlinesFromCache(symbol, interval);
-    if(cached && cached.length){
-      candles = cached;
-      // Apply min-time filter if any
-      if(typeof window.__liveChartMinTimeSec==='number' && isFinite(window.__liveChartMinTimeSec)){
-        candles = candles.filter(b=> b.time >= window.__liveChartMinTimeSec);
-      }
-candleSeries.setData(candles);
+if(cached && cached.length){
+      candlesAll = cached;
+      applyDisplayFromAll();
+      candleSeries.setData(candles);
       updateEMAs(); renderLBC(); updateCutoffBadge();
     } else {
       setStatus('Chargement...');
     }
-    // Ensure preload fetch (fresh)
-    candles = await fetchAllKlines(symbol, interval, PRELOAD_BARS);
-    // Apply min-time filter if any
-    if(typeof window.__liveChartMinTimeSec==='number' && isFinite(window.__liveChartMinTimeSec)){
-      candles = candles.filter(b=> b.time >= window.__liveChartMinTimeSec);
-    }
-candleSeries.setData(candles);
+// Ensure preload fetch (fresh)
+    candlesAll = await fetchAllKlines(symbol, interval, PRELOAD_BARS);
+    applyDisplayFromAll();
+    candleSeries.setData(candles);
     setStatus('');
     updateEMAs(); renderLBC(); updateCutoffBadge();
-    try{ saveKlinesToCache(symbol, interval, candles); }catch(_){ }
+    try{ saveKlinesToCache(symbol, interval, candlesAll); }catch(_){ }
     // Deep background extend to maximize history depth for Lab/Backtest
     backgroundExtendKlines(symbol, interval, token);
   }catch(e){ setStatus('Erreur chargement'); }
