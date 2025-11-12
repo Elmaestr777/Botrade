@@ -619,11 +619,17 @@ if(liveOpenBtn){ liveOpenBtn.addEventListener('click', async ()=>{ try{
   const drawer=document.getElementById('liveDrawer'); const isOpen = !!(drawer && drawer.dataset && drawer.dataset.open==='1');
   if(!isOpen){ // activer: highlight + ouvrir menu
     if(liveOpenBtn.classList) liveOpenBtn.classList.add('primary');
-    ensureLiveDrawer(); updateLiveDrawerOpen(true); await renderLiveDrawer();
+    ensureLiveDrawer();
+    try{ const d=document.getElementById('liveDrawer'); if(d){ d.style.display=''; } }catch(_){ }
+    updateLiveDrawerOpen(true); await renderLiveDrawer();
   } else { // désactiver: enlever highlight + fermer menu + restaurer historique complet
     if(liveOpenBtn.classList) liveOpenBtn.classList.remove('primary');
     updateLiveDrawerOpen(false);
-    try{ delete window.__liveChartMinTimeSec; }catch(_){}
+    try{ const d=document.getElementById('liveDrawer'); if(d){ d.style.display='none'; } }catch(_){ }
+    // cacher le badge cutoff et réinitialiser cutoff
+    try{ delete window.__liveChartMinTimeSec; delete window.__liveChartMinTimeBaseSec; const b=document.getElementById('chartCutoff'); if(b){ b.style.display='none'; } }catch(_){ }
+    // fermer les fenêtres flottantes de live si ouvertes
+    try{ if(typeof closeModalEl==='function'){ if(typeof tradesModalEl!=='undefined' && tradesModalEl) closeModalEl(tradesModalEl); if(typeof stratModalEl!=='undefined' && stratModalEl) closeModalEl(stratModalEl); } }catch(_){ }
     // recharger full historique
     closeWs(); await load(currentSymbol, currentInterval); openWs(currentSymbol, currentInterval); updateCutoffBadge();
   }
