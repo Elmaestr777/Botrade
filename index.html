@@ -19,6 +19,19 @@
         </div>
       </div>
     </div>
+    <!-- Inline SVG filters for paper displacement -->
+    <svg id="preloadFilters" width="0" height="0" style="position:absolute; width:0; height:0; overflow:hidden;">
+      <defs>
+        <filter id="paperDisplaceWeak" x="-10%" y="-10%" width="120%" height="120%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" result="noise"/>
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="B"/>
+        </filter>
+        <filter id="paperDisplaceStrong" x="-10%" y="-10%" width="120%" height="120%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="11" result="noise2"/>
+          <feDisplacementMap in="SourceGraphic" in2="noise2" scale="6" xChannelSelector="R" yChannelSelector="G"/>
+        </filter>
+      </defs>
+    </svg>
     <header>
       <img id="brandLogo" src="assets/botrade_header.png" alt="botrade" class="brand-logo" />
       <h1 id="pairTitle" style="display:none">BTC/USDC</h1>

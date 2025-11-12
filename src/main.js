@@ -12,15 +12,17 @@
   function runPaperSequence(){ try{
     if(!sheet){ animateToLogo(); return; }
     // Enable crease grid and start crumple, then fold; shrink after fold
-    sheet.classList.add('grid-on');
-    sheet.classList.remove('pre-crumple','pre-fold','grid-anim');
+    sheet.classList.add('grid-on','deform-weak');
+    sheet.classList.remove('pre-crumple','pre-fold','grid-anim','deform-strong');
     sheet.classList.add('pre-crumple');
     const onCrumpleEnd = ()=>{
       try{ sheet.removeEventListener('animationend', onCrumpleEnd); }catch(_){ }
-      sheet.classList.remove('pre-crumple');
-      sheet.classList.add('pre-fold','grid-anim');
+      sheet.classList.remove('pre-crumple','deform-weak');
+      sheet.classList.add('pre-fold','grid-anim','deform-strong');
       const onFoldEnd = ()=>{
         try{ sheet.removeEventListener('animationend', onFoldEnd); }catch(_){ }
+        // Remove heavy deformation before shrinking
+        try{ sheet.classList.remove('deform-strong','grid-anim'); }catch(_){ }
         animateToLogo();
       };
       sheet.addEventListener('animationend', onFoldEnd, { once:true });
