@@ -5,6 +5,11 @@
   const clip=document.getElementById('preloadClip');
   const vid=document.getElementById('preloadVideo');
   const canv=document.getElementById('preloadCanvas');
+  const chartEl=document.getElementById('chart');
+  // Prepare chart for fade-in reveal under overlay
+  try{ if(chartEl){ chartEl.style.opacity='0'; chartEl.style.transition='opacity 700ms ease'; } }catch(_){}
+  // helper: reveal chart + fade overlay bg to transparent when flight starts
+  function revealChart(){ try{ if(overlay && overlay.dataset){ if(overlay.dataset.revealed==='1') return; overlay.dataset.revealed='1'; } if(chartEl){ chartEl.style.opacity='1'; } if(overlay){ overlay.style.transition = (overlay.style.transition? overlay.style.transition+', background-color 700ms ease' : 'background-color 700ms ease'); overlay.style.backgroundColor='rgba(0,0,0,0)'; } }catch(_){} }
   // Preloader params & prefs (tunable)
   const __preParams = { RADF: 0.66, SPIN_DUR: 3600, SPIN_TURNS: 8.0, TRAILS: 2, TRAIL_STEP: 0.025, TRAIL_ALPHA_MAX: 0.16, FOLD_DUR: 820, FLIGHT_DUR: 4150 };
   const __prefs = { reducedMotion: (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) };
@@ -30,7 +35,7 @@
     function spinEaseOut(t){ return 1 - Math.pow(1 - t, 4); } // stronger ease-out near the end
     function loop(){ const now=performance.now(); let p=(now-t0)/d; if(p>1) p=1; const e=easeInOutCubic(p); const {x,y}=at(e); const dx = x - startX, dy = y - startY; const s = 1 - (1 - sEnd)*e;
       let rotZ = baseTilt * (1 - e); if(hasSpin){ const pe = spinEaseOut(p); const spinProg = sHermite(pe); const ang = a0 + totalDelta*spinProg; rotZ += ang; }
-      clip.style.willChange='transform'; clip.style.transform = `translate(-50%, -50%) translate(${dx}px, ${dy}px) scale(${s}) rotate(${rotZ}rad)`; if(p<1){ requestAnimationFrame(loop); } else { try{ overlay.remove(); }catch(_){ overlay.style.display='none'; } } }
+      clip.style.willChange='transform'; clip.style.transform = `translate(-50%, -50%) translate(${dx}px, ${dy}px) scale(${s}) rotate(${rotZ}rad)`; if(p<1){ requestAnimationFrame(loop); } else { try{ if(chartEl){ chartEl.style.opacity='1'; } overlay.remove(); }catch(_){ overlay.style.display='none'; } } }
     requestAnimationFrame(loop);
   }catch(_){ try{ overlay.remove(); }catch(__){} } }
   // WebGL crumple (displacement + lighting) on last frame
@@ -109,15 +114,15 @@
   }catch(_){ done&&done(); } }
 
   function runPaperSequence(){ try{
-    if(!sheet){ animateToLogoBezier(); return; }
-    if(__prefs && __prefs.reducedMotion){ animateToLogoBezier(350); return; }
+    if(!sheet){ revealChart(); animateToLogoBezier(); return; }
+    if(__prefs && __prefs.reducedMotion){ revealChart(); animateToLogoBezier(350); return; }
     // Immediately hide the sheet image; we'll show roulette, then transform plane
     sheet.classList.add('sheet-hide');
     startRouletteSpin((lastAngle, lastOmega)=>{
-      const plane=document.getElementById('preloadPlane'); if(plane){ plane.classList.add('plane-on','plane-fold'); plane.style.animationDuration = Math.max(300, __preParams.FOLD_DUR||800)+'ms'; plane.addEventListener('animationend', ()=>{ try{ plane.classList.remove('plane-fold'); plane.classList.add('plane-flight'); plane.style.animationDuration = Math.max(300, __preParams.FLIGHT_DUR||1100)+'ms'; }catch(_){ } }, { once:true }); }
+      const plane=document.getElementById('preloadPlane'); if(plane){ plane.classList.add('plane-on','plane-fold'); plane.style.animationDuration = Math.max(300, __preParams.FOLD_DUR||800)+'ms'; plane.addEventListener('animationend', ()=>{ try{ plane.classList.remove('plane-fold'); plane.classList.add('plane-flight'); plane.style.animationDuration = Math.max(300, __preParams.FLIGHT_DUR||1100)+'ms'; revealChart(); }catch(_){ } }, { once:true }); }
       animateToLogoBezier(__preParams.FLIGHT_DUR||1100, { angle0: lastAngle||0, omega0: lastOmega||0 });
     });
-  }catch(_){ animateToLogoBezier(); } }
+  }catch(_){ revealChart(); animateToLogoBezier(); } }
   function afterEnd(){ setTimeout(runPaperSequence, 500); }
   if(vid){ vid.addEventListener('ended', ()=>{ try{ freezeLastFrame(); }catch(_){ } afterEnd(); }); vid.addEventListener('error', ()=>{ afterEnd(); }); setTimeout(()=>{ try{ if(vid.ended){ freezeLastFrame(); afterEnd(); } }catch(_){ } }, 100); }
   // Safety timeout if video can't play or is missing
