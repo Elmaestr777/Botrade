@@ -1998,6 +1998,29 @@ const canonKey=(p)=>{ try{
     }
   }
   function randWeights(n){ const arr=new Array(n).fill(0).map(()=> Math.random()+0.05); const s=arr.reduce((a,b)=>a+b,0); return arr.map(x=> x/s); }
+// Lab advanced toggles helpers
+function isLabAdvMode(){ try{ return (document.getElementById('labConfigMode')?.value||'simple') === 'avancee'; }catch(_){ return false; } }
+function readLabVarToggles(){
+  // Default: all vary in Simple mode; in Avancée, read checkboxes if present
+  try{
+    if(!isLabAdvMode()){
+      return { varNol:true, varPrd:true, varSLInit:true, varBEBars:true, varBELock:true, varEMALen:true, varTP:true, varSL:true };
+    }
+    const g=(id)=> !!document.getElementById(id)?.checked;
+    return {
+      varNol: g('labVarNol'),
+      varPrd: g('labVarPrd'),
+      varSLInit: g('labVarSLInit'),
+      varBEBars: g('labVarBEBars'),
+      varBELock: g('labVarBELock'),
+      varEMALen: g('labVarEMALen'),
+      varTP: g('labVarTP'),
+      varSL: g('labVarSL'),
+    };
+  }catch(_){
+    return { varNol:true, varPrd:true, varSLInit:true, varBEBars:true, varBELock:true, varEMALen:true, varTP:true, varSL:true };
+  }
+}
 function sampleTPList(tpCfg){
   const { allowFib, allowPct, allowEMA, pctMin, pctMax, fibs } = tpCfg || {};
   const n = Math.max(1, Math.min(10, Number(tpCfg && tpCfg.count) || 10));
