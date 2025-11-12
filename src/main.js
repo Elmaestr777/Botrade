@@ -48,21 +48,18 @@
   function startRouletteSpin(done){ try{
     const rc=document.getElementById('preloadRoulette'); if(!rc) { done&&done(); return; }
     const ctx=rc.getContext('2d'); const parent=rc.parentElement; const W=parent.clientWidth||window.innerWidth; const H=parent.clientHeight||window.innerHeight; rc.width=W; rc.height=H; rc.classList.add('show');
-    const cx=W/2, cy=H/2; const R=Math.min(W,H)*0.36; const SEG=24; const colors=['#b91c1c','#111827']; const ring='#e5e7eb'; const t0=performance.now(); const DUR=1400; const spinTurns=2.7; function easeOutCubic(x){ return 1- Math.pow(1-x,3);} 
+    const cx=W/2, cy=H/2; const t0=performance.now(); const DUR=1400; const spinTurns=2.7; function easeOutCubic(x){ return 1- Math.pow(1-x,3);} 
     function draw(angle){ ctx.clearRect(0,0,W,H);
-      // background = last frame (cover)
-      try{ const cv=document.getElementById('preloadCanvas'); if(cv && cv.width && cv.height){ const imgW=cv.width, imgH=cv.height; const ratio=Math.max(W/imgW, H/imgH); const sW=W/ratio, sH=H/ratio; const sx=(imgW - sW)/2, sy=(imgH - sH)/2; ctx.drawImage(cv, sx, sy, sW, sH, 0, 0, W, H); } }catch(_){ }
-      // slight dim for contrast
-      ctx.fillStyle='rgba(0,0,0,0.18)'; ctx.fillRect(0,0,W,H);
-      // wheel
-      ctx.save(); ctx.translate(cx,cy); ctx.rotate(angle);
-      for(let i=0;i<SEG;i++){ ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,R,(i*Math.PI*2/SEG),((i+1)*Math.PI*2/SEG)); ctx.closePath(); ctx.fillStyle=colors[i%2]; ctx.fill(); }
-      // center circle
-      ctx.beginPath(); ctx.arc(0,0,R*0.82,0,Math.PI*2); ctx.strokeStyle=ring; ctx.lineWidth=R*0.02; ctx.stroke();
-      // gloss
-      const grad=ctx.createRadialGradient(0,0,R*0.1, 0,0,R*0.9); grad.addColorStop(0,'rgba(255,255,255,0.12)'); grad.addColorStop(1,'rgba(0,0,0,0.18)'); ctx.beginPath(); ctx.arc(0,0,R,0,Math.PI*2); ctx.fillStyle=grad; ctx.fill(); ctx.restore();
-      // pointer
-      ctx.save(); ctx.translate(cx, cy - R - 10); ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(10, -16); ctx.lineTo(-10, -16); ctx.closePath(); ctx.fillStyle='#f59e0b'; ctx.fill(); ctx.restore();
+      // draw last frame rotated (cover)
+      const cv=document.getElementById('preloadCanvas');
+      if(cv && cv.width && cv.height){ const imgW=cv.width, imgH=cv.height; const diag=Math.sqrt(W*W+H*H)*1.02; const ratio=Math.max(diag/imgW, diag/imgH); const drawW=imgW*ratio, drawH=imgH*ratio; ctx.save(); ctx.translate(cx,cy); ctx.rotate(angle);
+        // base pass
+        ctx.globalAlpha=1; ctx.drawImage(cv, -drawW/2, -drawH/2, drawW, drawH);
+        // motion trails for spin feel
+        const trails=4, step=0.02; for(let k=1;k<=trails;k++){ ctx.globalAlpha = Math.max(0, 0.28 - k*0.06); ctx.rotate(-step); ctx.drawImage(cv, -drawW/2, -drawH/2, drawW, drawH); }
+        ctx.restore(); ctx.globalAlpha=1; }
+      // subtle vignette for focus
+      const grd=ctx.createRadialGradient(cx,cy,Math.min(W,H)*0.15, cx,cy, Math.max(W,H)*0.65); grd.addColorStop(0,'rgba(0,0,0,0.0)'); grd.addColorStop(1,'rgba(0,0,0,0.20)'); ctx.fillStyle=grd; ctx.fillRect(0,0,W,H);
     }
     (function loop(){ const p=Math.min(1,(performance.now()-t0)/DUR); const a= (spinTurns*Math.PI*2) * easeOutCubic(p); draw(a); if(p<1){ requestAnimationFrame(loop); } else { // fade out
         rc.classList.add('fade'); setTimeout(()=>{ rc.classList.remove('show','fade'); done&&done(); }, 240); }
