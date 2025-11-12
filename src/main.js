@@ -2414,10 +2414,12 @@ btAbort=false; btPaused=false; updateProgress('Entraînement...', 0);
   if(strategy==='ea' || strategy==='hybrid'){ eaOut = await runEA(seeds); }
   if(strategy==='bayes'){ bayOut = await runBayes(seeds); }
 if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(eaOut); }
-  const results = (strategy==='ea'? eaOut : (strategy==='bayes'? bayOut : bayOut));
+  const results = (strategy==='ea'? eaOut : (strategy==='bayes'? bayOut : ((eaOut||[]).concat(bayOut||[]))));
   try{ addBtLog && addBtLog(`Résultats finaux — EA:${(eaOut||[]).length} Bayes:${(bayOut||[]).length} Choisi:${(results||[]).length}`); }catch(_){ }
   // Fallback: si aucun résultat (cas rare), prendre le top des évaluations accumulées
   let finalResults = Array.isArray(results)? results.slice() : [];
+  // Toujours trier par score décroissant avant de persister
+  try{ finalResults.sort((a,b)=> (Number(b&&b.score)||0) - (Number(a&&a.score)||0)); }catch(_){ }
   if(!finalResults.length && Array.isArray(allTested) && allTested.length){
     try{ const sorted = allTested.slice().sort((a,b)=> (b.score||0)-(a.score||0)); finalResults = sorted.slice(0, Math.min(10, sorted.length)).map(it=>({ p: it.params||{}, res: it.metrics||{}, score: it.score||0, gen:1, name:null })); addBtLog && addBtLog(`Fallback best depuis évaluations: ${finalResults.length}`); }catch(_){ }
   }
