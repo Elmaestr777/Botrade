@@ -191,7 +191,7 @@ function setStatus(msg){ __statusMain = msg || ''; if(statusEl){ statusEl.textCo
 function setBgStatus(msg){ __statusBg = msg || ''; if(statusEl){ statusEl.textContent = __statusMain + (__statusBg ? (' • '+__statusBg) : ''); } }
 // Bars info indicator
 const barsInfoEl = document.getElementById('barsInfo');
-function updateBarsInfo(){ try{ if(!barsInfoEl) return; const vis = Array.isArray(candles)? candles.length:0; const tot = Array.isArray(candlesAll)? candlesAll.length:vis; barsInfoEl.textContent = `Bougies: ${vis} / BG ${tot}`; }catch(_){ } }
+function updateBarsInfo(){ try{ if(!barsInfoEl) return; const vis = Array.isArray(candles)? candles.length:0; const tot = Array.isArray(candlesAll)? candlesAll.length:vis; const fmt=(n)=>{ if(n>=1000000) return (n/1000000).toFixed(1).replace(/\.0$/,'')+'m'; if(n>=1000) return (n/1000).toFixed(0)+'k'; return String(n); }; barsInfoEl.textContent = `Bougies: ${fmt(vis)} / ${fmt(tot)}`; }catch(_){ } }
 // Supabase config UI
 const supaCfgBtn = document.getElementById('supaCfgBtn');
 const supaModalEl = document.getElementById('supaModal');
