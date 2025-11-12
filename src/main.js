@@ -613,7 +613,20 @@ async function computeLabBenchmarkAndUpdate(){
 
 function openModalEl(el){ if(!el) return; el.classList.remove('hidden'); el.setAttribute('aria-hidden','false'); try{ const z=String(bumpModalZ()); el.style.zIndex = z; const c=el.querySelector && el.querySelector('.modal-content'); if(c){ c.style.zIndex = String(bumpModalZ()); } }catch(_){ } }
 function closeModalEl(el){ if(!el) return; el.classList.add('hidden'); el.setAttribute('aria-hidden','true'); }
-if(liveOpenBtn&&liveModalEl) liveOpenBtn.addEventListener('click', ()=>{ try{ ensureLiveDrawer(); updateLiveDrawerOpen(true); renderLiveDrawer(); }catch(_){ } }); if(liveCloseBtn&&liveModalEl) liveCloseBtn.addEventListener('click', ()=> closeModalEl(liveModalEl)); if(liveModalEl) liveModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(liveModalEl); });
+if(liveOpenBtn){ liveOpenBtn.addEventListener('click', async ()=>{ try{
+  const drawer=document.getElementById('liveDrawer'); const isOpen = !!(drawer && drawer.dataset && drawer.dataset.open==='1');
+  if(!isOpen){ // activer: highlight + ouvrir menu
+    if(liveOpenBtn.classList) liveOpenBtn.classList.add('primary');
+    ensureLiveDrawer(); updateLiveDrawerOpen(true); await renderLiveDrawer();
+  } else { // désactiver: enlever highlight + fermer menu + restaurer historique complet
+    if(liveOpenBtn.classList) liveOpenBtn.classList.remove('primary');
+    updateLiveDrawerOpen(false);
+    try{ delete window.__liveChartMinTimeSec; }catch(_){}
+    // recharger full historique
+    closeWs(); await load(currentSymbol, currentInterval); openWs(currentSymbol, currentInterval); updateCutoffBadge();
+  }
+} catch(_){ } }); }
+if(liveCloseBtn&&liveModalEl) liveCloseBtn.addEventListener('click', ()=> closeModalEl(liveModalEl)); if(liveModalEl) liveModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(liveModalEl); });
 if(labOpenBtn&&labModalEl) labOpenBtn.addEventListener('click', async ()=>{ try{ openModalEl(labModalEl); try{ setupLabAdvUI(); }catch(_){ } await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); if(labCloseBtn&&labModalEl) labCloseBtn.addEventListener('click', ()=> closeModalEl(labModalEl)); if(labModalEl) labModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(labModalEl); });
 
 if(btOpenBtn&&btModalEl) btOpenBtn.addEventListener('click', ()=> openModalEl(btModalEl)); if(btCloseBtn&&btModalEl) btCloseBtn.addEventListener('click', ()=> closeModalEl(btModalEl)); if(btModalEl) btModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(btModalEl); });
