@@ -6,7 +6,7 @@
   const vid=document.getElementById('preloadVideo');
   const canv=document.getElementById('preloadCanvas');
   // Preloader params & prefs (tunable)
-  const __preParams = { RADF: 0.50, SPIN_DUR: 2400, SPIN_TURNS: 2.8, TRAILS: 2, TRAIL_STEP: 0.025, TRAIL_ALPHA_MAX: 0.16, FOLD_DUR: 820, FLIGHT_DUR: 4150 };
+  const __preParams = { RADF: 0.60, SPIN_DUR: 2400, SPIN_TURNS: 3.2, TRAILS: 2, TRAIL_STEP: 0.025, TRAIL_ALPHA_MAX: 0.16, FOLD_DUR: 820, FLIGHT_DUR: 4150 };
   const __prefs = { reducedMotion: (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) };
   function setParams(p){ try{ Object.assign(__preParams, p||{}); }catch(_){ } }
   function setPrefs(p){ try{ Object.assign(__prefs, p||{}); }catch(_){ } }
