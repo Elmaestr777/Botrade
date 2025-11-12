@@ -1097,12 +1097,17 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
   if(eqPts) res.eqSeries = eqPts;
   return res;
 }
-  const btExportDetails=document.getElementById('btExportDetails');
-  if(btPauseBtn2){ btPauseBtn2.addEventListener('click', ()=>{ btPaused=!btPaused; addBtLog(btPaused?'Pause':'Reprise'); if(labRunStatusEl) labRunStatusEl.textContent = btPaused? 'Pause' : 'En cours'; btPauseBtn2.textContent = btPaused? 'Reprendre' : 'Pause'; }); }
-  if(btStopBtn2){ btStopBtn2.addEventListener('click', ()=>{ btAbort=true; addBtLog('Arrêt demandé'); if(labRunStatusEl) labRunStatusEl.textContent='Arrêt'; }); }
-if(btShowDetails){ btShowDetails.addEventListener('click', ()=> openEvalsModal((labSymbolSelect&&labSymbolSelect.value)||currentSymbol, (labTFSelect&&labTFSelect.value)||currentInterval)); }
+  try{ const btExportDetails=document.getElementById('btExportDetails');
+  const btShowDetails=document.getElementById('btShowDetails');
+  const btPauseBtn=document.getElementById('btPause');
+  const btStopBtn=document.getElementById('btStop');
+  if(btPauseBtn){ btPauseBtn.addEventListener('click', ()=>{ btPaused=!btPaused; addBtLog(btPaused?'Pause':'Reprise'); if(labRunStatusEl) labRunStatusEl.textContent = btPaused? 'Pause' : 'En cours'; btPauseBtn.textContent = btPaused? 'Reprendre' : 'Pause'; }); }
+  if(btStopBtn){ btStopBtn.addEventListener('click', ()=>{ btAbort=true; addBtLog('Arrêt demandé'); if(labRunStatusEl) labRunStatusEl.textContent='Arrêt'; }); }
+  if(btAbortBtn){ btAbortBtn.addEventListener('click', ()=>{ btAbort=true; addBtLog('Annulation'); if(labRunStatusEl) labRunStatusEl.textContent='Arrêt'; try{ closeBtProgress(); }catch(_){ } }); }
+  if(btShowDetails){ btShowDetails.addEventListener('click', ()=> openEvalsModal((labSymbolSelect&&labSymbolSelect.value)||currentSymbol, (labTFSelect&&labTFSelect.value)||currentInterval)); }
   if(btExportDetails){ btExportDetails.addEventListener('click', ()=> exportEvalsCSV()); }
-if(btOptimizeBtn){ btOptimizeBtn.addEventListener('click', async ()=>{ try{
+}catch(_){ }
+  if(btOptimizeBtn){ btOptimizeBtn.addEventListener('click', async ()=>{ try{
   const conf={ startCap: Math.max(0, parseFloat(btStartCap&&btStartCap.value||'10000')), fee: Math.max(0, parseFloat(btFee&&btFee.value||'0.1')), lev: Math.max(1, parseFloat(btLev&&btLev.value||'1')), maxPct: Math.max(0, Math.min(100, parseFloat(btMaxPct&&btMaxPct.value||'100'))), base: (btMaxBase&&btMaxBase.value)||'initial' };
   const tfSel = (document.getElementById('btOptInterval')&&document.getElementById('btOptInterval').value)||currentInterval;
   const topN = Math.max(1, parseInt((document.getElementById('btOptTopN')&&document.getElementById('btOptTopN').value)||'20',10));
