@@ -27,8 +27,9 @@
     const TAU = Math.PI*2; const a0 = (spin && Number.isFinite(spin.angle0))? spin.angle0 : 0; const w0 = (spin && Number.isFinite(spin.omega0))? spin.omega0 : 0; const hasSpin = Math.abs(a0)>1e-6 || Math.abs(w0)>1e-3;
     let totalDelta=0, alpha=0; if(hasSpin){ let phi0 = a0 % TAU; if(phi0<0) phi0 += TAU; const deltaMin = (TAU - phi0) % TAU; const extraTurns = 1; totalDelta = deltaMin + extraTurns*TAU; alpha = (w0 * d) / Math.max(1e-6, totalDelta); }
     function sHermite(p){ const p2=p*p, p3=p2*p; return (-2*p3 + 3*p2) + alpha*(p3 - 2*p2 + p); }
+    function spinEaseOut(t){ return 1 - Math.pow(1 - t, 4); } // stronger ease-out near the end
     function loop(){ const now=performance.now(); let p=(now-t0)/d; if(p>1) p=1; const e=easeInOutCubic(p); const {x,y}=at(e); const dx = x - startX, dy = y - startY; const s = 1 - (1 - sEnd)*e;
-      let rotZ = baseTilt * (1 - e); if(hasSpin){ const spinProg = sHermite(p); const ang = a0 + totalDelta*spinProg; rotZ += ang; }
+      let rotZ = baseTilt * (1 - e); if(hasSpin){ const pe = spinEaseOut(p); const spinProg = sHermite(pe); const ang = a0 + totalDelta*spinProg; rotZ += ang; }
       clip.style.willChange='transform'; clip.style.transform = `translate(-50%, -50%) translate(${dx}px, ${dy}px) scale(${s}) rotate(${rotZ}rad)`; if(p<1){ requestAnimationFrame(loop); } else { try{ overlay.remove(); }catch(_){ overlay.style.display='none'; } } }
     requestAnimationFrame(loop);
   }catch(_){ try{ overlay.remove(); }catch(__){} } }
