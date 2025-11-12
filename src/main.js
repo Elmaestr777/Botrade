@@ -2618,6 +2618,34 @@ async function renderLiveDrawer(){ try{ ensureLiveDrawer(); const list=document.
   `<div style=\"font-size:12px; color:${isDark()? '#9ca3af':'#4b5563'};\">${symbolToDisplay(s.symbol)} • ${s.tf}</div>`+
   `</div>`; }).join('');
   list.querySelectorAll('.lw-item').forEach(el=>{ const name=el.getAttribute('data-name'); el.addEventListener('click', async (e)=>{ const t=e.target; try{ if(t && (t.closest && (t.closest('label[data-act]') || t.closest('input[data-act]')))) return; }catch(_){ if(t && t.getAttribute && t.getAttribute('data-act')==='1') return; } await headlessActivate(name); }); const ck=el.querySelector('input[type=checkbox][data-act]'); if(ck){ ck.addEventListener('click', (ev)=> ev.stopPropagation()); ck.addEventListener('change', async ()=>{ if(ck.checked){ const sess=await SUPA.fetchHeadlessSessionByName(name); const sym=(sess&&sess.symbol)||currentSymbol; const tf=(sess&&sess.tf)||currentInterval; await SUPA.startHeadlessLive({ name, symbol:sym, tf, startCap:(sess&&sess.start_cap)||10000, fee:0.1, lev:1, params: currentHeavenParamsForPersist() }); } else { await SUPA.stopHeadlessLiveByName(name); } renderLiveDrawer(); }); } });
+  // UX enhancements for live wallets list (hover, buttons, accent)
+  try{
+    list.querySelectorAll('.lw-item').forEach(el=>{ try{
+      const name=el.getAttribute('data-name');
+      el.style.padding='8px'; el.style.margin='6px 0'; el.style.borderRadius='8px';
+      el.style.border = (isDark()? '1px solid rgba(255,255,255,0.08)':'1px solid rgba(0,0,0,0.08)');
+      if(name===__headlessActiveName){ el.dataset.sel='1'; el.style.background=(isDark()? '#0f172a':'#e5e7eb'); el.style.boxShadow='inset 3px 0 '+(isDark()? '#10b981':'#059669'); }
+      const header = el.firstElementChild;
+      if(header){
+        const lbl = header.querySelector('label[data-act]') || header.querySelector('label');
+        if(!header.querySelector('button[data-play]')){
+          const b=document.createElement('button'); b.className='icon-btn'; b.setAttribute('data-act','1'); b.setAttribute('data-play','1'); b.title='Démarrer'; b.textContent='▶';
+          b.addEventListener('click', async (ev)=>{ ev.stopPropagation(); const sess=await SUPA.fetchHeadlessSessionByName(name); const sym=(sess&&sess.symbol)||currentSymbol; const tf=(sess&&sess.tf)||currentInterval; await SUPA.startHeadlessLive({ name, symbol:sym, tf, startCap:(sess&&sess.start_cap)||10000, fee:0.1, lev:1, params: currentHeavenParamsForPersist() }); renderLiveDrawer(); });
+          if(lbl){ header.insertBefore(b, lbl); } else { header.appendChild(b); }
+        }
+        if(!header.querySelector('button[data-stop]')){
+          const b2=document.createElement('button'); b2.className='icon-btn'; b2.setAttribute('data-act','1'); b2.setAttribute('data-stop','1'); b2.title='Arrêter'; b2.textContent='■';
+          b2.addEventListener('click', async (ev)=>{ ev.stopPropagation(); await SUPA.stopHeadlessLiveByName(name); renderLiveDrawer(); });
+          const ref = header.querySelector('label[data-act]') || header.querySelector('label');
+          if(ref){ header.insertBefore(b2, ref); } else { header.appendChild(b2); }
+        }
+      }
+      const ck=el.querySelector('input[type=checkbox][data-act]');
+      if(ck){ ck.addEventListener('click', (ev)=> ev.stopPropagation()); }
+      el.addEventListener('mouseenter', ()=>{ try{ if(el.getAttribute('data-sel')==='1') return; el.style.background = isDark()? '#0b1220' : '#f3f4f6'; el.style.borderColor = isDark()? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'; }catch(_){ } });
+      el.addEventListener('mouseleave', ()=>{ try{ if(el.getAttribute('data-sel')==='1') return; el.style.background = 'transparent'; el.style.borderColor = isDark()? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'; }catch(_){ } });
+    }catch(_){ }});
+  }catch(_){ }
   updateLiveDrawerTab();
 }catch(_){ } }
 async function setActiveLive(id){ try{ const s=liveSessions[id]; if(!s) return; activeLiveId=id; liveSession=s; // adopt TF/symbol/strategy
