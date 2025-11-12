@@ -5,6 +5,12 @@
   const clip=document.getElementById('preloadClip');
   const vid=document.getElementById('preloadVideo');
   const canv=document.getElementById('preloadCanvas');
+  // Preloader params & prefs (tunable)
+  const __preParams = { RADF: 0.22, SPIN_DUR: 1200, SPIN_TURNS: 2.6, TRAILS: 3, TRAIL_STEP: 0.03, TRAIL_ALPHA_MAX: 0.18, FOLD_DUR: 800, FLIGHT_DUR: 1100 };
+  const __prefs = { reducedMotion: (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) };
+  function setParams(p){ try{ Object.assign(__preParams, p||{}); }catch(_){ } }
+  function setPrefs(p){ try{ Object.assign(__prefs, p||{}); }catch(_){ } }
+  function cancel(){ try{ overlay.remove(); }catch(_){ overlay.style.display='none'; } }
   const sheet=document.getElementById('preloadSheet');
   const creases=document.getElementById('preloadCreases');
   const glCanvas=document.getElementById('preloadGL');
@@ -12,7 +18,14 @@
     const scale=Math.max(ww/vw, wh/vh); const srcW=ww/scale; const srcH=wh/scale; const sx=(vw - srcW)/2; const sy=(vh - srcH)/2; ctx.drawImage(vid, sx, sy, srcW, srcH, 0, 0, canv.width, canv.height); vid.style.display='none'; canv.style.display='block';
     try{ const plane=document.getElementById('preloadPlane'); if(plane){ const url=canv.toDataURL('image/jpeg', 0.9); plane.style.backgroundImage = `url(${url})`; } }catch(_){ }
   }catch(_){ } }
-  function animateToLogo(durMs){ try{ const lg=document.getElementById('brandLogo'); const lr=lg? lg.getBoundingClientRect() : {left:12, top:12, width:40, height:40}; const cr=clip.getBoundingClientRect(); const cx=cr.left+cr.width/2, cy=cr.top+cr.height/2; const tx=lr.left+lr.width/2, ty=lr.top+lr.height/2; const dx=tx-cx, dy=ty-cy; const s=Math.max(0.12, Math.min((lr.width||40)/Math.max(1, cr.width), 0.2)); const d = Math.max(400, parseInt(durMs||1100,10)); clip.style.willChange='transform, border-radius, box-shadow, opacity'; clip.style.transition=`transform ${d}ms cubic-bezier(0.22,1,0.36,1), border-radius ${d}ms ease, box-shadow ${d}ms ease, opacity 300ms linear 700ms`; clip.style.borderRadius='10px'; clip.style.boxShadow='0 18px 48px rgba(0,0,0,0.35)'; clip.style.transform=`translate(-50%, -50%) translate(${dx}px, ${dy}px) scale(${s}) rotate(-8deg)`; clip.addEventListener('transitionend', ()=>{ try{ overlay.remove(); }catch(_){ overlay.style.display='none'; } }, { once:true }); }catch(_){ try{ overlay.remove(); }catch(__){} } }
+  // Bezier flight to logo (JS, for arc path + scale)
+  function animateToLogoBezier(durMs){ try{ const lg=document.getElementById('brandLogo'); const lr=lg? lg.getBoundingClientRect() : {left:12, top:12, width:40, height:40}; const cr=clip.getBoundingClientRect(); const startX=window.innerWidth/2, startY=window.innerHeight/2; const endX=lr.left+(lr.width/2), endY=lr.top+(lr.height/2); const ctrlX=(startX+endX)/2, ctrlY=Math.min(startY,endY) - (window.innerHeight*0.18);
+    const sEnd = Math.max(0.14, Math.min((lr.width||40)/Math.max(1, cr.width), 0.22)); const rot=-8*(Math.PI/180);
+    const d=Math.max(300, parseInt(durMs||__preParams.FLIGHT_DUR,10)); const t0=performance.now(); function easeInOutCubic(t){ return t<0.5? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
+    function at(t){ const u=1-t; const x = u*u*startX + 2*u*t*ctrlX + t*t*endX; const y = u*u*startY + 2*u*t*ctrlY + t*t*endY; return {x,y}; }
+    function loop(){ const now=performance.now(); let p=(now-t0)/d; if(p>1) p=1; const e=easeInOutCubic(p); const {x,y}=at(e); const dx = x - startX, dy = y - startY; const s = 1 - (1 - sEnd)*e; clip.style.willChange='transform'; clip.style.transform = `translate(-50%, -50%) translate(${dx}px, ${dy}px) scale(${s}) rotate(${rot}rad)`; if(p<1){ requestAnimationFrame(loop); } else { try{ overlay.remove(); }catch(_){ overlay.style.display='none'; } } }
+    requestAnimationFrame(loop);
+  }catch(_){ try{ overlay.remove(); }catch(__){} } }
   // WebGL crumple (displacement + lighting) on last frame
   function startGLCrumple(done){ try{
     if(!(glCanvas && glCanvas.getContext)) { done && done(); return; }
@@ -48,19 +61,19 @@
   function startRouletteSpin(done){ try{
     const rc=document.getElementById('preloadRoulette'); if(!rc) { done&&done(); return; }
     const ctx=rc.getContext('2d'); const parent=rc.parentElement; const W=parent.clientWidth||window.innerWidth; const H=parent.clientHeight||window.innerHeight; rc.width=W; rc.height=H; rc.classList.add('show');
-    const cx=W/2, cy=H/2; const t0=performance.now(); const DUR=1200; const spinTurns=2.6; function easeOutCubic(x){ return 1- Math.pow(1-x,3);} 
+    const cx=W/2, cy=H/2; const t0=performance.now(); const DUR=__preParams.SPIN_DUR|0 || 1200; const spinTurns=__preParams.SPIN_TURNS||2.6; function easeOutCubic(x){ return 1- Math.pow(1-x,3);} 
     function draw(angle){ ctx.clearRect(0,0,W,H);
       const cv=document.getElementById('preloadCanvas');
       // static background (cover)
       if(cv && cv.width && cv.height){ const imgW=cv.width, imgH=cv.height; const bgRatio=Math.max(W/imgW, H/imgH); const bgW=imgW*bgRatio, bgH=imgH*bgRatio; const bgX=(W-bgW)/2, bgY=(H-bgH)/2; ctx.globalAlpha=1; ctx.drawImage(cv, bgX, bgY, bgW, bgH); }
       // spinning window (smaller radius)
-      const RADF=0.22; const r=Math.min(W,H)*RADF;
+      const RADF=Math.max(0.16, Math.min(0.30, __preParams.RADF||0.22)); const r=Math.min(W,H)*RADF;
       const pms = performance.now() - t0; const alphaIn = Math.min(1, pms/180);
       if(cv && cv.width && cv.height){ const imgW=cv.width, imgH=cv.height; const ratio=Math.max((2*r)/imgW, (2*r)/imgH); const drawW=imgW*ratio, drawH=imgH*ratio; ctx.save(); ctx.translate(cx,cy); ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.closePath(); ctx.clip(); ctx.rotate(angle);
         // base pass
         ctx.globalAlpha=alphaIn; ctx.drawImage(cv, -drawW/2, -drawH/2, drawW, drawH);
         // motion trails for spin feel (very subtle)
-        const trails=3, step=0.03; for(let k=1;k<=trails;k++){ ctx.globalAlpha = alphaIn*Math.max(0, 0.18 - k*0.05); ctx.rotate(-step); ctx.drawImage(cv, -drawW/2, -drawH/2, drawW, drawH); }
+        const trails=(__preParams.TRAILS|0)||3, step=(__preParams.TRAIL_STEP||0.03); const aMax=__preParams.TRAIL_ALPHA_MAX||0.18; for(let k=1;k<=trails;k++){ ctx.globalAlpha = alphaIn*Math.max(0, aMax - k*0.05); ctx.rotate(-step); ctx.drawImage(cv, -drawW/2, -drawH/2, drawW, drawH); }
         ctx.restore(); ctx.globalAlpha=1;
         // soft rim
         const ringGrad=ctx.createRadialGradient(cx,cy, r*0.88, cx,cy, r*1.06); ringGrad.addColorStop(0,'rgba(0,0,0,0)'); ringGrad.addColorStop(1,'rgba(0,0,0,0.28)'); ctx.fillStyle=ringGrad; ctx.beginPath(); ctx.arc(cx,cy,r*1.06,0,Math.PI*2); ctx.fill();
@@ -74,18 +87,21 @@
   }catch(_){ done&&done(); } }
 
   function runPaperSequence(){ try{
-    if(!sheet){ animateToLogo(); return; }
+    if(!sheet){ animateToLogoBezier(); return; }
+    if(__prefs && __prefs.reducedMotion){ animateToLogoBezier(350); return; }
     // Immediately hide the sheet image; we'll show roulette, then transform plane
     sheet.classList.add('sheet-hide');
     startRouletteSpin(()=>{
-      const plane=document.getElementById('preloadPlane'); if(plane){ plane.classList.add('plane-on','plane-fold'); plane.addEventListener('animationend', ()=>{ try{ plane.classList.remove('plane-fold'); plane.classList.add('plane-flight'); }catch(_){ } }, { once:true }); }
-      animateToLogo(1100);
+      const plane=document.getElementById('preloadPlane'); if(plane){ plane.classList.add('plane-on','plane-fold'); plane.style.animationDuration = Math.max(300, __preParams.FOLD_DUR||800)+'ms'; plane.addEventListener('animationend', ()=>{ try{ plane.classList.remove('plane-fold'); plane.classList.add('plane-flight'); plane.style.animationDuration = Math.max(300, __preParams.FLIGHT_DUR||1100)+'ms'; }catch(_){ } }, { once:true }); }
+      animateToLogoBezier(__preParams.FLIGHT_DUR||1100);
     });
-  }catch(_){ animateToLogo(); } }
+  }catch(_){ animateToLogoBezier(); } }
   function afterEnd(){ setTimeout(runPaperSequence, 500); }
   if(vid){ vid.addEventListener('ended', ()=>{ try{ freezeLastFrame(); }catch(_){ } afterEnd(); }); vid.addEventListener('error', ()=>{ afterEnd(); }); setTimeout(()=>{ try{ if(vid.ended){ freezeLastFrame(); afterEnd(); } }catch(_){ } }, 100); }
   // Safety timeout if video can't play or is missing
   setTimeout(()=>{ try{ if(document.body.contains(overlay)){ if(vid){ try{ freezeLastFrame(); }catch(_){ } } afterEnd(); } }catch(_){ } }, 15000);
+  // expose API
+  try{ window.PRELOADER = { setParams, setPrefs, cancel }; }catch(_){ }
 }catch(_){ } })();
 
 // --- Lab: Entrainer (AI surrogate) ---
