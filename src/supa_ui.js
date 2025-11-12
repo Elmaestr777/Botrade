@@ -428,6 +428,17 @@ async function fetchPalmares(symbol, tf, limit=25, profileName){
       return Array.isArray(data)? data:[];
     }catch(_){ return []; }
   }
+  function subscribeLiveEvents(sessionId, onInsert){
+    const c=ensureClient(); if(!c||!sessionId) return { unsubscribe(){}};
+    const channel = c.channel('live_events_'+sessionId)
+      .on('postgres_changes', { event: 'INSERT', schema:'public', table:'live_events', filter:`session_id=eq.${sessionId}` }, (payload)=>{
+        try{ if(typeof onInsert==='function') onInsert(payload.new); }catch(_){ }
+      })
+      .subscribe((status)=>{ try{ slog('Supabase: realtime '+status); }catch(_){ } });
+    return {
+      unsubscribe(){ try{ c.removeChannel(channel); }catch(_){ } }
+    };
+  }
 
   // Live wallets API (Supabase)
   // Persist a wallet (public/no-auth by default): { name, startCap, fee, lev, exchange='paper', base_currency='USDC' }
@@ -505,6 +516,7 @@ async function fetchPalmares(symbol, tf, limit=25, profileName){
     fetchHeadlessSessions,
     fetchHeadlessSessionByName,
     fetchLiveEvents,
+    subscribeLiveEvents,
     // Wallets
     persistLiveWallet,
     fetchLiveWallets,
