@@ -2584,14 +2584,16 @@ function anyLiveActive(){ try{ return false; }catch(_){ return false; } }
 function ensureLiveDrawer(){ try{ if(document.getElementById('liveDrawer')) return; // Drawer
   const d=document.createElement('div'); d.id='liveDrawer'; d.style.position='fixed'; d.style.left='0'; d.style.top='60px'; d.style.bottom='0'; d.style.width='260px'; d.style.background= isDark()? '#0b0f1a' : '#f9fafb'; d.style.borderRight= isDark()? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)'; d.style.transform='translateX(-240px)'; d.style.transition='transform .2s ease'; d.style.zIndex='1500'; d.style.padding='8px';
   // Header with collapse icon moved to the right
-  d.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">'+
-                '<div style="font-weight:600;">Live wallets</div>'+
-                '<button id="liveDrawerCollapse" class="icon-btn" title="Replier">⟨</button>'+
+  d.innerHTML = '<div style=\"display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;\">'+
+                '<div style=\"font-weight:600; display:flex; align-items:center; gap:6px;\">Live wallets <button id=\"liveDrawerHistory\" class=\"btn\" style=\"padding:2px 6px; font-size:12px;\" title=\"Historique\">Historique</button></div>'+
+                '<button id=\"liveDrawerCollapse\" class=\"icon-btn\" title=\"Replier\">⟨</button>'+
                 '</div>'+
-                '<div id="liveDrawerList" style="overflow:auto; max-height: calc(100% - 10px);"></div>';
+                '<div id=\"liveDrawerList\" style=\"overflow:auto; max-height: calc(100% - 10px);\"></div>';
   document.body.appendChild(d);
   // Hide old floating button if present
   try{ const old=document.getElementById('liveDrawerBtn'); if(old){ old.style.display='none'; } }catch(_){ }
+  // Wire history button
+  try{ const hb=document.getElementById('liveDrawerHistory'); if(hb){ hb.addEventListener('click', ()=>{ try{ openLiveHistoryModal(); }catch(_){ } }); } }catch(_){ }
   // Side tab showing current wallet name + quick active toggle
   if(!document.getElementById('liveDrawerTab')){
     const tab=document.createElement('div'); tab.id='liveDrawerTab'; tab.style.position='fixed'; tab.style.left='0'; tab.style.top='100px'; tab.style.zIndex='1502'; tab.style.background= isDark()? '#111827' : '#e5e7eb'; tab.style.color= isDark()? '#e5e7eb' : '#111827'; tab.style.border= isDark()? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(0,0,0,0.15)'; tab.style.borderLeft='none'; tab.style.borderTopRightRadius='8px'; tab.style.borderBottomRightRadius='8px'; tab.style.padding='6px 10px'; tab.style.display='inline-flex'; tab.style.alignItems='center'; tab.style.gap='8px'; tab.style.cursor='pointer'; tab.innerHTML = '<span id="liveDrawerTabArrow">⟩</span><span id="liveDrawerTabName" style="max-width:140px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">—</span><label style="font-size:12px; display:flex; align-items:center; gap:6px; cursor:pointer;">Actif <input type="checkbox" id="liveDrawerTabActive" /></label>';
@@ -2764,6 +2766,37 @@ async function headlessActivate(name){ try{ if(!name) return; __headlessActiveNa
   __headlessPollTimer = setInterval(async ()=>{ try{ await headlessPollOnce(); }catch(_){ } }, 15000);
   await headlessPollOnce();
 }catch(_){ } }
+
+// Live History modal
+function openLiveHistoryModal(){ try{ const m=ensureLiveHistoryModal(); populateLiveHistorySessions().then(()=> refreshLiveHistory()).catch(()=>{}); openModalEl(m); }catch(_){ } }
+function ensureLiveHistoryModal(){ let el=document.getElementById('liveHistoryModal'); if(el) return el; try{ el=document.createElement('div'); el.id='liveHistoryModal'; el.className='modal hidden'; el.setAttribute('aria-hidden','true'); const bd=document.createElement('div'); bd.className='modal-backdrop'; bd.dataset.close='1'; el.appendChild(bd); const ct=document.createElement('div'); ct.className='modal-content large'; el.appendChild(ct); const hd=document.createElement('div'); hd.className='modal-header'; ct.appendChild(hd); const h2=document.createElement('h2'); h2.textContent='Historique Live'; hd.appendChild(h2); const x=document.createElement('button'); x.className='icon-btn'; x.setAttribute('aria-label','Fermer'); x.textContent='×'; x.addEventListener('click', ()=> closeModalEl(el)); hd.appendChild(x); const body=document.createElement('div'); body.className='modal-body'; body.innerHTML = `
+  <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:8px;">
+    <label>Session <select id="liveHistSessionSel" style="min-width:220px"></select></label>
+    <label>De <input id="liveHistFrom" type="datetime-local" /></label>
+    <label>À <input id="liveHistTo" type="datetime-local" /></label>
+    <button id="liveHistRefresh" class="btn">Actualiser</button>
+    <button id="liveHistExport" class="btn">Export CSV</button>
+  </div>
+  <div style="max-height:60vh; overflow:auto;">
+    <table class="lbc-table" style="width:100%">
+      <thead><tr><th>Heure</th><th>Type</th><th>Dir</th><th>Entry</th><th>Exit/SL/TP</th><th>Qty</th><th>PNL</th><th>Fees</th><th>Net</th></tr></thead>
+      <tbody id="liveHistTBody"><tr><td colspan="9">—</td></tr></tbody>
+    </table>
+  </div>`; ct.appendChild(body); document.body.appendChild(el);
+  // wire actions
+  const rf=document.getElementById('liveHistRefresh'); if(rf){ rf.addEventListener('click', ()=> refreshLiveHistory()); }
+  const ex=document.getElementById('liveHistExport'); if(ex){ ex.addEventListener('click', ()=> exportLiveHistoryCSV()); }
+  el.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(el); });
+} catch(_){ }
+  return el; }
+async function populateLiveHistorySessions(){ try{ const sel=document.getElementById('liveHistSessionSel'); if(!sel) return; let rows=[]; try{ rows = await (SUPA&&SUPA.fetchHeadlessSessions? SUPA.fetchHeadlessSessions(200): []); }catch(_){ rows=[]; } sel.innerHTML = (rows||[]).map(r=> `<option value="${r.id}">${r.name} — ${r.symbol} • ${r.tf}</option>`).join(''); }catch(_){ } }
+async function refreshLiveHistory(){ try{ const sel=document.getElementById('liveHistSessionSel'); const fromEl=document.getElementById('liveHistFrom'); const toEl=document.getElementById('liveHistTo'); const tb=document.getElementById('liveHistTBody'); if(!tb) return; const sid=sel&&sel.value; if(!sid){ tb.innerHTML='<tr><td colspan="9">Aucune session</td></tr>'; return; } let fromIso=fromEl&&fromEl.value? new Date(fromEl.value).toISOString(): null; let toIso=toEl&&toEl.value? new Date(toEl.value).toISOString(): null; const evts = await (SUPA&&SUPA.fetchLiveEvents? SUPA.fetchLiveEvents(sid, fromIso, 5000): []); const rows=[]; for(const ev of (evts||[])){ if(toIso && ev.at_time>toIso) continue; const p=ev.payload||{}; const dir=p.dir||''; const entry=(p.entry!=null? p.entry:''); const exit=(p.exit!=null? p.exit:''); const qty=(p.qty!=null? p.qty:''); const pnl=(p.pnl!=null? p.pnl:''); const fees=(p.fees!=null? p.fees:''); const net=(p.net!=null? p.net:''); rows.push(`<tr><td>${new Date(ev.at_time).toLocaleString()}</td><td>${ev.kind}</td><td>${dir}</td><td>${fmtNum(entry)}</td><td>${fmtNum(exit)}</td><td>${fmtNum(qty)}</td><td>${fmtNum(pnl)}</td><td>${fmtNum(fees)}</td><td>${fmtNum(net)}</td></tr>`); }
+  tb.innerHTML = rows.length? rows.join('') : '<tr><td colspan="9">—</td></tr>';
+}catch(_){ } }
+function fmtNum(v){ const n=Number(v); return Number.isFinite(n)? n.toFixed(4):''; }
+function exportLiveHistoryCSV(){ try{ const sel=document.getElementById('liveHistSessionSel'); const tb=document.getElementById('liveHistTBody'); if(!tb) return; const rows = Array.from(tb.querySelectorAll('tr')); let csv='time,kind,dir,entry,exit,qty,pnl,fees,net\n'; for(const tr of rows){ const tds=Array.from(tr.querySelectorAll('td')).map(td=> (td.textContent||'').replaceAll(',', '')); if(tds.length===9){ csv += tds.join(',')+'\n'; } }
+  const blob=new Blob([csv], {type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); const name = (sel&&sel.options[sel.selectedIndex]&&sel.options[sel.selectedIndex].text)||'session'; a.download = `live_history_${name.replaceAll(' ','_')}.csv`; a.click(); }catch(_){ }
+}
 
 // Live wallets management
 const liveWalletSel=document.getElementById('liveWalletSel');
