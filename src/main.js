@@ -44,18 +44,33 @@
     (function loop(){ const t=performance.now(); const p=Math.min(1,(t-start)/DUR); const amt=AMT*ease(p); gl.uniform1f(uAmtLoc, amt); gl.uniform2f(uScaleLoc, 3.0, 3.0); gl.uniform2f(uOffLoc, p*0.6, -p*0.5); gl.drawArrays(gl.TRIANGLE_STRIP,0,4); if(p<1){ requestAnimationFrame(loop); } else { try{ const plane=document.getElementById('preloadPlane'); if(plane){ const url=glCanvas.toDataURL('image/jpeg',0.9); plane.style.backgroundImage=`url(${url})`; } }catch(_){ } glCanvas.style.display='none'; done && done(); } })();
   }catch(_){ done && done(); } }
 
+  // Roulette spin, then fold to paper plane and flight
+  function startRouletteSpin(done){ try{
+    const rc=document.getElementById('preloadRoulette'); if(!rc) { done&&done(); return; }
+    const ctx=rc.getContext('2d'); const parent=rc.parentElement; const W=parent.clientWidth||window.innerWidth; const H=parent.clientHeight||window.innerHeight; rc.width=W; rc.height=H; rc.classList.add('show');
+    const cx=W/2, cy=H/2; const R=Math.min(W,H)*0.36; const SEG=24; const colors=['#b91c1c','#111827']; const ring='#e5e7eb'; const t0=performance.now(); const DUR=1400; const spinTurns=2.7; function easeOutCubic(x){ return 1- Math.pow(1-x,3);} 
+    function draw(angle){ ctx.clearRect(0,0,W,H); // wheel
+      ctx.save(); ctx.translate(cx,cy); ctx.rotate(angle);
+      for(let i=0;i<SEG;i++){ ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,R,(i*Math.PI*2/SEG),((i+1)*Math.PI*2/SEG)); ctx.closePath(); ctx.fillStyle=colors[i%2]; ctx.fill(); }
+      // center circle
+      ctx.beginPath(); ctx.arc(0,0,R*0.82,0,Math.PI*2); ctx.strokeStyle=ring; ctx.lineWidth=R*0.02; ctx.stroke();
+      // gloss
+      const grad=ctx.createRadialGradient(0,0,R*0.1, 0,0,R*0.9); grad.addColorStop(0,'rgba(255,255,255,0.12)'); grad.addColorStop(1,'rgba(0,0,0,0.18)'); ctx.beginPath(); ctx.arc(0,0,R,0,Math.PI*2); ctx.fillStyle=grad; ctx.fill(); ctx.restore();
+      // pointer
+      ctx.save(); ctx.translate(cx, cy - R - 10); ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(10, -16); ctx.lineTo(-10, -16); ctx.closePath(); ctx.fillStyle='#f59e0b'; ctx.fill(); ctx.restore();
+    }
+    (function loop(){ const p=Math.min(1,(performance.now()-t0)/DUR); const a= (spinTurns*Math.PI*2) * easeOutCubic(p); draw(a); if(p<1){ requestAnimationFrame(loop); } else { // fade out
+        rc.classList.add('fade'); setTimeout(()=>{ rc.classList.remove('show','fade'); done&&done(); }, 240); }
+    })();
+  }catch(_){ done&&done(); } }
+
   function runPaperSequence(){ try{
     if(!sheet){ animateToLogo(); return; }
-    // Start GL crumple first
-    startGLCrumple(()=>{
-      // Then paper curl and airplane sequence
-      sheet.classList.remove('pre-crumple','paper-curl','pre-fold','pre-fold-pro','grid-anim','deform-weak','deform-strong','deform-pro','sheet-hide');
-      sheet.classList.add('paper-curl');
-      const onCurlEnd = ()=>{ try{ sheet.removeEventListener('animationend', onCurlEnd); }catch(_){ }
-        sheet.classList.add('sheet-hide'); const plane=document.getElementById('preloadPlane'); if(plane){ plane.classList.add('plane-on','plane-fold'); plane.addEventListener('animationend', ()=>{ try{ plane.classList.remove('plane-fold'); plane.classList.add('plane-flight'); }catch(_){ } }, { once:true }); }
-        animateToLogo(1100);
-      };
-      sheet.addEventListener('animationend', onCurlEnd, { once:true });
+    // Immediately hide the sheet image; we'll show roulette, then transform plane
+    sheet.classList.add('sheet-hide');
+    startRouletteSpin(()=>{
+      const plane=document.getElementById('preloadPlane'); if(plane){ plane.classList.add('plane-on','plane-fold'); plane.addEventListener('animationend', ()=>{ try{ plane.classList.remove('plane-fold'); plane.classList.add('plane-flight'); }catch(_){ } }, { once:true }); }
+      animateToLogo(1100);
     });
   }catch(_){ animateToLogo(); } }
   function afterEnd(){ setTimeout(runPaperSequence, 500); }
