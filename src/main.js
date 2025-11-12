@@ -183,8 +183,55 @@ function formatParamsPretty(p){ try{ const core = `nol=${p.nol} • prd=${p.prd}
 function openEvalsModal(sym, tf){ try{ const tb=document.getElementById('evalsTBody'); const ctxEl=document.getElementById('evalsCtx'); if(!tb) return; const arr = Array.isArray(__lastLabTested)? __lastLabTested.slice(): []; const rows=[]; let idx=1; const sorted=arr.slice().sort((a,b)=> (b.score||0)-(a.score||0)); for(const it of sorted){ const st=it.metrics||it.res||{}; rows.push(`<tr><td>${idx}</td><td>${(it.score!=null? it.score.toFixed(2): '—')}</td><td>${(st.profitFactor===Infinity?'∞':(st.profitFactor||0).toFixed(2))}</td><td>${(st.totalPnl||0).toFixed(0)}</td><td>${st.tradesCount||0}</td><td>${(st.winrate||0).toFixed(1)}</td><td>${(Number.isFinite(st.avgRR)? st.avgRR.toFixed(2):'—')}</td><td style=\"text-align:left; white-space:normal; line-height:1.2;\">${formatParamsPretty(it.params||{})}</td></tr>`); idx++; }
   tb.innerHTML = rows.length? rows.join('') : '<tr><td colspan="8">—</td></tr>'; if(ctxEl) ctxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — ${arr.length} évaluations`; openModalEl(document.getElementById('evalsModal')); }catch(_){ }
 }
-function exportEvalsCSV(){ try{ const arr=Array.isArray(__lastLabTested)? __lastLabTested: []; if(!arr.length){ setStatus('Aucune évaluation'); return; } let csv='score,pf,totalPnl,trades,winrate,avgRR,nol,prd,slInitPct,beAfterBars,beLockPct,emaLen,entryMode,useFibRet,confirmMode,ent382,ent500,ent618,ent786,tpEnable,slEnable,tp_json,sl_json\\n'; for(const it of arr){ const st=it.metrics||it.res||{}; const p=it.params||{}; const tp=Array.isArray(p.tp)? JSON.stringify(p.tp).replaceAll(',', ';') : ''; const sl=Array.isArray(p.sl)? JSON.stringify(p.sl).replaceAll(',', ';') : ''; csv+=`${(Number.isFinite(it.score)? it.score.toFixed(2):'')},${st.profitFactor||''},${st.totalPnl||''},${st.tradesCount||''},${st.winrate||''},${st.avgRR||''},${p.nol||''},${p.prd||''},${p.slInitPct||''},${p.beAfterBars||''},${p.beLockPct||''},${p.emaLen||''},${p.entryMode||''},${p.useFibRet??''},${p.confirmMode||''},${p.ent382??''},${p.ent500??''},${p.ent618??''},${p.ent786??''},${p.tpEnable??''},${p.slEnable??''},\"${tp}\",\"${sl}\"\\n`; }
-  const blob=new Blob([csv], {type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`evals_${currentSymbol}_${(labTFSelect&&labTFSelect.value)||currentInterval}.csv`; a.click(); }catch(_){ }
+function exportEvalsCSV(){
+  try{
+    const arr=Array.isArray(__lastLabTested)? __lastLabTested: [];
+    if(!arr.length){ setStatus('Aucune évaluation'); return; }
+    const DL = ';';
+    function esc(v){ let s = (v==null? '': String(v)); if(s.includes('"')) s=s.replace(/"/g,'""'); if(s.includes(DL) || s.includes('\n')) s='"'+s+'"'; return s; }
+    function tpColsHdr(){ const cols=[]; for(let i=1;i<=10;i++){ cols.push(`TP${i}_type`,`TP${i}_val`,`TP${i}_qty`,`TP${i}_beOn`,`TP${i}_trail_mode`,`TP${i}_trail_emaLen`,`TP${i}_trail_pct`,`TP${i}_SL_type`,`TP${i}_SL_val`,`TP${i}_SL_trail_mode`,`TP${i}_SL_trail_emaLen`,`TP${i}_SL_trail_pct`); } return cols; }
+    function slColsHdr(){ const cols=[]; for(let i=1;i<=10;i++){ cols.push(`SL${i}_type`,`SL${i}_val`,`SL${i}_trail_mode`,`SL${i}_trail_emaLen`,`SL${i}_trail_pct`); } return cols; }
+    const baseHdr = [
+      'score','pf','totalPnl','trades','winrate','avgRR','maxDDAbs',
+      'nol','prd','slInitPct','beAfterBars','beLockPct','emaLen',
+      'entryMode','useFibRet','confirmMode','ent382','ent500','ent618','ent786',
+      'tpCompound','tpCloseAllLast','tp1R'
+    ];
+    const header = baseHdr.concat(tpColsHdr()).concat(['slEnable']).concat(slColsHdr());
+    let lines = ['\uFEFF'+header.join(DL)];
+    for(const it of arr){
+      const st=it.metrics||it.res||{}; const p=it.params||{};
+      const row=[];
+      row.push(Number.isFinite(it.score)? it.score.toFixed(2):'');
+      row.push(st.profitFactor===Infinity? 'Infinity': (st.profitFactor??''));
+      row.push(st.totalPnl??''); row.push(st.tradesCount??''); row.push(st.winrate??''); row.push(st.avgRR??''); row.push(st.maxDDAbs??'');
+      row.push(p.nol??''); row.push(p.prd??''); row.push(p.slInitPct??''); row.push(p.beAfterBars??''); row.push(p.beLockPct??''); row.push(p.emaLen??'');
+      row.push(p.entryMode??''); row.push(p.useFibRet??''); row.push(p.confirmMode??''); row.push(p.ent382??''); row.push(p.ent500??''); row.push(p.ent618??''); row.push(p.ent786??'');
+      row.push(p.tpCompound??''); row.push(p.tpCloseAllLast??''); row.push(p.tp1R??'');
+      const tp = Array.isArray(p.tp)? p.tp.slice(0,10):[];
+      for(let i=0;i<10;i++){
+        const t = tp[i]||{}; const typ=t.type||'';
+        const val = (typ==='Fib')? (t.fib??t.value??'') : (typ==='Percent'? (t.pct??t.value??'') : (typ==='EMA'? (t.emaLen??'') : ''));
+        const qty = (t.qty!=null)? t.qty : '';
+        const beOn = t.beOn? 1:'';
+        const tr = t.trail||{}; const trMode = tr.mode||''; const trEL = tr.emaLen??''; const trPct = tr.pct??'';
+        const sl = t.sl||{}; const slTyp=sl.type||''; const slVal = (slTyp==='Fib')? (sl.fib??sl.value??'') : (slTyp==='Percent'? (sl.pct??sl.value??'') : (slTyp==='EMA'? (sl.emaLen??'') : ''));
+        const slTr = (sl.trail||{}); const slTrMode=slTr.mode||''; const slTrEL=slTr.emaLen??''; const slTrPct=slTr.pct??'';
+        row.push(typ,val,qty,beOn,trMode,trEL,trPct,slTyp,slVal,slTrMode,slTrEL,slTrPct);
+      }
+      row.push(p.slEnable??'');
+      const sl = Array.isArray(p.sl)? p.sl.slice(0,10):[];
+      for(let i=0;i<10;i++){
+        const s = sl[i]||{}; const slTyp=s.type||''; const slVal=(slTyp==='Fib')? (s.fib??s.value??'') : (slTyp==='Percent'? (s.pct??s.value??'') : (slTyp==='EMA'? (s.emaLen??'') : ''));
+        const slTr=(s.trail||{}); const slTrMode=slTr.mode||''; const slTrEL=slTr.emaLen??''; const slTrPct=slTr.pct??'';
+        row.push(slTyp, slVal, slTrMode, slTrEL, slTrPct);
+      }
+      lines.push(row.map(esc).join(DL));
+    }
+    const csv = lines.join('\r\n');
+    const blob=new Blob([csv], {type:'text/csv;charset=utf-8'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`evals_${currentSymbol}_${(labTFSelect&&labTFSelect.value)||currentInterval}.csv`; a.click();
+  }catch(_){ }
 }
 function symbolToDisplay(sym){ if(!sym) return '—'; return sym.endsWith('USDC')? sym.slice(0,-4)+'/USDC' : sym; }
 function updateTitle(sym){ if(titleEl){ titleEl.textContent = symbolToDisplay(sym); } }
@@ -1055,7 +1102,6 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
   if(btStopBtn2){ btStopBtn2.addEventListener('click', ()=>{ btAbort=true; addBtLog('Arrêt demandé'); if(labRunStatusEl) labRunStatusEl.textContent='Arrêt'; }); }
 if(btShowDetails){ btShowDetails.addEventListener('click', ()=> openEvalsModal((labSymbolSelect&&labSymbolSelect.value)||currentSymbol, (labTFSelect&&labTFSelect.value)||currentInterval)); }
   if(btExportDetails){ btExportDetails.addEventListener('click', ()=> exportEvalsCSV()); }
-}catch(_){ }
 if(btOptimizeBtn){ btOptimizeBtn.addEventListener('click', async ()=>{ try{
   const conf={ startCap: Math.max(0, parseFloat(btStartCap&&btStartCap.value||'10000')), fee: Math.max(0, parseFloat(btFee&&btFee.value||'0.1')), lev: Math.max(1, parseFloat(btLev&&btLev.value||'1')), maxPct: Math.max(0, Math.min(100, parseFloat(btMaxPct&&btMaxPct.value||'100'))), base: (btMaxBase&&btMaxBase.value)||'initial' };
   const tfSel = (document.getElementById('btOptInterval')&&document.getElementById('btOptInterval').value)||currentInterval;
@@ -1805,7 +1851,19 @@ try{
   wireDate(labFromEl); wireDate(labToEl);
 }catch(_){ }
 if(labRunNewBtn){ labRunNewBtn.addEventListener('click', ()=>{ try{ window.__labGoalOverride='new'; if(labRunBtn){ labRunBtn.click(); } }catch(_){ } }); }
-if(labExportBtn){ labExportBtn.addEventListener('click', ()=>{ try{ const tf=(labTFSelect&&labTFSelect.value)||(intervalSelect&&intervalSelect.value)||''; const sym=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol; const arr=Array.isArray(window.labPalmaresCache)? window.labPalmaresCache : []; if(!arr.length){ setStatus('Rien à exporter'); return; } let csv='idx,nom,gen,nol,prd,slInitPct,beAfterBars,beLockPct,emaLen,tp1R,entryMode,useFibRet,useFibDraw,confirmMode,ent382,ent500,ent618,ent786,tpEnable,tp,score,profitFactor,totalPnl,equityFinal,tradesCount,winrate,avgRR,maxDDAbs\n'; let idx=1; const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee'); for(const r of arr){ const p=r.params||{}; const st=r.res||{}; const tpStr = Array.isArray(p.tp)? JSON.stringify(p.tp).replaceAll(',', ';') : ''; const score = Number.isFinite(r.score)? r.score : scoreResult(st, weights); csv+=`${idx},\"${r.name||''}\",${r.gen||1},${p.nol||''},${p.prd||''},${p.slInitPct||''},${p.beAfterBars||''},${p.beLockPct||''},${p.emaLen||''},${p.tp1R||''},${p.entryMode||''},${p.useFibRet??''},${p.useFibDraw??''},${p.confirmMode||''},${p.ent382??''},${p.ent500??''},${p.ent618??''},${p.ent786??''},${p.tpEnable??''},\"${tpStr}\",${score.toFixed(2)},${st.profitFactor||''},${st.totalPnl||''},${st.equityFinal||''},${st.tradesCount||''},${st.winrate||''},${st.avgRR||''},${st.maxDDAbs||''}\\n`; idx++; } const blob=new Blob([csv], {type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`palmares_${sym}_${tf}.csv`; a.click(); }catch(_){ } }); }
+if(labExportBtn){ labExportBtn.addEventListener('click', ()=>{ try{ const tf=(labTFSelect&&labTFSelect.value)||(intervalSelect&&intervalSelect.value)||''; const sym=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol; const arr=Array.isArray(window.labPalmaresCache)? window.labPalmaresCache : []; if(!arr.length){ setStatus('Rien à exporter'); return; }
+  const DL=';';
+  function esc(v){ let s=(v==null?'':String(v)); if(s.includes('"')) s=s.replace(/"/g,'""'); if(s.includes(DL)||s.includes('\n')) s='"'+s+'"'; return s; }
+  function tpColsHdr(){ const cols=[]; for(let i=1;i<=10;i++){ cols.push(`TP${i}_type`,`TP${i}_val`,`TP${i}_qty`,`TP${i}_beOn`,`TP${i}_trail_mode`,`TP${i}_trail_emaLen`,`TP${i}_trail_pct`,`TP${i}_SL_type`,`TP${i}_SL_val`,`TP${i}_SL_trail_mode`,`TP${i}_SL_trail_emaLen`,`TP${i}_SL_trail_pct`); } return cols; }
+  function slColsHdr(){ const cols=[]; for(let i=1;i<=10;i++){ cols.push(`SL${i}_type`,`SL${i}_val`,`SL${i}_trail_mode`,`SL${i}_trail_emaLen`,`SL${i}_trail_pct`); } return cols; }
+  const baseHdr=['idx','name','gen','score','pf','totalPnl','eqFinal','trades','winrate','avgRR','maxDDAbs','nol','prd','slInitPct','beAfterBars','beLockPct','emaLen','entryMode','useFibRet','confirmMode','ent382','ent500','ent618','ent786','tpCompound','tpCloseAllLast','tp1R'];
+  const header=baseHdr.concat(tpColsHdr()).concat(['slEnable']).concat(slColsHdr());
+  let lines=['\uFEFF'+header.join(DL)];
+  let idx=1; const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
+  for(const r of arr){ const p=r.params||{}; const st=r.res||{}; const score = Number.isFinite(r.score)? r.score : scoreResult(st, weights); const row=[idx, r.name||'', r.gen||1, (Number.isFinite(score)? score.toFixed(2):''), (st.profitFactor===Infinity?'Infinity':(st.profitFactor??'')), (st.totalPnl??''), (st.equityFinal??''), (st.tradesCount??''), (st.winrate??''), (st.avgRR??''), (st.maxDDAbs??''), (p.nol??''),(p.prd??''),(p.slInitPct??''),(p.beAfterBars??''),(p.beLockPct??''),(p.emaLen??''),(p.entryMode??''),(p.useFibRet??''),(p.confirmMode??''),(p.ent382??''),(p.ent500??''),(p.ent618??''),(p.ent786??''),(p.tpCompound??''),(p.tpCloseAllLast??''),(p.tp1R??'')]; const tp=Array.isArray(p.tp)? p.tp.slice(0,10):[]; for(let i=0;i<10;i++){ const t=tp[i]||{}; const typ=t.type||''; const val=(typ==='Fib')? (t.fib??t.value??'') : (typ==='Percent'? (t.pct??t.value??'') : (typ==='EMA'? (t.emaLen??'') : '')); const qty=(t.qty!=null)? t.qty:''; const beOn=t.beOn?1:''; const tr=t.trail||{}; const trMode=tr.mode||''; const trEL=tr.emaLen??''; const trPct=tr.pct??''; const sl=t.sl||{}; const slTyp=sl.type||''; const slVal=(slTyp==='Fib')? (sl.fib??sl.value??'') : (slTyp==='Percent'? (sl.pct??sl.value??'') : (slTyp==='EMA'? (sl.emaLen??'') : '')); const slTr=sl.trail||{}; const slTrMode=slTr.mode||''; const slTrEL=slTr.emaLen??''; const slTrPct=slTr.pct??''; row.push(typ,val,qty,beOn,trMode,trEL,trPct,slTyp,slVal,slTrMode,slTrEL,slTrPct); }
+  row.push(p.slEnable??''); const sl=Array.isArray(p.sl)? p.sl.slice(0,10):[]; for(let i=0;i<10;i++){ const s=sl[i]||{}; const slTyp=s.type||''; const slVal=(slTyp==='Fib')? (s.fib??s.value??'') : (slTyp==='Percent'? (s.pct??s.value??'') : (slTyp==='EMA'? (s.emaLen??'') : '')); const slTr=s.trail||{}; const slTrMode=slTr.mode||''; const slTrEL=slTr.emaLen??''; const slTrPct=slTr.pct??''; row.push(slTyp, slVal, slTrMode, slTrEL, slTrPct); }
+  lines.push(row.map(esc).join(DL)); idx++; }
+  const csv=lines.join('\r\n'); const blob=new Blob([csv], {type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`palmares_${sym}_${tf}.csv`; a.click(); }catch(_){ } }); }
 function buildWeightsUI(){ if(!weightsBody) return; const prof=(weightsProfile&&weightsProfile.value)||(localStorage.getItem('labWeightsProfile')||'balancee'); const w=getWeights(prof); weightsBody.innerHTML = `
   <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
     <label>Profit Factor <input id="w_pf" type="number" min="0" max="100" step="1" value="${w.pf}" /></label>
