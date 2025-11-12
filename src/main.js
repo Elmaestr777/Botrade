@@ -49,7 +49,12 @@
     const rc=document.getElementById('preloadRoulette'); if(!rc) { done&&done(); return; }
     const ctx=rc.getContext('2d'); const parent=rc.parentElement; const W=parent.clientWidth||window.innerWidth; const H=parent.clientHeight||window.innerHeight; rc.width=W; rc.height=H; rc.classList.add('show');
     const cx=W/2, cy=H/2; const R=Math.min(W,H)*0.36; const SEG=24; const colors=['#b91c1c','#111827']; const ring='#e5e7eb'; const t0=performance.now(); const DUR=1400; const spinTurns=2.7; function easeOutCubic(x){ return 1- Math.pow(1-x,3);} 
-    function draw(angle){ ctx.clearRect(0,0,W,H); // wheel
+    function draw(angle){ ctx.clearRect(0,0,W,H);
+      // background = last frame (cover)
+      try{ const cv=document.getElementById('preloadCanvas'); if(cv && cv.width && cv.height){ const imgW=cv.width, imgH=cv.height; const ratio=Math.max(W/imgW, H/imgH); const sW=W/ratio, sH=H/ratio; const sx=(imgW - sW)/2, sy=(imgH - sH)/2; ctx.drawImage(cv, sx, sy, sW, sH, 0, 0, W, H); } }catch(_){ }
+      // slight dim for contrast
+      ctx.fillStyle='rgba(0,0,0,0.18)'; ctx.fillRect(0,0,W,H);
+      // wheel
       ctx.save(); ctx.translate(cx,cy); ctx.rotate(angle);
       for(let i=0;i<SEG;i++){ ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,R,(i*Math.PI*2/SEG),((i+1)*Math.PI*2/SEG)); ctx.closePath(); ctx.fillStyle=colors[i%2]; ctx.fill(); }
       // center circle
