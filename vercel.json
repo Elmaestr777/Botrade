@@ -1,7 +1,4 @@
 {
   "cleanUrls": true,
-  "trailingSlash": false,
-  "crons": [
-    { "path": "/api/ping-live-runner", "schedule": "*/1 * * * *" }
-  ]
+  "trailingSlash": false
 }
