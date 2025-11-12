@@ -626,12 +626,16 @@ if(liveOpenBtn){ liveOpenBtn.addEventListener('click', async ()=>{ try{
     if(liveOpenBtn.classList) liveOpenBtn.classList.remove('primary');
     updateLiveDrawerOpen(false);
     try{ const d=document.getElementById('liveDrawer'); if(d){ d.style.display='none'; } }catch(_){ }
+    // Arrêter toute écoute headless et vider l'état live pour réactiver Heaven partout
+    try{ if(__headlessRTSub && __headlessRTSub.unsubscribe){ __headlessRTSub.unsubscribe(); } }catch(_){ }
+    try{ if(__headlessPollTimer){ clearInterval(__headlessPollTimer); } }catch(_){ }
+    try{ __headlessRTSub=null; __headlessPollTimer=null; __headlessSessionId=null; __headlessActiveName=null; liveSession=null; __headlessTrades=[]; liveEntryMarkers=[]; tpHitMarkers=[]; slHitMarkers=[]; beHitMarkers=[]; }catch(_){ }
     // cacher le badge cutoff et réinitialiser cutoff
     try{ delete window.__liveChartMinTimeSec; delete window.__liveChartMinTimeBaseSec; const b=document.getElementById('chartCutoff'); if(b){ b.style.display='none'; } }catch(_){ }
     // fermer les fenêtres flottantes de live si ouvertes
     try{ if(typeof closeModalEl==='function'){ if(typeof tradesModalEl!=='undefined' && tradesModalEl) closeModalEl(tradesModalEl); if(typeof stratModalEl!=='undefined' && stratModalEl) closeModalEl(stratModalEl); } }catch(_){ }
-    // recharger full historique
-    closeWs(); await load(currentSymbol, currentInterval); openWs(currentSymbol, currentInterval); updateCutoffBadge();
+    // recharger full historique et relancer Heaven sur tout le chart
+    closeWs(); await load(currentSymbol, currentInterval); openWs(currentSymbol, currentInterval); updateCutoffBadge(); renderLBC();
   }
 } catch(_){ } }); }
 if(liveCloseBtn&&liveModalEl) liveCloseBtn.addEventListener('click', ()=> closeModalEl(liveModalEl)); if(liveModalEl) liveModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(liveModalEl); });
