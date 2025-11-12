@@ -6,13 +6,15 @@
   const vid=document.getElementById('preloadVideo');
   const canv=document.getElementById('preloadCanvas');
   const chartEl=document.getElementById('chart');
-  const fadeMs = Math.max(100, __preParams.CHART_FADE_MS || 700);
+  let fadeMs = 1400;
   // Prepare chart for fade-in reveal under overlay
   try{ if(chartEl){ chartEl.style.opacity='0'; chartEl.style.transition=`opacity ${fadeMs}ms ease`; } }catch(_){ }
   // helper: reveal chart + fade overlay bg to transparent when flight starts
-  function revealChart(){ try{ if(overlay && overlay.dataset){ if(overlay.dataset.revealed==='1') return; overlay.dataset.revealed='1'; } if(chartEl){ chartEl.style.opacity='1'; } if(overlay){ overlay.style.transition = (overlay.style.transition? overlay.style.transition+`, background-color ${fadeMs}ms ease` : `background-color ${fadeMs}ms ease`); overlay.style.backgroundColor='rgba(0,0,0,0)'; } }catch(_){ } }
+  function revealChart(){ try{ if(overlay && overlay.dataset){ if(overlay.dataset.revealed==='1') return; overlay.dataset.revealed='1'; } if(chartEl){ chartEl.style.transition=`opacity ${fadeMs}ms ease`; chartEl.style.opacity='1'; } if(overlay){ overlay.style.transition = (overlay.style.transition? overlay.style.transition+`, background-color ${fadeMs}ms ease` : `background-color ${fadeMs}ms ease`); overlay.style.backgroundColor='rgba(0,0,0,0)'; } }catch(_){ } }
   // Preloader params & prefs (tunable)
   const __preParams = { RADF: 0.66, SPIN_DUR: 3600, SPIN_TURNS: 8.0, TRAILS: 2, TRAIL_STEP: 0.025, TRAIL_ALPHA_MAX: 0.16, FOLD_DUR: 820, FLIGHT_DUR: 4150, CHART_FADE_MS: 1400 };
+  // update fade duration now that params are defined
+  try{ fadeMs = Math.max(100, __preParams.CHART_FADE_MS || 1400); }catch(_){ }
   const __prefs = { reducedMotion: (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) };
   function setParams(p){ try{ Object.assign(__preParams, p||{}); }catch(_){ } }
   function setPrefs(p){ try{ Object.assign(__prefs, p||{}); }catch(_){ } }
