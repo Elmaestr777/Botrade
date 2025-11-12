@@ -421,7 +421,6 @@ async function backgroundExtendKlines(symbol, interval, token){
       cursor = earliest*1000 - 1;
       const now = Date.now();
       if(now - lastUiUpdate > 600){
-        setBgStatus(`hist: ${Math.round(total/1000)}k`);
 try{ applyDisplayFromAll(); candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge(); updateBarsInfo(); }catch(_){ }
         lastUiUpdate = now;
       }
