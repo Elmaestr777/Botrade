@@ -2022,10 +2022,10 @@ const canonKey=(p)=>{ try{
 // Lab advanced toggles helpers
 function isLabAdvMode(){ try{ return (document.getElementById('labConfigMode')?.value||'simple') === 'avancee'; }catch(_){ return false; } }
 function readLabVarToggles(){
-  // Default: all vary in Simple mode; in Avancée, read checkboxes if present
+  // Default: core + ladders vary in Simple; entries remain fixed unless Avancée + enabled
   try{
     if(!isLabAdvMode()){
-      return { varNol:true, varPrd:true, varSLInit:true, varBEBars:true, varBELock:true, varEMALen:true, varTP:true, varSL:true };
+      return { varNol:true, varPrd:true, varSLInit:true, varBEBars:true, varBELock:true, varEMALen:true, varTP:true, varSL:true, varEntries:false };
     }
     const g=(id)=> !!document.getElementById(id)?.checked;
     return {
@@ -2037,9 +2037,10 @@ function readLabVarToggles(){
       varEMALen: g('labVarEMALen'),
       varTP: g('labVarTP'),
       varSL: g('labVarSL'),
+      varEntries: g('labVarEntries'),
     };
   }catch(_){
-    return { varNol:true, varPrd:true, varSLInit:true, varBEBars:true, varBELock:true, varEMALen:true, varTP:true, varSL:true };
+    return { varNol:true, varPrd:true, varSLInit:true, varBEBars:true, varBELock:true, varEMALen:true, varTP:true, varSL:true, varEntries:false };
   }
 }
 function updateLabAdvVisibility(){
@@ -2056,6 +2057,10 @@ function updateLabAdvVisibility(){
     const slFibWrap = document.getElementById('labSLFibWrap'); if(slFibWrap) slFibWrap.style.display = (showAdv && varSL && slAllowFib)? 'flex':'none';
     const coreAny = ['labVarNol','labVarPrd','labVarSLInit','labVarBEBars','labVarBELock','labVarEMALen'].some(id=> !!document.getElementById(id)?.checked);
     const coreRanges = document.getElementById('labCoreRanges'); if(coreRanges) coreRanges.style.display = (showAdv && coreAny)? 'flex':'none';
+    // Show the optional 'Entrées' toggle in advanced mode
+    const varEntInput = document.getElementById('labVarEntries');
+    const varEntLabel = varEntInput && varEntInput.closest ? varEntInput.closest('label') : null;
+    if(varEntLabel){ varEntLabel.style.display = showAdv? '': 'none'; }
   }catch(_){ }
 }
 function setupLabAdvUI(){
@@ -2211,6 +2216,7 @@ function crossoverTP(a,b,tpCfg){ const n=Math.max(1, tpCfg.count|0); const res=[
   res[i]=t; }
   const s=res.reduce((u,x)=> u+(x.qty||0),0)||1; for(const x of res){ x.qty = (x.qty||0)/s; } return res; }
 
+function __sampleEntries(p){ try{ const modes=['Both','Original','Fib Retracement']; const cmodes=['Bounce','Touch']; const em = modes[(Math.random()*modes.length)|0]; let ufr = Math.random()<0.6; if(em==='Original') ufr=false; if(em==='Fib Retracement') ufr=true; const cf = cmodes[(Math.random()*cmodes.length)|0]; return { entryMode: em, useFibRet: ufr, confirmMode: cf, ent382: Math.random()<0.7, ent500: Math.random()<0.7, ent618: Math.random()<0.7, ent786: Math.random()<0.4 }; }catch(_){ return { entryMode:p.entryMode, useFibRet:p.useFibRet, confirmMode:p.confirmMode, ent382:p.ent382, ent500:p.ent500, ent618:p.ent618, ent786:p.ent786 }; } }
 function randomParams(){ const vars=readLabVarToggles(); const tpCfg=readTPOpt(); const slCfg=readSLOpt(); const p={ nol: pick(rNol), prd: pick(rPrd), slInitPct: pick(rSL), beAfterBars: pick(rBEb), beLockPct: pick(rBEL), emaLen: pick(rEMALen), entryMode: lbcOpts.entryMode||'Both', useFibRet: !!lbcOpts.useFibRet, confirmMode: lbcOpts.confirmMode||'Bounce', ent382: !!lbcOpts.ent382, ent500: !!lbcOpts.ent500, ent618: !!lbcOpts.ent618, ent786: !!lbcOpts.ent786, tpEnable: true, tpCompound: (Math.random()<0.6), tpCloseAllLast: (Math.random()<0.7), tp: [], slEnable: true, sl: [] };
     if(!vars.varNol) p.nol = lbcOpts.nol|0;
     if(!vars.varPrd) p.prd = lbcOpts.prd|0;
@@ -2218,11 +2224,17 @@ function randomParams(){ const vars=readLabVarToggles(); const tpCfg=readTPOpt()
     if(!vars.varBEBars) p.beAfterBars = lbcOpts.beAfterBars|0;
     if(!vars.varBELock) p.beLockPct = +lbcOpts.beLockPct;
     if(!vars.varEMALen) p.emaLen = lbcOpts.emaLen|0;
+    if(vars.varEntries){ const e=__sampleEntries(p); Object.assign(p, e); }
     if(vars.varTP && tpCfg.en){ p.tp = sampleTPList(tpCfg).slice(0,10); p.tpEnable=true; } else { p.tp = Array.isArray(lbcOpts.tp)? lbcOpts.tp.slice(0,10):[]; p.tpEnable=!!p.tp.length; }
     if(vars.varSL && slCfg.en){ p.sl = sampleSLList(slCfg).slice(0,10); p.slEnable=true; } else { p.sl = Array.isArray(lbcOpts.sl)? lbcOpts.sl.slice(0,10):[]; p.slEnable=!!p.sl.length; }
     return p; }
   function neighbor(arr, v){ const i=arr.indexOf(v); const out=[]; if(i>0) out.push(arr[i-1]); out.push(v); if(i>=0 && i<arr.length-1) out.push(arr[i+1]); return pick(out.length?out:arr); }
-function mutate(p, rate){ const vars=readLabVarToggles(); const tpCfg=readTPOpt(); const slCfg=readSLOpt(); const q={...p}; if(vars.varNol && Math.random()<rate) q.nol = neighbor(rNol, q.nol); if(vars.varPrd && Math.random()<rate) q.prd = neighbor(rPrd, q.prd); if(vars.varSLInit && Math.random()<rate) q.slInitPct = neighbor(rSL, q.slInitPct); if(vars.varBEBars && Math.random()<rate) q.beAfterBars = neighbor(rBEb, q.beAfterBars); if(vars.varBELock && Math.random()<rate) q.beLockPct = neighbor(rBEL, q.beLockPct); if(vars.varEMALen && Math.random()<rate) q.emaLen = neighbor(rEMALen, q.emaLen); if(vars.varTP && Math.random()<rate){ q.tp = mutateTP(Array.isArray(q.tp)? q.tp: [], tpCfg).slice(0,10); q.tpEnable=true; } if(vars.varSL && Math.random()<rate){ q.sl = mutateSL(Array.isArray(q.sl)? q.sl: [], slCfg).slice(0,10); q.slEnable=true; } if(Math.random()<rate){ q.tpCompound = !q.tpCompound; } if(Math.random()<rate){ q.tpCloseAllLast = !q.tpCloseAllLast; } return q; }
+function mutate(p, rate){ const vars=readLabVarToggles(); const tpCfg=readTPOpt(); const slCfg=readSLOpt(); const q={...p}; if(vars.varNol && Math.random()<rate) q.nol = neighbor(rNol, q.nol); if(vars.varPrd && Math.random()<rate) q.prd = neighbor(rPrd, q.prd); if(vars.varSLInit && Math.random()<rate) q.slInitPct = neighbor(rSL, q.slInitPct); if(vars.varBEBars && Math.random()<rate) q.beAfterBars = neighbor(rBEb, q.beAfterBars); if(vars.varBELock && Math.random()<rate) q.beLockPct = neighbor(rBEL, q.beLockPct); if(vars.varEMALen && Math.random()<rate) q.emaLen = neighbor(rEMALen, q.emaLen); if(vars.varEntries && Math.random()<rate){ const e=__sampleEntries(q); Object.assign(q, e); }
+  if(vars.varTP && Math.random()<rate){ q.tp = mutateTP(Array.isArray(q.tp)? q.tp: [], tpCfg).slice(0,10); q.tpEnable=true; }
+  if(vars.varSL && Math.random()<rate){ q.sl = mutateSL(Array.isArray(q.sl)? q.sl: [], slCfg).slice(0,10); q.slEnable=true; }
+  if(Math.random()<rate){ q.tpCompound = !q.tpCompound; }
+  if(Math.random()<rate){ q.tpCloseAllLast = !q.tpCloseAllLast; }
+  return q; }
 function crossover(a,b){ const tpCfg=readTPOpt(); const slCfg=readSLOpt(); return { nol: Math.random()<0.5?a.nol:b.nol, prd: Math.random()<0.5?a.prd:b.prd, slInitPct: Math.random()<0.5?a.slInitPct:b.slInitPct, beAfterBars: Math.random()<0.5?a.beAfterBars:b.beAfterBars, beLockPct: Math.random()<0.5?a.beLockPct:b.beLockPct, emaLen: Math.random()<0.5?a.emaLen:b.emaLen, entryMode: a.entryMode, useFibRet: a.useFibRet, confirmMode: a.confirmMode, ent382:a.ent382, ent500:a.ent500, ent618:a.ent618, ent786:a.ent786, tpEnable:true, tpCompound: (Math.random()<0.5? a.tpCompound : b.tpCompound), tpCloseAllLast: (Math.random()<0.5? a.tpCloseAllLast : b.tpCloseAllLast), tp: crossoverTP(a.tp||[], b.tp||[], tpCfg).slice(0,10), slEnable:true, sl: crossoverSL(a.sl||[], b.sl||[], slCfg).slice(0,10) }; }
 async function evalParamsList(list, phase='Eval'){
     const out=[]; let idx=0; const N=list.length||0;
@@ -2379,9 +2391,10 @@ try{ const top=cur[0]; if(top){ addBtLog(`Bayes init — best ${top.score.toFixe
       function sampleFrom(list){ const tot=list.reduce((s,a)=>s+a.w,0); let r=Math.random()*tot; for(const it of list){ r-=it.w; if(r<=0) return it.v; } return list[list.length-1].v; }
       const tpCfg = readTPOpt();
       const slCfg = readSLOpt();
-      const vars = readLabVarToggles();
+const vars = readLabVarToggles();
       const batch=[]; while(batch.length<Math.max(10, cur.length)){
         const p={ nol: vars.varNol? sampleFrom(D.nol) : (lbcOpts.nol|0), prd: vars.varPrd? sampleFrom(D.prd) : (lbcOpts.prd|0), slInitPct: vars.varSLInit? sampleFrom(D.sl) : (+lbcOpts.slInitPct||0), beAfterBars: vars.varBEBars? sampleFrom(D.beb) : (lbcOpts.beAfterBars|0), beLockPct: vars.varBELock? sampleFrom(D.bel) : (+lbcOpts.beLockPct||0), emaLen: vars.varEMALen? sampleFrom(D.ema) : (lbcOpts.emaLen|0), entryMode: lbcOpts.entryMode||'Both', useFibRet: !!lbcOpts.useFibRet, confirmMode: lbcOpts.confirmMode||'Bounce', ent382: !!lbcOpts.ent382, ent500: !!lbcOpts.ent500, ent618: !!lbcOpts.ent618, ent786: !!lbcOpts.ent786, tpEnable: true, tp: [], slEnable: true, sl: [] };
+        if(vars.varEntries){ const e=__sampleEntries(p); Object.assign(p, e); }
         if(vars.varTP && tpCfg.en){ p.tp = sampleTPList(tpCfg).slice(0,10); } else { p.tp = Array.isArray(lbcOpts.tp)? lbcOpts.tp.slice(0,10):[]; p.tpEnable=!!p.tp.length; }
         if(vars.varSL && slCfg.en){ p.sl = sampleSLList(slCfg).slice(0,10); } else { p.sl = Array.isArray(lbcOpts.sl)? lbcOpts.sl.slice(0,10):[]; p.slEnable=!!p.sl.length; }
         if(isDup(p)) continue; pushSeen(p); batch.push({ p }); }
