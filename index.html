@@ -1524,7 +1524,13 @@
               <label style="display:none;"><input id="labFocusSlope" type="checkbox" /> Slope</label>
               <label style="display:none;"><input id="labFocusRecov" type="checkbox" /> Recovery</label>
               <label style="display:none;"><input id="labFocusCons" type="checkbox" /> Consistency</label>
-<label title="Temps limite de calcul (secondes); 0 = désactivé">Temps (s) <input id="labTimeLimitSec" type="number" min="0" step="1" value="0" style="width:6rem" /></label>
+              <label>Configuration
+                <select id="labConfigMode" style="min-width:8rem;">
+                  <option value="simple" selected>Simple</option>
+                  <option value="avancee">Avancée</option>
+                </select>
+              </label>
+              <label title="Temps limite de calcul (secondes); 0 = désactivé">Temps (s) <input id="labTimeLimitSec" type="number" min="0" step="1" value="0" style="width:6rem" /></label>
               <label title="Nombre maximal d'évaluations globales; 0 = désactivé">Max évals <input id="labMaxEvals" type="number" min="0" step="1" value="0" style="width:7rem" /></label>
               <label title="Score minimum (0-100); 0 = désactivé">Score min <input id="labMinScore" type="number" min="0" max="100" step="0.1" value="0" style="width:6rem" /></label>
               <div style="display:flex; gap:6px; margin-left:auto;">
@@ -1532,7 +1538,20 @@
                 <button id="labRunNew" class="btn">Nouvelle stratégie</button>
               </div>
             </div>
-            <div style="display:none; gap:10px; align-items:center; flex-wrap:wrap; margin-top:6px;">
+            <div id="labAdvPanel" style="display:none; gap:12px; align-items:center; flex-wrap:wrap; padding:6px; border:1px dashed var(--header-border); border-radius:6px;">
+              <strong>Paramètres à tester</strong>
+              <label><input id="labVarNol" type="checkbox" checked /> NOL</label>
+              <label><input id="labVarPrd" type="checkbox" checked /> PRD</label>
+              <label><input id="labVarSLInit" type="checkbox" checked /> SL initial %</label>
+              <label><input id="labVarBEBars" type="checkbox" checked /> Bars BE</label>
+              <label><input id="labVarBELock" type="checkbox" checked /> Lock %</label>
+              <label><input id="labVarEMALen" type="checkbox" checked /> EMA len</label>
+              <label><input id="labVarTP" type="checkbox" checked /> TP ladder</label>
+              <label><input id="labVarSL" type="checkbox" checked /> SL ladder</label>
+              <!-- Entrées (optionnel) -->
+              <label style="display:none;"><input id="labVarEntries" type="checkbox" /> Entrées (mode/FibRet/Confirm/382/500/618/786)</label>
+            </div>
+            <div id="labTPOptBlock" style="display:none; gap:10px; align-items:center; flex-wrap:wrap; margin-top:6px;">
               <strong>TP Opt</strong>
               <label><input id="labTPOptEn" type="checkbox" /> Optimiser TP</label>
               <label>Nb TP <input id="labTPCount" type="number" min="1" max="10" value="10" style="width:5rem" /></label>
@@ -1558,7 +1577,7 @@
               <label><input type="checkbox" data-r="2.618" />2.618</label>
               <label><input type="checkbox" data-r="3" />3.000</label>
             </div>
-            <div style="display:none; gap:10px; align-items:center; flex-wrap:wrap; margin-top:6px;">
+            <div id="labSLOptBlock" style="display:none; gap:10px; align-items:center; flex-wrap:wrap; margin-top:6px;">
               <strong>SL Opt</strong>
               <label><input id="labSLOptEn" type="checkbox" /> Optimiser SL</label>
               <label>Nb SL <input id="labSLCount" type="number" min="1" max="10" value="1" style="width:5rem" /></label>
