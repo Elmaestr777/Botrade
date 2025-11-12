@@ -74,14 +74,25 @@
       const cv=document.getElementById('preloadCanvas');
       // static background (cover)
       if(cv && cv.width && cv.height){ const imgW=cv.width, imgH=cv.height; const bgRatio=Math.max(W/imgW, H/imgH); const bgW=imgW*bgRatio, bgH=imgH*bgRatio; const bgX=(W-bgW)/2, bgY=(H-bgH)/2; ctx.globalAlpha=1; ctx.drawImage(cv, bgX, bgY, bgW, bgH); }
-      // spinning window (slightly larger max radius)
+      // spinning window (no rescale: same scale as background), circular clip only
       const RADF=Math.max(0.12, Math.min(0.70, __preParams.RADF||0.50)); const r=Math.min(W,H)*RADF;
       const pms = performance.now() - t0; const alphaIn = Math.min(1, pms/180);
-      if(cv && cv.width && cv.height){ const imgW=cv.width, imgH=cv.height; const ratio=Math.max((2*r)/imgW, (2*r)/imgH); const drawW=imgW*ratio, drawH=imgH*ratio; ctx.save(); ctx.translate(cx,cy); ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.closePath(); ctx.clip(); ctx.rotate(angle);
-        // base pass
-        ctx.globalAlpha=alphaIn; ctx.drawImage(cv, -drawW/2, -drawH/2, drawW, drawH);
-        // motion trails for spin feel (very subtle)
-        const trails=(__preParams.TRAILS|0)||3, step=(__preParams.TRAIL_STEP||0.03); const aMax=__preParams.TRAIL_ALPHA_MAX||0.18; for(let k=1;k<=trails;k++){ ctx.globalAlpha = alphaIn*Math.max(0, aMax - k*0.05); ctx.rotate(-step); ctx.drawImage(cv, -drawW/2, -drawH/2, drawW, drawH); }
+      if(cv && cv.width && cv.height){ const imgW=cv.width, imgH=cv.height; // reuse background draw rect to preserve exact scale
+        const bgRatio=Math.max(W/imgW, H/imgH); const drawW=imgW*bgRatio, drawH=imgH*bgRatio; const drawX=(W-drawW)/2, drawY=(H-drawH)/2;
+        ctx.save();
+        // clip circle
+        ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.closePath(); ctx.clip();
+        // rotate around circle center without changing scale
+        ctx.translate(cx,cy); ctx.rotate(angle); ctx.translate(-cx,-cy);
+        // base pass at original scale
+        ctx.globalAlpha=alphaIn; ctx.drawImage(cv, drawX, drawY, drawW, drawH);
+        // motion trails (rotate a bit more each pass around same pivot)
+        const trails=(__preParams.TRAILS|0)||3, step=(__preParams.TRAIL_STEP||0.03); const aMax=__preParams.TRAIL_ALPHA_MAX||0.18;
+        for(let k=1;k<=trails;k++){
+          ctx.globalAlpha = alphaIn*Math.max(0, aMax - k*0.05);
+          ctx.translate(cx,cy); ctx.rotate(-step); ctx.translate(-cx,-cy);
+          ctx.drawImage(cv, drawX, drawY, drawW, drawH);
+        }
         ctx.restore(); ctx.globalAlpha=1;
         // soft rim
         const ringGrad=ctx.createRadialGradient(cx,cy, r*0.88, cx,cy, r*1.06); ringGrad.addColorStop(0,'rgba(0,0,0,0)'); ringGrad.addColorStop(1,'rgba(0,0,0,0.28)'); ctx.fillStyle=ringGrad; ctx.beginPath(); ctx.arc(cx,cy,r*1.06,0,Math.PI*2); ctx.fill();
