@@ -1551,6 +1551,16 @@
               <!-- Entrées (optionnel) -->
               <label style="display:none;"><input id="labVarEntries" type="checkbox" /> Entrées (mode/FibRet/Confirm/382/500/618/786)</label>
             </div>
+            <!-- Ranges for core params (shown in Avancée when toggles are ON) -->
+            <div id="labCoreRanges" style="display:none; gap:10px; align-items:center; flex-wrap:wrap; margin:6px 0 0; padding:6px; border:1px dashed var(--header-border); border-radius:6px;">
+              <strong>Plages d'étude</strong>
+              <label title="NOL (barres de renversement)">NOL: Min <input id="labNolMin" type="number" min="1" value="2" style="width:5rem" /> Max <input id="labNolMax" type="number" min="1" value="5" style="width:5rem" /> Pas <input id="labNolStep" type="number" min="1" value="1" style="width:5rem" /></label>
+              <label title="Période pivots">PRD: Min <input id="labPrdMin" type="number" min="2" value="8" style="width:5rem" /> Max <input id="labPrdMax" type="number" min="2" value="34" style="width:5rem" /> Pas <input id="labPrdStep" type="number" min="1" value="2" style="width:5rem" /></label>
+              <label title="SL initial (%)">SL%: Min <input id="labSLInitMin" type="number" min="0" step="0.1" value="0.5" style="width:6rem" /> Max <input id="labSLInitMax" type="number" min="0" step="0.1" value="3.0" style="width:6rem" /> Pas <input id="labSLInitStep" type="number" min="0.1" step="0.1" value="0.5" style="width:6rem" /></label>
+              <label title="Bars jusqu'au BE">BE bars: Min <input id="labBEBarsMin" type="number" min="1" value="3" style="width:5rem" /> Max <input id="labBEBarsMax" type="number" min="1" value="8" style="width:5rem" /> Pas <input id="labBEBarsStep" type="number" min="1" value="1" style="width:5rem" /></label>
+              <label title="Lock (%) au BE">BE lock%: Min <input id="labBELockMin" type="number" min="0" step="0.5" value="3" style="width:6rem" /> Max <input id="labBELockMax" type="number" min="0" step="0.5" value="10" style="width:6rem" /> Pas <input id="labBELockStep" type="number" min="0.5" step="0.5" value="1" style="width:6rem" /></label>
+              <label title="EMA filtre">EMA len: Min <input id="labEMALenMin" type="number" min="1" value="21" style="width:6rem" /> Max <input id="labEMALenMax" type="number" min="1" value="89" style="width:6rem" /> Pas <input id="labEMALenStep" type="number" min="1" value="4" style="width:6rem" /></label>
+            </div>
             <div id="labTPOptBlock" style="display:none; gap:10px; align-items:center; flex-wrap:wrap; margin-top:6px;">
               <strong>TP Opt</strong>
               <label><input id="labTPOptEn" type="checkbox" /> Optimiser TP</label>

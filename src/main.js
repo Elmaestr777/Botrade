@@ -543,7 +543,7 @@ async function computeLabBenchmarkAndUpdate(){
 function openModalEl(el){ if(!el) return; el.classList.remove('hidden'); el.setAttribute('aria-hidden','false'); try{ const z=String(bumpModalZ()); el.style.zIndex = z; const c=el.querySelector && el.querySelector('.modal-content'); if(c){ c.style.zIndex = String(bumpModalZ()); } }catch(_){ } }
 function closeModalEl(el){ if(!el) return; el.classList.add('hidden'); el.setAttribute('aria-hidden','true'); }
 if(liveOpenBtn&&liveModalEl) liveOpenBtn.addEventListener('click', ()=>{ try{ populateLiveWalletsUI(); }catch(_){ } openModalEl(liveModalEl); }); if(liveCloseBtn&&liveModalEl) liveCloseBtn.addEventListener('click', ()=> closeModalEl(liveModalEl)); if(liveModalEl) liveModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(liveModalEl); });
-if(labOpenBtn&&labModalEl) labOpenBtn.addEventListener('click', async ()=>{ try{ openModalEl(labModalEl); await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); if(labCloseBtn&&labModalEl) labCloseBtn.addEventListener('click', ()=> closeModalEl(labModalEl)); if(labModalEl) labModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(labModalEl); });
+if(labOpenBtn&&labModalEl) labOpenBtn.addEventListener('click', async ()=>{ try{ openModalEl(labModalEl); try{ setupLabAdvUI(); }catch(_){ } await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); if(labCloseBtn&&labModalEl) labCloseBtn.addEventListener('click', ()=> closeModalEl(labModalEl)); if(labModalEl) labModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(labModalEl); });
 
 if(btOpenBtn&&btModalEl) btOpenBtn.addEventListener('click', ()=> openModalEl(btModalEl)); if(btCloseBtn&&btModalEl) btCloseBtn.addEventListener('click', ()=> closeModalEl(btModalEl)); if(btModalEl) btModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(btModalEl); });
 if(heavenCfgBtn&&lbcModalEl) heavenCfgBtn.addEventListener('click', ()=>{ try{ populateHeavenModal(); try{ populateHeavenSupaList(); }catch(__){} }catch(_){ } openModalEl(lbcModalEl); }); if(lbcCloseBtn&&lbcModalEl) lbcCloseBtn.addEventListener('click', ()=> closeModalEl(lbcModalEl)); if(lbcModalEl) lbcModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(lbcModalEl); });
@@ -1936,9 +1936,20 @@ function updateGlobalProgressUI(){ try{ let tot=Math.max(0,__labSimTotal), dn=Ma
   function goalReached(){ return minScoreGoal>0 && bestGlobal>=minScoreGoal; }
   function quotaReached(){ return maxEvals>0 && __labSimDone>=maxEvals; }
   function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
-  const rNol=[2,3,4,5]; const rPrd=[]; for(let v=8; v<=34; v+=2){ rPrd.push(v); }
-  const rSL=[0.5,1,1.5,2,2.5,3]; const rBEb=[3,4,5,6,7,8]; const rBEL=[3,4,5,6,7,8,9,10];
-  const rEMALen=[]; for(let v=21; v<=89; v+=4){ rEMALen.push(v); }
+  let rNol=[2,3,4,5]; let rPrd=[]; for(let v=8; v<=34; v+=2){ rPrd.push(v); }
+  let rSL=[0.5,1,1.5,2,2.5,3]; let rBEb=[3,4,5,6,7,8]; let rBEL=[3,4,5,6,7,8,9,10];
+  let rEMALen=[]; for(let v=21; v<=89; v+=4){ rEMALen.push(v); }
+  if(isLabAdvMode()){
+    const get=(id,def)=>{ const el=document.getElementById(id); const x=parseFloat(el?.value||''); return Number.isFinite(x)? x : def; };
+    const makeRange=(min,max,step,prec=6)=>{ const out=[]; const s=Math.max(+(step||1),1e-9); for(let v=+min; v<=+max+1e-9; v+=s){ out.push(+v.toFixed(prec)); } return out; };
+    const vars = readLabVarToggles();
+    if(vars.varNol) rNol = makeRange(get('labNolMin',2),get('labNolMax',5),get('labNolStep',1),0).map(x=>x|0);
+    if(vars.varPrd) rPrd = makeRange(get('labPrdMin',8),get('labPrdMax',34),get('labPrdStep',2),0).map(x=>x|0);
+    if(vars.varSLInit) rSL = makeRange(get('labSLInitMin',0.5),get('labSLInitMax',3.0),get('labSLInitStep',0.5),3);
+    if(vars.varBEBars) rBEb = makeRange(get('labBEBarsMin',3),get('labBEBarsMax',8),get('labBEBarsStep',1),0).map(x=>x|0);
+    if(vars.varBELock) rBEL = makeRange(get('labBELockMin',3),get('labBELockMax',10),get('labBELockStep',1),3);
+    if(vars.varEMALen) rEMALen = makeRange(get('labEMALenMin',21),get('labEMALenMax',89),get('labEMALenStep',4),0).map(x=>x|0);
+  }
   const keyOf=(p)=> JSON.stringify([p.nol,p.prd,p.slInitPct,p.beAfterBars,p.beLockPct,p.emaLen,p.entryMode,p.useFibRet,p.confirmMode,p.ent382,p.ent500,p.ent618,p.ent786,Array.isArray(p.tp)? p.tp.slice(0,10):[], Array.isArray(p.sl)? p.sl.slice(0,10):[]]);
 const canonKey=(p)=>{ try{
       const tp = Array.isArray(p.tp) ? p.tp.slice(0,10) : [];
@@ -1994,12 +2005,15 @@ const canonKey=(p)=>{ try{
 
   function readTPOpt(){
     try{
-      // UI toggles hidden: always enable TP optimization and allow all types/levels
+      const en = !!document.getElementById('labTPOptEn')?.checked;
       const count = Math.max(1, Math.min(10, parseInt(document.getElementById('labTPCount')?.value||'10',10)));
+      const allowFib = !!document.getElementById('labTPAllowFib')?.checked;
+      const allowPct = !!document.getElementById('labTPAllowPct')?.checked;
+      const allowEMA = !!document.getElementById('labTPAllowEMA')?.checked;
       const pctMin = parseFloat(document.getElementById('labTPPctMin')?.value||'0.5');
       const pctMax = parseFloat(document.getElementById('labTPPctMax')?.value||'5');
-      const fibsFull = [0.236,0.382,0.5,0.618,0.786,1.0,1.272,1.382,1.414,1.618,2.0,2.236,2.618,3.0];
-      return { en:true, count, allowFib:true, allowPct:true, allowEMA:true, pctMin, pctMax, fibs: fibsFull };
+      const fibs = (function(){ try{ const w=document.getElementById('labTPFibWrap'); if(!w) return null; const cs=w.querySelectorAll('input[type="checkbox"][data-r]'); const arr=[]; cs.forEach(cb=>{ if(cb.checked){ const v=parseFloat(cb.getAttribute('data-r')||''); if(isFinite(v)) arr.push(v); } }); return arr.length? arr : null; }catch(_){ return null; } })() || [0.236,0.382,0.5,0.618,0.786,1.0,1.272,1.382,1.414,1.618,2.0,2.236,2.618,3.0];
+      return { en, count, allowFib, allowPct, allowEMA, pctMin, pctMax, fibs };
     }catch(_){
       return { en:true, count:10, allowFib:true, allowPct:true, allowEMA:true, pctMin:0.5, pctMax:5, fibs:[0.236,0.382,0.5,0.618,0.786,1.0,1.272,1.382,1.414,1.618,2.0,2.236,2.618,3.0] };
     }
@@ -2027,6 +2041,27 @@ function readLabVarToggles(){
   }catch(_){
     return { varNol:true, varPrd:true, varSLInit:true, varBEBars:true, varBELock:true, varEMALen:true, varTP:true, varSL:true };
   }
+}
+function updateLabAdvVisibility(){
+  try{
+    const showAdv = isLabAdvMode();
+    const advPanel = document.getElementById('labAdvPanel'); if(advPanel) advPanel.style.display = showAdv? 'flex':'none';
+    const varTP = !!document.getElementById('labVarTP')?.checked;
+    const varSL = !!document.getElementById('labVarSL')?.checked;
+    const tpBlock = document.getElementById('labTPOptBlock'); if(tpBlock) tpBlock.style.display = (showAdv && varTP)? 'flex':'none';
+    const slBlock = document.getElementById('labSLOptBlock'); if(slBlock) slBlock.style.display = (showAdv && varSL)? 'flex':'none';
+    const tpAllowFib = !!document.getElementById('labTPAllowFib')?.checked;
+    const slAllowFib = !!document.getElementById('labSLAllowFib')?.checked;
+    const tpFibWrap = document.getElementById('labTPFibWrap'); if(tpFibWrap) tpFibWrap.style.display = (showAdv && varTP && tpAllowFib)? 'flex':'none';
+    const slFibWrap = document.getElementById('labSLFibWrap'); if(slFibWrap) slFibWrap.style.display = (showAdv && varSL && slAllowFib)? 'flex':'none';
+    const coreAny = ['labVarNol','labVarPrd','labVarSLInit','labVarBEBars','labVarBELock','labVarEMALen'].some(id=> !!document.getElementById(id)?.checked);
+    const coreRanges = document.getElementById('labCoreRanges'); if(coreRanges) coreRanges.style.display = (showAdv && coreAny)? 'flex':'none';
+  }catch(_){ }
+}
+function setupLabAdvUI(){
+  try{ updateLabAdvVisibility(); }catch(_){ }
+  const ids=['labConfigMode','labVarNol','labVarPrd','labVarSLInit','labVarBEBars','labVarBELock','labVarEMALen','labVarTP','labVarSL','labTPAllowFib','labSLAllowFib'];
+  for(const id of ids){ const el=document.getElementById(id); if(el && (!el.dataset || el.dataset.wiredAdv!=='1')){ try{ el.addEventListener('change', ()=>{ try{ updateLabAdvVisibility(); }catch(_){ } }); }catch(_){ } if(!el.dataset) el.dataset={}; el.dataset.wiredAdv='1'; } }
 }
 function sampleTPList(tpCfg){
   const { allowFib, allowPct, allowEMA, pctMin, pctMax, fibs } = tpCfg || {};
@@ -2109,13 +2144,17 @@ function mutateTP(list,tpCfg){ if(!Array.isArray(list)||!list.length) return lis
 
   function readSLOpt(){
     try{
+      const en = !!document.getElementById('labSLOptEn')?.checked;
+      const allowFib = !!document.getElementById('labSLAllowFib')?.checked;
+      const allowPct = !!document.getElementById('labSLAllowPct')?.checked;
+      const allowEMA = !!document.getElementById('labSLAllowEMA')?.checked;
       const pctMin = parseFloat(document.getElementById('labSLPctMin')?.value||'0.5');
       const pctMax = parseFloat(document.getElementById('labSLPctMax')?.value||'5');
-      const fibsFull = [0.236,0.382,0.5,0.618,0.786,1.0,1.272,1.382,1.414,1.618,2.0,2.236,2.618,3.0];
+      const fibs = (function(){ try{ const w=document.getElementById('labSLFibWrap'); if(!w) return null; const cs=w.querySelectorAll('input[type="checkbox"][data-r]'); const arr=[]; cs.forEach(cb=>{ if(cb.checked){ const v=parseFloat(cb.getAttribute('data-r')||''); if(isFinite(v)) arr.push(v); } }); return arr.length? arr : null; }catch(_){ return null; } })() || [0.236,0.382,0.5,0.618,0.786,1.0,1.272,1.382,1.414,1.618,2.0,2.236,2.618,3.0];
       const count = Math.max(1, Math.min(10, parseInt(document.getElementById('labSLCount')?.value||'1',10)));
-      return { allowFib:true, allowPct:true, allowEMA:true, pctMin, pctMax, fibs: fibsFull, count };
+      return { en, allowFib, allowPct, allowEMA, pctMin, pctMax, fibs, count };
     }catch(_){
-      return { allowFib:true, allowPct:true, allowEMA:true, pctMin:0.5, pctMax:5.0, fibs:[0.236,0.382,0.5,0.618,0.786,1.0,1.272,1.382,1.414,1.618,2.0,2.236,2.618,3.0], count:1 };
+      return { en:true, allowFib:true, allowPct:true, allowEMA:true, pctMin:0.5, pctMax:5.0, fibs:[0.236,0.382,0.5,0.618,0.786,1.0,1.272,1.382,1.414,1.618,2.0,2.236,2.618,3.0], count:1 };
     }
   }
   function sampleSLList(slCfg){
@@ -2172,12 +2211,18 @@ function crossoverTP(a,b,tpCfg){ const n=Math.max(1, tpCfg.count|0); const res=[
   res[i]=t; }
   const s=res.reduce((u,x)=> u+(x.qty||0),0)||1; for(const x of res){ x.qty = (x.qty||0)/s; } return res; }
 
-function randomParams(){ const tpCfg=readTPOpt(); const slCfg=readSLOpt(); const p={ nol: pick(rNol), prd: pick(rPrd), slInitPct: pick(rSL), beAfterBars: pick(rBEb), beLockPct: pick(rBEL), emaLen: pick(rEMALen), entryMode: lbcOpts.entryMode||'Both', useFibRet: !!lbcOpts.useFibRet, confirmMode: lbcOpts.confirmMode||'Bounce', ent382: !!lbcOpts.ent382, ent500: !!lbcOpts.ent500, ent618: !!lbcOpts.ent618, ent786: !!lbcOpts.ent786, tpEnable: true, tpCompound: (Math.random()<0.6), tpCloseAllLast: (Math.random()<0.7), tp: [], slEnable: true, sl: [] };
-    p.tp = sampleTPList(tpCfg).slice(0,10);
-    p.sl = sampleSLList(slCfg).slice(0,10);
+function randomParams(){ const vars=readLabVarToggles(); const tpCfg=readTPOpt(); const slCfg=readSLOpt(); const p={ nol: pick(rNol), prd: pick(rPrd), slInitPct: pick(rSL), beAfterBars: pick(rBEb), beLockPct: pick(rBEL), emaLen: pick(rEMALen), entryMode: lbcOpts.entryMode||'Both', useFibRet: !!lbcOpts.useFibRet, confirmMode: lbcOpts.confirmMode||'Bounce', ent382: !!lbcOpts.ent382, ent500: !!lbcOpts.ent500, ent618: !!lbcOpts.ent618, ent786: !!lbcOpts.ent786, tpEnable: true, tpCompound: (Math.random()<0.6), tpCloseAllLast: (Math.random()<0.7), tp: [], slEnable: true, sl: [] };
+    if(!vars.varNol) p.nol = lbcOpts.nol|0;
+    if(!vars.varPrd) p.prd = lbcOpts.prd|0;
+    if(!vars.varSLInit) p.slInitPct = +lbcOpts.slInitPct;
+    if(!vars.varBEBars) p.beAfterBars = lbcOpts.beAfterBars|0;
+    if(!vars.varBELock) p.beLockPct = +lbcOpts.beLockPct;
+    if(!vars.varEMALen) p.emaLen = lbcOpts.emaLen|0;
+    if(vars.varTP && tpCfg.en){ p.tp = sampleTPList(tpCfg).slice(0,10); p.tpEnable=true; } else { p.tp = Array.isArray(lbcOpts.tp)? lbcOpts.tp.slice(0,10):[]; p.tpEnable=!!p.tp.length; }
+    if(vars.varSL && slCfg.en){ p.sl = sampleSLList(slCfg).slice(0,10); p.slEnable=true; } else { p.sl = Array.isArray(lbcOpts.sl)? lbcOpts.sl.slice(0,10):[]; p.slEnable=!!p.sl.length; }
     return p; }
   function neighbor(arr, v){ const i=arr.indexOf(v); const out=[]; if(i>0) out.push(arr[i-1]); out.push(v); if(i>=0 && i<arr.length-1) out.push(arr[i+1]); return pick(out.length?out:arr); }
-function mutate(p, rate){ const tpCfg=readTPOpt(); const slCfg=readSLOpt(); const q={...p}; if(Math.random()<rate) q.nol = neighbor(rNol, q.nol); if(Math.random()<rate) q.prd = neighbor(rPrd, q.prd); if(Math.random()<rate) q.slInitPct = neighbor(rSL, q.slInitPct); if(Math.random()<rate) q.beAfterBars = neighbor(rBEb, q.beAfterBars); if(Math.random()<rate) q.beLockPct = neighbor(rBEL, q.beLockPct); if(Math.random()<rate) q.emaLen = neighbor(rEMALen, q.emaLen); if(Math.random()<rate){ q.tp = mutateTP(Array.isArray(q.tp)? q.tp: [], tpCfg).slice(0,10); q.tpEnable=true; } if(Math.random()<rate){ q.sl = mutateSL(Array.isArray(q.sl)? q.sl: [], slCfg).slice(0,10); q.slEnable=true; } if(Math.random()<rate){ q.tpCompound = !q.tpCompound; } if(Math.random()<rate){ q.tpCloseAllLast = !q.tpCloseAllLast; } return q; }
+function mutate(p, rate){ const vars=readLabVarToggles(); const tpCfg=readTPOpt(); const slCfg=readSLOpt(); const q={...p}; if(vars.varNol && Math.random()<rate) q.nol = neighbor(rNol, q.nol); if(vars.varPrd && Math.random()<rate) q.prd = neighbor(rPrd, q.prd); if(vars.varSLInit && Math.random()<rate) q.slInitPct = neighbor(rSL, q.slInitPct); if(vars.varBEBars && Math.random()<rate) q.beAfterBars = neighbor(rBEb, q.beAfterBars); if(vars.varBELock && Math.random()<rate) q.beLockPct = neighbor(rBEL, q.beLockPct); if(vars.varEMALen && Math.random()<rate) q.emaLen = neighbor(rEMALen, q.emaLen); if(vars.varTP && Math.random()<rate){ q.tp = mutateTP(Array.isArray(q.tp)? q.tp: [], tpCfg).slice(0,10); q.tpEnable=true; } if(vars.varSL && Math.random()<rate){ q.sl = mutateSL(Array.isArray(q.sl)? q.sl: [], slCfg).slice(0,10); q.slEnable=true; } if(Math.random()<rate){ q.tpCompound = !q.tpCompound; } if(Math.random()<rate){ q.tpCloseAllLast = !q.tpCloseAllLast; } return q; }
 function crossover(a,b){ const tpCfg=readTPOpt(); const slCfg=readSLOpt(); return { nol: Math.random()<0.5?a.nol:b.nol, prd: Math.random()<0.5?a.prd:b.prd, slInitPct: Math.random()<0.5?a.slInitPct:b.slInitPct, beAfterBars: Math.random()<0.5?a.beAfterBars:b.beAfterBars, beLockPct: Math.random()<0.5?a.beLockPct:b.beLockPct, emaLen: Math.random()<0.5?a.emaLen:b.emaLen, entryMode: a.entryMode, useFibRet: a.useFibRet, confirmMode: a.confirmMode, ent382:a.ent382, ent500:a.ent500, ent618:a.ent618, ent786:a.ent786, tpEnable:true, tpCompound: (Math.random()<0.5? a.tpCompound : b.tpCompound), tpCloseAllLast: (Math.random()<0.5? a.tpCloseAllLast : b.tpCloseAllLast), tp: crossoverTP(a.tp||[], b.tp||[], tpCfg).slice(0,10), slEnable:true, sl: crossoverSL(a.sl||[], b.sl||[], slCfg).slice(0,10) }; }
 async function evalParamsList(list, phase='Eval'){
     const out=[]; let idx=0; const N=list.length||0;
