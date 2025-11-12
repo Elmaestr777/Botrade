@@ -15,7 +15,7 @@ function readLabStorage(sym, tf){ try{ const s=localStorage.getItem(labKey(sym,t
 function writeLabStorage(sym, tf, arr){ try{ localStorage.setItem(labKey(sym,tf), JSON.stringify(arr)); }catch(_){} }
 function palmaresKey(sym, tf){ return `lab:palmares:${sym}:${tf}`; }
 function readPalmares(sym, tf){ try{ const s=localStorage.getItem(palmaresKey(sym,tf)); return s? JSON.parse(s): []; }catch(_){ return []; } }
-function writePalmares(sym, tf, arr){ try{ localStorage.setItem(palmaresKey(sym,tf), JSON.stringify(arr)); }catch(_){} }
+function writePalmares(sym, tf, arr){ try{ localStorage.setItem(palmaresKey(sym,tf), JSON.stringify(arr)); localStorage.setItem(`lab:palmares:ts:${sym}:${tf}`, String(Date.now())); }catch(_){} }
 function paramsKey(p){ if(!p) return ''; const o={ nol:p.nol, prd:p.prd, slInitPct:p.slInitPct, beAfterBars:p.beAfterBars, beLockPct:p.beLockPct, emaLen:p.emaLen, entryMode:p.entryMode, useFibRet:!!p.useFibRet, confirmMode:p.confirmMode, ent382:!!p.ent382, ent500:!!p.ent500, ent618:!!p.ent618, ent786:!!p.ent786, tp: Array.isArray(p.tp)? p.tp.slice(0,10): [] }; return JSON.stringify(o); }
 // Dictionnaires (échantillons)
 const DICT_FR=["étoile","forêt","rivière","montagne","océan","tempête","harmonie","nuage","pluie","lueur","zèbre","quartz","vallée","soleil","déluge","orage","saphir","primevère","cendre","ivoire"];
@@ -27,14 +27,16 @@ function uniqueNameFor(sym, tf, base){ const pal=readPalmares(sym, tf); const na
 async function renderLabFromStorage(){
   const tf = labTFSelect? labTFSelect.value: (intervalSelect? intervalSelect.value:''), sym=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol;
   let arr=[]; let source='local';
-  try{
-    if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchPalmares==='function'){
+  // Si Supabase est configuré, on lit UNIQUEMENT Supabase pour le palmarès
+  if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchPalmares==='function'){
+    try{
       const supaArr = await SUPA.fetchPalmares(sym, tf, 25);
-      if(Array.isArray(supaArr) && supaArr.length){ arr = supaArr; source='Supabase'; }
-    }
-  }catch(_){ /* ignore, will fallback */ }
-  // Fallback local si Supabase non configuré ou vide
-  if(!Array.isArray(arr) || !arr.length){ arr = readPalmares(sym, tf) || []; source='local'; }
+      if(Array.isArray(supaArr)) { arr = supaArr; source='Supabase'; }
+    }catch(_){ /* en cas d'erreur Supabase, on laisse arr = [] */ }
+  } else {
+    // Fallback local uniquement si Supabase n'est pas configuré
+    arr = readPalmares(sym, tf) || []; source='local';
+  }
   window.labPalmaresCache = Array.isArray(arr)? arr.slice() : [];
   if(labSummaryEl) labSummaryEl.textContent = arr.length? `Palmarès: ${arr.length} stratégies (symbole ${symbolToDisplay(sym)} • TF ${tf}) — ${source}` : 'Aucun palmarès';
   if(!labTBody){ return; }
@@ -2437,19 +2439,27 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
     try{ const sorted = allTested.slice().sort((a,b)=> (b.score||0)-(a.score||0)); finalResults = sorted.slice(0, Math.min(10, sorted.length)).map(it=>({ p: it.params||{}, res: it.metrics||{}, score: it.score||0, gen:1, name:null })); addBtLog && addBtLog(`Fallback best depuis évaluations: ${finalResults.length}`); }catch(_){ }
   }
 
-  if(goal==='new'){
-    // Persister Supabase si dispo + fallback local
+if(goal==='new'){
     const bestOut = finalResults.slice(0, Math.min(10, finalResults.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen:1, name: x.name||null }));
-    try{ if(window.SUPA && typeof SUPA.persistLabResults==='function' && window.SUPA.isConfigured && window.SUPA.isConfigured()){ await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut }); } }catch(_){ }
-    try{ writePalmares(sym, tfSel, bestOut); }catch(_){ }
-    try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
+    if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.persistLabResults==='function'){
+      // Tout passe par Supabase
+      try{ await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut }); }catch(_){ }
+      try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
+    } else {
+      // Fallback local uniquement si Supabase non configuré
+      try{ writePalmares(sym, tfSel, bestOut); }catch(_){ }
+      try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
+    }
     setStatus('Palmarès mis à jour'); closeBtProgress();
   } else {
-    // Persister Supabase si dispo + fallback local
     const bestOut = finalResults.slice(0, Math.min(10, finalResults.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen: (x.gen||1), name: x.name||null }));
-    try{ if(window.SUPA && typeof SUPA.persistLabResults==='function' && window.SUPA.isConfigured && window.SUPA.isConfigured()){ await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut }); } }catch(_){ }
-    try{ writePalmares(sym, tfSel, bestOut); }catch(_){ }
-    try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
+    if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.persistLabResults==='function'){
+      try{ await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut }); }catch(_){ }
+      try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
+    } else {
+      try{ writePalmares(sym, tfSel, bestOut); }catch(_){ }
+      try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
+    }
     setStatus('Amélioration terminée'); closeBtProgress();
   }
  }catch(e){ try{ addBtLog(`Erreur entraînement: ${e&&e.message?e.message:e}`); }catch(_){ } setStatus('Erreur entraînement'); try{ closeBtProgress(); }catch(_){ } } }); }
