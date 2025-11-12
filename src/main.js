@@ -6,23 +6,27 @@
   const vid=document.getElementById('preloadVideo');
   const canv=document.getElementById('preloadCanvas');
   const sheet=document.getElementById('preloadSheet');
+  const creases=document.getElementById('preloadCreases');
   function freezeLastFrame(){ try{ if(!(vid && canv)) return; const vw=vid.videoWidth||1920, vh=vid.videoHeight||1080; const ww=window.innerWidth||1920, wh=window.innerHeight||1080; const dpr=Math.max(1, Math.min(3, window.devicePixelRatio||1)); canv.width=Math.floor(ww*dpr); canv.height=Math.floor(wh*dpr); const ctx=canv.getContext('2d'); // cover compute
     const scale=Math.max(ww/vw, wh/vh); const srcW=ww/scale; const srcH=wh/scale; const sx=(vw - srcW)/2; const sy=(vh - srcH)/2; ctx.drawImage(vid, sx, sy, srcW, srcH, 0, 0, canv.width, canv.height); vid.style.display='none'; canv.style.display='block'; }catch(_){ } }
   function animateToLogo(){ try{ const lg=document.getElementById('brandLogo'); const lr=lg? lg.getBoundingClientRect() : {left:12, top:12, width:40, height:40}; const cr=clip.getBoundingClientRect(); const cx=cr.left+cr.width/2, cy=cr.top+cr.height/2; const tx=lr.left+lr.width/2, ty=lr.top+lr.height/2; const dx=tx-cx, dy=ty-cy; const s=Math.max(0.12, Math.min((lr.width||40)/Math.max(1, cr.width), 0.2)); clip.style.willChange='transform, border-radius, box-shadow, opacity'; clip.style.transition='transform 900ms cubic-bezier(0.22,1,0.36,1), border-radius 900ms ease, box-shadow 900ms ease, opacity 300ms linear 700ms'; clip.style.borderRadius='10px'; clip.style.boxShadow='0 18px 48px rgba(0,0,0,0.35)'; clip.style.transform=`translate(-50%, -50%) translate(${dx}px, ${dy}px) scale(${s}) rotate(-8deg)`; clip.addEventListener('transitionend', ()=>{ try{ overlay.remove(); }catch(_){ overlay.style.display='none'; } }, { once:true }); }catch(_){ try{ overlay.remove(); }catch(__){} } }
   function runPaperSequence(){ try{
     if(!sheet){ animateToLogo(); return; }
     // Enable crease grid and start crumple, then fold; shrink after fold
-    sheet.classList.add('grid-on','deform-weak');
-    sheet.classList.remove('pre-crumple','pre-fold','grid-anim','deform-strong');
+    sheet.classList.add('grid-on','deform-weak','jitter');
+    sheet.classList.remove('pre-crumple','pre-fold','pre-fold-pro','grid-anim','deform-strong','deform-pro');
     sheet.classList.add('pre-crumple');
+    if(creases){ creases.classList.add('pro-crease-on'); }
     const onCrumpleEnd = ()=>{
       try{ sheet.removeEventListener('animationend', onCrumpleEnd); }catch(_){ }
-      sheet.classList.remove('pre-crumple','deform-weak');
-      sheet.classList.add('pre-fold','grid-anim','deform-strong');
+      sheet.classList.remove('pre-crumple','deform-weak','jitter');
+      sheet.classList.add('pre-fold','pre-fold-pro','grid-anim','deform-strong','deform-pro');
+      if(creases){ creases.classList.add('pro-crease-anim'); }
       const onFoldEnd = ()=>{
         try{ sheet.removeEventListener('animationend', onFoldEnd); }catch(_){ }
         // Remove heavy deformation before shrinking
-        try{ sheet.classList.remove('deform-strong','grid-anim'); }catch(_){ }
+        try{ sheet.classList.remove('deform-strong','deform-pro','grid-anim'); }catch(_){ }
+        if(creases){ try{ creases.classList.remove('pro-crease-on','pro-crease-anim'); }catch(_){ } }
         animateToLogo();
       };
       sheet.addEventListener('animationend', onFoldEnd, { once:true });
