@@ -301,13 +301,27 @@
     const profileId = await getBalanceeProfileId();
     function mapRows(rows){ const out=[]; let idx=1; for(const row of rows||[]){ const paramsUI=uiParamsFromCanonical(row.params||{}); const metrics=row.metrics||{}; const score=(typeof row.score==='number')? row.score:0; const name=row.name||null; out.push({ id:'db_'+(idx++), name, gen:1, params:paramsUI, res:metrics, score, ts:Date.now() }); } return out; }
     try{
-      // Primary source: latest palmarès set entries (names included)
-      let qs = c
-        .from('palmares_sets')
-        .select('id')
+      // Primary: global best by pair/TF (selected=true), ordered by score desc
+      let q = c
+        .from('strategy_evaluations')
+        .select('params,metrics,score')
         .eq('symbol', symbol)
         .eq('tf', tf)
-        .order('id', { ascending:false })
+        .eq('selected', true)
+        .order('score', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(Math.max(1, limit));
+      if(profileId!=null) q = q.eq('profile_id', profileId); else q = q.is('profile_id', null);
+      let { data, error } = await q;
+      if(!error && Array.isArray(data) && data.length){ return mapRows(data); }
+
+      // Fallback: latest palmarès set entries (includes names)
+      let qs = c
+        .from('palmares_sets')
+        .select('id, created_at')
+        .eq('symbol', symbol)
+        .eq('tf', tf)
+        .order('created_at', { ascending:false })
         .limit(1);
       if(profileId!=null) qs = qs.eq('profile_id', profileId); else qs = qs.is('profile_id', null);
       const { data:sets, error:err2 } = await qs;
@@ -324,18 +338,6 @@
           if(!err3 && Array.isArray(entries) && entries.length){ return mapRows(entries); }
         }
       }
-      // Fallback: selected strategies (may lack names)
-      let q = c
-        .from('strategy_evaluations')
-        .select('params,metrics,score')
-        .eq('symbol', symbol)
-        .eq('tf', tf)
-        .eq('selected', true)
-        .order('score', { ascending: false })
-        .limit(Math.max(1, limit));
-      if(profileId!=null) q = q.eq('profile_id', profileId); else q = q.is('profile_id', null);
-      let { data, error } = await q;
-      if(!error && Array.isArray(data) && data.length){ return mapRows(data); }
       return [];
     }catch(_){ return []; }
   }
