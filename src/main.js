@@ -7,36 +7,56 @@
   const canv=document.getElementById('preloadCanvas');
   const sheet=document.getElementById('preloadSheet');
   const creases=document.getElementById('preloadCreases');
+  const glCanvas=document.getElementById('preloadGL');
   function freezeLastFrame(){ try{ if(!(vid && canv)) return; const vw=vid.videoWidth||1920, vh=vid.videoHeight||1080; const ww=window.innerWidth||1920, wh=window.innerHeight||1080; const dpr=Math.max(1, Math.min(3, window.devicePixelRatio||1)); canv.width=Math.floor(ww*dpr); canv.height=Math.floor(wh*dpr); const ctx=canv.getContext('2d'); // cover compute
     const scale=Math.max(ww/vw, wh/vh); const srcW=ww/scale; const srcH=wh/scale; const sx=(vw - srcW)/2; const sy=(vh - srcH)/2; ctx.drawImage(vid, sx, sy, srcW, srcH, 0, 0, canv.width, canv.height); vid.style.display='none'; canv.style.display='block';
     try{ const plane=document.getElementById('preloadPlane'); if(plane){ const url=canv.toDataURL('image/jpeg', 0.9); plane.style.backgroundImage = `url(${url})`; } }catch(_){ }
   }catch(_){ } }
   function animateToLogo(durMs){ try{ const lg=document.getElementById('brandLogo'); const lr=lg? lg.getBoundingClientRect() : {left:12, top:12, width:40, height:40}; const cr=clip.getBoundingClientRect(); const cx=cr.left+cr.width/2, cy=cr.top+cr.height/2; const tx=lr.left+lr.width/2, ty=lr.top+lr.height/2; const dx=tx-cx, dy=ty-cy; const s=Math.max(0.12, Math.min((lr.width||40)/Math.max(1, cr.width), 0.2)); const d = Math.max(400, parseInt(durMs||1100,10)); clip.style.willChange='transform, border-radius, box-shadow, opacity'; clip.style.transition=`transform ${d}ms cubic-bezier(0.22,1,0.36,1), border-radius ${d}ms ease, box-shadow ${d}ms ease, opacity 300ms linear 700ms`; clip.style.borderRadius='10px'; clip.style.boxShadow='0 18px 48px rgba(0,0,0,0.35)'; clip.style.transform=`translate(-50%, -50%) translate(${dx}px, ${dy}px) scale(${s}) rotate(-8deg)`; clip.addEventListener('transitionend', ()=>{ try{ overlay.remove(); }catch(_){ overlay.style.display='none'; } }, { once:true }); }catch(_){ try{ overlay.remove(); }catch(__){} } }
+  // WebGL crumple (displacement + lighting) on last frame
+  function startGLCrumple(done){ try{
+    if(!(glCanvas && glCanvas.getContext)) { done && done(); return; }
+    const gl = glCanvas.getContext('webgl'); if(!gl){ done && done(); return; }
+    const vsSrc = `attribute vec2 aPos; varying vec2 vUv; void main(){ vUv=(aPos*0.5)+0.5; gl_Position=vec4(aPos,0.0,1.0); }`;
+    const fsSrc = `precision mediump float; varying vec2 vUv; uniform sampler2D uImg; uniform sampler2D uNoise; uniform float uAmt; uniform vec2 uScale; uniform vec2 uOffset; vec3 shade(vec3 col, vec3 n){ vec3 L=normalize(vec3(-0.6,-0.4,1.0)); float diff=clamp(dot(n,L),0.0,1.0); float rim=pow(1.0-max(dot(n,vec3(0.0,0.0,1.0)),0.0), 2.0); return col*(0.70+0.60*diff) + 0.08*rim; } void main(){ float n0=texture2D(uNoise, vUv*uScale + uOffset).r; float n1=texture2D(uNoise, vUv*uScale*2.0 + uOffset*1.3).g; float h = (n0*0.66 + n1*0.34); float d = (h-0.5); // gradients
+ float hx = texture2D(uNoise, vUv*uScale + vec2(0.002,0.0)+uOffset).r - texture2D(uNoise, vUv*uScale + vec2(-0.002,0.0)+uOffset).r; float hy = texture2D(uNoise, vUv*uScale + vec2(0.0,0.002)+uOffset).r - texture2D(uNoise, vUv*uScale + vec2(0.0,-0.002)+uOffset).r; vec2 disp = normalize(vec2(hx,hy)+1e-6)*uAmt*0.035 + d*uAmt*0.12*vec2(hx,hy); vec2 uv = vUv + disp; vec3 col = texture2D(uImg, uv).rgb; vec3 n = normalize(vec3(hx*uAmt*8.0, hy*uAmt*8.0, 1.0)); col = shade(col,n); gl_FragColor = vec4(col, 1.0); }`;
+    function sh(gl,src,type){ const s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s); if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)){ console.warn(gl.getShaderInfoLog(s)); } return s; }
+    function prog(gl,vs,fs){ const p=gl.createProgram(); gl.attachShader(p,vs); gl.attachShader(p,fs); gl.linkProgram(p); if(!gl.getProgramParameter(p, gl.LINK_STATUS)){ console.warn(gl.getProgramInfoLog(p)); } return p; }
+    const vs=sh(gl,vsSrc,gl.VERTEX_SHADER), fs=sh(gl,fsSrc,gl.FRAGMENT_SHADER), pr=prog(gl,vs,fs); gl.useProgram(pr);
+    // quad
+    const buf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+    const loc=gl.getAttribLocation(pr,'aPos'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+    // textures
+    function texFromCanvas(cv){ const t=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,t); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,cv); return t; }
+    function genNoise(w,h){ const data=new Float32Array(w*h*4); function rand(){ return Math.random(); } const oct=4; for(let y=0;y<h;y++){ for(let x=0;x<w;x++){ let fx=0, amp=1.0, sum=0, norm=0; for(let o=0;o<oct;o++){ const scale=Math.pow(2,o); const px=Math.floor(x/scale), py=Math.floor(y/scale); const fracx=(x/scale - px), fracy=(y/scale - py); const a=rand(), b=rand(), c=rand(), d=rand(); const v0=a*(1-fracx)*(1-fracy) + b*(fracx)*(1-fracy) + c*(1-fracx)*fracy + d*(fracx*fracy); sum += v0*amp; norm += amp; amp*=0.5; } fx = sum/(norm||1); const i=(y*w+x)*4; data[i]=fx; data[i+1]=fx; data[i+2]=fx; data[i+3]=1; } } return {data,w,h}; }
+    function texFromData(obj){ const t=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,t); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,obj.w,obj.h,0,gl.RGBA,gl.FLOAT,obj.data); return t; }
+    // set size
+    glCanvas.width = gl.drawingBufferWidth = glCanvas.clientWidth = glCanvas.parentElement.clientWidth;
+    glCanvas.height = gl.drawingBufferHeight = glCanvas.clientHeight = glCanvas.parentElement.clientHeight;
+    gl.viewport(0,0,glCanvas.width, glCanvas.height);
+    gl.activeTexture(gl.TEXTURE0); const texImg = texFromCanvas(canv);
+    gl.activeTexture(gl.TEXTURE1); const n = genNoise(256,256); const texN = texFromData(n);
+    gl.uniform1i(gl.getUniformLocation(pr,'uImg'), 0);
+    gl.uniform1i(gl.getUniformLocation(pr,'uNoise'), 1);
+    const uAmtLoc=gl.getUniformLocation(pr,'uAmt'); const uScaleLoc=gl.getUniformLocation(pr,'uScale'); const uOffLoc=gl.getUniformLocation(pr,'uOffset');
+    glCanvas.style.display='block';
+    const start=performance.now(); const DUR=800; const AMT=0.085; function ease(t){ return 1- Math.pow(1-t,3); }
+    (function loop(){ const t=performance.now(); const p=Math.min(1,(t-start)/DUR); const amt=AMT*ease(p); gl.uniform1f(uAmtLoc, amt); gl.uniform2f(uScaleLoc, 3.0, 3.0); gl.uniform2f(uOffLoc, p*0.6, -p*0.5); gl.drawArrays(gl.TRIANGLE_STRIP,0,4); if(p<1){ requestAnimationFrame(loop); } else { try{ const plane=document.getElementById('preloadPlane'); if(plane){ const url=glCanvas.toDataURL('image/jpeg',0.9); plane.style.backgroundImage=`url(${url})`; } }catch(_){ } glCanvas.style.display='none'; done && done(); } })();
+  }catch(_){ done && done(); } }
+
   function runPaperSequence(){ try{
     if(!sheet){ animateToLogo(); return; }
-    // Crumple first
-    sheet.classList.add('grid-on','deform-weak','jitter');
-    sheet.classList.remove('pre-crumple','paper-curl','pre-fold','pre-fold-pro','grid-anim','deform-strong','deform-pro','sheet-hide');
-    sheet.classList.add('pre-crumple');
-    if(creases){ creases.classList.add('pro-crease-on'); }
-    const onCrumpleEnd = ()=>{
-      try{ sheet.removeEventListener('animationend', onCrumpleEnd); }catch(_){ }
-      // Then paper curl
-      sheet.classList.remove('pre-crumple','deform-weak','jitter');
+    // Start GL crumple first
+    startGLCrumple(()=>{
+      // Then paper curl and airplane sequence
+      sheet.classList.remove('pre-crumple','paper-curl','pre-fold','pre-fold-pro','grid-anim','deform-weak','deform-strong','deform-pro','sheet-hide');
       sheet.classList.add('paper-curl');
-      const onCurlEnd = ()=>{
-        try{ sheet.removeEventListener('animationend', onCurlEnd); }catch(_){ }
-        // Hide sheet, start plane folding
-        sheet.classList.add('sheet-hide');
-        if(creases){ creases.classList.remove('pro-crease-on'); }
-        const plane=document.getElementById('preloadPlane');
-        if(plane){ plane.classList.add('plane-on','plane-fold'); plane.addEventListener('animationend', ()=>{ try{ plane.classList.remove('plane-fold'); plane.classList.add('plane-flight'); }catch(_){ } }, { once:true }); }
-        // Start movement to logo synchronized with flight
+      const onCurlEnd = ()=>{ try{ sheet.removeEventListener('animationend', onCurlEnd); }catch(_){ }
+        sheet.classList.add('sheet-hide'); const plane=document.getElementById('preloadPlane'); if(plane){ plane.classList.add('plane-on','plane-fold'); plane.addEventListener('animationend', ()=>{ try{ plane.classList.remove('plane-fold'); plane.classList.add('plane-flight'); }catch(_){ } }, { once:true }); }
         animateToLogo(1100);
       };
       sheet.addEventListener('animationend', onCurlEnd, { once:true });
-    };
-    sheet.addEventListener('animationend', onCrumpleEnd, { once:true });
+    });
   }catch(_){ animateToLogo(); } }
   function afterEnd(){ setTimeout(runPaperSequence, 500); }
   if(vid){ vid.addEventListener('ended', ()=>{ try{ freezeLastFrame(); }catch(_){ } afterEnd(); }); vid.addEventListener('error', ()=>{ afterEnd(); }); setTimeout(()=>{ try{ if(vid.ended){ freezeLastFrame(); afterEnd(); } }catch(_){ } }, 100); }
