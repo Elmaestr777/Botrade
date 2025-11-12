@@ -386,7 +386,7 @@ async function fetchPalmares(symbol, tf, limit=25, profileName){
     try{
       const p = (ctx && ctx.params) || (typeof window!=='undefined' && typeof window.currentHeavenParamsForPersist==='function'? window.currentHeavenParamsForPersist(): {});
       const name = (ctx && ctx.name) || (typeof window!=='undefined' && window.liveWalletName && window.liveWalletName.value) || (typeof window!=='undefined' && window.randomName && window.randomName()) || 'live';
-      const row = {
+      const base = {
         user_id: null,
         wallet_id: null,
         name,
@@ -400,9 +400,29 @@ async function fetchPalmares(symbol, tf, limit=25, profileName){
         lev: Number(ctx.lev||1)||1,
         last_bar_time: null,
         pos: null,
+        updated_at: new Date().toISOString(),
       };
-      const { error } = await c.from('live_sessions').upsert([row], { onConflict: 'name', ignoreDuplicates: false, returning: 'minimal' });
-      if(error){ slog('Supabase: startHeadlessLive KO — '+(error.message||error)); return { ok:false, error:error.message||String(error) }; }
+      // Idempotent by name for public pool (user_id IS NULL):
+      // 1) Try update existing row(s)
+      let updated = false;
+      try{
+        const { data: ex, error: e0 } = await c
+          .from('live_sessions')
+          .select('id')
+          .eq('name', name)
+          .is('user_id', null)
+          .maybeSingle();
+        if(!e0 && ex && ex.id){
+          const { error: e1 } = await c.from('live_sessions').update(base).eq('id', ex.id);
+          if(e1){ slog('Supabase: startHeadlessLive update KO — '+(e1.message||e1)); }
+          else { updated = true; }
+        }
+      }catch(_){ }
+      // 2) If not updated, insert new row
+      if(!updated){
+        const { error: e2 } = await c.from('live_sessions').insert([base], { returning: 'minimal' });
+        if(e2){ slog('Supabase: startHeadlessLive insert KO — '+(e2.message||e2)); return { ok:false, error:e2.message||String(e2) }; }
+      }
       return { ok:true };
     }catch(e){ return { ok:false, error:(e&&e.message)||String(e) }; }
   }
