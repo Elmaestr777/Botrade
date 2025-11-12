@@ -33,9 +33,10 @@ async function renderLabFromStorage(){
       if(Array.isArray(supaArr) && supaArr.length){ arr = supaArr; source='Supabase'; }
     }
   }catch(_){ /* ignore, will fallback */ }
-  // Pas de fallback local: Supabase obligatoire (si vide, on affiche vide)
+  // Fallback local si Supabase non configuré ou vide
+  if(!Array.isArray(arr) || !arr.length){ arr = readPalmares(sym, tf) || []; source='local'; }
   window.labPalmaresCache = Array.isArray(arr)? arr.slice() : [];
-  if(labSummaryEl) labSummaryEl.textContent = arr.length? `Palmarès: ${arr.length} stratégies (symbole ${symbolToDisplay(sym)} • TF ${tf}) — Supabase` : 'Aucun palmarès';
+  if(labSummaryEl) labSummaryEl.textContent = arr.length? `Palmarès: ${arr.length} stratégies (symbole ${symbolToDisplay(sym)} • TF ${tf}) — ${source}` : 'Aucun palmarès';
   if(!labTBody){ return; }
   if(!arr.length){ labTBody.innerHTML = '<tr><td colspan=\"16\">Aucune donnée</td></tr>'; return; }
   const rows=[]; let idx=1; const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
@@ -1101,6 +1102,7 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
   const btShowDetails=document.getElementById('btShowDetails');
   const btPauseBtn=document.getElementById('btPause');
   const btStopBtn=document.getElementById('btStop');
+  const btAbortBtn=document.getElementById('btAbort');
   if(btPauseBtn){ btPauseBtn.addEventListener('click', ()=>{ btPaused=!btPaused; addBtLog(btPaused?'Pause':'Reprise'); if(labRunStatusEl) labRunStatusEl.textContent = btPaused? 'Pause' : 'En cours'; btPauseBtn.textContent = btPaused? 'Reprendre' : 'Pause'; }); }
   if(btStopBtn){ btStopBtn.addEventListener('click', ()=>{ btAbort=true; addBtLog('Arrêt demandé'); if(labRunStatusEl) labRunStatusEl.textContent='Arrêt'; }); }
   if(btAbortBtn){ btAbortBtn.addEventListener('click', ()=>{ btAbort=true; addBtLog('Annulation'); if(labRunStatusEl) labRunStatusEl.textContent='Arrêt'; try{ closeBtProgress(); }catch(_){ } }); }
@@ -2376,13 +2378,17 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
   }
 
   if(goal==='new'){
-    // Persister uniquement dans Supabase
-    try{ if(window.SUPA && typeof SUPA.persistLabResults==='function'){ const bestOut = finalResults.slice(0, Math.min(10, finalResults.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen:1, name:null })); await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut }); } }catch(_){ }
+    // Persister Supabase si dispo + fallback local
+    const bestOut = finalResults.slice(0, Math.min(10, finalResults.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen:1, name: x.name||null }));
+    try{ if(window.SUPA && typeof SUPA.persistLabResults==='function' && window.SUPA.isConfigured && window.SUPA.isConfigured()){ await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut }); } }catch(_){ }
+    try{ writePalmares(sym, tfSel, bestOut); }catch(_){ }
     try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
     setStatus('Palmarès mis à jour'); closeBtProgress();
   } else {
-    // Persister uniquement dans Supabase
-    try{ if(window.SUPA && typeof SUPA.persistLabResults==='function'){ const bestOut = finalResults.slice(0, Math.min(10, finalResults.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen: (x.gen||1), name: x.name||null })); await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut }); } }catch(_){ }
+    // Persister Supabase si dispo + fallback local
+    const bestOut = finalResults.slice(0, Math.min(10, finalResults.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen: (x.gen||1), name: x.name||null }));
+    try{ if(window.SUPA && typeof SUPA.persistLabResults==='function' && window.SUPA.isConfigured && window.SUPA.isConfigured()){ await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut }); } }catch(_){ }
+    try{ writePalmares(sym, tfSel, bestOut); }catch(_){ }
     try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
     setStatus('Amélioration terminée'); closeBtProgress();
   }
