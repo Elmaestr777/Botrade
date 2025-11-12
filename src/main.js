@@ -6,7 +6,7 @@
   const vid=document.getElementById('preloadVideo');
   const canv=document.getElementById('preloadCanvas');
   // Preloader params & prefs (tunable)
-  const __preParams = { RADF: 0.22, SPIN_DUR: 1200, SPIN_TURNS: 2.6, TRAILS: 3, TRAIL_STEP: 0.03, TRAIL_ALPHA_MAX: 0.18, FOLD_DUR: 800, FLIGHT_DUR: 1100 };
+  const __preParams = { RADF: 0.40, SPIN_DUR: 2400, SPIN_TURNS: 2.8, TRAILS: 2, TRAIL_STEP: 0.025, TRAIL_ALPHA_MAX: 0.16, FOLD_DUR: 820, FLIGHT_DUR: 3150 };
   const __prefs = { reducedMotion: (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) };
   function setParams(p){ try{ Object.assign(__preParams, p||{}); }catch(_){ } }
   function setPrefs(p){ try{ Object.assign(__prefs, p||{}); }catch(_){ } }
@@ -67,7 +67,7 @@
       // static background (cover)
       if(cv && cv.width && cv.height){ const imgW=cv.width, imgH=cv.height; const bgRatio=Math.max(W/imgW, H/imgH); const bgW=imgW*bgRatio, bgH=imgH*bgRatio; const bgX=(W-bgW)/2, bgY=(H-bgH)/2; ctx.globalAlpha=1; ctx.drawImage(cv, bgX, bgY, bgW, bgH); }
       // spinning window (smaller radius)
-      const RADF=Math.max(0.16, Math.min(0.30, __preParams.RADF||0.22)); const r=Math.min(W,H)*RADF;
+      const RADF=Math.max(0.12, Math.min(0.45, __preParams.RADF||0.40)); const r=Math.min(W,H)*RADF;
       const pms = performance.now() - t0; const alphaIn = Math.min(1, pms/180);
       if(cv && cv.width && cv.height){ const imgW=cv.width, imgH=cv.height; const ratio=Math.max((2*r)/imgW, (2*r)/imgH); const drawW=imgW*ratio, drawH=imgH*ratio; ctx.save(); ctx.translate(cx,cy); ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.closePath(); ctx.clip(); ctx.rotate(angle);
         // base pass
