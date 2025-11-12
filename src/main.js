@@ -189,6 +189,9 @@ let __statusMain = '';
 let __statusBg = '';
 function setStatus(msg){ __statusMain = msg || ''; if(statusEl){ statusEl.textContent = __statusMain + (__statusBg ? (' • '+__statusBg) : ''); } }
 function setBgStatus(msg){ __statusBg = msg || ''; if(statusEl){ statusEl.textContent = __statusMain + (__statusBg ? (' • '+__statusBg) : ''); } }
+// Bars info indicator
+const barsInfoEl = document.getElementById('barsInfo');
+function updateBarsInfo(){ try{ if(!barsInfoEl) return; const vis = Array.isArray(candles)? candles.length:0; const tot = Array.isArray(candlesAll)? candlesAll.length:vis; barsInfoEl.textContent = `Bougies: ${vis} / BG ${tot}`; }catch(_){ } }
 // Supabase config UI
 const supaCfgBtn = document.getElementById('supaCfgBtn');
 const supaModalEl = document.getElementById('supaModal');
@@ -359,7 +362,7 @@ const DISPLAY_PAD_BARS = 1000;    // how many bars to prepend when user scrolls 
 let __bgLoadToken = 0;            // cancels previous background loaders
 
 function __baseAfterCutoff(){ let base=candlesAll||[]; if(typeof window.__liveChartMinTimeSec==='number' && isFinite(window.__liveChartMinTimeSec)){ base = base.filter(b=> b.time >= window.__liveChartMinTimeSec); } return base; }
-function applyDisplayFromAll(){ const base=__baseAfterCutoff(); candles = base.length>DISPLAY_MAX_BARS? base.slice(-DISPLAY_MAX_BARS) : base.slice(); }
+function applyDisplayFromAll(){ const base=__baseAfterCutoff(); candles = base.length>DISPLAY_MAX_BARS? base.slice(-DISPLAY_MAX_BARS) : base.slice(); updateBarsInfo(); }
 function expandDisplayLeftIfNear(range){ try{ const base=__baseAfterCutoff(); if(!Array.isArray(candles)||!candles.length||!Array.isArray(base)||!base.length) return; if(!range||typeof range.from!=='number') return; if(range.from>2) return; const first=candles[0]; const idx=base.findIndex(b=> b.time===first.time); if(idx>0){ const newStart=Math.max(0, idx - DISPLAY_PAD_BARS); const newSlice = base.slice(newStart, Math.min(base.length, newStart + DISPLAY_MAX_BARS)); candles = newSlice; candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge(); } }catch(_){ } }
 
 function klinesCacheKey(symbol, interval){ return `klines:${symbol}:${interval}`; }
@@ -419,14 +422,14 @@ async function backgroundExtendKlines(symbol, interval, token){
       const now = Date.now();
       if(now - lastUiUpdate > 600){
         setBgStatus(`hist: ${Math.round(total/1000)}k`);
-try{ applyDisplayFromAll(); candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge(); }catch(_){ }
+try{ applyDisplayFromAll(); candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge(); updateBarsInfo(); }catch(_){ }
         lastUiUpdate = now;
       }
       if(batch.length < need) break;
       await new Promise(r=> setTimeout(r, 0));
     }
     if(token === __bgLoadToken){
-try{ applyDisplayFromAll(); candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge(); }catch(_){ }
+try{ applyDisplayFromAll(); candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge(); updateBarsInfo(); }catch(_){ }
       try{ saveKlinesToCache(symbol, interval, candlesAll); }catch(_){ }
       setBgStatus('');
     }
@@ -436,7 +439,7 @@ try{ applyDisplayFromAll(); candleSeries.setData(candles); updateEMAs(); renderL
 function closeWs(){ try{ if(ws){ ws.onopen=ws.onmessage=ws.onerror=ws.onclose=null; ws.close(); } }catch(_){} ws=null; }
 function wsUrl(symbol, interval){ return `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_${interval}`; }
 function openWs(symbol, interval){ closeWs(); try{ ws=new WebSocket(wsUrl(symbol, interval)); }catch(e){ setStatus('WS erreur'); return; } ws.onopen=()=> setStatus('Temps réel'); ws.onmessage=(ev)=>{ try{ const msg=JSON.parse(ev.data); const k=(msg&&msg.k)||(msg&&msg.data&&msg.data.k); if(!k) return; const bar={ time:Math.floor(k.t/1000), open:+k.o, high:+k.h, low:+k.l, close:+k.c }; const lastAll=candlesAll[candlesAll.length-1]; if(lastAll && bar.time===lastAll.time){ candlesAll[candlesAll.length-1]=bar; } else if(!lastAll || bar.time>lastAll.time){ candlesAll.push(bar); if(candlesAll.length>LIVE_MAX_BARS) candlesAll=candlesAll.slice(-LIVE_MAX_BARS); }
-applyDisplayFromAll(); candleSeries.setData(candles); updateEMAs(); renderLBC(); if(typeof anyLiveActive==='function' && anyLiveActive()){ try{ multiLiveOnBar(bar); }catch(_){ } } else if(liveSession && liveSession.active){ try{ liveOnBar(bar); }catch(_){ } }
+applyDisplayFromAll(); candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge(); updateBarsInfo(); if(typeof anyLiveActive==='function' && anyLiveActive()){ try{ multiLiveOnBar(bar); }catch(_){ } } else if(liveSession && liveSession.active){ try{ liveOnBar(bar); }catch(_){ } }
     }catch(_){ } }; ws.onerror=()=> setStatus('WS erreur'); ws.onclose=()=> {/* keep silent */}; }
 async function load(symbol, interval){
   try{
@@ -447,17 +450,17 @@ async function load(symbol, interval){
 if(cached && cached.length){
       candlesAll = cached;
       applyDisplayFromAll();
-      candleSeries.setData(candles);
-      updateEMAs(); renderLBC(); updateCutoffBadge();
+candleSeries.setData(candles);
+      updateEMAs(); renderLBC(); updateCutoffBadge(); updateBarsInfo();
     } else {
       setStatus('Chargement...');
     }
 // Ensure preload fetch (fresh)
     candlesAll = await fetchAllKlines(symbol, interval, PRELOAD_BARS);
     applyDisplayFromAll();
-    candleSeries.setData(candles);
+candleSeries.setData(candles);
     setStatus('');
-    updateEMAs(); renderLBC(); updateCutoffBadge();
+    updateEMAs(); renderLBC(); updateCutoffBadge(); updateBarsInfo();
     try{ saveKlinesToCache(symbol, interval, candlesAll); }catch(_){ }
     // Deep background extend to maximize history depth for Lab/Backtest
     backgroundExtendKlines(symbol, interval, token);
