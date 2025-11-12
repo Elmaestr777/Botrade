@@ -430,13 +430,13 @@ async function fetchPalmares(symbol, tf, limit=25, profileName){
     const c=ensureClient(); if(!c||!name) return false;
     try{ const { error } = await c.from('live_sessions').update({ active:false }).eq('name', name); if(error){ slog('Supabase: stopHeadlessLive KO — '+(error.message||error)); return false; } return true; }catch(_){ return false; }
   }
-  async function fetchHeadlessSessions(limit=50){
+async function fetchHeadlessSessions(limit=50){
     const c=ensureClient(); if(!c) return [];
-    try{ const { data, error } = await c.from('live_sessions').select('id,name,symbol,tf,active,equity,start_cap,updated_at').order('updated_at',{ascending:false}).limit(Math.max(1,limit)); if(error){ slog('Supabase: fetchHeadlessSessions KO — '+(error.message||error)); return []; } return Array.isArray(data)? data:[]; }catch(_){ return []; }
+    try{ const { data, error } = await c.from('live_sessions').select('id,name,symbol,tf,active,equity,start_cap,created_at,updated_at').order('updated_at',{ascending:false}).limit(Math.max(1,limit)); if(error){ slog('Supabase: fetchHeadlessSessions KO — '+(error.message||error)); return []; } return Array.isArray(data)? data:[]; }catch(_){ return []; }
   }
-  async function fetchHeadlessSessionByName(name){
+async function fetchHeadlessSessionByName(name){
     const c=ensureClient(); if(!c||!name) return null;
-    try{ const { data, error } = await c.from('live_sessions').select('id,name,symbol,tf,active,equity,start_cap,last_bar_time,updated_at').eq('name', name).maybeSingle(); if(error){ slog('Supabase: fetchHeadlessSessionByName KO — '+(error.message||error)); return null; } return data||null; }catch(_){ return null; }
+    try{ const { data, error } = await c.from('live_sessions').select('id,name,symbol,tf,active,equity,start_cap,last_bar_time,created_at,updated_at').eq('name', name).maybeSingle(); if(error){ slog('Supabase: fetchHeadlessSessionByName KO — '+(error.message||error)); return null; } return data||null; }catch(_){ return null; }
   }
   async function fetchLiveEvents(sessionId, sinceIso, limit=500){
     const c=ensureClient(); if(!c||!sessionId) return [];

@@ -1165,12 +1165,33 @@
                 </select>
               </label>
               <label>Nom <input id="liveWalletName" type="text" placeholder="Ex: Strat EMA55" /></label>
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button id="liveWalletSave" class="btn" type="button">Enregistrer</button>
+                <button id="liveWalletLoad" class="btn" type="button">Charger</button>
+                <button id="liveWalletDelete" class="btn" type="button">Supprimer</button>
+              </div>
             </fieldset>
             <fieldset>
               <legend>Paramètres (paper)</legend>
               <label>Capital initial <input id="liveStartCap" type="number" min="0" step="100" value="10000" style="width:8rem" /></label>
               <label>Frais (%) <input id="liveFee" type="number" min="0" step="0.01" value="0.10" style="width:6rem" /></label>
               <label>Levier (x) <input id="liveLev" type="number" min="1" max="125" step="0.1" value="1" style="width:6rem" /></label>
+            </fieldset>
+            <fieldset>
+              <legend>TF & Stratégie</legend>
+              <label>TF
+                <select id="liveTFSelect"></select>
+              </label>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <label><input type="radio" name="liveStratSource" id="liveStratSrcHeaven" value="heaven" checked> Heaven</label>
+                <label><input type="radio" name="liveStratSource" id="liveStratSrcPalmares" value="palmares"> Palmarès</label>
+              </div>
+              <label>Stratégie
+                <select id="liveStrategySel">
+                  <option value="">—</option>
+                </select>
+              </label>
+              <div id="liveStrategyMeta" style="color:var(--muted); font-size:12px;">—</div>
             </fieldset>
           </div>
         </div>

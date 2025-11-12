@@ -293,6 +293,9 @@ const chart = LightweightCharts.createChart(container, {
   timeScale: { borderColor: isDark() ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)', timeVisible: true, rightOffset: 10, shiftVisibleRangeOnNewBar: false, rightBarStaysOnScroll: false, lockVisibleTimeRangeOnResize: true },
 });
 const candleSeries = chart.addCandlestickSeries({ upColor:'#26a69a', downColor:'#ef5350', borderUpColor:'#26a69a', borderDownColor:'#ef5350', wickUpColor:'#26a69a', wickDownColor:'#ef5350' });
+// Cutoff badge (display start time) + button to clear cutoff
+function ensureCutoffBadge(){ try{ let el=document.getElementById('chartCutoff'); if(el) return el; if(!container) return null; el=document.createElement('div'); el.id='chartCutoff'; el.style.position='absolute'; el.style.right='8px'; el.style.top='8px'; el.style.bottom='auto'; el.style.zIndex='120'; el.style.background= isDark()? 'rgba(17,24,39,0.75)' : 'rgba(255,255,255,0.85)'; el.style.color= isDark()? '#e5e7eb':'#111827'; el.style.border= isDark()? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(0,0,0,0.12)'; el.style.borderRadius='8px'; el.style.padding='4px 8px'; el.style.fontSize='12px'; el.style.display='flex'; el.style.alignItems='center'; el.style.gap='6px'; el.style.backdropFilter='saturate(1.1) blur(6px)'; el.innerHTML = '<span id="chartCutoffText" style="pointer-events:none;"></span><button id="chartCutoffClear" class="icon-btn" style="font-size:14px; padding:0 4px; pointer-events:auto;" title="Afficher tout l\'historique">×</button>'; el.style.display='none'; container.appendChild(el); const btn=document.getElementById('chartCutoffClear'); if(btn){ btn.addEventListener('click', ()=>{ try{ delete window.__liveChartMinTimeSec; closeWs(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval)); updateCutoffBadge(); }catch(_){ } }); } return el; }catch(_){ return null; } }
+function updateCutoffBadge(){ try{ const el=ensureCutoffBadge(); if(!el) return; const txt=document.getElementById('chartCutoffText'); const t=Number(window.__liveChartMinTimeSec); if(Number.isFinite(t) && t>0){ const d=new Date(t*1000); if(txt) txt.textContent = 'Affichage depuis: '+ d.toLocaleString(); el.style.display='flex'; } else { el.style.display='none'; } }catch(_){ } }
 // Flexible right space control
 try{
   const RIGHT_OFF_KEY='chart:rightOffset';
@@ -388,32 +391,36 @@ async function backgroundExtendKlines(symbol, interval, token){
     let total = candles.length;
     let lastUiUpdate = 0;
     while(token === __bgLoadToken && total < BG_MAX_BARS){
+      // Stop extending if we've reached the minimal time constraint
+      if(typeof window.__liveChartMinTimeSec==='number' && isFinite(window.__liveChartMinTimeSec)){
+        if((earliest||Infinity) <= window.__liveChartMinTimeSec){ break; }
+      }
       const need = Math.min(BATCH_LIMIT, BG_MAX_BARS - total);
       const batch = await fetchKlinesBatch(symbol, interval, need, cursor);
-      if(!batch || !batch.length) break;
-      const filtered = batch.filter(b=> b.time < (earliest||Infinity));
+      if(!batch.length) break;
+      let filtered = batch.filter(b=> b.time < (earliest||Infinity));
+      // Enforce minimal time cutoff
+      if(typeof window.__liveChartMinTimeSec==='number' && isFinite(window.__liveChartMinTimeSec)){
+        filtered = filtered.filter(b=> b.time >= window.__liveChartMinTimeSec);
+      }
       if(!filtered.length){
-        // Nothing older than current earliest
         break;
       }
       candles = filtered.concat(candles);
       total = candles.length;
       earliest = candles[0].time;
       cursor = earliest*1000 - 1;
-      // Throttled status + progressive series rehydrate to expose older bars
       const now = Date.now();
       if(now - lastUiUpdate > 600){
         setBgStatus(`hist: ${Math.round(total/1000)}k`);
-        try{ candleSeries.setData(candles); updateEMAs(); renderLBC(); }catch(_){ }
+try{ candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge(); }catch(_){ }
         lastUiUpdate = now;
       }
-      if(batch.length < need) break; // hit API boundary for now
-      // Yield to UI
+      if(batch.length < need) break;
       await new Promise(r=> setTimeout(r, 0));
     }
-    // Final push if still active: save cache, rehydrate series, preserve view, clear status
     if(token === __bgLoadToken){
-      try{ candleSeries.setData(candles); updateEMAs(); renderLBC(); }catch(_){ }
+try{ candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge(); }catch(_){ }
       try{ saveKlinesToCache(symbol, interval, candles); }catch(_){ }
       setBgStatus('');
     }
@@ -433,16 +440,24 @@ async function load(symbol, interval){
     const cached = loadKlinesFromCache(symbol, interval);
     if(cached && cached.length){
       candles = cached;
-      candleSeries.setData(candles);
-      updateEMAs(); renderLBC();
+      // Apply min-time filter if any
+      if(typeof window.__liveChartMinTimeSec==='number' && isFinite(window.__liveChartMinTimeSec)){
+        candles = candles.filter(b=> b.time >= window.__liveChartMinTimeSec);
+      }
+candleSeries.setData(candles);
+      updateEMAs(); renderLBC(); updateCutoffBadge();
     } else {
       setStatus('Chargement...');
     }
     // Ensure preload fetch (fresh)
     candles = await fetchAllKlines(symbol, interval, PRELOAD_BARS);
-    candleSeries.setData(candles);
+    // Apply min-time filter if any
+    if(typeof window.__liveChartMinTimeSec==='number' && isFinite(window.__liveChartMinTimeSec)){
+      candles = candles.filter(b=> b.time >= window.__liveChartMinTimeSec);
+    }
+candleSeries.setData(candles);
     setStatus('');
-    updateEMAs(); renderLBC();
+    updateEMAs(); renderLBC(); updateCutoffBadge();
     try{ saveKlinesToCache(symbol, interval, candles); }catch(_){ }
     // Deep background extend to maximize history depth for Lab/Backtest
     backgroundExtendKlines(symbol, interval, token);
@@ -495,6 +510,39 @@ const liveOpenBtn = document.getElementById('liveOpen'); const liveModalEl = doc
 const labOpenBtn = document.getElementById('labOpen'); const labModalEl = document.getElementById('labModal'); const labCloseBtn=document.getElementById('labClose');
 const btOpenBtn = document.getElementById('btRunVisible'); const btModalEl = document.getElementById('btModal'); const btCloseBtn=document.getElementById('btCloseModal');
 const heavenCfgBtn = document.getElementById('heavenCfg'); const lbcModalEl = document.getElementById('lbcModal'); const lbcCloseBtn=document.getElementById('lbcClose');
+
+// Live TF & strategy selectors (modal)
+const liveTFSelect=document.getElementById('liveTFSelect');
+const liveStratSrcHeaven=document.getElementById('liveStratSrcHeaven');
+const liveStratSrcPalmares=document.getElementById('liveStratSrcPalmares');
+const liveStrategySel=document.getElementById('liveStrategySel');
+const liveStrategyMeta=document.getElementById('liveStrategyMeta');
+
+function populateLiveTFOptions(){ try{ if(!liveTFSelect) return; if(intervalSelect && intervalSelect.innerHTML){ liveTFSelect.innerHTML = intervalSelect.innerHTML; } else { const tfs=['1m','5m','15m','1h','4h','1d']; liveTFSelect.innerHTML = tfs.map(tf=>`<option value="${tf}">${tf}</option>`).join(''); }
+  const saved=localStorage.getItem('live:tf'); if(saved){ try{ liveTFSelect.value=saved; }catch(_){ } }
+  if(!liveTFSelect.value){ try{ liveTFSelect.value = (intervalSelect&&intervalSelect.value)||currentInterval||''; }catch(_){ } }
+}catch(_){ } }
+function liveSelectedSource(){ try{ if(liveStratSrcPalmares&&liveStratSrcPalmares.checked) return 'palmares'; return 'heaven'; }catch(_){ return 'heaven'; } }
+function updateLiveStrategyMeta(){ try{ if(!liveStrategyMeta) return; const val=(liveStrategySel&&liveStrategySel.value)||''; const cache=(window.__liveStratCache||{}); const it=(Array.isArray(cache.items)? cache.items.find(x=> String(x.value)===String(val)) : null); if(!val||!it){ liveStrategyMeta.textContent='—'; return; } const name=it.name||'—'; const sc=(Number.isFinite(it.score)? it.score.toFixed(2): (it.score!=null? String(it.score): '—')); liveStrategyMeta.textContent = `${name} — Score ${sc}`; }catch(_){ } }
+async function populateLiveStrategyOptions(){ try{ if(!liveStrategySel) return; const sym=(symbolSelect&&symbolSelect.value)||currentSymbol; const tf=(liveTFSelect&&liveTFSelect.value)||((intervalSelect&&intervalSelect.value)||currentInterval)||''; const src=liveSelectedSource(); let items=[]; if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured()){ if(src==='heaven'){ let rows=[]; try{ rows=await SUPA.fetchHeavenStrategies(sym, tf, 50); }catch(_){ rows=[]; }
+  // Map to items with score computed from metrics
+  const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
+  items = (rows||[]).map(r=>({ value:String(r.id), name: (r.name||'(sans nom)'), score: (r.metrics? scoreResult(r.metrics, weights): NaN), params: r.params||{} }));
+} else {
+  let arr=[]; try{ arr=await SUPA.fetchPalmares(sym, tf, 25, (localStorage.getItem('labWeightsProfile')||'balancee')); }catch(_){ arr=[]; }
+  items = (arr||[]).map((it,idx)=>({ value:String(it.id||('pal_'+(idx+1))), name: (it.name||`Palmarès #${idx+1}`), score: (Number.isFinite(it.score)? it.score : (it.res? scoreResult(it.res, getWeights(localStorage.getItem('labWeightsProfile')||'balancee')): NaN)), params: it.params||{} }));
+} } else { items=[]; }
+  window.__liveStratCache = { src, items };
+  const opts = ['<option value="">—</option>'].concat(items.map(it=> `<option value="${it.value}">${it.name} — ${Number.isFinite(it.score)? it.score.toFixed(2): '—'}</option>`));
+  liveStrategySel.innerHTML = opts.join('');
+  updateLiveStrategyMeta();
+}catch(_){ } }
+
+(function wireLiveStrategyUI(){ try{
+  if(liveTFSelect && (!liveTFSelect.dataset || liveTFSelect.dataset.wired!=='1')){ liveTFSelect.addEventListener('change', ()=>{ try{ localStorage.setItem('live:tf', liveTFSelect.value||''); }catch(_){ } populateLiveStrategyOptions(); }); if(!liveTFSelect.dataset) liveTFSelect.dataset={}; liveTFSelect.dataset.wired='1'; }
+  const srcs=[liveStratSrcHeaven, liveStratSrcPalmares]; srcs.forEach(el=>{ try{ if(el && (!el.dataset || el.dataset.wired!=='1')){ el.addEventListener('change', ()=> populateLiveStrategyOptions()); if(!el.dataset) el.dataset={}; el.dataset.wired='1'; } }catch(_){ } });
+  if(liveStrategySel && (!liveStrategySel.dataset || liveStrategySel.dataset.wired!=='1')){ liveStrategySel.addEventListener('change', updateLiveStrategyMeta); if(!liveStrategySel.dataset) liveStrategySel.dataset={}; liveStrategySel.dataset.wired='1'; }
+} catch(_){ } })();
 
 // Lab inline panels (in Lab modal)
 const labRunStatusEl = document.getElementById('labRunStatus');
@@ -565,7 +613,7 @@ async function computeLabBenchmarkAndUpdate(){
 
 function openModalEl(el){ if(!el) return; el.classList.remove('hidden'); el.setAttribute('aria-hidden','false'); try{ const z=String(bumpModalZ()); el.style.zIndex = z; const c=el.querySelector && el.querySelector('.modal-content'); if(c){ c.style.zIndex = String(bumpModalZ()); } }catch(_){ } }
 function closeModalEl(el){ if(!el) return; el.classList.add('hidden'); el.setAttribute('aria-hidden','true'); }
-if(liveOpenBtn&&liveModalEl) liveOpenBtn.addEventListener('click', ()=>{ try{ populateLiveWalletsUI(); }catch(_){ } openModalEl(liveModalEl); }); if(liveCloseBtn&&liveModalEl) liveCloseBtn.addEventListener('click', ()=> closeModalEl(liveModalEl)); if(liveModalEl) liveModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(liveModalEl); });
+if(liveOpenBtn&&liveModalEl) liveOpenBtn.addEventListener('click', ()=>{ try{ ensureLiveDrawer(); updateLiveDrawerOpen(true); renderLiveDrawer(); }catch(_){ } }); if(liveCloseBtn&&liveModalEl) liveCloseBtn.addEventListener('click', ()=> closeModalEl(liveModalEl)); if(liveModalEl) liveModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(liveModalEl); });
 if(labOpenBtn&&labModalEl) labOpenBtn.addEventListener('click', async ()=>{ try{ openModalEl(labModalEl); try{ setupLabAdvUI(); }catch(_){ } await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); if(labCloseBtn&&labModalEl) labCloseBtn.addEventListener('click', ()=> closeModalEl(labModalEl)); if(labModalEl) labModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(labModalEl); });
 
 if(btOpenBtn&&btModalEl) btOpenBtn.addEventListener('click', ()=> openModalEl(btModalEl)); if(btCloseBtn&&btModalEl) btCloseBtn.addEventListener('click', ()=> closeModalEl(btModalEl)); if(btModalEl) btModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(btModalEl); });
@@ -2585,7 +2633,7 @@ function ensureLiveDrawer(){ try{ if(document.getElementById('liveDrawer')) retu
   const d=document.createElement('div'); d.id='liveDrawer'; d.style.position='fixed'; d.style.left='0'; d.style.top='60px'; d.style.bottom='0'; d.style.width='260px'; d.style.background= isDark()? '#0b0f1a' : '#f9fafb'; d.style.borderRight= isDark()? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)'; d.style.transform='translateX(-240px)'; d.style.transition='transform .2s ease'; d.style.zIndex='1500'; d.style.padding='8px';
   // Header with collapse icon moved to the right
   d.innerHTML = '<div style=\"display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;\">'+
-                '<div style=\"font-weight:600; display:flex; align-items:center; gap:6px;\">Live wallets <button id=\"liveDrawerHistory\" class=\"btn\" style=\"padding:2px 6px; font-size:12px;\" title=\"Historique\">Historique</button></div>'+
+                '<div style=\"font-weight:600; display:flex; align-items:center; gap:6px;\">Live wallets <button id=\"liveDrawerNew\" class=\"btn\" style=\"padding:2px 6px; font-size:12px;\" title=\"Nouveau wallet\">Nouveau</button> <button id=\"liveDrawerHistory\" class=\"btn\" style=\"padding:2px 6px; font-size:12px;\" title=\"Historique\">Historique</button></div>'+
                 '<button id=\"liveDrawerCollapse\" class=\"icon-btn\" title=\"Replier\">⟨</button>'+
                 '</div>'+
                 '<div id=\"liveDrawerList\" style=\"overflow:auto; max-height: calc(100% - 10px);\"></div>';
@@ -2594,6 +2642,12 @@ function ensureLiveDrawer(){ try{ if(document.getElementById('liveDrawer')) retu
   try{ const old=document.getElementById('liveDrawerBtn'); if(old){ old.style.display='none'; } }catch(_){ }
   // Wire history button
   try{ const hb=document.getElementById('liveDrawerHistory'); if(hb){ hb.addEventListener('click', ()=>{ try{ openLiveHistoryModal(); }catch(_){ } }); } }catch(_){ }
+  // Wire new wallet button
+  try{ const nb=document.getElementById('liveDrawerNew'); if(nb){ nb.addEventListener('click', ()=>{ try{ const sel=document.getElementById('liveWalletSel'); const nm=document.getElementById('liveWalletName'); const cap=document.getElementById('liveStartCap'); const fee=document.getElementById('liveFee'); const lev=document.getElementById('liveLev'); if(sel) sel.value='__new__'; if(nm) nm.value=''; if(cap) cap.value='10000'; if(fee) fee.value='0.10'; if(lev) lev.value='1'; // Set chart min-time to "now" for new wallet creation
+  try{ window.__liveChartMinTimeSec = Math.floor(Date.now()/1000); }catch(_){ }
+  // Apply filter immediately
+try{ if(Array.isArray(candles)){ candles = candles.filter(b=> b.time>=window.__liveChartMinTimeSec); candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge(); } }catch(_){ }
+  if(typeof populateLiveWalletsUI==='function') populateLiveWalletsUI(); if(typeof populateLiveTFOptions==='function') populateLiveTFOptions(); if(typeof populateLiveStrategyOptions==='function') populateLiveStrategyOptions(); openModalEl(liveModalEl); }catch(_){ } }); } }catch(_){ }
   // Side tab showing current wallet name + quick active toggle
   if(!document.getElementById('liveDrawerTab')){
     const tab=document.createElement('div'); tab.id='liveDrawerTab'; tab.style.position='fixed'; tab.style.left='0'; tab.style.top='100px'; tab.style.zIndex='1502'; tab.style.background= isDark()? '#111827' : '#e5e7eb'; tab.style.color= isDark()? '#e5e7eb' : '#111827'; tab.style.border= isDark()? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(0,0,0,0.15)'; tab.style.borderLeft='none'; tab.style.borderTopRightRadius='8px'; tab.style.borderBottomRightRadius='8px'; tab.style.padding='6px 10px'; tab.style.display='inline-flex'; tab.style.alignItems='center'; tab.style.gap='8px'; tab.style.cursor='pointer'; tab.innerHTML = '<span id="liveDrawerTabArrow">⟩</span><span id="liveDrawerTabName" style="max-width:140px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">—</span><label style="font-size:12px; display:flex; align-items:center; gap:6px; cursor:pointer;">Actif <input type="checkbox" id="liveDrawerTabActive" /></label>';
@@ -2783,10 +2837,21 @@ function computeSLFromLadder(dir, entry, i){ try{ if(!(lbcOpts.slEnable && Array
     if(uiDirty){ renderLiveHUD(); refreshLiveTradesUI(); }
   }catch(_){ }
 }
-if(liveStartBtn){ liveStartBtn.addEventListener('click', async ()=>{ try{ if(!(window.SUPA && SUPA.isConfigured && SUPA.isConfigured())){ setStatus('Supabase requis pour le mode headless'); return; } const name=(liveWalletName&&liveWalletName.value)||randomName(); const cap=Math.max(0, parseFloat(liveStartCap&&liveStartCap.value||'10000')); const fee=Math.max(0, parseFloat(liveFee&&liveFee.value||'0.1')); const lev=Math.max(1, parseFloat(liveLev&&liveLev.value||'1')); const sym=currentSymbol; const tf=(intervalSelect&&intervalSelect.value)||currentInterval||''; const params=currentHeavenParamsForPersist(); const ok = await SUPA.startHeadlessLive({ name, symbol:sym, tf, startCap:cap, fee, lev, params }); if(ok && ok.ok){ setStatus('Session live démarrée (headless)'); await headlessActivate(name); ensureLiveDrawer(); renderLiveDrawer(); closeModalEl(liveModalEl); } else { setStatus('Erreur démarrage headless'); } }catch(_){ } }); }
+if(liveStartBtn){ liveStartBtn.addEventListener('click', async ()=>{ try{ if(!(window.SUPA && SUPA.isConfigured && SUPA.isConfigured())){ setStatus('Supabase requis pour le mode headless'); return; } const name=(liveWalletName&&liveWalletName.value)||randomName(); const cap=Math.max(0, parseFloat(liveStartCap&&liveStartCap.value||'10000')); const fee=Math.max(0, parseFloat(liveFee&&liveFee.value||'0.1')); const lev=Math.max(1, parseFloat(liveLev&&liveLev.value||'1')); const sym=currentSymbol; const tfSel=(liveTFSelect&&liveTFSelect.value)||((intervalSelect&&intervalSelect.value)||currentInterval)||''; let params=currentHeavenParamsForPersist(); try{ const val=(liveStrategySel&&liveStrategySel.value)||''; const cache=(window.__liveStratCache||{}); if(val && Array.isArray(cache.items)){ const it=cache.items.find(x=> String(x.value)===String(val)); if(it && it.params){ params = it.params; } } }catch(_){ } const ok = await SUPA.startHeadlessLive({ name, symbol:sym, tf: tfSel, startCap:cap, fee, lev, params }); if(ok && ok.ok){ setStatus('Session live démarrée (headless)'); await headlessActivate(name); ensureLiveDrawer(); renderLiveDrawer(); closeModalEl(liveModalEl); } else { setStatus('Erreur démarrage headless'); } }catch(_){ } }); }
 if(liveStopBtn){ liveStopBtn.addEventListener('click', async ()=>{ try{ if(!(window.SUPA && SUPA.stopHeadlessLiveByName)) return; if(!__headlessActiveName) return; const ok=await SUPA.stopHeadlessLiveByName(__headlessActiveName); if(ok){ setStatus('Session headless arrêtée'); } else { setStatus('Arrêt échoué'); } ensureLiveDrawer(); renderLiveDrawer(); }catch(_){ } }); }
 
 async function headlessActivate(name){ try{ if(!name) return; __headlessActiveName=name; const sess = (window.SUPA && SUPA.fetchHeadlessSessionByName)? await SUPA.fetchHeadlessSessionByName(name) : null; if(!sess){ setStatus('Session introuvable'); return; } __headlessSessionId = sess.id; __headlessLastAt = null; __headlessTrades = []; __headlessMarkers={ entries:[], tps:[], sls:[], bes:[] }; if(__headlessRTSub && __headlessRTSub.unsubscribe){ try{ __headlessRTSub.unsubscribe(); }catch(_){ } __headlessRTSub=null; } if(__headlessPollTimer){ try{ clearInterval(__headlessPollTimer); }catch(_){ } __headlessPollTimer=null; }
+  // Enforce chart min-time at session creation
+try{ if(sess && sess.created_at){ const t=new Date(sess.created_at).getTime(); if(isFinite(t)){ window.__liveChartMinTimeSec = Math.floor(t/1000); updateCutoffBadge(); } } }catch(_){ }
+  // If symbol/TF differ, switch chart accordingly before polling
+  const needSwitch = (sess.symbol!==currentSymbol) || (sess.tf!==currentInterval);
+  if(needSwitch){
+    try{ currentSymbol=sess.symbol; currentInterval=sess.tf; if(symbolSelect) symbolSelect.value=currentSymbol; if(intervalSelect) intervalSelect.value=currentInterval; localStorage.setItem('chart:tf', currentInterval); updateTitle(currentSymbol); updateWatermark(); }catch(_){ }
+    closeWs(); await load(currentSymbol, currentInterval); openWs(currentSymbol, currentInterval);
+  } else {
+    // Apply filter immediately on current candles
+try{ if(typeof window.__liveChartMinTimeSec==='number' && isFinite(window.__liveChartMinTimeSec)){ candles = (candles||[]).filter(b=> b.time>=window.__liveChartMinTimeSec); candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge(); } }catch(_){ }
+  }
   liveSession = { active:true, symbol: sess.symbol, tf: sess.tf, equity: Number(sess.equity||sess.start_cap||0)||0, startCap: Number(sess.start_cap||0)||0 };
   openModalEl(stratModalEl); openModalEl(tradesModalEl); try{ ensureFloatingModal(stratModalEl, 'strat', { left: 40, top: 40, width: 480, height: 300, zIndex: bumpZ() }); ensureFloatingModal(tradesModalEl, 'trades', { left: 540, top: 40, width: 720, height: 360, zIndex: bumpZ() }); }catch(_){ }
   updateLiveDrawerTab();
