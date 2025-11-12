@@ -619,6 +619,7 @@ if(liveOpenBtn){ liveOpenBtn.addEventListener('click', async ()=>{ try{
   const drawer=document.getElementById('liveDrawer'); const isOpen = !!(drawer && drawer.dataset && drawer.dataset.open==='1');
   if(!isOpen){ // activer: highlight + ouvrir menu
     if(liveOpenBtn.classList) liveOpenBtn.classList.add('primary');
+    window.__liveUiHidden = false;
     ensureLiveDrawer();
     try{ const d=document.getElementById('liveDrawer'); if(d){ d.style.display=''; } }catch(_){ }
     updateLiveDrawerOpen(true); await renderLiveDrawer();
@@ -626,10 +627,8 @@ if(liveOpenBtn){ liveOpenBtn.addEventListener('click', async ()=>{ try{
     if(liveOpenBtn.classList) liveOpenBtn.classList.remove('primary');
     updateLiveDrawerOpen(false);
     try{ const d=document.getElementById('liveDrawer'); if(d){ d.style.display='none'; } }catch(_){ }
-    // Arrêter toute écoute headless et vider l'état live pour réactiver Heaven partout
-    try{ if(__headlessRTSub && __headlessRTSub.unsubscribe){ __headlessRTSub.unsubscribe(); } }catch(_){ }
-    try{ if(__headlessPollTimer){ clearInterval(__headlessPollTimer); } }catch(_){ }
-    try{ __headlessRTSub=null; __headlessPollTimer=null; __headlessSessionId=null; __headlessActiveName=null; liveSession=null; __headlessTrades=[]; liveEntryMarkers=[]; tpHitMarkers=[]; slHitMarkers=[]; beHitMarkers=[]; }catch(_){ }
+    // Masquer la couche Live côté UI, sans couper les connexions headless
+    window.__liveUiHidden = true;
     // cacher le badge cutoff et réinitialiser cutoff
     try{ delete window.__liveChartMinTimeSec; delete window.__liveChartMinTimeBaseSec; const b=document.getElementById('chartCutoff'); if(b){ b.style.display='none'; } }catch(_){ }
     // fermer les fenêtres flottantes de live si ouvertes
@@ -842,7 +841,7 @@ function renderLBC(){ if(!lbcOpts.enabled){ zzUpSeries.setData([]); zzDnSeries.s
   if(heavenTrendLine){ candleSeries.removePriceLine(heavenTrendLine); heavenTrendLine=null; }
   if(candles.length && lbcOpts.showTrend){ const lvl=lb.level[lb.level.length-1]; const col=lb.trend[lb.trend.length-1]===1? (lbcOpts.trendUpColor||'#00ff00') : (lbcOpts.trendDnColor||'#ff0000'); heavenTrendLine = candleSeries.createPriceLine({ price:lvl, color: col, lineStyle: LightweightCharts.LineStyle.Solid, lineWidth:2, title:'Reversal' }); }
 updateFibAndTPLines(piv);
-try{ const liveActive = !!(liveSession && liveSession.active); const showAr = (!!lbcOpts.showArrows) && !liveActive; const markers= showAr? buildHeavenMarkers(candles, lb, piv): []; const entries=liveEntryMarkers||[]; const tps=tpHitMarkers||[]; const sls=slHitMarkers||[]; const bes=beHitMarkers||[]; if((lbcOpts.arrowOffsetPx|0)>0){ renderMkHTML((showAr?markers:[]).concat(entries, tps, sls, bes)); candleSeries.setMarkers(tps.concat(sls, bes, entries)); } else { clearMkLayer(); candleSeries.setMarkers(tps.concat(sls, bes, entries, (showAr?markers:[]))); } }catch(_){ }
+try{ const liveActive = (!!(liveSession && liveSession.active)) && !(window.__liveUiHidden); const showAr = (!!lbcOpts.showArrows) && !liveActive; const markers= showAr? buildHeavenMarkers(candles, lb, piv): []; const entries=(window.__liveUiHidden? [] : (liveEntryMarkers||[])); const tps=(window.__liveUiHidden? [] : (tpHitMarkers||[])); const sls=(window.__liveUiHidden? [] : (slHitMarkers||[])); const bes=(window.__liveUiHidden? [] : (beHitMarkers||[])); if((lbcOpts.arrowOffsetPx|0)>0){ renderMkHTML((showAr?markers:[]).concat(entries, tps, sls, bes)); candleSeries.setMarkers(tps.concat(sls, bes, entries)); } else { clearMkLayer(); candleSeries.setMarkers(tps.concat(sls, bes, entries, (showAr?markers:[]))); } }catch(_){ }
   try{ renderLBCOverlay(lb, piv); ensureDraggableLBCProb(); }catch(_){ }
 }
 
