@@ -3,7 +3,7 @@
   const LS_URL = 'supabase:url';
   const LS_ANON = 'supabase:anon';
   let client = null;
-  let profileIdCache = null;
+let __profileIdCacheByName = new Map();
 
   function staticCfg(){
     try{
@@ -52,20 +52,23 @@
     return false;
   }
 
-  async function getBalanceeProfileId(){
-    if(profileIdCache) return profileIdCache;
+function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfile') || 'balancee'; }catch(_){ return 'balancee'; } }
+  async function getProfileIdByName(name){
+    const key = (name||'balancee').toLowerCase();
+    if(__profileIdCacheByName.has(key)) return __profileIdCacheByName.get(key);
     const c = ensureClient(); if(!c) return null;
     try{
       const { data, error } = await c
         .from('lab_profiles')
         .select('id')
-        .eq('name','balancee')
+        .eq('name', key)
         .is('is_public', true)
         .limit(1)
         .maybeSingle();
       if(error) return null;
-      profileIdCache = data && data.id || null;
-      return profileIdCache;
+      const id = (data && data.id) || null;
+      __profileIdCacheByName.set(key, id);
+      return id;
     }catch(_){ return null; }
   }
 
@@ -167,13 +170,14 @@
     }catch(e){ slog('Supabase: testConnection exception — '+(e&&e.message?e.message:e)); return false; }
   }
 
-  async function persistLabResults(ctx){
+async function persistLabResults(ctx){
     try{
       const c = ensureClient(); if(!c){ slog('Supabase: client indisponible'); return; }
       const ok = await testConnection(); if(!ok){ slog('Supabase: connexion KO, annulation de la persistance'); return; }
       // Public pool: no auth, rows written with user_id = null
       const uid = null;
-      const profileId = await getBalanceeProfileId();
+      const profName = (ctx && ctx.profileName) || currentProfileName();
+      const profileId = await getProfileIdByName(profName);
       const sym = ctx.symbol, tf = ctx.tf;
       const now = Date.now();
       const runContext = { source:'UI:Lab', ts: now };
@@ -238,9 +242,9 @@
     alert('Configuration Supabase enregistrée (mode public, sans identification).');
   }
 
-  async function fetchKnownCanonicalKeys(symbol, tf){
+async function fetchKnownCanonicalKeys(symbol, tf, profileName){
     const c=ensureClient(); if(!c) return new Set();
-    const profileId = await getBalanceeProfileId();
+    const profileId = await getProfileIdByName(profileName || currentProfileName());
     const out=new Set();
     let from=0, step=1000; // simple paging
     while(true){
@@ -296,9 +300,9 @@
     };
   }
 
-  async function fetchPalmares(symbol, tf, limit=25){
+async function fetchPalmares(symbol, tf, limit=25, profileName){
     const c=ensureClient(); if(!c) return [];
-    const profileId = await getBalanceeProfileId();
+    const profileId = await getProfileIdByName(profileName || currentProfileName());
     function mapRows(rows){ const out=[]; let idx=1; for(const row of rows||[]){ const paramsUI=uiParamsFromCanonical(row.params||{}); const metrics=row.metrics||{}; const score=(typeof row.score==='number')? row.score:0; const name=row.name||null; out.push({ id:'db_'+(idx++), name, gen:1, params:paramsUI, res:metrics, score, ts:Date.now() }); } return out; }
     try{
       // Primary: global best by pair/TF (selected=true), ordered by score desc
@@ -386,6 +390,7 @@
     getUserId,
     fetchKnownKeys: fetchKnownCanonicalKeys,
     fetchPalmares,
+    getProfileIdByName,
     // Heaven
     persistHeavenStrategy,
     fetchHeavenStrategies,

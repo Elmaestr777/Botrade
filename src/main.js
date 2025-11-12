@@ -26,11 +26,12 @@ function randomName(){ const dicts=[DICT_FR,DICT_EN,DICT_ES,DICT_PL]; const d=di
 function uniqueNameFor(sym, tf, base){ const pal=readPalmares(sym, tf); const names=new Set(pal.map(x=>x.name)); let n=base; let k=2; while(names.has(n)){ n=base+"-"+k; k++; } return n; }
 async function renderLabFromStorage(){
   const tf = labTFSelect? labTFSelect.value: (intervalSelect? intervalSelect.value:''), sym=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol;
+  const profSel = (document.getElementById('labProfile') && document.getElementById('labProfile').value) || (localStorage.getItem('labWeightsProfile')||'balancee');
   let arr=[]; let source='local';
   // Si Supabase est configuré, on lit UNIQUEMENT Supabase pour le palmarès
   if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchPalmares==='function'){
     try{
-      const supaArr = await SUPA.fetchPalmares(sym, tf, 25);
+      const supaArr = await SUPA.fetchPalmares(sym, tf, 25, profSel);
       if(Array.isArray(supaArr)) { arr = supaArr; source='Supabase'; }
     }catch(_){ /* en cas d'erreur Supabase, on laisse arr = [] */ }
   } else {
@@ -1927,7 +1928,7 @@ function updateGlobalProgressUI(){ try{ let tot=Math.max(0,__labSimTotal), dn=Ma
   __lastLabTested = allTested;
   // Preload known keys from Supabase to avoid retest across sessions
   let seenCanon = new Set();
-  try{ if(window.SUPA && typeof SUPA.fetchKnownKeys==='function'){ seenCanon = await SUPA.fetchKnownKeys(sym, tfSel) || new Set(); addBtLog && addBtLog(`Déduplication: ${seenCanon.size} stratégies déjà en base`); } }catch(_){ }
+  try{ if(window.SUPA && typeof SUPA.fetchKnownKeys==='function'){ const profSel=(document.getElementById('labProfile') && document.getElementById('labProfile').value) || (localStorage.getItem('labWeightsProfile')||'balancee'); seenCanon = await SUPA.fetchKnownKeys(sym, tfSel, profSel) || new Set(); addBtLog && addBtLog(`Déduplication (${profSel}): ${seenCanon.size} stratégies déjà en base`); } }catch(_){ }
   // Stopping conditions
   const timeLimitSec = Math.max(0, parseInt((document.getElementById('labTimeLimitSec')&&document.getElementById('labTimeLimitSec').value)||'0',10));
   const maxEvals = Math.max(0, parseInt((document.getElementById('labMaxEvals')&&document.getElementById('labMaxEvals').value)||'0',10));
@@ -2439,11 +2440,11 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
     try{ const sorted = allTested.slice().sort((a,b)=> (b.score||0)-(a.score||0)); finalResults = sorted.slice(0, Math.min(10, sorted.length)).map(it=>({ p: it.params||{}, res: it.metrics||{}, score: it.score||0, gen:1, name:null })); addBtLog && addBtLog(`Fallback best depuis évaluations: ${finalResults.length}`); }catch(_){ }
   }
 
-if(goal==='new'){
+  if(goal==='new'){
     const bestOut = finalResults.slice(0, Math.min(10, finalResults.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen:1, name: x.name||null }));
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.persistLabResults==='function'){
       // Tout passe par Supabase
-      try{ await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut }); }catch(_){ }
+      try{ await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut, profileName: (localStorage.getItem('labWeightsProfile')||'balancee') }); }catch(_){ }
       try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
     } else {
       // Fallback local uniquement si Supabase non configuré
@@ -2454,7 +2455,7 @@ if(goal==='new'){
   } else {
     const bestOut = finalResults.slice(0, Math.min(10, finalResults.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen: (x.gen||1), name: x.name||null }));
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.persistLabResults==='function'){
-      try{ await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut }); }catch(_){ }
+      try{ await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut, profileName: (localStorage.getItem('labWeightsProfile')||'balancee') }); }catch(_){ }
       try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
     } else {
       try{ writePalmares(sym, tfSel, bestOut); }catch(_){ }
