@@ -213,6 +213,7 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
 #preloadOverlay.hidden { display: none; }
 #preloadClip { position:absolute; left:50%; top:50%; transform: translate(-50%, -50%); width:100vw; height:100vh; border-radius: 0px; box-shadow: 0 0 0 rgba(0,0,0,0); overflow: hidden; }
 #preloadSheet { position:absolute; inset:0; transform-origin: 50% 50%; transform-style: preserve-3d; backface-visibility: hidden; }
+#preloadSheet.sheet-hide { opacity: 0; transition: opacity 160ms ease; }
 #preloadSheet::before { content:''; position:absolute; inset:0; pointer-events:none; opacity:0; background:
   /* Primary grid (horizontal/vertical) */
   repeating-linear-gradient(0deg, rgba(255,255,255,0.10) 0, rgba(255,255,255,0.10) 1px, rgba(0,0,0,0) 1px, rgba(0,0,0,0) 40px),
@@ -235,6 +236,22 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
 #preloadSheet.grid-on::before { opacity: 0.55; transition: opacity 180ms ease; }
 #preloadSheet.grid-anim::before { animation: gridShimmer 900ms ease-in-out both; }
 #preloadVideo, #preloadCanvas { display:block; width:100vw; height:100vh; object-fit: cover; }
+#preloadPlane { position:absolute; inset:0; opacity:0; pointer-events:none; background-size: cover; background-position: center; transform-origin: 50% 50%; transform-style: preserve-3d; filter: drop-shadow(0 14px 28px rgba(0,0,0,0.28)); }
+#preloadPlane.plane-on { opacity: 1; transition: opacity 160ms ease; }
+#preloadPlane.plane-fold { animation: planeFold 800ms cubic-bezier(0.22,1,0.36,1) forwards; }
+#preloadPlane.plane-flight { animation: planeFlight 1100ms cubic-bezier(0.22,1,0.36,1) forwards; }
+@keyframes planeFold {
+  0% { clip-path: polygon(0 0,100% 0,100% 100%,0 100%); transform: perspective(1000px) rotateX(0) rotateY(0); }
+  40% { clip-path: polygon(6% 4%,94% 6%,94% 94%,6% 96%); transform: perspective(1000px) rotateX(10deg) rotateY(-8deg); }
+  70% { clip-path: polygon(0 8%,92% 50%,0 92%,0 92%); transform: perspective(1000px) rotateX(18deg) rotateY(-16deg); }
+  100% { clip-path: polygon(0 12%,100% 50%,0 88%); transform: perspective(1000px) rotateX(28deg) rotateY(-22deg); }
+}
+@keyframes planeFlight {
+  0% { transform: perspective(1000px) rotateX(28deg) rotateY(-22deg) rotateZ(0deg) translate3d(0,0,0); filter: drop-shadow(0 14px 28px rgba(0,0,0,0.28)); }
+  40% { transform: perspective(1000px) rotateX(24deg) rotateY(-18deg) rotateZ(-10deg) translate3d(-4px,-6px,0); filter: drop-shadow(0 18px 36px rgba(0,0,0,0.32)); }
+  80% { transform: perspective(1000px) rotateX(20deg) rotateY(-12deg) rotateZ(-18deg) translate3d(-8px,-10px,0); filter: drop-shadow(0 12px 24px rgba(0,0,0,0.22)); }
+  100% { transform: perspective(1000px) rotateX(16deg) rotateY(-8deg) rotateZ(-22deg) translate3d(-12px,-14px,0); filter: drop-shadow(0 6px 16px rgba(0,0,0,0.18)); }
+}
 #preloadCreases { position:absolute; inset:0; opacity:0; pointer-events:none; background:
   /* Fine dense grid */
   repeating-linear-gradient(0deg, rgba(255,255,255,0.08) 0, rgba(255,255,255,0.08) 1px, rgba(0,0,0,0) 1px, rgba(0,0,0,0) 24px),
@@ -256,6 +273,15 @@ background-blend-mode: soft-light; will-change: transform, opacity, background-p
 /* Paper-like animations */
 .pre-crumple { animation: preCrumple 250ms ease-in-out both; }
 .pre-fold { animation: preFold 900ms cubic-bezier(0.22,1,0.36,1) both; }
+/* Paper curl (corner roll) */
+.paper-curl { animation: paperCurl 600ms cubic-bezier(0.22,1,0.36,1) both; }
+@keyframes paperCurl {
+  0% { transform: perspective(900px) rotateX(0deg) rotateY(0deg) scale(1); border-radius: 0px; }
+  25% { transform: perspective(900px) rotateX(6deg) rotateY(-8deg) scale(0.992); border-radius: 8px; }
+  50% { transform: perspective(900px) rotateX(10deg) rotateY(-14deg) scale(0.986); border-radius: 16px; }
+  75% { transform: perspective(900px) rotateX(8deg) rotateY(-10deg) scale(0.988); border-radius: 20px; }
+  100% { transform: perspective(900px) rotateX(4deg) rotateY(-6deg) scale(0.992); border-radius: 24px; }
+}
 @keyframes preCrumple {
   0% { transform: none; filter: none; }
   30% { transform: scale(0.985) rotateZ(-0.6deg) skewX(-1.2deg) skewY(0.8deg); filter: contrast(1.03) brightness(0.98); }
