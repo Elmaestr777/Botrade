@@ -2597,7 +2597,10 @@ async function setActiveLive(id){ try{ const s=liveSessions[id]; if(!s) return; 
     closeWs(); await load(currentSymbol, currentInterval); openWs(currentSymbol, currentInterval);
   }
   try{ tpHitMarkers=(s.markers&&s.markers.tps)||[]; slHitMarkers=(s.markers&&s.markers.sls)||[]; beHitMarkers=(s.markers&&s.markers.bes)||[]; liveEntryMarkers=(s.markers&&s.markers.entries)||[]; }catch(_){ }
-  renderLBC(); renderLiveHUD(); refreshLiveTradesUI(); renderLiveDrawer(); }catch(_){ } }
+  renderLBC(); renderLiveHUD(); refreshLiveTradesUI(); renderLiveDrawer();
+  // Re-open the two floating popups (Résultats + Trades) when switching wallet via left menu
+  try{ openModalEl(stratModalEl); openModalEl(tradesModalEl); ensureFloatingModal(stratModalEl, 'strat', { left: 40, top: 40, width: 480, height: 300, zIndex: bumpZ() }); ensureFloatingModal(tradesModalEl, 'trades', { left: 540, top: 40, width: 720, height: 360, zIndex: bumpZ() }); }catch(_){ }
+}catch(_){ } }
 function multiLiveOnBar(bar){ try{ const arr=Object.values(liveSessions); for(const s of arr){ if(!s.active) continue; if(!(s.symbol===currentSymbol && s.tf===currentInterval)) continue; __mkRoutingSession = s; if(!s.markers) s.markers={ entries:[], tps:[], sls:[], bes:[] };
     const prevLS=liveSession, prevPos=livePos, prevPF=livePendingFib, prevTrades=liveTrades; liveSession=s; livePos=s.pos||null; livePendingFib=s.pendingFib||null; liveTrades=s.trades||[]; try{ liveOnBar(bar); }catch(_){ } s.pos=livePos; s.pendingFib=livePendingFib; s.trades=liveTrades; if(s.id===activeLiveId){ try{ tpHitMarkers=(s.markers&&s.markers.tps)||[]; slHitMarkers=(s.markers&&s.markers.sls)||[]; beHitMarkers=(s.markers&&s.markers.bes)||[]; liveEntryMarkers=(s.markers&&s.markers.entries)||[]; renderLBC(); renderLiveHUD(); refreshLiveTradesUI(); }catch(_){ } } liveSession=prevLS; livePos=prevPos; livePendingFib=prevPF; liveTrades=prevTrades; __mkRoutingSession=null; } }catch(_){ } }
 // Live state for markers and position mgmt (with equity and trade events)
