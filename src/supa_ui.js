@@ -414,6 +414,20 @@ async function fetchPalmares(symbol, tf, limit=25, profileName){
     const c=ensureClient(); if(!c) return [];
     try{ const { data, error } = await c.from('live_sessions').select('id,name,symbol,tf,active,equity,start_cap,updated_at').order('updated_at',{ascending:false}).limit(Math.max(1,limit)); if(error){ slog('Supabase: fetchHeadlessSessions KO — '+(error.message||error)); return []; } return Array.isArray(data)? data:[]; }catch(_){ return []; }
   }
+  async function fetchHeadlessSessionByName(name){
+    const c=ensureClient(); if(!c||!name) return null;
+    try{ const { data, error } = await c.from('live_sessions').select('id,name,symbol,tf,active,equity,start_cap,last_bar_time,updated_at').eq('name', name).maybeSingle(); if(error){ slog('Supabase: fetchHeadlessSessionByName KO — '+(error.message||error)); return null; } return data||null; }catch(_){ return null; }
+  }
+  async function fetchLiveEvents(sessionId, sinceIso, limit=500){
+    const c=ensureClient(); if(!c||!sessionId) return [];
+    try{
+      let q = c.from('live_events').select('id,kind,at_time,payload').eq('session_id', sessionId).order('at_time',{ascending:true}).limit(Math.max(1,limit));
+      if(sinceIso){ q = q.gt('at_time', sinceIso); }
+      const { data, error } = await q;
+      if(error){ slog('Supabase: fetchLiveEvents KO — '+(error.message||error)); return []; }
+      return Array.isArray(data)? data:[];
+    }catch(_){ return []; }
+  }
 
   // Live wallets API (Supabase)
   // Persist a wallet (public/no-auth by default): { name, startCap, fee, lev, exchange='paper', base_currency='USDC' }
@@ -489,6 +503,8 @@ async function fetchPalmares(symbol, tf, limit=25, profileName){
     startHeadlessLive,
     stopHeadlessLiveByName,
     fetchHeadlessSessions,
+    fetchHeadlessSessionByName,
+    fetchLiveEvents,
     // Wallets
     persistLiveWallet,
     fetchLiveWallets,
