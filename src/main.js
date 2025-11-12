@@ -2578,17 +2578,41 @@ let liveSession=null; const liveStartBtn=document.getElementById('liveStart'); c
 let liveSessions = {}; let activeLiveId=null;
 function anyLiveActive(){ try{ return Object.values(liveSessions).some(s=>!!s.active); }catch(_){ return !!(liveSession&&liveSession.active); } }
 function ensureLiveDrawer(){ try{ if(document.getElementById('liveDrawer')) return; // Drawer
-  const d=document.createElement('div'); d.id='liveDrawer'; d.style.position='fixed'; d.style.left='0'; d.style.top='60px'; d.style.bottom='0'; d.style.width='260px'; d.style.background= isDark()? '#0b0f1a' : '#f9fafb'; d.style.borderRight= isDark()? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)'; d.style.transform='translateX(-240px)'; d.style.transition='transform .2s ease'; d.style.zIndex='1500'; d.style.padding='8px'; d.innerHTML = '<div style="font-weight:600;margin-bottom:6px;">Live wallets</div><div id="liveDrawerList" style="overflow:auto; max-height: calc(100% - 10px);"></div>';
+  const d=document.createElement('div'); d.id='liveDrawer'; d.style.position='fixed'; d.style.left='0'; d.style.top='60px'; d.style.bottom='0'; d.style.width='260px'; d.style.background= isDark()? '#0b0f1a' : '#f9fafb'; d.style.borderRight= isDark()? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)'; d.style.transform='translateX(-240px)'; d.style.transition='transform .2s ease'; d.style.zIndex='1500'; d.style.padding='8px';
+  // Header with collapse icon moved to the right
+  d.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">'+
+                '<div style="font-weight:600;">Live wallets</div>'+
+                '<button id="liveDrawerCollapse" class="icon-btn" title="Replier">⟨</button>'+
+                '</div>'+
+                '<div id="liveDrawerList" style="overflow:auto; max-height: calc(100% - 10px);"></div>';
   document.body.appendChild(d);
-  // Toggle button
-  if(!document.getElementById('liveDrawerBtn')){ const b=document.createElement('button'); b.id='liveDrawerBtn'; b.textContent='≡'; b.className='btn'; b.style.position='fixed'; b.style.left='8px'; b.style.top='70px'; b.style.zIndex='1501'; b.addEventListener('click', ()=>{ const open = d.dataset.open==='1'; d.dataset.open = open?'0':'1'; d.style.transform = open? 'translateX(-240px)' : 'translateX(0)'; }); document.body.appendChild(b); }
+  // Hide old floating button if present
+  try{ const old=document.getElementById('liveDrawerBtn'); if(old){ old.style.display='none'; } }catch(_){ }
+  // Side tab showing current wallet name + quick active toggle
+  if(!document.getElementById('liveDrawerTab')){
+    const tab=document.createElement('div'); tab.id='liveDrawerTab'; tab.style.position='fixed'; tab.style.left='0'; tab.style.top='100px'; tab.style.zIndex='1502'; tab.style.background= isDark()? '#111827' : '#e5e7eb'; tab.style.color= isDark()? '#e5e7eb' : '#111827'; tab.style.border= isDark()? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(0,0,0,0.15)'; tab.style.borderLeft='none'; tab.style.borderTopRightRadius='8px'; tab.style.borderBottomRightRadius='8px'; tab.style.padding='6px 10px'; tab.style.display='inline-flex'; tab.style.alignItems='center'; tab.style.gap='8px'; tab.style.cursor='pointer'; tab.innerHTML = '<span id="liveDrawerTabArrow">⟩</span><span id="liveDrawerTabName" style="max-width:140px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">—</span><label style="font-size:12px; display:flex; align-items:center; gap:6px; cursor:pointer;">Actif <input type="checkbox" id="liveDrawerTabActive" /></label>';
+    tab.addEventListener('click', (ev)=>{ try{ if(ev && ev.target && (ev.target.id==='liveDrawerTabActive')) return; const open = d.dataset.open==='1'; updateLiveDrawerOpen(!open); }catch(_){ } });
+    document.body.appendChild(tab);
+    // Header collapse button wires the same behavior
+    const col=document.getElementById('liveDrawerCollapse'); if(col){ col.addEventListener('click', ()=>{ const open = d.dataset.open==='1'; updateLiveDrawerOpen(!open); }); }
+    // Active toggle in tab
+    const ck=()=> document.getElementById('liveDrawerTabActive');
+    const onActChange=()=>{ try{ const c=ck(); if(!c) return; const id=activeLiveId; if(!id) return; const s=liveSessions[id]; if(!s) return; s.active = !!c.checked; renderLBC(); }catch(_){ } };
+    try{ ck().addEventListener('change', onActChange); }catch(_){ }
+  }
 }catch(_){ } }
-function renderLiveDrawer(){ try{ ensureLiveDrawer(); const list=document.getElementById('liveDrawerList'); if(!list) return; const arr=Object.values(liveSessions); list.innerHTML = arr.map(s=>{ const on=!!s.active; const sel=(s.id===activeLiveId); return `<div data-id="${s.id}" class="lw-item" style="padding:6px; margin:4px 0; border-radius:6px; cursor:pointer; background:${sel? (isDark()? '#111827':'#e5e7eb') : 'transparent'};">`+
-  `<div style=\"display:flex; align-items:center; justify-content:space-between;\"><div style=\"font-weight:600;\">${s.name||s.id}</div>`+
+// Update drawer open/close state + tab arrow
+function updateLiveDrawerOpen(open){ try{ const d=document.getElementById('liveDrawer'); const tab=document.getElementById('liveDrawerTab'); const arrow=document.getElementById('liveDrawerTabArrow'); if(!d) return; d.dataset.open = open?'1':'0'; d.style.transform = open? 'translateX(0)' : 'translateX(-240px)'; if(arrow){ arrow.textContent = open? '⟨':'⟩'; } if(tab){ tab.style.opacity='1'; } }catch(_){ }
+}
+// Update tab content (name + active)
+function updateLiveDrawerTab(){ try{ const nameEl=document.getElementById('liveDrawerTabName'); const actEl=document.getElementById('liveDrawerTabActive'); const s=liveSessions && activeLiveId? liveSessions[activeLiveId] : null; if(nameEl){ nameEl.textContent = (s && s.name) ? s.name : '—'; } if(actEl && s){ actEl.checked = !!s.active; } }catch(_){ } }
+function renderLiveDrawer(){ try{ ensureLiveDrawer(); const list=document.getElementById('liveDrawerList'); if(!list) return; const arr=Object.values(liveSessions); list.innerHTML = arr.map(s=>{ const on=!!s.active; const sel=(s.id===activeLiveId); return `<div data-id=\"${s.id}\" class=\"lw-item\" style=\"padding:6px; margin:4px 0; border-radius:6px; cursor:pointer; background:${sel? (isDark()? '#111827':'#e5e7eb') : 'transparent'};\">`+
+  `<div style=\"display:flex; align-items:center; justify-content:space-between; gap:8px;\"><div style=\"font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;\">${s.name||s.id}</div>`+
   `<label style=\"font-size:12px; display:flex; align-items:center; gap:6px;\">Actif <input type=\"checkbox\" data-act=\"1\" ${on?'checked':''} /></label></div>`+
   `<div style=\"font-size:12px; color:${isDark()? '#9ca3af':'#4b5563'};\">${symbolToDisplay(s.symbol)} • ${s.tf}</div>`+
   `</div>`; }).join('');
   list.querySelectorAll('.lw-item').forEach(el=>{ const id=el.getAttribute('data-id'); el.addEventListener('click', (e)=>{ const t=e.target; if(t && t.getAttribute && t.getAttribute('data-act')==='1') return; setActiveLive(id); }); const ck=el.querySelector('input[type=checkbox][data-act]'); if(ck){ ck.addEventListener('change', ()=>{ const s=liveSessions[id]; if(s){ s.active=!!ck.checked; } }); } });
+  updateLiveDrawerTab();
 }catch(_){ } }
 async function setActiveLive(id){ try{ const s=liveSessions[id]; if(!s) return; activeLiveId=id; liveSession=s; // adopt TF/symbol/strategy
   if(s.strategy){ lbcOpts = { ...defaultLBC, ...s.strategy }; saveLBCOpts(); }
@@ -2597,7 +2621,8 @@ async function setActiveLive(id){ try{ const s=liveSessions[id]; if(!s) return; 
     closeWs(); await load(currentSymbol, currentInterval); openWs(currentSymbol, currentInterval);
   }
   try{ tpHitMarkers=(s.markers&&s.markers.tps)||[]; slHitMarkers=(s.markers&&s.markers.sls)||[]; beHitMarkers=(s.markers&&s.markers.bes)||[]; liveEntryMarkers=(s.markers&&s.markers.entries)||[]; }catch(_){ }
-  renderLBC(); renderLiveHUD(); refreshLiveTradesUI(); renderLiveDrawer();
+renderLBC(); renderLiveHUD(); refreshLiveTradesUI(); renderLiveDrawer();
+  try{ updateLiveDrawerTab(); }catch(_){ }
   // Re-open the two floating popups (Résultats + Trades) when switching wallet via left menu
   try{ openModalEl(stratModalEl); openModalEl(tradesModalEl); ensureFloatingModal(stratModalEl, 'strat', { left: 40, top: 40, width: 480, height: 300, zIndex: bumpZ() }); ensureFloatingModal(tradesModalEl, 'trades', { left: 540, top: 40, width: 720, height: 360, zIndex: bumpZ() }); }catch(_){ }
 }catch(_){ } }
