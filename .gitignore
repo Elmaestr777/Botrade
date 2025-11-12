@@ -6,6 +6,9 @@ supabase.exe
 supabase/.temp/
 supabase/.branches/
 
+# Runner env (do not commit)
+.env.runner
+
 # Dependencies and envs
 node_modules/
 .venv/

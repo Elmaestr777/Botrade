@@ -6,9 +6,10 @@
   "engines": { "node": ">=18" },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
-    "ws": "^8.18.0"
+    "ws": "^8.18.0",
+    "dotenv": "^16.4.5"
   },
   "scripts": {
-    "start": "node runner/index.js"
+    "start": "node index.js"
   }
 }
