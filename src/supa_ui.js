@@ -380,6 +380,41 @@ async function fetchPalmares(symbol, tf, limit=25, profileName){
     try{ const { error } = await c.from('heaven_strategies').update({ name }).eq('id', id); if(error){ slog('Supabase: renameHeavenStrategy KO — '+(error.message||error)); return false; } return true; }catch(_){ return false; }
   }
 
+  // Headless live sessions API (Supabase)
+  async function startHeadlessLive(ctx){
+    const c=ensureClient(); if(!c) return { ok:false };
+    try{
+      const p = (ctx && ctx.params) || (typeof window!=='undefined' && typeof window.currentHeavenParamsForPersist==='function'? window.currentHeavenParamsForPersist(): {});
+      const name = (ctx && ctx.name) || (typeof window!=='undefined' && window.liveWalletName && window.liveWalletName.value) || (typeof window!=='undefined' && window.randomName && window.randomName()) || 'live';
+      const row = {
+        user_id: null,
+        wallet_id: null,
+        name,
+        symbol: ctx.symbol,
+        tf: ctx.tf,
+        active: true,
+        strategy_params: p,
+        equity: Number(ctx.startCap)||0,
+        start_cap: Number(ctx.startCap)||0,
+        fee: Number(ctx.fee||0.1)||0.1,
+        lev: Number(ctx.lev||1)||1,
+        last_bar_time: null,
+        pos: null,
+      };
+      const { error } = await c.from('live_sessions').upsert([row], { onConflict: 'name', ignoreDuplicates: false, returning: 'minimal' });
+      if(error){ slog('Supabase: startHeadlessLive KO — '+(error.message||error)); return { ok:false, error:error.message||String(error) }; }
+      return { ok:true };
+    }catch(e){ return { ok:false, error:(e&&e.message)||String(e) }; }
+  }
+  async function stopHeadlessLiveByName(name){
+    const c=ensureClient(); if(!c||!name) return false;
+    try{ const { error } = await c.from('live_sessions').update({ active:false }).eq('name', name); if(error){ slog('Supabase: stopHeadlessLive KO — '+(error.message||error)); return false; } return true; }catch(_){ return false; }
+  }
+  async function fetchHeadlessSessions(limit=50){
+    const c=ensureClient(); if(!c) return [];
+    try{ const { data, error } = await c.from('live_sessions').select('id,name,symbol,tf,active,equity,start_cap,updated_at').order('updated_at',{ascending:false}).limit(Math.max(1,limit)); if(error){ slog('Supabase: fetchHeadlessSessions KO — '+(error.message||error)); return []; } return Array.isArray(data)? data:[]; }catch(_){ return []; }
+  }
+
   // Live wallets API (Supabase)
   // Persist a wallet (public/no-auth by default): { name, startCap, fee, lev, exchange='paper', base_currency='USDC' }
   async function persistLiveWallet(ctx){
@@ -450,6 +485,10 @@ async function fetchPalmares(symbol, tf, limit=25, profileName){
     fetchHeavenStrategies,
     deleteHeavenStrategy,
     renameHeavenStrategy,
+    // Headless live
+    startHeadlessLive,
+    stopHeadlessLiveByName,
+    fetchHeadlessSessions,
     // Wallets
     persistLiveWallet,
     fetchLiveWallets,
