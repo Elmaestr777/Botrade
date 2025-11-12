@@ -10,6 +10,13 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <!-- Preloader overlay -->
+    <div id="preloadOverlay">
+      <div id="preloadClip">
+        <video id="preloadVideo" src="assets/preload.mp4" muted playsinline autoplay></video>
+        <canvas id="preloadCanvas" style="display:none;"></canvas>
+      </div>
+    </div>
     <header>
       <img id="brandLogo" src="assets/botrade_header.png" alt="botrade" class="brand-logo" />
       <h1 id="pairTitle" style="display:none">BTC/USDC</h1>

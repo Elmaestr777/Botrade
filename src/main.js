@@ -1,4 +1,18 @@
 
+// --- Preloader video overlay ---
+(function setupPreloader(){ try{
+  const overlay=document.getElementById('preloadOverlay'); if(!overlay) return;
+  const clip=document.getElementById('preloadClip');
+  const vid=document.getElementById('preloadVideo');
+  const canv=document.getElementById('preloadCanvas');
+  function freezeLastFrame(){ try{ if(!(vid && canv)) return; const w=vid.videoWidth||1920, h=vid.videoHeight||1080; canv.width=w; canv.height=h; const ctx=canv.getContext('2d'); ctx.drawImage(vid,0,0,w,h); vid.style.display='none'; canv.style.display='block'; }catch(_){ } }
+  function animateToLogo(){ try{ const lg=document.getElementById('brandLogo'); const lr=lg? lg.getBoundingClientRect() : {left:12, top:12, width:40, height:40}; const cr=clip.getBoundingClientRect(); const cx=cr.left+cr.width/2, cy=cr.top+cr.height/2; const tx=lr.left+lr.width/2, ty=lr.top+lr.height/2; const dx=tx-cx, dy=ty-cy; const s=Math.max(0.12, Math.min((lr.width||40)/Math.max(1, cr.width), 0.2)); clip.style.willChange='transform, border-radius, box-shadow, opacity'; clip.style.transition='transform 900ms cubic-bezier(0.22,1,0.36,1), border-radius 900ms ease, box-shadow 900ms ease, opacity 300ms linear 700ms'; clip.style.borderRadius='10px'; clip.style.boxShadow='0 18px 48px rgba(0,0,0,0.35)'; clip.style.transform=`translate(-50%, -50%) translate(${dx}px, ${dy}px) scale(${s}) rotate(-8deg)`; clip.addEventListener('transitionend', ()=>{ try{ overlay.remove(); }catch(_){ overlay.style.display='none'; } }, { once:true }); }catch(_){ try{ overlay.remove(); }catch(__){} } }
+  function afterEnd(){ setTimeout(animateToLogo, 2000); }
+  if(vid){ vid.addEventListener('ended', ()=>{ try{ freezeLastFrame(); }catch(_){ } afterEnd(); }); vid.addEventListener('error', ()=>{ afterEnd(); }); setTimeout(()=>{ try{ if(vid.ended){ freezeLastFrame(); afterEnd(); } }catch(_){ } }, 100); }
+  // Safety timeout if video can't play or is missing
+  setTimeout(()=>{ try{ if(document.body.contains(overlay)){ if(vid){ try{ freezeLastFrame(); }catch(_){ } } afterEnd(); } }catch(_){ } }, 15000);
+}catch(_){ } })();
+
 // --- Lab: Entrainer (AI surrogate) ---
 
 

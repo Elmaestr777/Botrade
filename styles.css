@@ -207,3 +207,9 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
 .pnl-neg { color: #ef4444; }
 .pnl-zero { color: var(--muted); }
 .caret { display:inline-block; transition: transform 120ms ease; margin-right:4px; }
+
+/* Preloader video overlay */
+#preloadOverlay { position: fixed; inset: 0; z-index: 10000; background: #000; display:flex; align-items:center; justify-content:center; }
+#preloadOverlay.hidden { display: none; }
+#preloadClip { position:absolute; left:50%; top:50%; transform: translate(-50%, -50%); border-radius: 0px; box-shadow: 0 0 0 rgba(0,0,0,0); overflow: hidden; }
+#preloadVideo, #preloadCanvas { display:block; max-width: min(92vw, 92vh); max-height: min(92vh, 92vw); width:auto; height:auto; object-fit: contain; }
