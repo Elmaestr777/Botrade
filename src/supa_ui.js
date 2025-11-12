@@ -380,6 +380,60 @@ async function fetchPalmares(symbol, tf, limit=25, profileName){
     try{ const { error } = await c.from('heaven_strategies').update({ name }).eq('id', id); if(error){ slog('Supabase: renameHeavenStrategy KO — '+(error.message||error)); return false; } return true; }catch(_){ return false; }
   }
 
+  // Live wallets API (Supabase)
+  // Persist a wallet (public/no-auth by default): { name, startCap, fee, lev, exchange='paper', base_currency='USDC' }
+  async function persistLiveWallet(ctx){
+    try{
+      const c=ensureClient(); if(!c){ slog('Supabase: client indisponible'); return false; }
+      const row={
+        user_id: null,
+        name: String(ctx.name||'').trim(),
+        exchange: String(ctx.exchange||'paper'),
+        base_currency: String(ctx.base_currency||'USDC'),
+        paper: true,
+        leverage: Number(ctx.lev||ctx.leverage||1) || 1,
+        settings: { start_cap: Number(ctx.startCap||ctx.start_cap||0)||0, fee: Number(ctx.fee||0)||0 }
+      };
+      if(!row.name){ slog('Supabase: persistLiveWallet — nom requis'); return false; }
+      const { error } = await c
+        .from('wallets')
+        .upsert([row], { onConflict: 'name,exchange', ignoreDuplicates: false, returning: 'minimal' });
+      if(error){ slog('Supabase: persistLiveWallet KO — '+(error.message||error)); return false; }
+      slog('Supabase: Wallet sauvegardé');
+      return true;
+    }catch(e){ slog('Supabase: persistLiveWallet exception — '+(e&&e.message?e.message:e)); return false; }
+  }
+
+  async function fetchLiveWallets(limit=100, exchange='paper'){
+    const c=ensureClient(); if(!c) return [];
+    try{
+      const { data, error } = await c
+        .from('wallets')
+        .select('id,name,exchange,base_currency,paper,leverage,settings,created_at')
+        .eq('exchange', exchange)
+        .order('created_at', { ascending:false })
+        .limit(Math.max(1, limit));
+      if(error){ slog('Supabase: fetchLiveWallets KO — '+(error.message||error)); return []; }
+      const map = (row)=>({
+        id: row.id,
+        name: row.name,
+        lev: Number(row.leverage||1) || 1,
+        startCap: Number(row.settings&&row.settings.start_cap)||0,
+        fee: Number(row.settings&&row.settings.fee)||0,
+        exchange: row.exchange||'paper',
+        base_currency: row.base_currency||'USDC',
+        paper: !!row.paper,
+        created_at: row.created_at,
+      });
+      return Array.isArray(data)? data.map(map) : [];
+    }catch(_){ return []; }
+  }
+
+  async function deleteLiveWallet(name, exchange='paper'){
+    const c=ensureClient(); if(!c || !name) return false;
+    try{ const { error } = await c.from('wallets').delete().eq('name', name).eq('exchange', exchange); if(error){ slog('Supabase: deleteLiveWallet KO — '+(error.message||error)); return false; } return true; }catch(_){ return false; }
+  }
+  
   window.SUPA = {
     isConfigured: ()=>{ const c=readCfg(); return !!(c.url && c.anon); },
     configSource: ()=>{ const s=staticCfg(); return (s.url&&s.anon)? 'static' : 'localStorage'; },
@@ -396,5 +450,9 @@ async function fetchPalmares(symbol, tf, limit=25, profileName){
     fetchHeavenStrategies,
     deleteHeavenStrategy,
     renameHeavenStrategy,
+    // Wallets
+    persistLiveWallet,
+    fetchLiveWallets,
+    deleteLiveWallet,
   };
 })();

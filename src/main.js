@@ -71,15 +71,14 @@ rows.push(`
   <td>${wr.toFixed(1)}</td>
   <td>${Number.isFinite(rr)? rr.toFixed(2): '—'}</td>
   <td>${mdd.toFixed(0)}</td>
-  <td style="white-space:nowrap;"><button class="btn" data-action="detail" data-idx="${idx-1}">Détail</button></td>
+  <td style=\"white-space:nowrap;\"><button class=\"btn\" data-action=\"detail\" data-idx=\"${idx-1}\">Détail</button> <button class=\"btn\" data-action=\"apply\" data-idx=\"${idx-1}\" title=\"Appliquer cette stratégie à Heaven\">Appliquer</button></td>
 </tr>`);
     idx++;
   }
   labTBody.innerHTML = rows.join('');
-  // Wire only the Détail action on palmarès rows (simple popup)
+  // Wire actions on palmarès rows (Détail / Appliquer)
   if(!labTBody.dataset || labTBody.dataset.wiredDetail!=="1"){
-    // Only handle clicks on explicit Détail buttons within the Lab table body
-    labTBody.addEventListener('click', (ev)=>{ try{ const t=ev && ev.target; const btn = t && t.closest && t.closest('button[data-action="detail"]'); if(!btn) return; handleLabDetailClick(ev); }catch(e){ __labDetailLog('tbody handler error: '+(e&&e.message?e.message:e)); } });
+    labTBody.addEventListener('click', (ev)=>{ try{ const t=ev && ev.target; const btn = t && t.closest && t.closest('button[data-action]'); if(!btn) return; const act=(btn.getAttribute('data-action')||'').toLowerCase(); if(act==='detail'){ handleLabDetailClick(ev); } else if(act==='apply'){ handleLabApplyClick(ev); } }catch(e){ __labDetailLog('tbody handler error: '+(e&&e.message?e.message:e)); } });
     labTBody.dataset.wiredDetail='1';
     __labDetailLog('tbody wired');
   }
@@ -116,7 +115,7 @@ function handleLabDetailClick(ev){
   __labDetailLog('click start; target='+(t&&t.tagName)+' id='+(t&&t.id)+' class='+(t&&t.className));
   if(t && t.nodeType === 3 && t.parentElement) t = t.parentElement;
   let btn = null;
-  if(t && typeof t.closest === 'function') btn = t.closest('button[data-action="detail"]');
+  if(t && typeof t.closest === 'function') btn = t.closest('button[data-action=\"detail\"]');
   if(!btn){ return; }
   const idxStr = (btn && btn.getAttribute && btn.getAttribute('data-idx')) || (btn && btn.dataset && btn.dataset.idx);
   const idx = Math.max(0, parseInt(idxStr||'0',10));
@@ -135,6 +134,27 @@ function handleLabDetailClick(ev){
     openLabStrategyDetail(item, { symbol: symSel, tf: tfNow, full: true });
     if(ev){ try{ ev.stopPropagation(); ev.preventDefault(); }catch(_){ } }
   }catch(e){ __labDetailLog('error: '+(e&&e.message?e.message:e)); }
+}
+function handleLabApplyClick(ev){
+  let t = ev && ev.target;
+  if(t && t.nodeType === 3 && t.parentElement) t = t.parentElement;
+  let btn = null;
+  if(t && typeof t.closest === 'function') btn = t.closest('button[data-action=\"apply\"]');
+  if(!btn){ return; }
+  const idxStr = (btn && btn.getAttribute && btn.getAttribute('data-idx')) || (btn && btn.dataset && btn.dataset.idx);
+  const idx = Math.max(0, parseInt(idxStr||'0',10));
+  try{
+    let item=null;
+    try{
+      const arr = (window.labPalmaresSorted && Array.isArray(window.labPalmaresSorted))? window.labPalmaresSorted : (Array.isArray(window.labPalmaresCache)? (function(){ const w=getWeights(localStorage.getItem('labWeightsProfile')||'balancee'); return window.labPalmaresCache.slice().sort((a,b)=> (b.score||scoreResult(b.res||{},w)) - (a.score||scoreResult(a.res||{},w))); })() : []);
+      item = arr[idx] || null;
+    }catch(_){ item=null; }
+    if(!item || !item.params){ setStatus('Aucune stratégie'); return; }
+    applyHeavenParams(item.params);
+    setStatus('Paramètres appliqués à Heaven');
+    try{ computeLabBenchmarkAndUpdate(); }catch(_){ }
+    if(ev){ try{ ev.stopPropagation(); ev.preventDefault(); }catch(_){ } }
+  }catch(e){ setStatus('Erreur application'); }
 }
 
 
@@ -2701,7 +2721,7 @@ const liveWalletLoad=document.getElementById('liveWalletLoad');
 const liveWalletDelete=document.getElementById('liveWalletDelete');
 function readLiveWallets(){ try{ const s=localStorage.getItem('liveWallets'); return s? JSON.parse(s): []; }catch(_){ return []; } }
 function writeLiveWallets(arr){ try{ localStorage.setItem('liveWallets', JSON.stringify(arr)); }catch(_){} }
-function populateLiveWalletsUI(){ try{ const arr=readLiveWallets(); if(liveWalletSel){ liveWalletSel.innerHTML = arr.map(w=>`<option value="${w.name}">${w.name}</option>`).join(''); } }catch(_){ } }
-if(liveWalletSave){ liveWalletSave.addEventListener('click', ()=>{ try{ const name=(liveWalletName&&liveWalletName.value||'').trim(); if(!name){ setStatus('Nom du wallet requis'); return; } const cap=+(liveStartCap&&liveStartCap.value||'10000'); const fee=+(liveFee&&liveFee.value||'0.1'); const lev=+(liveLev&&liveLev.value||'1'); let arr=readLiveWallets(); const idx=arr.findIndex(w=>w.name===name); const item={ name, startCap:cap, fee, lev }; if(idx>=0) arr[idx]=item; else arr.unshift(item); writeLiveWallets(arr.slice(0,100)); populateLiveWalletsUI(); setStatus('Wallet enregistré'); }catch(_){ } }); }
-if(liveWalletLoad){ liveWalletLoad.addEventListener('click', ()=>{ try{ const sel=(liveWalletSel&&liveWalletSel.value)||''; if(!sel) return; const w=readLiveWallets().find(x=>x.name===sel); if(!w) return; if(liveStartCap) liveStartCap.value=String(w.startCap||''); if(liveFee) liveFee.value=String(w.fee||''); if(liveLev) liveLev.value=String(w.lev||''); setStatus('Wallet chargé'); }catch(_){ } }); }
-if(liveWalletDelete){ liveWalletDelete.addEventListener('click', ()=>{ try{ const sel=(liveWalletSel&&liveWalletSel.value)||''; if(!sel) return; let arr=readLiveWallets().filter(x=>x.name!==sel); writeLiveWallets(arr); populateLiveWalletsUI(); setStatus('Wallet supprimé'); }catch(_){ } }); }
+async function populateLiveWalletsUI(){ try{ if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchLiveWallets==='function'){ let rows=[]; try{ rows = await SUPA.fetchLiveWallets(100, 'paper'); }catch(_){ rows=[]; } try{ window.__liveWalletsCache = Array.isArray(rows)? rows.slice(): []; }catch(_){ } if(liveWalletSel){ liveWalletSel.innerHTML = (rows||[]).map(w=>`<option value=\"${w.name}\">${w.name}</option>`).join(''); } } else { const arr=readLiveWallets(); if(liveWalletSel){ liveWalletSel.innerHTML = arr.map(w=>`<option value=\"${w.name}\">${w.name}</option>`).join(''); } } }catch(_){ } }
+if(liveWalletSave){ liveWalletSave.addEventListener('click', async ()=>{ try{ const name=(liveWalletName&&liveWalletName.value||'').trim(); if(!name){ setStatus('Nom du wallet requis'); return; } const cap=+(liveStartCap&&liveStartCap.value||'10000'); const fee=+(liveFee&&liveFee.value||'0.1'); const lev=+(liveLev&&liveLev.value||'1'); if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.persistLiveWallet==='function'){ const ok = await SUPA.persistLiveWallet({ name, startCap:cap, fee, lev, exchange:'paper', base_currency:'USDC' }); if(ok){ setStatus('Wallet enregistré (Supabase)'); await populateLiveWalletsUI(); } else { setStatus('Erreur enregistrement Supabase'); } } else { let arr=readLiveWallets(); const idx=arr.findIndex(w=>w.name===name); const item={ name, startCap:cap, fee, lev }; if(idx>=0) arr[idx]=item; else arr.unshift(item); writeLiveWallets(arr.slice(0,100)); populateLiveWalletsUI(); setStatus('Wallet enregistré'); } }catch(_){ } }); }
+if(liveWalletLoad){ liveWalletLoad.addEventListener('click', async ()=>{ try{ const sel=(liveWalletSel&&liveWalletSel.value)||''; if(!sel) return; if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && Array.isArray(window.__liveWalletsCache)){ const w = window.__liveWalletsCache.find(x=>x.name===sel); if(w){ if(liveStartCap) liveStartCap.value=String(w.startCap||''); if(liveFee) liveFee.value=String(w.fee||''); if(liveLev) liveLev.value=String(w.lev||''); setStatus('Wallet chargé (Supabase)'); return; } } const w=readLiveWallets().find(x=>x.name===sel); if(!w) return; if(liveStartCap) liveStartCap.value=String(w.startCap||''); if(liveFee) liveFee.value=String(w.fee||''); if(liveLev) liveLev.value=String(w.lev||''); setStatus('Wallet chargé'); }catch(_){ } }); }
+if(liveWalletDelete){ liveWalletDelete.addEventListener('click', async ()=>{ try{ const sel=(liveWalletSel&&liveWalletSel.value)||''; if(!sel) return; if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.deleteLiveWallet==='function'){ const ok = await SUPA.deleteLiveWallet(sel, 'paper'); if(ok){ await populateLiveWalletsUI(); setStatus('Wallet supprimé (Supabase)'); } else { setStatus('Suppression échouée (Supabase)'); } } else { let arr=readLiveWallets().filter(x=>x.name!==sel); writeLiveWallets(arr); populateLiveWalletsUI(); setStatus('Wallet supprimé'); } }catch(_){ } }); }
