@@ -48,18 +48,25 @@
   function startRouletteSpin(done){ try{
     const rc=document.getElementById('preloadRoulette'); if(!rc) { done&&done(); return; }
     const ctx=rc.getContext('2d'); const parent=rc.parentElement; const W=parent.clientWidth||window.innerWidth; const H=parent.clientHeight||window.innerHeight; rc.width=W; rc.height=H; rc.classList.add('show');
-    const cx=W/2, cy=H/2; const t0=performance.now(); const DUR=1400; const spinTurns=2.7; function easeOutCubic(x){ return 1- Math.pow(1-x,3);} 
+    const cx=W/2, cy=H/2; const t0=performance.now(); const DUR=1200; const spinTurns=2.6; function easeOutCubic(x){ return 1- Math.pow(1-x,3);} 
     function draw(angle){ ctx.clearRect(0,0,W,H);
-      // draw last frame rotated (cover)
       const cv=document.getElementById('preloadCanvas');
-      if(cv && cv.width && cv.height){ const imgW=cv.width, imgH=cv.height; const diag=Math.sqrt(W*W+H*H)*1.02; const ratio=Math.max(diag/imgW, diag/imgH); const drawW=imgW*ratio, drawH=imgH*ratio; ctx.save(); ctx.translate(cx,cy); ctx.rotate(angle);
+      // static background (cover)
+      if(cv && cv.width && cv.height){ const imgW=cv.width, imgH=cv.height; const bgRatio=Math.max(W/imgW, H/imgH); const bgW=imgW*bgRatio, bgH=imgH*bgRatio; const bgX=(W-bgW)/2, bgY=(H-bgH)/2; ctx.globalAlpha=1; ctx.drawImage(cv, bgX, bgY, bgW, bgH); }
+      // spinning window (smaller radius)
+      const RADF=0.22; const r=Math.min(W,H)*RADF;
+      const pms = performance.now() - t0; const alphaIn = Math.min(1, pms/180);
+      if(cv && cv.width && cv.height){ const imgW=cv.width, imgH=cv.height; const ratio=Math.max((2*r)/imgW, (2*r)/imgH); const drawW=imgW*ratio, drawH=imgH*ratio; ctx.save(); ctx.translate(cx,cy); ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.closePath(); ctx.clip(); ctx.rotate(angle);
         // base pass
-        ctx.globalAlpha=1; ctx.drawImage(cv, -drawW/2, -drawH/2, drawW, drawH);
-        // motion trails for spin feel
-        const trails=4, step=0.02; for(let k=1;k<=trails;k++){ ctx.globalAlpha = Math.max(0, 0.28 - k*0.06); ctx.rotate(-step); ctx.drawImage(cv, -drawW/2, -drawH/2, drawW, drawH); }
-        ctx.restore(); ctx.globalAlpha=1; }
-      // subtle vignette for focus
-      const grd=ctx.createRadialGradient(cx,cy,Math.min(W,H)*0.15, cx,cy, Math.max(W,H)*0.65); grd.addColorStop(0,'rgba(0,0,0,0.0)'); grd.addColorStop(1,'rgba(0,0,0,0.20)'); ctx.fillStyle=grd; ctx.fillRect(0,0,W,H);
+        ctx.globalAlpha=alphaIn; ctx.drawImage(cv, -drawW/2, -drawH/2, drawW, drawH);
+        // motion trails for spin feel (very subtle)
+        const trails=3, step=0.03; for(let k=1;k<=trails;k++){ ctx.globalAlpha = alphaIn*Math.max(0, 0.18 - k*0.05); ctx.rotate(-step); ctx.drawImage(cv, -drawW/2, -drawH/2, drawW, drawH); }
+        ctx.restore(); ctx.globalAlpha=1;
+        // soft rim
+        const ringGrad=ctx.createRadialGradient(cx,cy, r*0.88, cx,cy, r*1.06); ringGrad.addColorStop(0,'rgba(0,0,0,0)'); ringGrad.addColorStop(1,'rgba(0,0,0,0.28)'); ctx.fillStyle=ringGrad; ctx.beginPath(); ctx.arc(cx,cy,r*1.06,0,Math.PI*2); ctx.fill();
+      }
+      // vignette for overall focus
+      const grd=ctx.createRadialGradient(cx,cy,Math.min(W,H)*0.12, cx,cy, Math.max(W,H)*0.78); grd.addColorStop(0,'rgba(0,0,0,0.0)'); grd.addColorStop(1,'rgba(0,0,0,0.22)'); ctx.fillStyle=grd; ctx.fillRect(0,0,W,H);
     }
     (function loop(){ const p=Math.min(1,(performance.now()-t0)/DUR); const a= (spinTurns*Math.PI*2) * easeOutCubic(p); draw(a); if(p<1){ requestAnimationFrame(loop); } else { // fade out
         rc.classList.add('fade'); setTimeout(()=>{ rc.classList.remove('show','fade'); done&&done(); }, 240); }
