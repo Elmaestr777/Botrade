@@ -3010,7 +3010,7 @@ const heavenLoadBtn=document.getElementById('heavenLoadBtn');
 
 function populateHeavenTFOptions(){ try{ if(!heavenTFSelect) return; if(intervalSelect && intervalSelect.innerHTML){ heavenTFSelect.innerHTML = intervalSelect.innerHTML; } else { const tfs=['1m','5m','15m','1h','4h','1d']; heavenTFSelect.innerHTML = tfs.map(tf=>`<option value="${tf}">${tf}</option>`).join(''); } const saved=localStorage.getItem('heaven:tf'); if(saved){ try{ heavenTFSelect.value=saved; }catch(_){ } } if(!heavenTFSelect.value){ try{ heavenTFSelect.value = (intervalSelect&&intervalSelect.value)||currentInterval||''; }catch(_){ } } }catch(_){ } }
 
-async function populateHeavenLoadOptions(){ try{ if(!heavenLoadSelect) return; const tf=(heavenTFSelect&&heavenTFSelect.value)||((intervalSelect&&intervalSelect.value)||currentInterval)||''; const sym=(symbolSelect&&symbolSelect.value)||currentSymbol; const opts=['<option value="">—</option>'];
+async function populateHeavenLoadOptions(){ try{ if(!heavenLoadSelect) return; const tf=(heavenTFSelect&&heavenTFSelect.value)||((intervalSelect&&intervalSelect.value)||currentInterval)||''; const sym=(symbolSelect&&symbolSelect.value)||currentSymbol; const profSel=(document.getElementById('heavenProfileSelect')&&document.getElementById('heavenProfileSelect').value)|| (localStorage.getItem('heaven:profile')|| localStorage.getItem('labWeightsProfile')||'balancee'); const opts=['<option value="">—</option>'];
   // Supabase — Heaven strategies
   let supa = [];
   if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured()){ try{ await populateHeavenSupaList(); supa = Array.isArray(window.__heavenSupaList)? window.__heavenSupaList.slice(): []; }catch(_){ supa=[]; } }
@@ -3019,13 +3019,29 @@ async function populateHeavenLoadOptions(){ try{ if(!heavenLoadSelect) return; c
   let localNames=[]; try{ localNames = loadPresetList(); }catch(_){ localNames=[]; }
   if(Array.isArray(localNames) && localNames.length){ for(const n of localNames){ opts.push(`<option value="local:${n}">Preset: ${n}</option>`); } }
   // Palmarès (Lab)
-  let pal=[]; if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured()){ try{ pal = await SUPA.fetchPalmares(sym, tf, 25, (localStorage.getItem('labWeightsProfile')||'balancee')); }catch(_){ pal=[]; } } else { try{ pal = readPalmares(sym, tf)||[]; }catch(_){ pal=[]; } }
+  let pal=[]; if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured()){ try{ pal = await SUPA.fetchPalmares(sym, tf, 25, profSel); }catch(_){ pal=[]; } } else { try{ pal = readPalmares(sym, tf)||[]; }catch(_){ pal=[]; } }
   window.__heavenPalmaresList = Array.isArray(pal)? pal.slice() : [];
-  if(window.__heavenPalmaresList.length){ let idx=0; for(const it of window.__heavenPalmaresList){ const sc = Number.isFinite(it.score)? it.score.toFixed(2) : (it.res? (function(){ try{ const w=getWeights(localStorage.getItem('labWeightsProfile')||'balancee'); return scoreResult(it.res, w).toFixed(2);}catch(_){ return '—'; } })() : '—'); const nm = it.name || `Palmarès #${idx+1}`; opts.push(`<option value="pal:${idx}">Palmarès: ${nm} — ${sc}</option>`); idx++; } }
+  if(window.__heavenPalmaresList.length){ let idx=0; for(const it of window.__heavenPalmaresList){ const sc = Number.isFinite(it.score)? it.score.toFixed(2) : (it.res? (function(){ try{ const w=getWeights(profSel||'balancee'); return scoreResult(it.res, w).toFixed(2);}catch(_){ return '—'; } })() : '—'); const nm = it.name || `Palmarès #${idx+1}`; opts.push(`<option value="pal:${idx}">Palmarès: ${nm} — ${sc}</option>`); idx++; } }
   heavenLoadSelect.innerHTML = opts.join('');
 }catch(_){ } }
 
 if(heavenTFSelect && (!heavenTFSelect.dataset || heavenTFSelect.dataset.wired!=='1')){ heavenTFSelect.addEventListener('change', ()=>{ try{ localStorage.setItem('heaven:tf', heavenTFSelect.value||''); }catch(_){ } populateHeavenLoadOptions(); }); if(!heavenTFSelect.dataset) heavenTFSelect.dataset={}; heavenTFSelect.dataset.wired='1'; }
+// Profile selector wiring (persist + refresh)
+try{
+  const heavenProfileSelect=document.getElementById('heavenProfileSelect');
+  if(heavenProfileSelect){
+    // init from storage or lab profile
+    try{
+      const pref=localStorage.getItem('heaven:profile') || localStorage.getItem('labWeightsProfile') || 'balancee';
+      heavenProfileSelect.value = pref;
+    }catch(_){ }
+    if(!heavenProfileSelect.dataset || heavenProfileSelect.dataset.wired!=='1'){
+      heavenProfileSelect.addEventListener('change', ()=>{ try{ localStorage.setItem('heaven:profile', heavenProfileSelect.value||'balancee'); }catch(_){ } populateHeavenLoadOptions(); });
+      if(!heavenProfileSelect.dataset) heavenProfileSelect.dataset={};
+      heavenProfileSelect.dataset.wired='1';
+    }
+  }
+}catch(_){ }
 if(heavenLoadBtn && (!heavenLoadBtn.dataset || heavenLoadBtn.dataset.wired!=='1')){ heavenLoadBtn.addEventListener('click', async ()=>{ try{ const v=(heavenLoadSelect&&heavenLoadSelect.value)||''; if(!v) return; const parts=String(v).split(':'); const kind=parts[0]||''; const id=parts.slice(1).join(':'); if(kind==='local'){ if(id){ if(loadPresetByName(id)){ try{ populateHeavenModal(); }catch(_){ } } } }
   else if(kind==='supa'){ const rows=Array.isArray(window.__heavenSupaList)? window.__heavenSupaList:[]; const it=rows.find(r=> String(r.id)===String(id)); if(it && it.params){ applyHeavenParams(it.params||{}); try{ if(heavenTFSelect && it.tf){ heavenTFSelect.value = it.tf; try{ localStorage.setItem('heaven:tf', it.tf); }catch(_){ } } }catch(_){ } try{ populateHeavenModal(); }catch(_){ } } }
   else if(kind==='pal'){ const idx=parseInt(id,10); const arr=Array.isArray(window.__heavenPalmaresList)? window.__heavenPalmaresList:[]; const it=arr[idx]; if(it && it.params){ applyHeavenParams(it.params||{}); try{ populateHeavenModal(); }catch(_){ } } }
