@@ -2151,9 +2151,11 @@ const conf={ startCap: Math.max(0, parseFloat((document.getElementById('labStart
 const weights=getWeights(profSel);
   const allTested=[]; // accumulate every evaluated strategy for Supabase persistence
   // Global simulation progress (for ETA)
-  let __labSimTotal=0, __labSimDone=0, __labSimDtSum=0, __labSimDtCnt=0, __labConc=1;
+  let __labSimTotal=0, __labSimDone=0, __labSimDtSum=0, __labSimDtCnt=0, __labConc=1, __labSimPlanned=0;
   function __fmtETA(ms){ if(!(ms>0)) return '—'; const s=Math.round(ms/1000); const m=Math.floor(s/60); const ss=String(s%60).padStart(2,'0'); const mm=String(m%60).padStart(2,'0'); const hh=Math.floor(m/60); return (hh>0? (String(hh).padStart(2,'0')+':'):'')+mm+':'+ss; }
-function updateGlobalProgressUI(){ try{ let tot=Math.max(0,__labSimTotal), dn=Math.max(0,__labSimDone); if(maxEvals>0){ tot = Math.min(tot, maxEvals); dn = Math.min(dn, maxEvals); } const pct=tot? Math.round(dn/tot*100) : 0; if(btProgGlobalBar) btProgGlobalBar.style.width=pct+'%'; let eta='—'; if(tot>0){ let avg=null; try{ const fallback=Number(localStorage.getItem('lab:avgEvalMs')); avg = (Number.isFinite(fallback)&&fallback>0)? fallback : null; }catch(_){ avg=null; } if(__labSimDtCnt>0){ avg = __labSimDtSum/Math.max(1,__labSimDtCnt); } if(!(avg>0)) avg = 1000; const effConc=Math.max(1,__labConc|0); const remain=Math.max(0, tot-dn); eta=__fmtETA((remain*avg)/effConc); } const quotaStr = (maxEvals>0? ` • Quota: ${dn}/${maxEvals}` : ''); if(btProgGlobalText) btProgGlobalText.textContent = `Global: ${pct}% (${dn}/${tot}) — ETA ${eta}${quotaStr}`; }catch(_){ } }
+function updateGlobalProgressUI(){ try{ const plannedDen = (__labSimPlanned>0)? __labSimPlanned : (maxEvals>0? maxEvals : Math.max(1,__labSimTotal)); let dn=Math.max(0,__labSimDone); const tot=Math.max(1, plannedDen); if(maxEvals>0){ dn = Math.min(dn, maxEvals); }
+  const pct = Math.max(0, Math.min(100, Math.round(dn/tot*100))); if(btProgGlobalBar) btProgGlobalBar.style.width=pct+'%'; let eta='—'; if(tot>0){ let avg=null; try{ const fallback=Number(localStorage.getItem('lab:avgEvalMs')); avg = (Number.isFinite(fallback)&&fallback>0)? fallback : null; }catch(_){ avg=null; } if(__labSimDtCnt>0){ avg = __labSimDtSum/Math.max(1,__labSimDtCnt); } if(!(avg>0)) avg = 1000; const effConc=Math.max(1,__labConc|0); const remain=Math.max(0, tot-dn); eta=__fmtETA((remain*avg)/effConc); }
+  const quotaStr = (maxEvals>0? ` • Quota: ${dn}/${maxEvals}` : ''); if(btProgGlobalText) btProgGlobalText.textContent = `Global: ${pct}% (${dn}/${tot}) — ETA ${eta}${quotaStr}`; }catch(_){ } }
   __lastLabTested = allTested;
   // Preload known keys from Supabase to avoid retest across sessions
   let seenCanon = new Set();
@@ -2164,6 +2166,21 @@ function updateGlobalProgressUI(){ try{ let tot=Math.max(0,__labSimTotal), dn=Ma
   const minScoreGoal = Math.max(0, parseFloat((document.getElementById('labMinScore')&&document.getElementById('labMinScore').value)||'0'));
   const deadline = timeLimitSec>0 ? (Date.now() + timeLimitSec*1000) : null;
   function timeUp(){ return deadline!=null && Date.now()>=deadline; }
+  // Establish a planned evaluation count for stable global progress and ETA
+  try{
+    const estPop = Math.max(4, parseInt((document.getElementById('labEAPop')&&document.getElementById('labEAPop').value)||'40',10));
+    const estGens = Math.max(1, parseInt((document.getElementById('labEAGen')&&document.getElementById('labEAGen').value)||'20',10));
+    const estIters = Math.max(0, parseInt((document.getElementById('labBayIters')&&document.getElementById('labBayIters').value)||'150',10));
+    const estInitN = Math.max(1, parseInt((document.getElementById('labBayInit')&&document.getElementById('labBayInit').value)||'40',10));
+    const bayBatch = Math.max(50, estInitN, 10); // typical batch size per iter
+    let plan=0;
+    if(strategy==='ea' || strategy==='hybrid') plan += estPop + estGens*estPop;
+    if(strategy==='bayes' || strategy==='hybrid') plan += estInitN + estIters*bayBatch;
+    if(maxEvals>0) plan = Math.min(plan, maxEvals);
+    __labSimPlanned = Math.max(0, plan|0);
+    __labSimTotal = 0; __labSimDone=0; __labSimDtSum=0; __labSimDtCnt=0; // reset counters
+    updateGlobalProgressUI();
+  }catch(_){ }
   let bestGlobal = -Infinity;
   function goalReached(){ return minScoreGoal>0 && bestGlobal>=minScoreGoal; }
   function quotaReached(){ return maxEvals>0 && __labSimDone>=maxEvals; }
@@ -2680,7 +2697,7 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
       try{ writePalmares(sym, tfSel, bestOut); }catch(_){ }
       try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
     }
-    setStatus('Palmarès mis à jour'); closeBtProgress();
+    setStatus('Palmarès mis à jour'); try{ __labSimDone = Math.max(__labSimDone, __labSimPlanned||__labSimDone); updateGlobalProgressUI(); }catch(_){ } closeBtProgress();
   } else {
     const bestOut = finalResults.slice(0, Math.min(10, finalResults.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen: (x.gen||1), name: x.name||null }));
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.persistLabResults==='function'){
@@ -2690,7 +2707,7 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
       try{ writePalmares(sym, tfSel, bestOut); }catch(_){ }
       try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
     }
-    setStatus('Amélioration terminée'); closeBtProgress();
+    setStatus('Amélioration terminée'); try{ __labSimDone = Math.max(__labSimDone, __labSimPlanned||__labSimDone); updateGlobalProgressUI(); }catch(_){ } closeBtProgress();
   }
  }catch(e){ try{ addBtLog(`Erreur entraînement: ${e&&e.message?e.message:e}`); }catch(_){ } setStatus('Erreur entraînement'); try{ closeBtProgress(); }catch(_){ } } }); }
 
