@@ -2269,7 +2269,57 @@ const canonKey=(p)=>{ try{
   }
   function randWeights(n){ const arr=new Array(n).fill(0).map(()=> Math.random()+0.05); const s=arr.reduce((a,b)=>a+b,0); return arr.map(x=> x/s); }
 // Lab advanced toggles helpers
-function isLabAdvMode(){ try{ return (document.getElementById('labConfigMode')?.value||'simple') === 'avancee'; }catch(_){ return false; } }
+function isLabAdvMode(){ try{ const btn=document.getElementById('labAdvancedToggle'); if(btn && btn.dataset && btn.dataset.on==='1') return true; return localStorage.getItem('lab.advanced')==='1'; }catch(_){ return false; } }
+
+// Advanced container + toggle wiring
+function ensureLabAdvContainer(){
+  try{
+    let c=document.getElementById('labAdvContainer');
+    if(c) return c;
+    const lev=document.getElementById('labLev');
+    const levLabel = lev && lev.closest ? lev.closest('label') : null;
+    const t=document.getElementById('labTimeLimitSec');
+    const tLabel = t && t.closest ? t.closest('label') : null;
+    const parent=(tLabel&&tLabel.parentElement) || (levLabel&&levLabel.parentElement) || document.querySelector('.form-grid');
+    if(!parent) return null;
+    c=document.createElement('div');
+    c.id='labAdvContainer';
+    c.style.display='none';
+    c.style.gap='12px'; c.style.alignItems='center'; c.style.flexWrap='wrap';
+    c.style.padding='6px'; c.style.border='1px dashed var(--header-border)'; c.style.borderRadius='6px'; c.style.margin='6px 0';
+    if(tLabel && tLabel.parentElement===parent){ parent.insertBefore(c, tLabel); }
+    else if(levLabel && levLabel.parentElement===parent && levLabel.nextSibling){ parent.insertBefore(c, levLabel.nextSibling); }
+    else { parent.appendChild(c); }
+    return c;
+  }catch(_){ return null; }
+}
+function moveLabAdvBlocks(){
+  try{
+    const container=ensureLabAdvContainer(); if(!container) return;
+    const sels=['#labAdvPanel','#labCoreRanges','#labTPOptBlock','#labTPFibWrap','#labSLOptBlock','#labSLFibWrap','#labEAConfig','#labBayesConfig'];
+    for(const sel of sels){ const n=document.querySelector(sel); if(n && n!==container && !container.contains(n)){ container.appendChild(n); } }
+  }catch(_){ }
+}
+function initLabAdvancedToggle(){
+  try{
+    const btn=document.getElementById('labAdvancedToggle'); if(!btn) return;
+    if(btn.dataset && btn.dataset.wired==='1') return;
+    const on = (localStorage.getItem('lab.advanced')==='1');
+    btn.dataset.on = on ? '1':'0';
+    btn.setAttribute('aria-checked', on ? 'true':'false');
+    try{ btn.classList.toggle('primary', on); }catch(_){ }
+    btn.addEventListener('click', ()=>{ try{
+      const cur = btn.dataset.on==='1'; const next = !cur;
+      btn.dataset.on = next?'1':'0';
+      btn.setAttribute('aria-checked', next?'true':'false');
+      try{ btn.classList.toggle('primary', next); }catch(_){}
+      try{ if(next) localStorage.setItem('lab.advanced','1'); else localStorage.removeItem('lab.advanced'); }catch(_){}
+      try{ updateLabAdvVisibility(); }catch(_){}
+    }catch(_){ } });
+    btn.dataset.wired='1';
+  }catch(_){ }
+}
+
 function readLabVarToggles(){
   // Default: core + ladders vary in Simple; entries remain fixed unless Avancée + enabled
   try{
@@ -2297,6 +2347,7 @@ function updateLabAdvVisibility(){
   try{
     const showAdv = isLabAdvMode();
     const advPanel = document.getElementById('labAdvPanel'); if(advPanel) advPanel.style.display = showAdv? 'flex':'none';
+    const advContainer = document.getElementById('labAdvContainer'); if(advContainer) advContainer.style.display = showAdv? 'block':'none';
     const varTP = !!document.getElementById('labVarTP')?.checked;
     const varSL = !!document.getElementById('labVarSL')?.checked;
     const tpBlock = document.getElementById('labTPOptBlock'); if(tpBlock) tpBlock.style.display = (showAdv && varTP)? 'flex':'none';
@@ -2321,15 +2372,16 @@ function updateLabAdvVisibility(){
   }catch(_){ }
 }
 function setupLabAdvUI(){
-  try{ updateLabAdvVisibility(); }catch(_){ }
-  const ids=['labConfigMode','labStrategy','labVarNol','labVarPrd','labVarSLInit','labVarBEBars','labVarBELock','labVarEMALen','labVarTP','labVarSL','labTPAllowFib','labSLAllowFib'];
+  try{ initLabAdvancedToggle(); ensureLabAdvContainer(); moveLabAdvBlocks(); updateLabAdvVisibility(); }catch(_){ }
+  const ids=['labStrategy','labVarNol','labVarPrd','labVarSLInit','labVarBEBars','labVarBELock','labVarEMALen','labVarTP','labVarSL','labTPAllowFib','labSLAllowFib'];
   for(const id of ids){ const el=document.getElementById(id); if(el && (!el.dataset || el.dataset.wiredAdv!=='1')){ try{ el.addEventListener('change', ()=>{ try{ updateLabAdvVisibility(); }catch(_){ } }); }catch(_){ } if(!el.dataset) el.dataset={}; el.dataset.wiredAdv='1'; } }
-  // Force refresh when toggling Simple/Avancée or Strategy by any interaction (click/input/change)
-  const cfgSel=document.getElementById('labConfigMode');
+  // Force refresh when toggling Strategy by any interaction (click/input/change)
   const stratSel=document.getElementById('labStrategy');
   function wireRefresh(el, key){ if(!el) return; if(el.dataset && el.dataset[key]==='1') return; ['change','input','click'].forEach(ev=>{ try{ el.addEventListener(ev, ()=>{ try{ updateLabAdvVisibility(); }catch(_){ } }); }catch(_){ } }); if(!el.dataset) el.dataset={}; el.dataset[key]='1'; }
-  wireRefresh(cfgSel, 'wiredAdvCfg');
   wireRefresh(stratSel, 'wiredAdvStrat');
+  // Also refresh on toggle click (redundant with init wiring but safe)
+  const advBtn=document.getElementById('labAdvancedToggle');
+  if(advBtn && (!advBtn.dataset || advBtn.dataset.wiredAdvRefresh!=='1')){ advBtn.addEventListener('click', ()=>{ try{ updateLabAdvVisibility(); }catch(_){ } }); if(!advBtn.dataset) advBtn.dataset={}; advBtn.dataset.wiredAdvRefresh='1'; }
 }
 function sampleTPList(tpCfg){
   const { allowFib, allowPct, allowEMA, pctMin, pctMax, fibs } = tpCfg || {};

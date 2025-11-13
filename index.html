@@ -1517,6 +1517,7 @@
             </label>
             <button id="labExport" class="btn">Exporter CSV</button>
             <button id="labWeights" class="btn" title="Pondérations du score">Pondérations</button>
+            <button id="labAdvancedToggle" class="btn" title="Mode avancé" role="switch" aria-checked="false">Avancé</button>
             <button id="labClose" class="icon-btn" aria-label="Fermer">×</button>
           </div>
         </div>
@@ -1570,12 +1571,6 @@
               <label style="display:none;"><input id="labFocusSlope" type="checkbox" /> Slope</label>
               <label style="display:none;"><input id="labFocusRecov" type="checkbox" /> Recovery</label>
               <label style="display:none;"><input id="labFocusCons" type="checkbox" /> Consistency</label>
-              <label>Configuration
-                <select id="labConfigMode" style="min-width:8rem;">
-                  <option value="simple" selected>Simple</option>
-                  <option value="avancee">Avancée</option>
-                </select>
-              </label>
               <label title="Temps limite de calcul (secondes); 0 = désactivé">Temps (s) <input id="labTimeLimitSec" type="number" min="0" step="1" value="0" style="width:6rem" /></label>
               <label title="Nombre maximal d'évaluations globales; 0 = désactivé">Max évals <input id="labMaxEvals" type="number" min="0" step="1" value="0" style="width:7rem" /></label>
               <label title="Score minimum (0-100); 0 = désactivé">Score min <input id="labMinScore" type="number" min="0" max="100" step="0.1" value="0" style="width:6rem" /></label>
