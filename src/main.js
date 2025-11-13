@@ -2527,6 +2527,8 @@ function setupLabAdvUI(){
   const advBtn=document.getElementById('labAdvancedToggle');
   if(advBtn && (!advBtn.dataset || advBtn.dataset.wiredAdvRefresh!=='1')){ advBtn.addEventListener('click', ()=>{ try{ updateLabAdvVisibility(); }catch(_){ } }); if(!advBtn.dataset) advBtn.dataset={}; advBtn.dataset.wiredAdvRefresh='1'; }
 }
+// Global helper to compute a unique key for a TP rung
+function keyOfTP(t){ try{ if(!t) return ''; const typ=t.type||'Fib'; if(typ==='Fib') return `F:${t.fib}`; if(typ==='Percent') return `P:${t.pct}`; if(typ==='EMA') return `E:${t.emaLen}`; return String(typ); }catch(_){ return ''; } }
 function sampleTPList(tpCfg){
   const { allowFib, allowPct, allowEMA, pctMin, pctMax, fibs } = tpCfg || {};
   const n = Math.max(1, Math.min(10, Number(tpCfg && tpCfg.count) || 10));
@@ -2537,7 +2539,6 @@ function sampleTPList(tpCfg){
   const trailPctMin = 0.1, trailPctMax = 100.0;
   const slCfgLocal = readSLOpt();
   const usedKeys=new Set();
-  function keyOfTP(t){ if(!t) return ''; const typ=t.type||'Fib'; if(typ==='Fib') return `F:${t.fib}`; if(typ==='Percent') return `P:${t.pct}`; return `E:${t.emaLen}`; }
   function pickFibUnique(){ const pool=fibs.slice(); for(let k=0;k<pool.length;k++){ const i=(Math.random()*pool.length)|0; const v=pool[i]; const key=`F:${v}`; if(!usedKeys.has(key)) return v; pool.splice(i,1); k--; }
     return fibs[(Math.random()*fibs.length)|0]; }
   function pickPctUnique(min,max){ let tries=0; while(tries++<20){ const p = min + Math.random()*Math.max(0,max-min); const val=+p.toFixed(3); const key=`P:${val}`; if(!usedKeys.has(key)) return val; } return +(min + Math.random()*Math.max(0,max-min)).toFixed(3); }
