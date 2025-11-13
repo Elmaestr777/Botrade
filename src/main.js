@@ -2298,7 +2298,7 @@ const canonKey=(p)=>{ try{
   }
   function randWeights(n){ const arr=new Array(n).fill(0).map(()=> Math.random()+0.05); const s=arr.reduce((a,b)=>a+b,0); return arr.map(x=> x/s); }
 // Lab advanced toggles helpers
-function isLabAdvMode(){ try{ const btn=document.getElementById('labAdvancedToggle'); if(btn && btn.dataset && btn.dataset.on==='1') return true; return localStorage.getItem('lab.advanced')==='1'; }catch(_){ return false; } }
+function isLabAdvMode(){ try{ const cb=document.getElementById('labAdvEn'); if(cb && cb.checked) return true; const btn=document.getElementById('labAdvancedToggle'); if(btn && btn.dataset && btn.dataset.on==='1') return true; return localStorage.getItem('lab.advanced')==='1'; }catch(_){ return false; } }
 
 // Advanced container + toggle wiring
 function ensureLabAdvContainer(){
@@ -2444,6 +2444,16 @@ function updateLabAdvVisibility(){
 }
 function setupLabAdvUI(){
   try{ initLabAdvancedToggle(); ensureLabAdvContainer(); moveLabAdvBlocks(); updateLabAdvVisibility(); }catch(_){ }
+  // Wire CSS-only checkbox to persistence and visibility
+  try{
+    const advCB=document.getElementById('labAdvEn');
+    if(advCB && (!advCB.dataset || advCB.dataset.wired!=='1')){
+      // init from localStorage
+      try{ const s=localStorage.getItem('lab.advanced'); if(s==='1') advCB.checked=true; }catch(_){ }
+      advCB.addEventListener('change', ()=>{ try{ if(advCB.checked) localStorage.setItem('lab.advanced','1'); else localStorage.removeItem('lab.advanced'); updateLabAdvVisibility(); }catch(_){ } });
+      if(!advCB.dataset) advCB.dataset={}; advCB.dataset.wired='1';
+    }
+  }catch(_){ }
   const ids=['labStrategy','labVarNol','labVarPrd','labVarSLInit','labVarBEBars','labVarBELock','labVarEMALen','labVarTP','labVarSL','labTPAllowFib','labSLAllowFib'];
   for(const id of ids){ const el=document.getElementById(id); if(el && (!el.dataset || el.dataset.wiredAdv!=='1')){ try{ el.addEventListener('change', ()=>{ try{ updateLabAdvVisibility(); }catch(_){ } }); }catch(_){ } if(!el.dataset) el.dataset={}; el.dataset.wiredAdv='1'; } }
   // Force refresh when toggling Strategy by any interaction (click/input/change)
