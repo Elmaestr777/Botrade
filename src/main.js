@@ -2324,6 +2324,12 @@ function setupLabAdvUI(){
   try{ updateLabAdvVisibility(); }catch(_){ }
   const ids=['labConfigMode','labStrategy','labVarNol','labVarPrd','labVarSLInit','labVarBEBars','labVarBELock','labVarEMALen','labVarTP','labVarSL','labTPAllowFib','labSLAllowFib'];
   for(const id of ids){ const el=document.getElementById(id); if(el && (!el.dataset || el.dataset.wiredAdv!=='1')){ try{ el.addEventListener('change', ()=>{ try{ updateLabAdvVisibility(); }catch(_){ } }); }catch(_){ } if(!el.dataset) el.dataset={}; el.dataset.wiredAdv='1'; } }
+  // Force refresh when toggling Simple/Avancée or Strategy by any interaction (click/input/change)
+  const cfgSel=document.getElementById('labConfigMode');
+  const stratSel=document.getElementById('labStrategy');
+  function wireRefresh(el, key){ if(!el) return; if(el.dataset && el.dataset[key]==='1') return; ['change','input','click'].forEach(ev=>{ try{ el.addEventListener(ev, ()=>{ try{ updateLabAdvVisibility(); }catch(_){ } }); }catch(_){ } }); if(!el.dataset) el.dataset={}; el.dataset[key]='1'; }
+  wireRefresh(cfgSel, 'wiredAdvCfg');
+  wireRefresh(stratSel, 'wiredAdvStrat');
 }
 function sampleTPList(tpCfg){
   const { allowFib, allowPct, allowEMA, pctMin, pctMax, fibs } = tpCfg || {};
