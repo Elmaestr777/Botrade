@@ -607,6 +607,8 @@ if(intervalSelect){ intervalSelect.addEventListener('change', ()=>{ currentInter
 if(symbolSelect){ symbolSelect.addEventListener('change', ()=>{ currentSymbol=symbolSelect.value; updateTitle(currentSymbol); updateWatermark(); closeWs(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval)); }); }
 if(gotoEndBtn){ gotoEndBtn.addEventListener('click', ()=>{ try{ const v=(window.__rightOff|0)||10; chart.timeScale().scrollToPosition(v, false); }catch(_){ } }); }
 updateTitle(currentSymbol); updateWatermark(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval));
+// Ensure Lab advanced UI is wired from startup as well (idempotent)
+try{ setupLabAdvUI(); }catch(_){ }
 
 // Wire Supabase config button/modal
 (function(){ try{
