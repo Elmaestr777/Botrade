@@ -2306,6 +2306,13 @@ function updateLabAdvVisibility(){
     const slFibWrap = document.getElementById('labSLFibWrap'); if(slFibWrap) slFibWrap.style.display = (showAdv && varSL && slAllowFib)? 'flex':'none';
     const coreAny = ['labVarNol','labVarPrd','labVarSLInit','labVarBEBars','labVarBELock','labVarEMALen'].some(id=> !!document.getElementById(id)?.checked);
     const coreRanges = document.getElementById('labCoreRanges'); if(coreRanges) coreRanges.style.display = (showAdv && coreAny)? 'flex':'none';
+    // EA/Bayes blocks visibility
+    const strat = (document.getElementById('labStrategy') && document.getElementById('labStrategy').value) || 'hybrid';
+    const eaCfg = document.getElementById('labEAConfig'); const bayCfg = document.getElementById('labBayesConfig');
+    const showEA = showAdv && (strat==='ea' || strat==='hybrid');
+    const showBay = showAdv && (strat==='bayes' || strat==='hybrid');
+    if(eaCfg) eaCfg.style.display = showEA? 'flex':'none';
+    if(bayCfg) bayCfg.style.display = showBay? 'flex':'none';
     // Show the optional 'Entrées' toggle in advanced mode
     const varEntInput = document.getElementById('labVarEntries');
     const varEntLabel = varEntInput && varEntInput.closest ? varEntInput.closest('label') : null;
@@ -2314,7 +2321,7 @@ function updateLabAdvVisibility(){
 }
 function setupLabAdvUI(){
   try{ updateLabAdvVisibility(); }catch(_){ }
-  const ids=['labConfigMode','labVarNol','labVarPrd','labVarSLInit','labVarBEBars','labVarBELock','labVarEMALen','labVarTP','labVarSL','labTPAllowFib','labSLAllowFib'];
+  const ids=['labConfigMode','labStrategy','labVarNol','labVarPrd','labVarSLInit','labVarBEBars','labVarBELock','labVarEMALen','labVarTP','labVarSL','labTPAllowFib','labSLAllowFib'];
   for(const id of ids){ const el=document.getElementById(id); if(el && (!el.dataset || el.dataset.wiredAdv!=='1')){ try{ el.addEventListener('change', ()=>{ try{ updateLabAdvVisibility(); }catch(_){ } }); }catch(_){ } if(!el.dataset) el.dataset={}; el.dataset.wiredAdv='1'; } }
 }
 function sampleTPList(tpCfg){
