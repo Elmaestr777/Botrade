@@ -417,6 +417,7 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
 /* Make main Lab blocks look like sections and span full width in grid */
 #labModal #labObjectiveCard,
 #labModal #labContextCard,
+#labModal #labConstraintsCard,
 #labModal #labEAConfig,
 #labModal #labBayesConfig,
 #labModal #labAdvPanel,

@@ -1514,6 +1514,7 @@
           <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:10px; margin-bottom:10px;">
             <div id="labObjectiveCard" style="grid-column:1/-1; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
               <div class="section-title">Objectif</div>
+              <details class="param-help-inline heading"><summary>Aide</summary><div class="param-help">Profil ajuste les pondérations du score global (sécurité vs performance). Stratégie définit la méthode de recherche: Hybride (EA pour explorer → Bayes pour affiner), EA (évolutionnaire), ou Bayes (modèle probabiliste). Choisissez d’abord l’intention (Profil) puis l’approche (Stratégie).</div></details>
               <label>Profil
                 <select id="labProfile" style="min-width:8rem;">
                   <option value="sure">Stratégie sûre</option>
@@ -1531,6 +1532,7 @@
             </div>
             <div id="labContextCard" style="grid-column:1/-1; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
               <div class="section-title">Contexte</div>
+              <details class="param-help-inline heading"><summary>Aide</summary><div class="param-help">Pair et TF définissent la série à étudier. Plage choisit l’intervalle: Visible (fenêtre chart), Tout l’historique (dataset complet), Dates (personnalisées, fuseau local). Capital/Frais/Levier impactent les résultats (P&L, PF, DD) et sont intégrés dans toutes les évaluations.</div></details>
               <label>Pair
                 <select id="labSymbolSelect" style="min-width:10rem;"></select>
               </label>
@@ -1570,8 +1572,8 @@
               <label>Init <input id="labBayInit" type="number" min="5" max="2000" value="40" style="width:6rem" /></label>
               <label>Elite% <input id="labBayElitePct" type="number" min="5" max="80" step="1" value="30" style="width:6rem" /></label>
             </div>
-            <div style="display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap; grid-column:1/-1;">
-              <details class="param-help-inline heading"><summary>Focus</summary><div class="param-help">Permet d'orienter la recherche vers certains critères (drawdown, Sharpe, PF, pente, recovery, constance). Optionnel, utile pour prioriser des profils spécifiques.</div></details>
+            <div id="labConstraintsCard" style="display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap; grid-column:1/-1;">
+              <details class="param-help-inline heading"><summary>Contraintes</summary><div class="param-help">Limitez la durée (Temps s), le nombre total d’évaluations (Max évals), ou exigez un score minimum. Laissez 0 pour ne pas contraindre. Ces contraintes s’appliquent à toutes les stratégies d’optimisation.</div></details>
               <label style="display:none;"><input id="labFocusDD" type="checkbox" /> Min DD</label>
               <label style="display:none;"><input id="labFocusSharpe" type="checkbox" /> Sharpe</label>
               <label style="display:none;"><input id="labFocusPF" type="checkbox" /> PF</label>
@@ -1583,7 +1585,7 @@
               <label title="Score minimum (0-100); 0 = désactivé">Score min <input id="labMinScore" type="number" min="0" max="100" step="0.1" value="0" style="width:6rem" /></label>
             </div>
             <div id="labAdvPanel" style="display:none; gap:12px; align-items:center; flex-wrap:wrap; padding:6px; border:1px dashed var(--header-border); border-radius:6px; grid-column:1/-1;">
-              <strong>Paramètres à tester</strong>
+              <details class="param-help-inline heading"><summary>Paramètres à tester</summary><div class="param-help">Cochez les paramètres que l’algorithme pourra modifier. Les plages d’étude définissent Min/Max/Pas pour chaque paramètre coché. Astuce: partez large, puis resserrez progressivement.</div></details>
               <label><input id="labVarNol" type="checkbox" checked /> NOL</label>
               <label><input id="labVarPrd" type="checkbox" checked /> PRD</label>
               <label><input id="labVarSLInit" type="checkbox" checked /> SL initial %</label>
@@ -1638,7 +1640,7 @@
               </label>
             </div>
             <div id="labTPOptBlock" style="display:none; gap:10px; align-items:center; flex-wrap:wrap; margin-top:6px; grid-column:1/-1;">
-              <details class="param-help-inline heading"><summary>TP Opt</summary><div class="param-help">Active l'optimisation des TP. Choisissez le nombre de TP et les méthodes autorisées : Fib (ratios), Percent (intervalle %), EMA (moyennes). Les TP choisis seront uniques et affectés aux TP1..TPn.</div></details>
+              <details class="param-help-inline heading"><summary>TP Opt</summary><div class="param-help">Active l'optimisation des TP. Choisissez le nombre de TP et les méthodes autorisées : Fib (ratios), Percent (intervalle %) ou EMA. Les TP sélectionnés sont rendus uniques quand c’est possible et affectés aux TP1..TPn (croissant). La répartition “Cap/TP” est visible dans le résumé.</div></details>
               <label><input id="labTPOptEn" type="checkbox" /> Optimiser TP</label>
               <label>Nb TP <input id="labTPCount" type="number" min="1" max="10" value="10" style="width:5rem" /></label>
               <label><input id="labTPAllowFib" type="checkbox" checked /> Fib</label>
@@ -1665,7 +1667,7 @@
               <label><input type="checkbox" data-r="3" />3.000</label>
             </div>
             <div id="labSLOptBlock" style="display:none; gap:10px; align-items:center; flex-wrap:wrap; margin-top:6px; grid-column:1/-1;">
-              <details class="param-help-inline heading"><summary>SL Opt</summary><div class="param-help">Active l'optimisation des SL. Définissez le nombre de SL et les méthodes autorisées. Avec Percent, utilisez Min/Max en %. Les niveaux seront uniques lorsque c'est possible.</div></details>
+              <details class="param-help-inline heading"><summary>SL Opt</summary><div class="param-help">Active l'optimisation des SL. Définissez le nombre de SL et les méthodes autorisées. Avec Percent, utilisez Min/Max en %. Les niveaux sont rendus uniques quand c’est possible pour éviter les doublons.</div></details>
               <label><input id="labSLOptEn" type="checkbox" /> Optimiser SL</label>
               <label>Nb SL <input id="labSLCount" type="number" min="1" max="10" value="1" style="width:5rem" /></label>
               <label><input id="labSLAllowFib" type="checkbox" checked /> Fib</label>
