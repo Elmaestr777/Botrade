@@ -2311,7 +2311,7 @@ function moveLabAdvBlocks(){
 }
 function __toggleLabAdvanced(next){
   try{
-    const btn=document.getElementById('labAdvancedToggle'); if(!btn) return;
+    const btn=document.getElementById('labAdvancedToggle'); if(!btn) { try{ console.log('[lab:adv] button not found'); }catch(_){ } return; }
     const cur = (btn.dataset && btn.dataset.on==='1');
     const val = (typeof next==='boolean')? next : !cur;
     if(!btn.dataset) btn.dataset={};
@@ -2332,19 +2332,19 @@ function __toggleLabAdvanced(next){
     }catch(_){ }
     try{ if(val) localStorage.setItem('lab.advanced','1'); else localStorage.removeItem('lab.advanced'); }catch(_){ }
     try{ ensureLabAdvContainer(); moveLabAdvBlocks(); updateLabAdvVisibility(); }catch(_){ }
-    try{ console.debug('[lab:adv] toggle ->', val); }catch(_){ }
+    try{ console.log('[lab:adv] toggle ->', val); }catch(_){ }
   }catch(_){ }
 }
 function initLabAdvancedToggle(){
   try{
-    const btn=document.getElementById('labAdvancedToggle'); if(!btn) return;
+    const btn=document.getElementById('labAdvancedToggle'); if(!btn) { try{ console.log('[lab:adv] init: button not in DOM'); }catch(_){ } return; }
     if(btn.dataset && btn.dataset.wired==='1') return;
     const on = (localStorage.getItem('lab.advanced')==='1');
     if(!btn.dataset) btn.dataset={};
     btn.dataset.on = on ? '1':'0';
     btn.setAttribute('aria-checked', on ? 'true':'false');
     try{ btn.classList.toggle('primary', on); }catch(_){ }
-    try{ console.debug('[lab:adv] toggle init, on=', on); }catch(_){ }
+    try{ console.log('[lab:adv] toggle init, on=', on); }catch(_){ }
     btn.addEventListener('click', (ev)=>{ try{ __toggleLabAdvanced(); ev.preventDefault(); ev.stopPropagation(); }catch(_){ } });
     // Extra safety: pointerdown for devices where click is intercepted
     try{ btn.addEventListener('pointerdown', (ev)=>{ try{ __toggleLabAdvanced(); ev.preventDefault(); ev.stopPropagation(); }catch(_){ } }, { passive:false }); }catch(_){ }
@@ -2359,7 +2359,8 @@ function initLabAdvancedToggle(){
         document.__labAdvGlobalWired = true;
       }catch(_){ }
     }
-    btn.dataset.wired='1';
+btn.dataset.wired='1';
+    try{ window.__toggleLabAdvanced = __toggleLabAdvanced; }catch(_){ }
   }catch(_){ }
 }
 
