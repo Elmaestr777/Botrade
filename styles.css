@@ -244,6 +244,23 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
 #preloadPlane.plane-on { opacity: 1; transition: opacity 160ms ease; }
 #preloadPlane.plane-fold { animation: planeFold 800ms cubic-bezier(0.22,1,0.36,1) forwards; }
 #preloadPlane.plane-flight { animation: planeFlight 1100ms cubic-bezier(0.22,1,0.36,1) forwards; }
+
+/* Lab Advanced: CSS-only toggle via hidden checkbox */
+#labModal input#labAdvEn:checked ~ .modal-header #labAdvLabel {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+#labModal input#labAdvEn:checked ~ .modal-body #labAdvPanel,
+#labModal input#labAdvEn:checked ~ .modal-body #labCoreRanges,
+#labModal input#labAdvEn:checked ~ .modal-body #labTPOptBlock,
+#labModal input#labAdvEn:checked ~ .modal-body #labTPFibWrap,
+#labModal input#labAdvEn:checked ~ .modal-body #labSLOptBlock,
+#labModal input#labAdvEn:checked ~ .modal-body #labSLFibWrap,
+#labModal input#labAdvEn:checked ~ .modal-body #labEAConfig,
+#labModal input#labAdvEn:checked ~ .modal-body #labBayesConfig {
+  display: flex !important;
+}
 @keyframes planeFold {
   0% { clip-path: polygon(0 0,100% 0,100% 100%,0 100%); transform: perspective(1000px) rotateX(0) rotateY(0); }
   40% { clip-path: polygon(6% 4%,94% 6%,94% 94%,6% 96%); transform: perspective(1000px) rotateX(10deg) rotateY(-8deg); }
