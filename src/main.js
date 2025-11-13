@@ -609,6 +609,16 @@ if(gotoEndBtn){ gotoEndBtn.addEventListener('click', ()=>{ try{ const v=(window.
 updateTitle(currentSymbol); updateWatermark(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval));
 // Ensure Lab advanced UI is wired from startup as well (idempotent)
 try{ setupLabAdvUI(); }catch(_){ }
+// Unconditional global hook as last-resort safety (independent of init wiring)
+try{
+  if(!window.__advGlobalHook){
+    const __advHandler=(e)=>{ const t=e.target; if(!t) return; const b=(t.id==='labAdvancedToggle')? t : (t.closest? t.closest('#labAdvancedToggle') : null); if(b){ try{ __toggleLabAdvanced(); }catch(_){ } e.preventDefault(); e.stopPropagation(); } };
+    document.addEventListener('pointerdown', __advHandler, true);
+    document.addEventListener('click', __advHandler, true);
+    window.__advGlobalHook = true;
+    try{ console.log('[lab:adv] global hook armed'); }catch(_){ }
+  }
+}catch(_){ }
 
 // Wire Supabase config button/modal
 (function(){ try{
