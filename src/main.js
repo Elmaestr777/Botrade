@@ -2318,6 +2318,18 @@ function __toggleLabAdvanced(next){
     btn.dataset.on = val? '1':'0';
     btn.setAttribute('aria-checked', val? 'true':'false');
     try{ btn.classList.toggle('primary', val); }catch(_){ }
+    // Inline fallback to guarantee visible feedback even if class styles are overridden
+    try{
+      if(val){
+        btn.style.background = '#2563eb';
+        btn.style.borderColor = '#2563eb';
+        btn.style.color = '#fff';
+      } else {
+        btn.style.background = '';
+        btn.style.borderColor = '';
+        btn.style.color = '';
+      }
+    }catch(_){ }
     try{ if(val) localStorage.setItem('lab.advanced','1'); else localStorage.removeItem('lab.advanced'); }catch(_){ }
     try{ ensureLabAdvContainer(); moveLabAdvBlocks(); updateLabAdvVisibility(); }catch(_){ }
     try{ console.debug('[lab:adv] toggle ->', val); }catch(_){ }
