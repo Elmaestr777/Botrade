@@ -7,6 +7,7 @@
   --muted: #374151; /* un peu plus foncé pour meilleur contraste sur fond clair */
   --header-bg: #f7f7f7;
   --header-border: #e5e7eb;
+  --primary: #2563eb;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -17,6 +18,7 @@
     --muted: #cbd5e1; /* plus clair pour lisibilité sur fond sombre */
     --header-bg: #0f1627;
     --header-border: #1f2937;
+    --primary: #3b82f6; /* légèrement plus clair en sombre */
   }
 }
 /* Manual theme override */
@@ -135,6 +137,10 @@ main {
 .progress > #btProgBar { height: 100%; width: 0%; background: #2563eb; transition: width 120ms linear; }
 .modal-header { display:flex; align-items:center; justify-content:space-between; padding: 12px 14px; border-bottom: 1px solid var(--header-border); }
 .modal-body { padding: 12px 14px; overflow: auto; }
+/* Legibility tuning for Lab */
+#labModal .modal-body { font-size: 13.5px; line-height: 1.35; }
+#labModal .form-grid { gap: 12px; }
+#labModal label { gap: 10px; }
 .modal-footer { display:flex; justify-content: flex-end; gap:8px; padding: 12px 14px; border-top: 1px solid var(--header-border); }
 .form-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
 fieldset { border:1px solid var(--header-border); border-radius: 10px; padding: 10px; }
@@ -358,12 +364,23 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
 #labSLOptBlock details.param-help-inline.heading summary { font-weight: 600; }
 
 /* Section title chip */
-#labCoreRanges .section-title {
+#labCoreRanges .section-title,
+#labModal .section-title {
   width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-weight: 600;
-  padding: 2px 8px;
-  border-left: 3px solid #2563eb;
+  color: var(--fg);
+  padding: 2px 0;
   margin: 2px 0 6px;
+}
+#labCoreRanges .section-title::before,
+#labModal .section-title::before {
+  content: '';
+  width: 7px; height: 7px;
+  border-radius: 999px;
+  background: var(--primary);
 }
 /* Sticky action bar inside Lab */
 #labModal .lab-actions { position: sticky; bottom: 0; left: 0; right: 0; display:flex; gap:8px; justify-content:flex-end; padding: 8px 0 0; background: linear-gradient(180deg, rgba(0,0,0,0) 0%, var(--bg) 40%); border-top: 1px solid var(--header-border); z-index: 5; }
@@ -372,10 +389,12 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
 #labModal details.param-help-inline.heading summary {
   background: var(--bg2, rgba(0,0,0,0.04));
   border: 1px solid var(--header-border);
-  border-radius: 8px;
-  padding: 4px 8px;
+  border-radius: 999px;
+  padding: 6px 10px;
   display: inline-flex;
   align-items: center;
+  font-size: 13px;
+  letter-spacing: 0.01em;
 }
 /* When headings are inside the form grid, make them start on a new row */
 #labModal .form-grid details.param-help-inline.heading { display:block; width:100%; grid-column: 1 / -1; }
@@ -390,17 +409,17 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
 #labSLOptBlock input[type=number] { width: 6rem !important; }
 #labModal input[type=number], #labModal select {
   border: 1px solid var(--header-border);
-  border-radius: 8px;
-  padding: 6px 8px;
-  min-height: 32px;
+  border-radius: 10px;
+  padding: 8px 10px;
+  min-height: 34px;
   background: var(--bg);
   color: var(--fg);
 }
 #labModal option { background: var(--bg); color: var(--fg); }
 #labModal input[type=number]:focus, #labModal select:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.22);
-  border-color: #2563eb;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
+  border-color: var(--primary);
 }
 
 /* Chips for toggles/lists */
@@ -427,6 +446,18 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
 #labModal #labSLOptBlock,
 #labModal #labSLFibWrap { background: var(--bg); border: 1px solid var(--header-border); border-radius: 12px; padding: 10px 12px; box-shadow: 0 1px 0 var(--header-border) inset, 0 8px 20px rgba(0,0,0,0.06); }
 #labModal #labAdvPanel { border-style: dashed; }
+/* Card hover subtle lift */
+#labModal #labObjectiveCard:hover,
+#labModal #labContextCard:hover,
+#labModal #labConstraintsCard:hover,
+#labModal #labEAConfig:hover,
+#labModal #labBayesConfig:hover,
+#labModal #labAdvPanel:hover,
+#labModal #labCoreRanges:hover,
+#labModal #labTPOptBlock:hover,
+#labModal #labTPFibWrap:hover,
+#labModal #labSLOptBlock:hover,
+#labModal #labSLFibWrap:hover { box-shadow: 0 1px 0 var(--header-border) inset, 0 12px 26px rgba(0,0,0,0.10); transition: box-shadow 160ms ease; }
 #labTPFibWrap label:hover, #labSLFibWrap label:hover, #labAdvPanel label:hover { background: var(--bg2, rgba(0,0,0,0.04)); }
 #labAdvPanel label:has(> input[type=checkbox]:checked),
 #labTPFibWrap label:has(> input[type=checkbox]:checked),
