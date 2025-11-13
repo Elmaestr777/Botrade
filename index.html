@@ -1552,27 +1552,27 @@
             <label>Levier (x) <input id="labLev" type="number" min="1" max="125" step="0.1" value="1" style="width:6rem" /></label>
             <span></span>
             <div id="labEAConfig" style="display:none; gap:8px; align-items:center; flex-wrap:wrap;">
-              <strong>EA</strong>
+              <details class="param-help-inline heading"><summary>EA</summary><div class="param-help">Algorithme évolutionnaire: Pop = taille de population, Gen = nombre de générations, Mut% = taux de mutation, Cx% = taux de croisement. « Resume » continue un run précédent si disponible.</div></details>
               <label>Pop <input id="labEAPop" type="number" min="4" max="2000" value="40" style="width:6rem" /></label>
               <label>Gen <input id="labEAGen" type="number" min="1" max="500" value="20" style="width:6rem" /></label>
               <label>Mut% <input id="labEAMut" type="number" min="0" max="100" step="1" value="20" style="width:6rem" /></label>
               <label>Cx% <input id="labEACx" type="number" min="0" max="100" step="1" value="60" style="width:6rem" /></label>
             </div>
             <div id="labBayesConfig" style="display:none; gap:8px; align-items:center; flex-wrap:wrap;">
-              <strong>Bayes</strong>
+              <details class="param-help-inline heading"><summary>Bayes</summary><div class="param-help">Optimisation de type Bayésienne/EDA: Iters = itérations totales, Init = points aléatoires initiaux, Elite% = proportion sélectionnée pour modéliser les prochaines propositions. « Resume » continue un run précédent si disponible.</div></details>
               <label>Iters <input id="labBayIters" type="number" min="10" max="5000" value="150" style="width:6rem" /></label>
               <label>Init <input id="labBayInit" type="number" min="5" max="2000" value="40" style="width:6rem" /></label>
               <label>Elite% <input id="labBayElitePct" type="number" min="5" max="80" step="1" value="30" style="width:6rem" /></label>
             </div>
             <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-              <strong>Focus</strong>
+              <details class="param-help-inline heading"><summary>Focus</summary><div class="param-help">Permet d'orienter la recherche vers certains critères (drawdown, Sharpe, PF, pente, recovery, constance). Optionnel, utile pour prioriser des profils spécifiques.</div></details>
               <label style="display:none;"><input id="labFocusDD" type="checkbox" /> Min DD</label>
               <label style="display:none;"><input id="labFocusSharpe" type="checkbox" /> Sharpe</label>
               <label style="display:none;"><input id="labFocusPF" type="checkbox" /> PF</label>
               <label style="display:none;"><input id="labFocusSlope" type="checkbox" /> Slope</label>
               <label style="display:none;"><input id="labFocusRecov" type="checkbox" /> Recovery</label>
               <label style="display:none;"><input id="labFocusCons" type="checkbox" /> Consistency</label>
-              <label title="Temps limite de calcul (secondes); 0 = désactivé">Temps (s) <input id="labTimeLimitSec" type="number" min="0" step="1" value="0" style="width:6rem" /></label>
+              <label title="Temps limite de calcul (secondes); 0 = désactivé"><details class="param-help-inline"><summary>Temps (s)</summary><div class="param-help">Stoppe automatiquement l'entraînement après N secondes. Mettre 0 pour désactiver toute limite de temps.</div></details><input id="labTimeLimitSec" type="number" min="0" step="1" value="0" style="width:6rem" /></label>
               <label title="Nombre maximal d'évaluations globales; 0 = désactivé">Max évals <input id="labMaxEvals" type="number" min="0" step="1" value="0" style="width:7rem" /></label>
               <label title="Score minimum (0-100); 0 = désactivé">Score min <input id="labMinScore" type="number" min="0" max="100" step="0.1" value="0" style="width:6rem" /></label>
               <div style="display:flex; gap:6px; margin-left:auto;">
@@ -1602,16 +1602,41 @@
             </div>
             <!-- Ranges for core params (shown in Avancée when toggles are ON) -->
             <div id="labCoreRanges" style="display:none; gap:10px; align-items:center; flex-wrap:wrap; margin:6px 0 0; padding:6px; border:1px dashed var(--header-border); border-radius:6px;">
-              <strong>Plages d'étude</strong>
-              <label title="NOL (barres de renversement)">NOL: Min <input id="labNolMin" type="number" min="1" value="2" style="width:5rem" /> Max <input id="labNolMax" type="number" min="1" value="5" style="width:5rem" /> Pas <input id="labNolStep" type="number" min="1" value="1" style="width:5rem" /></label>
-              <label title="Période pivots">PRD: Min <input id="labPrdMin" type="number" min="2" value="8" style="width:5rem" /> Max <input id="labPrdMax" type="number" min="2" value="34" style="width:5rem" /> Pas <input id="labPrdStep" type="number" min="1" value="2" style="width:5rem" /></label>
-              <label title="SL initial (%)">SL%: Min <input id="labSLInitMin" type="number" min="0" step="0.1" value="0.5" style="width:6rem" /> Max <input id="labSLInitMax" type="number" min="0" step="0.1" value="3.0" style="width:6rem" /> Pas <input id="labSLInitStep" type="number" min="0.1" step="0.1" value="0.5" style="width:6rem" /></label>
-              <label title="Bars jusqu'au BE">BE bars: Min <input id="labBEBarsMin" type="number" min="1" value="3" style="width:5rem" /> Max <input id="labBEBarsMax" type="number" min="1" value="8" style="width:5rem" /> Pas <input id="labBEBarsStep" type="number" min="1" value="1" style="width:5rem" /></label>
-              <label title="Lock (%) au BE">BE lock%: Min <input id="labBELockMin" type="number" min="0" step="0.5" value="3" style="width:6rem" /> Max <input id="labBELockMax" type="number" min="0" step="0.5" value="10" style="width:6rem" /> Pas <input id="labBELockStep" type="number" min="0.5" step="0.5" value="1" style="width:6rem" /></label>
-              <label title="EMA filtre">EMA len: Min <input id="labEMALenMin" type="number" min="1" value="21" style="width:6rem" /> Max <input id="labEMALenMax" type="number" min="1" value="89" style="width:6rem" /> Pas <input id="labEMALenStep" type="number" min="1" value="4" style="width:6rem" /></label>
+              <div class="section-title">Plages d'étude</div>
+              <div class="core-range-head"><span>Min</span><span>Max</span><span>Pas</span></div>
+              <label title="NOL (barres de renversement)" class="core-range-row" style="width:100%;">
+                <span class="col"><details class="param-help-inline"><summary>NOL</summary><div class="param-help">Nombre de barres de renversement utilisées pour détecter les swings. Plus grand = signaux plus rares et plus robustes ; plus petit = plus réactif mais plus bruité.</div></details>Min <input id="labNolMin" type="number" min="1" value="2" style="width:5rem" /></span>
+                <span class="col">Max <input id="labNolMax" type="number" min="1" value="5" style="width:5rem" /></span>
+                <span class="col">Pas <input id="labNolStep" type="number" min="1" value="1" style="width:5rem" /></span>
+              </label>
+              <label title="Période pivots" class="core-range-row" style="width:100%;">
+                <span class="col"><details class="param-help-inline"><summary>PRD</summary><div class="param-help">Période (prd) pour pivots/zigzag. Plus grand = swings plus larges et moins nombreux ; plus petit = détection plus sensible.</div></details>Min <input id="labPrdMin" type="number" min="2" value="8" style="width:5rem" /></span>
+                <span class="col">Max <input id="labPrdMax" type="number" min="2" value="34" style="width:5rem" /></span>
+                <span class="col">Pas <input id="labPrdStep" type="number" min="1" value="2" style="width:5rem" /></span>
+              </label>
+              <label title="SL initial (%)" class="core-range-row" style="width:100%;">
+                <span class="col"><details class="param-help-inline"><summary>SL initial %</summary><div class="param-help">Stop initial en pourcentage du prix d'entrée. Plus grand = stop large (moins d'arrêts, pertes potentielles plus grandes) ; plus petit = stop serré (plus d'arrêts, pertes limitées).</div></details>Min <input id="labSLInitMin" type="number" min="0" step="0.1" value="0.5" style="width:6rem" /></span>
+                <span class="col">Max <input id="labSLInitMax" type="number" min="0" step="0.1" value="3.0" style="width:6rem" /></span>
+                <span class="col">Pas <input id="labSLInitStep" type="number" min="0.1" step="0.1" value="0.5" style="width:6rem" /></span>
+              </label>
+              <label title="Bars jusqu'au BE" class="core-range-row" style="width:100%;">
+                <span class="col"><details class="param-help-inline"><summary>BE bars</summary><div class="param-help">Nombre de barres à attendre après l'entrée avant de déplacer le stop au break-even (prix d'entrée). Plus petit = passage au BE plus rapide.</div></details>Min <input id="labBEBarsMin" type="number" min="1" value="3" style="width:5rem" /></span>
+                <span class="col">Max <input id="labBEBarsMax" type="number" min="1" value="8" style="width:5rem" /></span>
+                <span class="col">Pas <input id="labBEBarsStep" type="number" min="1" value="1" style="width:5rem" /></span>
+              </label>
+              <label title="Lock (%) au BE" class="core-range-row" style="width:100%;">
+                <span class="col"><details class="param-help-inline"><summary>BE lock%</summary><div class="param-help">Décalage au-delà de l'entrée lors du passage au BE : verrouille un petit gain (exprimé en %). Plus grand = on sécurise davantage mais on peut sortir plus tôt.</div></details>Min <input id="labBELockMin" type="number" min="0" step="0.5" value="3" style="width:6rem" /></span>
+                <span class="col">Max <input id="labBELockMax" type="number" min="0" step="0.5" value="10" style="width:6rem" /></span>
+                <span class="col">Pas <input id="labBELockStep" type="number" min="0.5" step="0.5" value="1" style="width:6rem" /></span>
+              </label>
+              <label title="EMA filtre" class="core-range-row" style="width:100%;">
+                <span class="col"><details class="param-help-inline"><summary>EMA len</summary><div class="param-help">Longueur de l'EMA utilisée comme filtre/confirmation. Plus grande = tendance plus lisse ; plus petite = plus réactive.</div></details>Min <input id="labEMALenMin" type="number" min="1" value="21" style="width:6rem" /></span>
+                <span class="col">Max <input id="labEMALenMax" type="number" min="1" value="89" style="width:6rem" /></span>
+                <span class="col">Pas <input id="labEMALenStep" type="number" min="1" value="4" style="width:6rem" /></span>
+              </label>
             </div>
             <div id="labTPOptBlock" style="display:none; gap:10px; align-items:center; flex-wrap:wrap; margin-top:6px;">
-              <strong>TP Opt</strong>
+              <details class="param-help-inline heading"><summary>TP Opt</summary><div class="param-help">Active l'optimisation des TP. Choisissez le nombre de TP et les méthodes autorisées : Fib (ratios), Percent (intervalle %), EMA (moyennes). Les TP choisis seront uniques et affectés aux TP1..TPn.</div></details>
               <label><input id="labTPOptEn" type="checkbox" /> Optimiser TP</label>
               <label>Nb TP <input id="labTPCount" type="number" min="1" max="10" value="10" style="width:5rem" /></label>
               <label><input id="labTPAllowFib" type="checkbox" checked /> Fib</label>
@@ -1621,6 +1646,7 @@
               <label title="Pourcentage TP (si Percent)">Max % <input id="labTPPctMax" type="number" min="0" step="0.1" value="5.0" style="width:5rem" /></label>
             </div>
             <div id="labTPFibWrap" style="display:none; gap:10px; flex-wrap:wrap; margin-bottom:6px;">
+              <details class="param-help-inline heading"><summary>Ratios Fib TP</summary><div class="param-help">Sélectionnez les ratios Fibonacci autorisés pour les cibles (TP). Les ratios < 1 sont des retracements, > 1 des extensions (objectifs plus éloignés).</div></details>
               <label><input type="checkbox" data-r="0.236" checked />0.236</label>
               <label><input type="checkbox" data-r="0.382" checked />0.382</label>
               <label><input type="checkbox" data-r="0.5" checked />0.500</label>
@@ -1637,7 +1663,7 @@
               <label><input type="checkbox" data-r="3" />3.000</label>
             </div>
             <div id="labSLOptBlock" style="display:none; gap:10px; align-items:center; flex-wrap:wrap; margin-top:6px;">
-              <strong>SL Opt</strong>
+              <details class="param-help-inline heading"><summary>SL Opt</summary><div class="param-help">Active l'optimisation des SL. Définissez le nombre de SL et les méthodes autorisées. Avec Percent, utilisez Min/Max en %. Les niveaux seront uniques lorsque c'est possible.</div></details>
               <label><input id="labSLOptEn" type="checkbox" /> Optimiser SL</label>
               <label>Nb SL <input id="labSLCount" type="number" min="1" max="10" value="1" style="width:5rem" /></label>
               <label><input id="labSLAllowFib" type="checkbox" checked /> Fib</label>
@@ -1647,6 +1673,7 @@
               <label title="Pourcentage SL (si Percent)">Max % <input id="labSLPctMax" type="number" min="0" step="0.1" value="5.0" style="width:5rem" /></label>
             </div>
             <div id="labSLFibWrap" style="display:none; gap:10px; flex-wrap:wrap; margin-bottom:6px;">
+              <details class="param-help-inline heading"><summary>Ratios Fib SL</summary><div class="param-help">Sélectionnez les ratios Fibonacci autorisés pour les stops (SL). Typiquement des retracements (ex: 0.382–0.618). À combiner avec l’option Percent/EMA si activée.</div></details>
               <label><input type="checkbox" data-r="0.236" />0.236</label>
               <label><input type="checkbox" data-r="0.382" checked />0.382</label>
               <label><input type="checkbox" data-r="0.5" checked />0.500</label>

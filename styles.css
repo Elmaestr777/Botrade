@@ -261,6 +261,139 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
 #labModal input#labAdvEn:checked ~ .modal-body #labBayesConfig {
   display: flex !important;
 }
+/* Core ranges: one parameter per row, 3 columns (Min / Max / Pas) */
+#labCoreRanges .core-range-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  align-items: center;
+}
+#labCoreRanges .core-range-row .col { display: inline-flex; align-items: center; gap: 6px; }
+#labCoreRanges .core-range-head {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  margin: 2px 0 6px;
+}
+#labCoreRanges .core-range-head span { text-transform: uppercase; letter-spacing: 0.02em; }
+/* Inline help toggles for parameter titles */
+#labCoreRanges details.param-help-inline,
+#labTPOptBlock details.param-help-inline,
+#labSLOptBlock details.param-help-inline,
+#labTPFibWrap details.param-help-inline,
+#labSLFibWrap details.param-help-inline,
+#labEAConfig details.param-help-inline,
+#labBayesConfig details.param-help-inline,
+#labModal details.param-help-inline {
+  display: inline-block;
+  position: relative;
+}
+#labCoreRanges details.param-help-inline summary,
+#labTPOptBlock details.param-help-inline summary,
+#labSLOptBlock details.param-help-inline summary,
+#labTPFibWrap details.param-help-inline summary,
+#labSLFibWrap details.param-help-inline summary,
+#labEAConfig details.param-help-inline summary,
+#labBayesConfig details.param-help-inline summary,
+#labModal details.param-help-inline summary {
+  cursor: pointer;
+  color: #2563eb;
+  text-decoration: underline;
+  margin-right: 6px;
+}
+/* Hide default marker in most browsers */
+#labCoreRanges details.param-help-inline summary::-webkit-details-marker,
+#labTPOptBlock details.param-help-inline summary::-webkit-details-marker,
+#labSLOptBlock details.param-help-inline summary::-webkit-details-marker,
+#labTPFibWrap details.param-help-inline summary::-webkit-details-marker,
+#labSLFibWrap details.param-help-inline summary::-webkit-details-marker,
+#labEAConfig details.param-help-inline summary::-webkit-details-marker,
+#labBayesConfig details.param-help-inline summary::-webkit-details-marker,
+#labModal details.param-help-inline summary::-webkit-details-marker { display: none; }
+#labCoreRanges details.param-help-inline .param-help,
+#labTPOptBlock details.param-help-inline .param-help,
+#labSLOptBlock details.param-help-inline .param-help,
+#labTPFibWrap details.param-help-inline .param-help,
+#labSLFibWrap details.param-help-inline .param-help,
+#labEAConfig details.param-help-inline .param-help,
+#labBayesConfig details.param-help-inline .param-help,
+#labModal details.param-help-inline .param-help {
+  display: none;
+  margin-top: 6px;
+  padding: 6px;
+  border: 1px solid var(--header-border);
+  border-radius: 6px;
+  background: var(--bg2, rgba(0,0,0,0.04));
+  color: var(--muted);
+  font-size: 12px;
+}
+#labCoreRanges details.param-help-inline[open] .param-help,
+#labTPOptBlock details.param-help-inline[open] .param-help,
+#labSLOptBlock details.param-help-inline[open] .param-help,
+#labTPFibWrap details.param-help-inline[open] .param-help,
+#labSLFibWrap details.param-help-inline[open] .param-help,
+#labEAConfig details.param-help-inline[open] .param-help,
+#labBayesConfig details.param-help-inline[open] .param-help,
+#labModal details.param-help-inline[open] .param-help { display: block; }
+#labTPOptBlock details.param-help-inline.heading summary,
+#labSLOptBlock details.param-help-inline.heading summary { font-weight: 600; }
+
+/* Section title chip */
+#labCoreRanges .section-title {
+  width: 100%;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-left: 3px solid #2563eb;
+  margin: 2px 0 6px;
+}
+/* Make heading summaries look like chips */
+#labModal details.param-help-inline.heading summary {
+  background: var(--bg2, rgba(0,0,0,0.04));
+  border: 1px solid var(--header-border);
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+#labModal details.param-help-inline.heading summary:hover { background: rgba(37,99,235,0.08); }
+
+/* Unify number inputs and selects within Lab */
+#labModal input[type=number] { text-align: right; }
+#labCoreRanges input[type=number],
+#labTPOptBlock input[type=number],
+#labSLOptBlock input[type=number] { width: 6rem !important; }
+#labModal input[type=number], #labModal select {
+  border: 1px solid var(--header-border);
+  border-radius: 6px;
+  padding: 4px 6px;
+  background: var(--bg);
+}
+#labModal input[type=number]:focus, #labModal select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.25);
+  border-color: #2563eb;
+}
+
+/* Chips for toggles/lists */
+#labAdvPanel label,
+#labTPOptBlock label,
+#labSLOptBlock label { 
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 8px; border: 1px solid var(--header-border); border-radius: 8px; background: var(--bg);
+}
+#labTPFibWrap label, #labSLFibWrap label {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border: 1px solid var(--header-border); border-radius: 999px; background: var(--bg);
+}
+#labTPFibWrap label:hover, #labSLFibWrap label:hover, #labAdvPanel label:hover { background: var(--bg2, rgba(0,0,0,0.04)); }
+#labAdvPanel label:has(> input[type=checkbox]:checked),
+#labTPFibWrap label:has(> input[type=checkbox]:checked),
+#labSLFibWrap label:has(> input[type=checkbox]:checked) { border-color: #2563eb; background: rgba(37,99,235,0.08); }
+#labTPFibWrap details.param-help-inline.heading summary,
+#labSLFibWrap details.param-help-inline.heading summary,
+#labEAConfig details.param-help-inline.heading summary,
+#labBayesConfig details.param-help-inline.heading summary,
+#labModal details.param-help-inline.heading summary { font-weight: 600; }
 @keyframes planeFold {
   0% { clip-path: polygon(0 0,100% 0,100% 100%,0 100%); transform: perspective(1000px) rotateX(0) rotateY(0); }
   40% { clip-path: polygon(6% 4%,94% 6%,94% 94%,6% 96%); transform: perspective(1000px) rotateX(10deg) rotateY(-8deg); }
