@@ -2280,16 +2280,23 @@ function ensureLabAdvContainer(){
     const levLabel = lev && lev.closest ? lev.closest('label') : null;
     const t=document.getElementById('labTimeLimitSec');
     const tLabel = t && t.closest ? t.closest('label') : null;
-    const parent=(tLabel&&tLabel.parentElement) || (levLabel&&levLabel.parentElement) || document.querySelector('.form-grid');
+    // Prefer the Lab modal grid explicitly to avoid grabbing other grids
+    const labGrid = (typeof labModalEl!=='undefined' && labModalEl) ? labModalEl.querySelector('.form-grid') : null;
+    const parent=(tLabel&&tLabel.closest && tLabel.closest('.form-grid')) || (levLabel&&levLabel.closest && levLabel.closest('.form-grid')) || labGrid || document.querySelector('.form-grid');
     if(!parent) return null;
     c=document.createElement('div');
     c.id='labAdvContainer';
     c.style.display='none';
     c.style.gap='12px'; c.style.alignItems='center'; c.style.flexWrap='wrap';
     c.style.padding='6px'; c.style.border='1px dashed var(--header-border)'; c.style.borderRadius='6px'; c.style.margin='6px 0';
-    if(tLabel && tLabel.parentElement===parent){ parent.insertBefore(c, tLabel); }
-    else if(levLabel && levLabel.parentElement===parent && levLabel.nextSibling){ parent.insertBefore(c, levLabel.nextSibling); }
-    else { parent.appendChild(c); }
+    if(tLabel && tLabel.parentElement && tLabel.parentElement.contains && tLabel.parentElement.contains(tLabel)){
+      parent.insertBefore(c, tLabel);
+    } else if(levLabel && levLabel.parentElement===parent && levLabel.nextSibling){
+      parent.insertBefore(c, levLabel.nextSibling);
+    } else {
+      parent.appendChild(c);
+    }
+    try{ console.debug('[lab:adv] container created'); }catch(_){ }
     return c;
   }catch(_){ return null; }
 }
@@ -2297,7 +2304,7 @@ function moveLabAdvBlocks(){
   try{
     const container=ensureLabAdvContainer(); if(!container) return;
     const sels=['#labAdvPanel','#labCoreRanges','#labTPOptBlock','#labTPFibWrap','#labSLOptBlock','#labSLFibWrap','#labEAConfig','#labBayesConfig'];
-    for(const sel of sels){ const n=document.querySelector(sel); if(n && n!==container && !container.contains(n)){ container.appendChild(n); } }
+    for(const sel of sels){ const n=document.querySelector(sel); if(n && n!==container && !container.contains(n)){ container.appendChild(n); try{ console.debug('[lab:adv] moved', sel); }catch(_){ } } }
   }catch(_){ }
 }
 function initLabAdvancedToggle(){
@@ -2308,12 +2315,14 @@ function initLabAdvancedToggle(){
     btn.dataset.on = on ? '1':'0';
     btn.setAttribute('aria-checked', on ? 'true':'false');
     try{ btn.classList.toggle('primary', on); }catch(_){ }
+    try{ console.debug('[lab:adv] toggle init, on=', on); }catch(_){ }
     btn.addEventListener('click', ()=>{ try{
       const cur = btn.dataset.on==='1'; const next = !cur;
       btn.dataset.on = next?'1':'0';
       btn.setAttribute('aria-checked', next?'true':'false');
       try{ btn.classList.toggle('primary', next); }catch(_){}
       try{ if(next) localStorage.setItem('lab.advanced','1'); else localStorage.removeItem('lab.advanced'); }catch(_){}
+      try{ console.debug('[lab:adv] toggle click ->', next); }catch(_){ }
       try{ updateLabAdvVisibility(); }catch(_){}
     }catch(_){ } });
     btn.dataset.wired='1';
