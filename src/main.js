@@ -2345,11 +2345,17 @@ function initLabAdvancedToggle(){
     btn.setAttribute('aria-checked', on ? 'true':'false');
     try{ btn.classList.toggle('primary', on); }catch(_){ }
     try{ console.debug('[lab:adv] toggle init, on=', on); }catch(_){ }
-    btn.addEventListener('click', ()=> __toggleLabAdvanced());
+    btn.addEventListener('click', (ev)=>{ try{ __toggleLabAdvanced(); ev.preventDefault(); ev.stopPropagation(); }catch(_){ } });
+    // Extra safety: pointerdown for devices where click is intercepted
+    try{ btn.addEventListener('pointerdown', (ev)=>{ try{ __toggleLabAdvanced(); ev.preventDefault(); ev.stopPropagation(); }catch(_){ } }, { passive:false }); }catch(_){ }
+    // Keyboard a11y
+    try{ btn.addEventListener('keydown', (ev)=>{ if(ev.key==='Enter' || ev.key===' '){ try{ __toggleLabAdvanced(); ev.preventDefault(); ev.stopPropagation(); }catch(_){ } } }); }catch(_){ }
     // Global capture fallback in case direct listener fails (safety net)
     if(!document.__labAdvGlobalWired){
       try{
-        document.addEventListener('click', (e)=>{ const t=e.target; if(!t) return; const b=(t.id==='labAdvancedToggle')? t : (t.closest? t.closest('#labAdvancedToggle') : null); if(b){ e.preventDefault(); __toggleLabAdvanced(); } }, true);
+        const handler=(e)=>{ const t=e.target; if(!t) return; const b=(t.id==='labAdvancedToggle')? t : (t.closest? t.closest('#labAdvancedToggle') : null); if(b){ try{ __toggleLabAdvanced(); }catch(_){ } e.preventDefault(); e.stopPropagation(); } };
+        document.addEventListener('click', handler, true);
+        document.addEventListener('pointerdown', handler, true);
         document.__labAdvGlobalWired = true;
       }catch(_){ }
     }
