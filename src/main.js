@@ -134,6 +134,14 @@
   try{ window.PRELOADER = { setParams, setPrefs, cancel }; }catch(_){ }
 }catch(_){ } })();
 
+// --- Theme (light/dark/auto) ---
+(function setupTheme(){ try{ const t=localStorage.getItem('ui:theme'); if(t==='dark' || t==='light'){ document.documentElement.dataset.theme=t; } else { delete document.documentElement.dataset.theme; } }catch(_){ } })();
+function isDark(){ try{ const t=document.documentElement.dataset && document.documentElement.dataset.theme; if(t==='dark') return true; if(t==='light') return false; }catch(_){ } return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; }
+function applyTheme(mode){ try{ if(mode==='dark'){ document.documentElement.dataset.theme='dark'; localStorage.setItem('ui:theme','dark'); } else if(mode==='light'){ document.documentElement.dataset.theme='light'; localStorage.setItem('ui:theme','light'); } else { delete document.documentElement.dataset.theme; localStorage.removeItem('ui:theme'); } refreshThemeOnChart(); updateThemeBtn(); }catch(_){ } }
+function cycleTheme(){ try{ const cur=localStorage.getItem('ui:theme')||'auto'; const next = (cur==='auto')? 'dark' : (cur==='dark'? 'light' : 'auto'); applyTheme(next); }catch(_){ } }
+function updateThemeBtn(){ try{ const btn=document.getElementById('themeToggle'); if(!btn) return; const cur=localStorage.getItem('ui:theme')||'auto'; btn.textContent = cur==='dark' ? 'Thème: Sombre' : cur==='light' ? 'Thème: Clair' : 'Thème: Auto'; btn.title='Basculer thème (Auto → Sombre → Clair)'; }catch(_){ } }
+try{ const m=window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)'); if(m && m.addEventListener){ m.addEventListener('change', ()=>{ try{ if(!localStorage.getItem('ui:theme')){ refreshThemeOnChart(); updateThemeBtn(); } }catch(_){ } }); } }catch(_){ }
+
 // --- Lab: Entrainer (AI surrogate) ---
 
 
@@ -405,7 +413,6 @@ let currentSymbol = (symbolSelect && symbolSelect.value) || 'BTCUSDC';
 let currentInterval = (localStorage.getItem('chart:tf')) || ((intervalSelect && intervalSelect.value) || '1h');
 try{ if(intervalSelect){ intervalSelect.value = currentInterval; } }catch(_){}
 
-function isDark(){ return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; }
 
 // --- Chart ---
 const chart = LightweightCharts.createChart(container, {
@@ -481,6 +488,10 @@ const ema21Series = chart.addLineSeries({ color:'#facc15', lineWidth: 1, priceSc
 const ema34Series = chart.addLineSeries({ color:'#ffa500', lineWidth: 1, priceScaleId: 'right' });
 const ema55Series = chart.addLineSeries({ color:'#ef4444', lineWidth: 1, priceScaleId: 'right' });
 const ema200Series = chart.addLineSeries({ color: isDark() ? '#9ca3af' : '#111827', lineWidth: 1, priceScaleId: 'right' });
+
+function refreshThemeOnChart(){ try{ if(!chart) return; chart.applyOptions({ layout: { background: { color: isDark() ? '#0b0f1a' : '#ffffff' }, textColor: isDark() ? '#e5e7eb' : '#111827' }, grid: { vertLines: { color: isDark() ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)' }, horzLines: { color: isDark() ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)' } }, watermark: { color: isDark() ? 'rgba(229,231,235,0.20)' : 'rgba(17,24,39,0.12)' }, rightPriceScale: { borderColor: isDark() ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)' }, timeScale: { borderColor: isDark() ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)' } }); ema200Series.applyOptions({ color: isDark() ? '#9ca3af' : '#111827' }); updateWatermark(); updateCutoffBadge(); }catch(_){ } }
+
+try{ const btn=document.getElementById('themeToggle'); if(btn){ btn.addEventListener('click', (e)=>{ try{ e.preventDefault(); cycleTheme(); }catch(_){ } }); updateThemeBtn(); } }catch(_){ }
 const ma5Series = chart.addLineSeries({ color:'#3b82f6', lineWidth: 1, priceScaleId: 'right' });
 const ma8Series = chart.addLineSeries({ color:'#00ffff', lineWidth: 1, priceScaleId: 'right' });
 const ma13Series = chart.addLineSeries({ color:'#22c55e', lineWidth: 1, priceScaleId: 'right' });

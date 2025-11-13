@@ -19,6 +19,15 @@
     --header-border: #1f2937;
   }
 }
+/* Manual theme override */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #ffffff; --bg2: #f3f4f6; --fg: #111827; --muted: #374151; --header-bg: #f7f7f7; --header-border: #e5e7eb;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0b0f1a; --bg2: #121826; --fg: #e5e7eb; --muted: #cbd5e1; --header-bg: #0f1627; --header-border: #1f2937;
+}
 
 html, body {
   height: 100%;
