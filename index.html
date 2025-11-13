@@ -1504,19 +1504,6 @@
         <div class="modal-header">
           <h2>Lab — Recherche</h2>
           <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-            <label>Pair
-              <select id="labSymbolSelect" style="min-width:10rem;"></select>
-            </label>
-            <label>TF
-              <select id="labTFSelect" style="min-width:6rem;">
-                <option value="1m">1m</option>
-                <option value="5m">5m</option>
-                <option value="15m">15m</option>
-                <option value="1h">1h</option>
-                <option value="4h">4h</option>
-                <option value="1d">1d</option>
-              </select>
-            </label>
             <button id="labExport" class="btn">Exporter CSV</button>
             <button id="labWeights" class="btn" title="Pondérations du score">Pondérations</button>
             <label id="labAdvLabel" for="labAdvEn" class="btn" title="Mode avancé">Avancé</label>
@@ -1539,19 +1526,34 @@
                 <option value="bayes">Bayes (EDA)</option>
               </select>
             </label>
-            <label>Plage
-              <select id="labRangeMode" style="min-width:8rem;">
-                <option value="visible" selected>Visible</option>
-                <option value="all">Tout l'historique</option>
-                <option value="dates">Dates</option>
-              </select>
-            </label>
-            <label>De <input id="labFrom" type="datetime-local" style="width: 14rem" /></label>
-            <label>À <input id="labTo" type="datetime-local" style="width: 14rem" /></label>
-            <label>Capital initial <input id="labStartCap" type="number" min="0" step="100" value="10000" style="width:8rem" /></label>
-            <label>Frais (%) <input id="labFee" type="number" min="0" step="0.01" value="0.10" style="width:6rem" /></label>
-            <label>Levier (x) <input id="labLev" type="number" min="1" max="125" step="0.1" value="1" style="width:6rem" /></label>
-            <span></span>
+            <div id="labContextCard" style="grid-column:1/-1; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+              <div class="section-title">Contexte</div>
+              <label>Pair
+                <select id="labSymbolSelect" style="min-width:10rem;"></select>
+              </label>
+              <label>TF
+                <select id="labTFSelect" style="min-width:6rem;">
+                  <option value="1m">1m</option>
+                  <option value="5m">5m</option>
+                  <option value="15m">15m</option>
+                  <option value="1h">1h</option>
+                  <option value="4h">4h</option>
+                  <option value="1d">1d</option>
+                </select>
+              </label>
+              <label>Plage
+                <select id="labRangeMode" style="min-width:8rem;">
+                  <option value="visible" selected>Visible</option>
+                  <option value="all">Tout l'historique</option>
+                  <option value="dates">Dates</option>
+                </select>
+              </label>
+              <label>De <input id="labFrom" type="datetime-local" style="width: 14rem" /></label>
+              <label>À <input id="labTo" type="datetime-local" style="width: 14rem" /></label>
+              <label>Capital initial <input id="labStartCap" type="number" min="0" step="100" value="10000" style="width:8rem" /></label>
+              <label>Frais (%) <input id="labFee" type="number" min="0" step="0.01" value="0.10" style="width:6rem" /></label>
+              <label>Levier (x) <input id="labLev" type="number" min="1" max="125" step="0.1" value="1" style="width:6rem" /></label>
+            </div>
             <div id="labEAConfig" style="display:none; gap:8px; align-items:center; flex-wrap:wrap; grid-column:1/-1;">
               <details class="param-help-inline heading"><summary>EA</summary><div class="param-help">Algorithme évolutionnaire: Pop = taille de population, Gen = nombre de générations, Mut% = taux de mutation, Cx% = taux de croisement. « Resume » continue un run précédent si disponible.</div></details>
               <label>Pop <input id="labEAPop" type="number" min="4" max="2000" value="40" style="width:6rem" /></label>
@@ -1576,10 +1578,6 @@
               <label title="Temps limite de calcul (secondes); 0 = désactivé"><details class="param-help-inline"><summary>Temps (s)</summary><div class="param-help">Stoppe automatiquement l'entraînement après N secondes. Mettre 0 pour désactiver toute limite de temps.</div></details><input id="labTimeLimitSec" type="number" min="0" step="1" value="0" style="width:6rem" /></label>
               <label title="Nombre maximal d'évaluations globales; 0 = désactivé">Max évals <input id="labMaxEvals" type="number" min="0" step="1" value="0" style="width:7rem" /></label>
               <label title="Score minimum (0-100); 0 = désactivé">Score min <input id="labMinScore" type="number" min="0" max="100" step="0.1" value="0" style="width:6rem" /></label>
-              <div class="lab-actions">
-                <button id="labRun" class="btn primary">Entraîner</button>
-                <button id="labRunNew" class="btn">Nouvelle stratégie</button>
-              </div>
             </div>
             <div id="labAdvPanel" style="display:none; gap:12px; align-items:center; flex-wrap:wrap; padding:6px; border:1px dashed var(--header-border); border-radius:6px; grid-column:1/-1;">
               <strong>Paramètres à tester</strong>
@@ -1688,6 +1686,10 @@
             </div>
           </div>
           <div id="labSummary" style="margin-bottom:10px; color:var(--muted);"></div>
+          <div class="lab-fixed-actions">
+            <button id="labRun" class="btn primary">Entraîner</button>
+            <button id="labRunNew" class="btn">Nouvelle stratégie</button>
+          </div>
           <!-- KPIs + Logs inline (no extra tab/dock) -->
           <div class="lab-panels">
             <div class="kpi-cards">
