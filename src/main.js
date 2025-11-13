@@ -2299,17 +2299,21 @@ function ensureLabAdvContainer(){
     const tLabel = t && t.closest ? t.closest('label') : null;
     // Prefer the Lab modal grid explicitly to avoid grabbing other grids
     const labGrid = (typeof labModalEl!=='undefined' && labModalEl) ? labModalEl.querySelector('.form-grid') : null;
-    const parent=(tLabel&&tLabel.closest && tLabel.closest('.form-grid')) || (levLabel&&levLabel.closest && levLabel.closest('.form-grid')) || labGrid || document.querySelector('.form-grid');
+    const tGrid = tLabel && tLabel.closest ? tLabel.closest('.form-grid') : null;
+    const levGrid = levLabel && levLabel.closest ? levLabel.closest('.form-grid') : null;
+    const parent = tGrid || levGrid || labGrid || document.querySelector('.form-grid');
     if(!parent){ try{ console.warn('[lab:adv] container parent not found'); }catch(_){ } return null; }
     c=document.createElement('div');
     c.id='labAdvContainer';
     c.style.display='none';
     c.style.gap='12px'; c.style.alignItems='center'; c.style.flexWrap='wrap';
     c.style.padding='6px'; c.style.border='1px dashed var(--header-border)'; c.style.borderRadius='6px'; c.style.margin='6px 0';
-    if(tLabel && tLabel.parentElement && tLabel.parentElement.contains && tLabel.parentElement.contains(tLabel)){
+    if(tLabel && tGrid === parent){
       parent.insertBefore(c, tLabel);
-    } else if(levLabel && levLabel.parentElement===parent && levLabel.nextSibling){
-      parent.insertBefore(c, levLabel.nextSibling);
+    } else if(levLabel && levGrid === parent){
+      // insert after levLabel when possible
+      if(levLabel.nextSibling){ parent.insertBefore(c, levLabel.nextSibling); }
+      else { parent.appendChild(c); }
     } else {
       parent.appendChild(c);
     }
