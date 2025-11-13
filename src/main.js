@@ -341,7 +341,9 @@ function setBtTitle(text){ try{ const h=btProgressEl && btProgressEl.querySelect
 
 let __lastLabTested = [];
 function formatParamsBrief(p){ try{ return JSON.stringify(p||{}, (k,v)=> (typeof v==='number' && !isFinite(v)? null : v)); }catch(_){ return ''; } }
-function formatParamsPretty(p){ try{ const core = `nol=${p.nol} • prd=${p.prd} • SL init=${p.slInitPct}% • BE=${p.beAfterBars}/${p.beLockPct}% • EMA=${p.emaLen}`; const entFlags = [p.ent382?'382':null,p.ent500?'500':null,p.ent618?'618':null,p.ent786?'786':null].filter(Boolean).join('/'); const entry = `Entrée: mode=${p.entryMode||'Both'} • FibRet=${p.useFibRet? 'Oui':'Non'} • Confirm=${p.confirmMode||'Bounce'}${entFlags? ' • Ent='+entFlags:''}`; const tpStr = (Array.isArray(p.tp)&&p.tp.length)? p.tp.slice(0,10).map(t=>{ const typ=t.type||'Fib'; if(typ==='Fib') return `F:${t.fib}`; if(typ==='Percent') return `P:${t.pct}%`; if(typ==='EMA') return `E:${t.emaLen}`; return typ; }).join(' ; ') : '—'; const slStr = (Array.isArray(p.sl)&&p.sl.length)? p.sl.slice(0,10).map(t=>{ const typ=t.type||'Percent'; if(typ==='Fib') return `F:${t.fib}`; if(typ==='Percent') return `P:${t.pct}%`; if(typ==='EMA') return `E:${t.emaLen}`; return typ; }).join(' ; ') : '—'; const tpLine = `TP ladder: ${tpStr}`; const slLine = `SL ladder: ${slStr}`; return `<div>${core}</div><div>${entry}</div><div>${tpLine}</div><div>${slLine}</div>`; }catch(_){ return ''; } }
+function formatParamsPretty(p){ try{ const core = `nol=${p.nol} • prd=${p.prd} • SL init=${p.slInitPct}% • BE=${p.beAfterBars}/${p.beLockPct}% • EMA=${p.emaLen}`; const entFlags = [p.ent382?'382':null,p.ent500?'500':null,p.ent618?'618':null,p.ent786?'786':null].filter(Boolean).join('/'); const entry = `Entrée: mode=${p.entryMode||'Both'} • FibRet=${p.useFibRet? 'Oui':'Non'} • Confirm=${p.confirmMode||'Bounce'}${entFlags? ' • Ent='+entFlags:''}`; const tpArr=(Array.isArray(p.tp)? p.tp.slice(0,10):[]); const slArr=(Array.isArray(p.sl)? p.sl.slice(0,10):[]); const tpStr = tpArr.length? tpArr.map(t=>{ const typ=t.type||'Fib'; if(typ==='Fib') return `F:${t.fib}`; if(typ==='Percent') return `P:${t.pct}%`; if(typ==='EMA') return `E:${t.emaLen}`; return typ; }).join(' ; ') : '—'; const slStr = slArr.length? slArr.map(t=>{ const typ=t.type||'Percent'; if(typ==='Fib') return `F:${t.fib}`; if(typ==='Percent') return `P:${t.pct}%`; if(typ==='EMA') return `E:${t.emaLen}`; return typ; }).join(' ; ') : '—'; const tpLine = `TP ladder: ${tpStr}`; const slLine = `SL ladder: ${slStr}`; // Capital distribution per TP (as % of position)
+  let capLine=''; try{ const wsum = tpArr.reduce((s,t)=> s + (Number(t.qty)||0), 0) || 0; if(wsum>0){ const parts = tpArr.map(t=> `${Math.round(((Number(t.qty)||0)/wsum)*100)}%`).join(' / '); capLine = `Cap/TP: ${parts}`; } }catch(_){ capLine=''; }
+  return `<div>${core}</div><div>${entry}</div><div>${tpLine}</div><div>${slLine}</div>${capLine? ('<div>'+capLine+'</div>'):''}`; }catch(_){ return ''; } }
 function openEvalsModal(sym, tf){ try{ const tb=document.getElementById('evalsTBody'); const ctxEl=document.getElementById('evalsCtx'); if(!tb) return; const arr = Array.isArray(__lastLabTested)? __lastLabTested.slice(): []; const rows=[]; let idx=1; const sorted=arr.slice().sort((a,b)=> (b.score||0)-(a.score||0)); for(const it of sorted){ const st=it.metrics||it.res||{}; rows.push(`<tr><td>${idx}</td><td>${(it.score!=null? it.score.toFixed(2): '—')}</td><td>${(st.profitFactor===Infinity?'∞':(st.profitFactor||0).toFixed(2))}</td><td>${(st.totalPnl||0).toFixed(0)}</td><td>${st.tradesCount||0}</td><td>${(st.winrate||0).toFixed(1)}</td><td>${(Number.isFinite(st.avgRR)? st.avgRR.toFixed(2):'—')}</td><td style=\"text-align:left; white-space:normal; line-height:1.2;\">${formatParamsPretty(it.params||{})}</td></tr>`); idx++; }
   tb.innerHTML = rows.length? rows.join('') : '<tr><td colspan="8">—</td></tr>'; if(ctxEl) ctxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — ${arr.length} évaluations`; openModalEl(document.getElementById('evalsModal')); }catch(_){ }
 }
@@ -2497,8 +2499,14 @@ function sampleTPList(tpCfg){
   // ranges for trailing percent (fallback if no UI): 0.1% .. 100%
   const trailPctMin = 0.1, trailPctMax = 100.0;
   const slCfgLocal = readSLOpt();
+  const usedKeys=new Set();
+  function keyOfTP(t){ if(!t) return ''; const typ=t.type||'Fib'; if(typ==='Fib') return `F:${t.fib}`; if(typ==='Percent') return `P:${t.pct}`; return `E:${t.emaLen}`; }
+  function pickFibUnique(){ const pool=fibs.slice(); for(let k=0;k<pool.length;k++){ const i=(Math.random()*pool.length)|0; const v=pool[i]; const key=`F:${v}`; if(!usedKeys.has(key)) return v; pool.splice(i,1); k--; }
+    return fibs[(Math.random()*fibs.length)|0]; }
+  function pickPctUnique(min,max){ let tries=0; while(tries++<20){ const p = min + Math.random()*Math.max(0,max-min); const val=+p.toFixed(3); const key=`P:${val}`; if(!usedKeys.has(key)) return val; } return +(min + Math.random()*Math.max(0,max-min)).toFixed(3); }
+  function pickEmaUnique(){ let tries=0; while(tries++<20){ const len = rEMALen[(Math.random()*rEMALen.length)|0]; const key=`E:${len}`; if(!usedKeys.has(key)) return len; } return rEMALen[(Math.random()*rEMALen.length)|0]; }
   function sampleAttachedSL(){
-    const tps=[]; const ty=[]; const allowSTypes=[]; if(slCfgLocal.allowFib) allowSTypes.push('Fib'); if(slCfgLocal.allowPct) allowSTypes.push('Percent'); if(slCfgLocal.allowEMA) allowSTypes.push('EMA'); if(!allowSTypes.length) allowSTypes.push('Percent');
+    const allowSTypes=[]; if(slCfgLocal.allowFib) allowSTypes.push('Fib'); if(slCfgLocal.allowPct) allowSTypes.push('Percent'); if(slCfgLocal.allowEMA) allowSTypes.push('EMA'); if(!allowSTypes.length) allowSTypes.push('Percent');
     const st=allowSTypes[(Math.random()*allowSTypes.length)|0];
     if(st==='Fib'){
       const r=slCfgLocal.fibs[(Math.random()*slCfgLocal.fibs.length)|0];
@@ -2529,42 +2537,42 @@ function sampleTPList(tpCfg){
   }
   for(let i=0;i<n;i++){
     const t=types[(Math.random()*types.length)|0];
-    let entry=null;
+    let entry=null; let key='';
     if(t==='Fib'){
-      const r=fibs[(Math.random()*fibs.length)|0];
+      const r=pickFibUnique();
       entry={ type:'Fib', fib:r, value:r, qty: ws[i] };
     } else if(t==='Percent'){
-      const p = pctMin + Math.random()*(Math.max(0,pctMax-pctMin));
-      entry={ type:'Percent', pct:+p.toFixed(3), value:+p.toFixed(3), qty: ws[i] };
+      const p = pickPctUnique(pctMin, pctMax);
+      entry={ type:'Percent', pct:p, value:p, qty: ws[i] };
     } else {
-      const len = rEMALen[(Math.random()*rEMALen.length)|0];
+      const len = pickEmaUnique();
       entry={ type:'EMA', emaLen: len, qty: ws[i] };
     }
-    // beOn
+    key=keyOfTP(entry); usedKeys.add(key);
     entry.beOn = Math.random() < 0.4;
-    // per‑TP trail
     const tr = sampleTrailTP(); if(tr) entry.trail = tr;
-    // attached SL + its trail
     const atSL = sampleAttachedSL(); if(atSL){ entry.sl = atSL; const st=sampleTrailSL(); if(st){ entry.sl.trail = st; } }
     list.push(entry);
   }
   return list;
 }
-function mutateTP(list,tpCfg){ if(!Array.isArray(list)||!list.length) return list; const out=list.map(x=> ({...x})); const i=(Math.random()*out.length)|0; const t=out[i]; const r=Math.random(); if(t.type==='Fib' && (r<0.5)){ const fibs=tpCfg.fibs; out[i].fib = fibs[(Math.random()*fibs.length)|0]; out[i].value=out[i].fib; } else if(t.type==='Percent' && (r<0.5)){ const p = tpCfg.pctMin + Math.random()*(Math.max(0,tpCfg.pctMax-tpCfg.pctMin)); out[i].pct=+p.toFixed(3); out[i].value=out[i].pct; } else if(t.type==='EMA' && (r<0.5)){ out[i].emaLen = rEMALen[(Math.random()*rEMALen.length)|0]; } else { // change type
-    const types=[]; if(tpCfg.allowFib) types.push('Fib'); if(tpCfg.allowPct) types.push('Percent'); if(tpCfg.allowEMA) types.push('EMA'); if(types.length){ const nt=types[(Math.random()*types.length)|0]; const baseQty = t.qty||null; if(nt==='Fib'){ const fibs=tpCfg.fibs; out[i]={ type:'Fib', fib:fibs[(Math.random()*fibs.length)|0], qty: baseQty }; } else if(nt==='Percent'){ const p=tpCfg.pctMin + Math.random()*(Math.max(0,tpCfg.pctMax-tpCfg.pctMin)); out[i]={ type:'Percent', pct:+p.toFixed(3), qty: baseQty }; } else { out[i]={ type:'EMA', emaLen: rEMALen[(Math.random()*rEMALen.length)|0], qty: baseQty }; } }
+function mutateTP(list,tpCfg){ if(!Array.isArray(list)||!list.length) return list; const out=list.map(x=> ({...x})); const i=(Math.random()*out.length)|0; const t=out[i]; const r=Math.random(); const used=new Set(out.map(keyOfTP)); if(t.type==='Fib' && (r<0.5)){ const fibs=tpCfg.fibs; let tries=0; while(tries++<20){ const v=fibs[(Math.random()*fibs.length)|0]; const key=`F:${v}`; if(!used.has(key)){ out[i].fib=v; out[i].value=v; used.add(key); break; } } } else if(t.type==='Percent' && (r<0.5)){ let tries=0; while(tries++<20){ const p = tpCfg.pctMin + Math.random()*(Math.max(0,tpCfg.pctMax-tpCfg.pctMin)); const val=+p.toFixed(3); const key=`P:${val}`; if(!used.has(key)){ out[i].pct=val; out[i].value=val; used.add(key); break; } } } else if(t.type==='EMA' && (r<0.5)){ let tries=0; while(tries++<20){ const len = rEMALen[(Math.random()*rEMALen.length)|0]; const key=`E:${len}`; if(!used.has(key)){ out[i].emaLen=len; used.add(key); break; } } } else { // change type
+    const types=[]; if(tpCfg.allowFib) types.push('Fib'); if(tpCfg.allowPct) types.push('Percent'); if(tpCfg.allowEMA) types.push('EMA'); if(types.length){ const nt=types[(Math.random()*types.length)|0]; const baseQty = t.qty||null; if(nt==='Fib'){ const fibs=tpCfg.fibs; let v=fibs[(Math.random()*fibs.length)|0]; out[i]={ type:'Fib', fib:v, qty: baseQty }; } else if(nt==='Percent'){ const p=tpCfg.pctMin + Math.random()*(Math.max(0,tpCfg.pctMax-tpCfg.pctMin)); const val=+p.toFixed(3); out[i]={ type:'Percent', pct:val, qty: baseQty }; } else { const len = rEMALen[(Math.random()*rEMALen.length)|0]; out[i]={ type:'EMA', emaLen: len, qty: baseQty }; } }
   }
-  // mutate beOn
   if(Math.random()<0.2){ out[i].beOn = !out[i].beOn; }
-  // mutate per‑TP trail
   if(Math.random()<0.3){ const modes=['none','be','prev','ema','percent']; const m=modes[(Math.random()*modes.length)|0]; if(m==='none'){ delete out[i].trail; } else if(m==='ema'){ out[i].trail={ mode:'ema', emaLen: rEMALen[(Math.random()*rEMALen.length)|0] }; } else if(m==='percent'){ const p = 0.1 + Math.random()*(100.0-0.1); out[i].trail={ mode:'percent', pct:+p.toFixed(3) }; } else { out[i].trail={ mode:m }; } }
-  // mutate attached SL basic
   function mutAttachedSL(s){ const slCfg=readSLOpt(); const u={ ...(s||{}) }; const rr=Math.random(); if((u.type||'Percent')==='Fib' && rr<0.5){ const fibs=slCfg.fibs; u.fib = fibs[(Math.random()*fibs.length)|0]; u.value=u.fib; } else if((u.type||'Percent')==='Percent' && rr<0.5){ const p=slCfg.pctMin + Math.random()*(Math.max(0,slCfg.pctMax-slCfg.pctMin)); u.pct=+p.toFixed(3); u.value=u.pct; } else if((u.type||'Percent')==='EMA' && rr<0.5){ u.emaLen = rEMALen[(Math.random()*rEMALen.length)|0]; } else { const types=[]; if(slCfg.allowFib) types.push('Fib'); if(slCfg.allowPct) types.push('Percent'); if(slCfg.allowEMA) types.push('EMA'); if(types.length){ const nt=types[(Math.random()*types.length)|0]; if(nt==='Fib'){ const fibs=slCfg.fibs; return { type:'Fib', fib:fibs[(Math.random()*fibs.length)|0] }; } else if(nt==='Percent'){ const p=slCfg.pctMin + Math.random()*(Math.max(0,slCfg.pctMax-slCfg.pctMin)); return { type:'Percent', pct:+p.toFixed(3) }; } else { return { type:'EMA', emaLen: rEMALen[(Math.random()*rEMALen.length)|0] }; } } }
     return u; }
   if(Math.random()<0.3){ out[i].sl = mutAttachedSL(out[i].sl); }
-  // mutate SL trail
   if(Math.random()<0.3){ const modes=['none','ema','percent']; const m=modes[(Math.random()*modes.length)|0]; if(!out[i].sl) out[i].sl={ type:'Percent', pct:1.0 }; if(m==='none'){ if(out[i].sl) delete out[i].sl.trail; } else if(m==='ema'){ out[i].sl.trail={ mode:'ema', emaLen: rEMALen[(Math.random()*rEMALen.length)|0] }; } else { const p=0.1 + Math.random()*(100.0-0.1); out[i].sl.trail={ mode:'percent', pct:+p.toFixed(3) }; } }
-  // mutate weights slightly
   const ws=out.map(x=> x.qty||0); const j=(Math.random()*ws.length)|0; ws[j] = Math.max(0.01, ws[j] + (Math.random()*0.2-0.1)); const s=ws.reduce((a,b)=>a+b,0); for(let k=0;k<out.length;k++){ out[k].qty = ws[k]/s; }
+  // ensure uniqueness of TP rungs
+  const seen=new Set(); for(let k=0;k<out.length;k++){ const key=keyOfTP(out[k]); if(seen.has(key)){ // try to re-sample a different value for this rung if possible
+      let tries=0; if(out[k].type==='Fib'){ const fibs=tpCfg.fibs; while(tries++<20){ const v=fibs[(Math.random()*fibs.length)|0]; const kk=`F:${v}`; if(!seen.has(kk)){ out[k].fib=v; out[k].value=v; break; } } }
+      else if(out[k].type==='Percent'){ while(tries++<20){ const p=tpCfg.pctMin + Math.random()*(Math.max(0,tpCfg.pctMax-tpCfg.pctMin)); const val=+p.toFixed(3); const kk=`P:${val}`; if(!seen.has(kk)){ out[k].pct=val; out[k].value=val; break; } } }
+      else { while(tries++<20){ const len=rEMALen[(Math.random()*rEMALen.length)|0]; const kk=`E:${len}`; if(!seen.has(kk)){ out[k].emaLen=len; break; } } }
+    }
+    seen.add(keyOfTP(out[k])); }
   return out; }
 
   function readSLOpt(){
@@ -2582,22 +2590,23 @@ function mutateTP(list,tpCfg){ if(!Array.isArray(list)||!list.length) return lis
       return { en:true, allowFib:true, allowPct:true, allowEMA:true, pctMin:0.5, pctMax:5.0, fibs:[0.236,0.382,0.5,0.618,0.786,1.0,1.272,1.382,1.414,1.618,2.0,2.236,2.618,3.0], count:1 };
     }
   }
-  function sampleSLList(slCfg){
+function sampleSLList(slCfg){
     const { allowFib, allowPct, allowEMA, pctMin, pctMax, fibs } = slCfg || {};
     const n = Math.max(1, Math.min(10, Number(slCfg && slCfg.count) || 1));
     const types=[]; if(allowFib) types.push('Fib'); if(allowPct) types.push('Percent'); if(allowEMA) types.push('EMA'); if(!types.length) types.push('Percent');
-    const list=[];
+    const list=[]; const used=new Set();
+    function keyOfSL(s){ const typ=s.type||'Percent'; if(typ==='Fib') return `F:${s.fib}`; if(typ==='Percent') return `P:${s.pct}`; return `E:${s.emaLen}`; }
+    function pickFib(){ const pool=fibs.slice(); for(let k=0;k<pool.length;k++){ const i=(Math.random()*pool.length)|0; const v=pool[i]; const key=`F:${v}`; if(!used.has(key)) return v; pool.splice(i,1); k--; } return fibs[(Math.random()*fibs.length)|0]; }
+    function pickPct(){ let tries=0; while(tries++<20){ const p=pctMin + Math.random()*(Math.max(0,pctMax-pctMin)); const val=+p.toFixed(3); const key=`P:${val}`; if(!used.has(key)) return val; } return +(pctMin + Math.random()*(Math.max(0,pctMax-pctMin))).toFixed(3); }
+    function pickEma(){ let tries=0; while(tries++<20){ const len=rEMALen[(Math.random()*rEMALen.length)|0]; const key=`E:${len}`; if(!used.has(key)) return len; } return rEMALen[(Math.random()*rEMALen.length)|0]; }
     for(let i=0;i<n;i++){
       const t=types[(Math.random()*types.length)|0];
       if(t==='Fib'){
-        const r=fibs[(Math.random()*fibs.length)|0];
-        list.push({ type:'Fib', fib:r, value:r });
+        const r=pickFib(); const obj={ type:'Fib', fib:r, value:r }; list.push(obj); used.add(keyOfSL(obj));
       } else if(t==='Percent'){
-        const p = pctMin + Math.random()*(Math.max(0,pctMax-pctMin));
-        list.push({ type:'Percent', pct:+p.toFixed(3), value:+p.toFixed(3) });
+        const p = pickPct(); const obj={ type:'Percent', pct:p, value:p }; list.push(obj); used.add(keyOfSL(obj));
       } else {
-        const len = rEMALen[(Math.random()*rEMALen.length)|0];
-        list.push({ type:'EMA', emaLen: len });
+        const len = pickEma(); const obj={ type:'EMA', emaLen: len }; list.push(obj); used.add(keyOfSL(obj));
       }
     }
     return list;
@@ -2627,12 +2636,17 @@ function mutateTP(list,tpCfg){ if(!Array.isArray(list)||!list.length) return lis
     }
     return res;
   }
-function crossoverTP(a,b,tpCfg){ const n=Math.max(1, tpCfg.count|0); const res=[]; for(let i=0;i<n;i++){ const as=a[i%Math.max(1,a.length||1)], bs=b[i%Math.max(1,b.length||1)]; const src=(Math.random()<0.5? as:bs); let t = src? {...src}: null; if(!t){ t = { type:'Fib', fib:(tpCfg.fibs[0]||0.382), qty: 1/n }; }
-  // mix extras
+function crossoverTP(a,b,tpCfg){ const n=Math.max(1, tpCfg.count|0); const res=[]; const used=new Set(); for(let i=0;i<n;i++){ const as=a[i%Math.max(1,a.length||1)], bs=b[i%Math.max(1,b.length||1)]; const src=(Math.random()<0.5? as:bs); let t = src? {...src}: null; if(!t){ t = { type:'Fib', fib:(tpCfg.fibs[0]||0.382), qty: 1/n }; }
   const other = (src===as? bs: as) || {};
-  if(Math.random()<0.5) t.beOn = !!(other.beOn); // inherit from other sometimes
+  if(Math.random()<0.5) t.beOn = !!(other.beOn);
   if(Math.random()<0.5) t.trail = other.trail? {...other.trail} : t.trail;
   if(Math.random()<0.5){ t.sl = other.sl? {...other.sl} : t.sl; if(other.sl && other.sl.trail){ t.sl.trail = {...other.sl.trail}; } }
+  // enforce uniqueness by resampling minimally
+  let tries=0; while(tries++<20){ const key=keyOfTP(t); if(!used.has(key)) { used.add(key); break; }
+    if(t.type==='Fib'){ t.fib = tpCfg.fibs[(Math.random()*tpCfg.fibs.length)|0]; t.value=t.fib; }
+    else if(t.type==='Percent'){ const p=tpCfg.pctMin + Math.random()*(Math.max(0,tpCfg.pctMax-tpCfg.pctMin)); t.pct=+p.toFixed(3); t.value=t.pct; }
+    else { t.emaLen = rEMALen[(Math.random()*rEMALen.length)|0]; }
+  }
   res[i]=t; }
   const s=res.reduce((u,x)=> u+(x.qty||0),0)||1; for(const x of res){ x.qty = (x.qty||0)/s; } return res; }
 
