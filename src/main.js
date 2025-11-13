@@ -2309,24 +2309,38 @@ function moveLabAdvBlocks(){
     for(const sel of sels){ const n=document.querySelector(sel); if(n && n!==container && !container.contains(n)){ container.appendChild(n); try{ console.debug('[lab:adv] moved', sel); }catch(_){ } } }
   }catch(_){ }
 }
+function __toggleLabAdvanced(next){
+  try{
+    const btn=document.getElementById('labAdvancedToggle'); if(!btn) return;
+    const cur = (btn.dataset && btn.dataset.on==='1');
+    const val = (typeof next==='boolean')? next : !cur;
+    if(!btn.dataset) btn.dataset={};
+    btn.dataset.on = val? '1':'0';
+    btn.setAttribute('aria-checked', val? 'true':'false');
+    try{ btn.classList.toggle('primary', val); }catch(_){ }
+    try{ if(val) localStorage.setItem('lab.advanced','1'); else localStorage.removeItem('lab.advanced'); }catch(_){ }
+    try{ ensureLabAdvContainer(); moveLabAdvBlocks(); updateLabAdvVisibility(); }catch(_){ }
+    try{ console.debug('[lab:adv] toggle ->', val); }catch(_){ }
+  }catch(_){ }
+}
 function initLabAdvancedToggle(){
   try{
     const btn=document.getElementById('labAdvancedToggle'); if(!btn) return;
     if(btn.dataset && btn.dataset.wired==='1') return;
     const on = (localStorage.getItem('lab.advanced')==='1');
+    if(!btn.dataset) btn.dataset={};
     btn.dataset.on = on ? '1':'0';
     btn.setAttribute('aria-checked', on ? 'true':'false');
     try{ btn.classList.toggle('primary', on); }catch(_){ }
     try{ console.debug('[lab:adv] toggle init, on=', on); }catch(_){ }
-    btn.addEventListener('click', ()=>{ try{
-      const cur = btn.dataset.on==='1'; const next = !cur;
-      btn.dataset.on = next?'1':'0';
-      btn.setAttribute('aria-checked', next?'true':'false');
-      try{ btn.classList.toggle('primary', next); }catch(_){}
-      try{ if(next) localStorage.setItem('lab.advanced','1'); else localStorage.removeItem('lab.advanced'); }catch(_){}
-      try{ console.debug('[lab:adv] toggle click ->', next); }catch(_){ }
-      try{ updateLabAdvVisibility(); }catch(_){}
-    }catch(_){ } });
+    btn.addEventListener('click', ()=> __toggleLabAdvanced());
+    // Global capture fallback in case direct listener fails (safety net)
+    if(!document.__labAdvGlobalWired){
+      try{
+        document.addEventListener('click', (e)=>{ const t=e.target; if(!t) return; const b=(t.id==='labAdvancedToggle')? t : (t.closest? t.closest('#labAdvancedToggle') : null); if(b){ e.preventDefault(); __toggleLabAdvanced(); } }, true);
+        document.__labAdvGlobalWired = true;
+      }catch(_){ }
+    }
     btn.dataset.wired='1';
   }catch(_){ }
 }
