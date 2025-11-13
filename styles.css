@@ -1,16 +1,20 @@
 /* Variables et thème */
 :root {
+  color-scheme: light dark;
   --bg: #ffffff;
+  --bg2: #f3f4f6;
   --fg: #111827;
-  --muted: #6b7280;
+  --muted: #374151; /* un peu plus foncé pour meilleur contraste sur fond clair */
   --header-bg: #f7f7f7;
   --header-border: #e5e7eb;
 }
 @media (prefers-color-scheme: dark) {
   :root {
+    color-scheme: dark;
     --bg: #0b0f1a;
+    --bg2: #121826;
     --fg: #e5e7eb;
-    --muted: #9ca3af;
+    --muted: #cbd5e1; /* plus clair pour lisibilité sur fond sombre */
     --header-bg: #0f1627;
     --header-border: #1f2937;
   }
@@ -60,6 +64,10 @@ header .brand-logo {
 select#interval {
   padding: 4px 6px;
 }
+/* Harmonise la couleur des contrôles natifs en clair/sombre */
+select, input, textarea, button { color: var(--fg); background: var(--bg); }
+option { color: var(--fg); background: var(--bg); }
+::placeholder { color: var(--muted); opacity: 0.9; }
 
 main {
   flex: 1;
@@ -92,7 +100,7 @@ main {
   border-radius: 8px;
   cursor: pointer;
 }
-.btn:hover { background: rgba(0,0,0,0.04); }
+.btn:hover { background: var(--bg2); }
 .btn.primary { background: #2563eb; border-color: #2563eb; color: #fff; }
 .btn.primary:hover { filter: brightness(0.95); }
 .icon-btn { background: transparent; border: none; font-size: 20px; cursor: pointer; color: var(--fg); }
@@ -367,7 +375,9 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
   border-radius: 6px;
   padding: 4px 6px;
   background: var(--bg);
+  color: var(--fg);
 }
+#labModal option { background: var(--bg); color: var(--fg); }
 #labModal input[type=number]:focus, #labModal select:focus {
   outline: none;
   box-shadow: 0 0 0 2px rgba(37,99,235,0.25);
