@@ -3124,6 +3124,33 @@ async function renderLiveDrawer(){ try{ ensureLiveDrawer(); const list=document.
           const ref = header.querySelector('label[data-act]') || header.querySelector('label');
           if(ref){ header.insertBefore(b2, ref); } else { header.appendChild(b2); }
         }
+        // Delete wallet button
+        if(!header.querySelector('button[data-del]')){
+          const bd=document.createElement('button'); bd.className='icon-btn'; bd.setAttribute('data-act','1'); bd.setAttribute('data-del','1'); bd.title='Supprimer le wallet'; bd.textContent='🗑';
+          bd.addEventListener('click', async (ev)=>{
+            try{
+              ev.stopPropagation();
+              if(!name) return;
+              if(!confirm(`Supprimer le wallet "${name}" ?`)) return;
+              let ok=false;
+              try{
+                if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.deleteLiveWallet==='function'){
+                  ok = await SUPA.deleteLiveWallet(name, 'paper');
+                } else {
+                  // local fallback
+                  let arr = (typeof readLiveWallets==='function')? readLiveWallets() : [];
+                  if(Array.isArray(arr)) arr = arr.filter(x=> x && x.name!==name);
+                  if(typeof writeLiveWallets==='function') writeLiveWallets(arr);
+                  ok = true;
+                }
+              }catch(_){ ok=false; }
+              if(ok){ try{ setStatus && setStatus('Wallet supprimé'); }catch(_){ } try{ if(typeof populateLiveWalletsUI==='function') await populateLiveWalletsUI(); }catch(_){ } renderLiveDrawer(); }
+              else { try{ setStatus && setStatus('Suppression échouée'); }catch(_){ } }
+            }catch(_){ }
+          });
+          const ref2 = header.querySelector('label[data-act]') || header.querySelector('label');
+          if(ref2){ header.insertBefore(bd, ref2); } else { header.appendChild(bd); }
+        }
       }
       const ck=el.querySelector('input[type=checkbox][data-act]');
       if(ck){ ck.addEventListener('click', (ev)=> ev.stopPropagation()); }
