@@ -2453,8 +2453,34 @@ function updateLabAdvVisibility(){
     const slAllowFib = !!document.getElementById('labSLAllowFib')?.checked;
     const tpFibWrap = document.getElementById('labTPFibWrap'); if(tpFibWrap) tpFibWrap.style.display = (showAdv && varTP && tpAllowFib)? 'flex':'none';
     const slFibWrap = document.getElementById('labSLFibWrap'); if(slFibWrap) slFibWrap.style.display = (showAdv && varSL && slAllowFib)? 'flex':'none';
-    const coreAny = ['labVarNol','labVarPrd','labVarSLInit','labVarBEBars','labVarBELock','labVarEMALen'].some(id=> !!document.getElementById(id)?.checked);
-    const coreRanges = document.getElementById('labCoreRanges'); if(coreRanges) coreRanges.style.display = (showAdv && coreAny)? 'flex':'none';
+    // Individually show core ranges only when the corresponding toggle is ON
+    function showLabelByInputId(inputId, show){ try{ const el=document.getElementById(inputId); if(!el) return; const lab = el.closest ? el.closest('label') : null; if(lab){ lab.style.display = show? 'inline-flex':'none'; } }catch(_){ } }
+    const vN=!!document.getElementById('labVarNol')?.checked;
+    const vP=!!document.getElementById('labVarPrd')?.checked;
+    const vSL=!!document.getElementById('labVarSLInit')?.checked;
+    const vBEb=!!document.getElementById('labVarBEBars')?.checked;
+    const vBEL=!!document.getElementById('labVarBELock')?.checked;
+    const vEMA=!!document.getElementById('labVarEMALen')?.checked;
+    // core ranges container
+    const coreRanges = document.getElementById('labCoreRanges');
+    const coreAny = vN||vP||vSL||vBEb||vBEL||vEMA;
+    if(coreRanges) coreRanges.style.display = (showAdv && coreAny)? 'flex':'none';
+    if(showAdv){
+      showLabelByInputId('labNolMin', vN); showLabelByInputId('labNolMax', vN); showLabelByInputId('labNolStep', vN);
+      showLabelByInputId('labPrdMin', vP); showLabelByInputId('labPrdMax', vP); showLabelByInputId('labPrdStep', vP);
+      showLabelByInputId('labSLInitMin', vSL); showLabelByInputId('labSLInitMax', vSL); showLabelByInputId('labSLInitStep', vSL);
+      showLabelByInputId('labBEBarsMin', vBEb); showLabelByInputId('labBEBarsMax', vBEb); showLabelByInputId('labBEBarsStep', vBEb);
+      showLabelByInputId('labBELockMin', vBEL); showLabelByInputId('labBELockMax', vBEL); showLabelByInputId('labBELockStep', vBEL);
+      showLabelByInputId('labEMALenMin', vEMA); showLabelByInputId('labEMALenMax', vEMA); showLabelByInputId('labEMALenStep', vEMA);
+    }
+    // TP/SL percent range labels visibility per allowPct
+    function showParentLabel(id, show){ try{ const el=document.getElementById(id); if(!el) return; const lab=el.closest? el.closest('label'):null; if(lab) lab.style.display = show? 'inline-flex':'none'; }catch(_){ } }
+    const tpAllowPct = !!document.getElementById('labTPAllowPct')?.checked;
+    showParentLabel('labTPPctMin', (showAdv && varTP && tpAllowPct));
+    showParentLabel('labTPPctMax', (showAdv && varTP && tpAllowPct));
+    const slAllowPct = !!document.getElementById('labSLAllowPct')?.checked;
+    showParentLabel('labSLPctMin', (showAdv && varSL && slAllowPct));
+    showParentLabel('labSLPctMax', (showAdv && varSL && slAllowPct));
     // EA/Bayes blocks visibility
     const strat = (document.getElementById('labStrategy') && document.getElementById('labStrategy').value) || 'hybrid';
     const eaCfg = document.getElementById('labEAConfig'); const bayCfg = document.getElementById('labBayesConfig');
