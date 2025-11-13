@@ -2228,6 +2228,30 @@ function updateGlobalProgressUI(){ try{ const plannedDen = (__labSimPlanned>0)? 
     if(vars.varBELock) rBEL = makeRange(get('labBELockMin',3),get('labBELockMax',10),get('labBELockStep',1),3);
     if(vars.varEMALen) rEMALen = makeRange(get('labEMALenMin',21),get('labEMALenMax',89),get('labEMALenStep',4),0).map(x=>x|0);
   }
+  // Pre-flight summary log (advanced mode, toggles, ranges, TP/SL Opt, EA/Bayes)
+  try{
+    const adv = isLabAdvMode();
+    const vars = readLabVarToggles();
+    const b = (v)=> v?'on':'off';
+    const gv=(id)=>{ const el=document.getElementById(id); return (el&&el.value!=null)? String(el.value):''; };
+    const rng=(a,b2,c)=> `${gv(a)}–${gv(b2)}:${gv(c)}`;
+    const tpCfg = readTPOpt();
+    const slCfg = readSLOpt();
+    const strat = (document.getElementById('labStrategy')&&document.getElementById('labStrategy').value)||'hybrid';
+    const eaPop = parseInt(document.getElementById('labEAPop')?.value||'40',10);
+    const eaGen = parseInt(document.getElementById('labEAGen')?.value||'20',10);
+    const eaMut = parseFloat(document.getElementById('labEAMut')?.value||'20');
+    const eaCx  = parseFloat(document.getElementById('labEACx')?.value||'60');
+    const bayIters = parseInt(document.getElementById('labBayIters')?.value||'150',10);
+    const bayInit  = parseInt(document.getElementById('labBayInit')?.value||'40',10);
+    const bayElite = parseInt(document.getElementById('labBayElitePct')?.value||'30',10);
+    addBtLog(`Pré-vol: Avancé ${adv?'on':'off'} • Vars NOL ${b(vars.varNol)} PRD ${b(vars.varPrd)} SL% ${b(vars.varSLInit)} BEbars ${b(vars.varBEBars)} BElock ${b(vars.varBELock)} EMA ${b(vars.varEMALen)} TP ${b(vars.varTP)} SL ${b(vars.varSL)} Entrées ${b(vars.varEntries)}`);
+    if(adv){
+      addBtLog(`Plages: NOL ${rng('labNolMin','labNolMax','labNolStep')} PRD ${rng('labPrdMin','labPrdMax','labPrdStep')} SL% ${rng('labSLInitMin','labSLInitMax','labSLInitStep')} BEbars ${rng('labBEBarsMin','labBEBarsMax','labBEBarsStep')} BElock ${rng('labBELockMin','labBELockMax','labBELockStep')} EMA ${rng('labEMALenMin','labEMALenMax','labEMALenStep')}`);
+    }
+    addBtLog(`TPOpt ${tpCfg.en?'on':'off'} (n=${tpCfg.count}, fib=${tpCfg.allowFib?1:0}, pct=${tpCfg.allowPct?1:0}, ema=${tpCfg.allowEMA?1:0}, % ${tpCfg.pctMin}–${tpCfg.pctMax}, fibs=${(tpCfg.fibs||[]).length}) • SLOpt ${slCfg.en?'on':'off'} (n=${slCfg.count}, fib=${slCfg.allowFib?1:0}, pct=${slCfg.allowPct?1:0}, ema=${slCfg.allowEMA?1:0}, % ${slCfg.pctMin}–${slCfg.pctMax}, fibs=${(slCfg.fibs||[]).length})`);
+    addBtLog(`Stratégie ${strat} • EA pop=${eaPop} gen=${eaGen} mut%=${eaMut} cx%=${eaCx} • Bayes iters=${bayIters} init=${bayInit} elite%=${bayElite}`);
+  }catch(_){ }
   const keyOf=(p)=> JSON.stringify([p.nol,p.prd,p.slInitPct,p.beAfterBars,p.beLockPct,p.emaLen,p.entryMode,p.useFibRet,p.confirmMode,p.ent382,p.ent500,p.ent618,p.ent786,Array.isArray(p.tp)? p.tp.slice(0,10):[], Array.isArray(p.sl)? p.sl.slice(0,10):[]]);
 const canonKey=(p)=>{ try{
       const tp = Array.isArray(p.tp) ? p.tp.slice(0,10) : [];
