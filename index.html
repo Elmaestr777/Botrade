@@ -1512,20 +1512,23 @@
         </div>
         <div class="modal-body">
           <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:10px; margin-bottom:10px;">
-            <label>Profil
-              <select id="labProfile" style="min-width:8rem;">
-                <option value="sure">Stratégie sûre</option>
-                <option value="balancee" selected>Stratégie balancée</option>
-                <option value="agressive">Stratégie agressive</option>
-              </select>
-            </label>
-            <label>Stratégie
-              <select id="labStrategy" style="min-width:12rem;">
-                <option value="hybrid" selected>Hybride (EA → Bayes)</option>
-                <option value="ea">Évolutionnaire (EA)</option>
-                <option value="bayes">Bayes (EDA)</option>
-              </select>
-            </label>
+            <div id="labObjectiveCard" style="grid-column:1/-1; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+              <div class="section-title">Objectif</div>
+              <label>Profil
+                <select id="labProfile" style="min-width:8rem;">
+                  <option value="sure">Stratégie sûre</option>
+                  <option value="balancee" selected>Stratégie balancée</option>
+                  <option value="agressive">Stratégie agressive</option>
+                </select>
+              </label>
+              <label>Stratégie
+                <select id="labStrategy" style="min-width:12rem;">
+                  <option value="hybrid" selected>Hybride (EA → Bayes)</option>
+                  <option value="ea">Évolutionnaire (EA)</option>
+                  <option value="bayes">Bayes (EDA)</option>
+                </select>
+              </label>
+            </div>
             <div id="labContextCard" style="grid-column:1/-1; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
               <div class="section-title">Contexte</div>
               <label>Pair
