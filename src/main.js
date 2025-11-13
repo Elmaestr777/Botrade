@@ -2292,6 +2292,7 @@ function readLabVarToggles(){
     return { varNol:true, varPrd:true, varSLInit:true, varBEBars:true, varBELock:true, varEMALen:true, varTP:true, varSL:true, varEntries:false };
   }
 }
+function varIntensityFactor(){ try{ const v=(document.getElementById('labVarIntensity')&&document.getElementById('labVarIntensity').value)||'medium'; if(v==='weak') return 0.7; if(v==='strong') return 1.3; return 1.0; }catch(_){ return 1.0; } }
 function updateLabAdvVisibility(){
   try{
     const showAdv = isLabAdvMode();
@@ -2581,7 +2582,7 @@ try{ const pfStr = (res.profitFactor===Infinity?'∞':(Number(res.profitFactor||
     let pool=[];
     // init population
     const init=[]; if(Array.isArray(seed)&&seed.length){ for(const s of seed){ if(isDup(s.p)) continue; pushSeen(s.p); init.push({ p:s.p, owner:s.owner||null }); if(init.length>=pop) break; } }
-    while(init.length<pop){ let p=null; if(Array.isArray(seed)&&seed.length){ const base = seed[(Math.random()*seed.length)|0]; p = mutate(base.p, 0.7); } else { p=randomParams(); }
+    while(init.length<pop){ let p=null; if(Array.isArray(seed)&&seed.length){ const base = seed[(Math.random()*seed.length)|0]; p = mutate(base.p, Math.max(0.05, Math.min(0.99, 0.7*varIntensityFactor()))); } else { p=randomParams(); }
       if(isDup(p)) continue; pushSeen(p); init.push({ p }); }
 __labSimTotal += init.length; updateGlobalProgressUI();
 try{ addBtLog && addBtLog(`EA:init — scheduling ${init.length} évals`); }catch(_){ }
@@ -2605,7 +2606,7 @@ for(let g=2; g<=gens+1 && !btAbort; g++){
         const b = hasElites? pick(elites) : null;
         let baseP = hasElites && a && a.p ? a.p : randomParams();
         let child = (hasElites && a && b && (Math.random()<cxPct))? crossover(a.p, b.p) : { ...baseP };
-        child = mutate(child, mutPct);
+        child = mutate(child, Math.max(0.01, Math.min(0.99, mutPct*varIntensityFactor())));
         if(isDup(child)) continue; pushSeen(child); children.push({ p:child, owner: (a&&a.owner) || (b&&b.owner) || null }); }
 const t0g=performance.now();
       __labSimTotal += children.length; updateGlobalProgressUI();
@@ -2651,7 +2652,8 @@ try{ const top=cur[0]; if(top){ addBtLog(`Bayes init — best ${top.score.toFixe
       const slCfg = readSLOpt();
 const vars = readLabVarToggles();
       const baseP0 = (cur && cur[0] && cur[0].p) ? cur[0].p : baseFromLbc();
-      const batch=[]; while(batch.length<Math.max(10, cur.length)){
+      const bf = varIntensityFactor(); const targetBatch = Math.max(10, Math.round(cur.length * (bf>1? 1.25 : (bf<1? 0.85 : 1.0))));
+      const batch=[]; while(batch.length<targetBatch){
         const p={ nol: vars.varNol? sampleFrom(D.nol) : (baseP0.nol|0), prd: vars.varPrd? sampleFrom(D.prd) : (baseP0.prd|0), slInitPct: vars.varSLInit? sampleFrom(D.sl) : (+baseP0.slInitPct||0), beAfterBars: vars.varBEBars? sampleFrom(D.beb) : (baseP0.beAfterBars|0), beLockPct: vars.varBELock? sampleFrom(D.bel) : (+baseP0.beLockPct||0), emaLen: vars.varEMALen? sampleFrom(D.ema) : (baseP0.emaLen|0), entryMode: baseP0.entryMode||'Both', useFibRet: !!baseP0.useFibRet, confirmMode: baseP0.confirmMode||'Bounce', ent382: !!baseP0.ent382, ent500: !!baseP0.ent500, ent618: !!baseP0.ent618, ent786: !!baseP0.ent786, tpEnable: true, tp: [], slEnable: true, sl: [] };
         if(vars.varTP && tpCfg.en){ p.tp = sampleTPList(tpCfg).slice(0,10); } else { p.tp = Array.isArray(baseP0.tp)? baseP0.tp.slice(0,10):[]; p.tpEnable=!!p.tp.length; }
         if(vars.varSL && slCfg.en){ p.sl = sampleSLList(slCfg).slice(0,10); } else { p.sl = Array.isArray(baseP0.sl)? baseP0.sl.slice(0,10):[]; p.slEnable=!!p.sl.length; }
