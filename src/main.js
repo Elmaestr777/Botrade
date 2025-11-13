@@ -2658,7 +2658,6 @@ const vars = readLabVarToggles();
         if(vars.varTP && tpCfg.en){ p.tp = sampleTPList(tpCfg).slice(0,10); } else { p.tp = Array.isArray(baseP0.tp)? baseP0.tp.slice(0,10):[]; p.tpEnable=!!p.tp.length; }
         if(vars.varSL && slCfg.en){ p.sl = sampleSLList(slCfg).slice(0,10); } else { p.sl = Array.isArray(baseP0.sl)? baseP0.sl.slice(0,10):[]; p.slEnable=!!p.sl.length; }
         if(isDup(p)) continue; pushSeen(p); batch.push({ p }); }
-        if(isDup(p)) continue; pushSeen(p); batch.push({ p }); }
       const t0=performance.now();
       __labSimTotal += batch.length; updateGlobalProgressUI();
       const evald = await evalParamsList(batch, `Bayes`);
