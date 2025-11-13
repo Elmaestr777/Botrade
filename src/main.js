@@ -775,15 +775,7 @@ if(liveOpenBtn){ liveOpenBtn.addEventListener('click', async ()=>{ try{
   }
 } catch(_){ } }); }
 if(liveCloseBtn&&liveModalEl) liveCloseBtn.addEventListener('click', ()=> closeModalEl(liveModalEl)); if(liveModalEl) liveModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(liveModalEl); });
-if(labOpenBtn&&labModalEl) labOpenBtn.addEventListener('click', async ()=>{ try{ 
-  try{ console.log('[lab:adv] labOpen click'); }catch(_){ }
-  openModalEl(labModalEl);
-  try{ console.log('[lab:adv] calling setupLabAdvUI()'); }catch(_){ }
-  try{ setupLabAdvUI(); }catch(e){ try{ console.error('[lab:adv] setupLabAdvUI error', e); }catch(_){ } }
-  try{ console.log('[lab:adv] rendering lab table + kpis'); }catch(_){ }
-  await renderLabFromStorage(); await computeLabBenchmarkAndUpdate();
-  try{ console.log('[lab:adv] labOpen done'); }catch(_){ }
-}catch(e){ try{ console.error('[lab:adv] labOpen handler error', e); }catch(_){ } } }); if(labCloseBtn&&labModalEl) labCloseBtn.addEventListener('click', ()=> closeModalEl(labModalEl)); if(labModalEl) labModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(labModalEl); });
+if(labOpenBtn&&labModalEl) labOpenBtn.addEventListener('click', async ()=>{ try{ openModalEl(labModalEl); try{ setupLabAdvUI(); }catch(_){ } await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); if(labCloseBtn&&labModalEl) labCloseBtn.addEventListener('click', ()=> closeModalEl(labModalEl)); if(labModalEl) labModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(labModalEl); });
 
 if(btOpenBtn&&btModalEl) btOpenBtn.addEventListener('click', ()=> openModalEl(btModalEl)); if(btCloseBtn&&btModalEl) btCloseBtn.addEventListener('click', ()=> closeModalEl(btModalEl)); if(btModalEl) btModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(btModalEl); });
 if(heavenCfgBtn&&lbcModalEl) heavenCfgBtn.addEventListener('click', ()=>{ try{ populateHeavenModal(); try{ populateHeavenSupaList(); }catch(__){} try{ populateHeavenTFOptions(); }catch(__){} try{ populateHeavenLoadOptions(); }catch(__){} }catch(_){ } openModalEl(lbcModalEl); }); if(lbcCloseBtn&&lbcModalEl) lbcCloseBtn.addEventListener('click', ()=> closeModalEl(lbcModalEl)); if(lbcModalEl) lbcModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(lbcModalEl); });
@@ -2277,86 +2269,64 @@ const canonKey=(p)=>{ try{
   }
   function randWeights(n){ const arr=new Array(n).fill(0).map(()=> Math.random()+0.05); const s=arr.reduce((a,b)=>a+b,0); return arr.map(x=> x/s); }
 // Lab advanced toggles helpers
-function isLabAdvMode(){
-  try{
-    const btn=document.getElementById('labAdvancedToggle');
-    const btnOn = !!(btn && btn.dataset && btn.dataset.on==='1');
-    const lsOn = (localStorage.getItem('lab.advanced')==='1');
-    const on = btnOn || lsOn;
-    try{ console.log('[lab:adv] isLabAdvMode ->', { btnOn, lsOn, on }); }catch(_){ }
-    return on;
-  }catch(e){ try{ console.error('[lab:adv] isLabAdvMode error', e); }catch(_){ } return false; }
-}
+function isLabAdvMode(){ try{ const btn=document.getElementById('labAdvancedToggle'); if(btn && btn.dataset && btn.dataset.on==='1') return true; return localStorage.getItem('lab.advanced')==='1'; }catch(_){ return false; } }
 
 // Advanced container + toggle wiring
 function ensureLabAdvContainer(){
   try{
     let c=document.getElementById('labAdvContainer');
-    if(c){ try{ console.log('[lab:adv] container exists'); }catch(_){ } return c; }
+    if(c) return c;
     const lev=document.getElementById('labLev');
     const levLabel = lev && lev.closest ? lev.closest('label') : null;
     const t=document.getElementById('labTimeLimitSec');
     const tLabel = t && t.closest ? t.closest('label') : null;
     // Prefer the Lab modal grid explicitly to avoid grabbing other grids
     const labGrid = (typeof labModalEl!=='undefined' && labModalEl) ? labModalEl.querySelector('.form-grid') : null;
-    const tGrid = tLabel && tLabel.closest ? tLabel.closest('.form-grid') : null;
-    const levGrid = levLabel && levLabel.closest ? levLabel.closest('.form-grid') : null;
-    const parent = tGrid || levGrid || labGrid || document.querySelector('.form-grid');
-    if(!parent){ try{ console.warn('[lab:adv] container parent not found'); }catch(_){ } return null; }
+    const parent=(tLabel&&tLabel.closest && tLabel.closest('.form-grid')) || (levLabel&&levLabel.closest && levLabel.closest('.form-grid')) || labGrid || document.querySelector('.form-grid');
+    if(!parent) return null;
     c=document.createElement('div');
     c.id='labAdvContainer';
     c.style.display='none';
     c.style.gap='12px'; c.style.alignItems='center'; c.style.flexWrap='wrap';
     c.style.padding='6px'; c.style.border='1px dashed var(--header-border)'; c.style.borderRadius='6px'; c.style.margin='6px 0';
-    if(tLabel && tGrid === parent){
+    if(tLabel && tLabel.parentElement && tLabel.parentElement.contains && tLabel.parentElement.contains(tLabel)){
       parent.insertBefore(c, tLabel);
-    } else if(levLabel && levGrid === parent){
-      // insert after levLabel when possible
-      if(levLabel.nextSibling){ parent.insertBefore(c, levLabel.nextSibling); }
-      else { parent.appendChild(c); }
+    } else if(levLabel && levLabel.parentElement===parent && levLabel.nextSibling){
+      parent.insertBefore(c, levLabel.nextSibling);
     } else {
       parent.appendChild(c);
     }
-    try{ console.log('[lab:adv] container created'); }catch(_){ }
+    try{ console.debug('[lab:adv] container created'); }catch(_){ }
     return c;
-  }catch(e){ try{ console.error('[lab:adv] ensure container error', e); }catch(_){ } return null; }
+  }catch(_){ return null; }
 }
 function moveLabAdvBlocks(){
   try{
-    const container=ensureLabAdvContainer(); if(!container){ try{ console.warn('[lab:adv] move: container missing'); }catch(_){ } return; }
+    const container=ensureLabAdvContainer(); if(!container) return;
     const sels=['#labAdvPanel','#labCoreRanges','#labTPOptBlock','#labTPFibWrap','#labSLOptBlock','#labSLFibWrap','#labEAConfig','#labBayesConfig'];
-    for(const sel of sels){
-      const n=document.querySelector(sel);
-      if(n && n!==container && !container.contains(n)){
-        container.appendChild(n);
-        try{ console.log('[lab:adv] moved', sel); }catch(_){ }
-      } else {
-        try{ console.log('[lab:adv] skip move', sel, { exists: !!n, alreadyIn: !!(n && container.contains(n)) }); }catch(_){ }
-      }
-    }
-  }catch(e){ try{ console.error('[lab:adv] move error', e); }catch(_){ } }
+    for(const sel of sels){ const n=document.querySelector(sel); if(n && n!==container && !container.contains(n)){ container.appendChild(n); try{ console.debug('[lab:adv] moved', sel); }catch(_){ } } }
+  }catch(_){ }
 }
 function initLabAdvancedToggle(){
   try{
-    const btn=document.getElementById('labAdvancedToggle'); if(!btn){ try{ console.warn('[lab:adv] toggle button not found'); }catch(_){ } return; }
+    const btn=document.getElementById('labAdvancedToggle'); if(!btn) return;
     if(btn.dataset && btn.dataset.wired==='1') return;
     const on = (localStorage.getItem('lab.advanced')==='1');
     btn.dataset.on = on ? '1':'0';
     btn.setAttribute('aria-checked', on ? 'true':'false');
     try{ btn.classList.toggle('primary', on); }catch(_){ }
-    try{ console.log('[lab:adv] toggle init', { on }); }catch(_){ }
+    try{ console.debug('[lab:adv] toggle init, on=', on); }catch(_){ }
     btn.addEventListener('click', ()=>{ try{
       const cur = btn.dataset.on==='1'; const next = !cur;
       btn.dataset.on = next?'1':'0';
       btn.setAttribute('aria-checked', next?'true':'false');
       try{ btn.classList.toggle('primary', next); }catch(_){}
       try{ if(next) localStorage.setItem('lab.advanced','1'); else localStorage.removeItem('lab.advanced'); }catch(_){}
-      try{ console.log('[lab:adv] toggle click', { next }); }catch(_){ }
-      try{ moveLabAdvBlocks(); }catch(_){ }
-      try{ updateLabAdvVisibility(); }catch(e){ try{ console.error('[lab:adv] update visibility error', e); }catch(_){ } }
-    }catch(e){ try{ console.error('[lab:adv] toggle handler error', e); }catch(_){ } });
+      try{ console.debug('[lab:adv] toggle click ->', next); }catch(_){ }
+      try{ updateLabAdvVisibility(); }catch(_){}
+    }catch(_){ } });
     btn.dataset.wired='1';
-  }catch(e){ try{ console.error('[lab:adv] init toggle error', e); }catch(_){ } }
+  }catch(_){ }
 }
 
 function readLabVarToggles(){
@@ -2385,21 +2355,18 @@ function varIntensityFactor(){ try{ const v=(document.getElementById('labVarInte
 function updateLabAdvVisibility(){
   try{
     const showAdv = isLabAdvMode();
-    try{ console.log('[lab:adv] update visibility', { showAdv }); }catch(_){ }
     const advPanel = document.getElementById('labAdvPanel'); if(advPanel) advPanel.style.display = showAdv? 'flex':'none';
     const advContainer = document.getElementById('labAdvContainer'); if(advContainer) advContainer.style.display = showAdv? 'block':'none';
     const varTP = !!document.getElementById('labVarTP')?.checked;
     const varSL = !!document.getElementById('labVarSL')?.checked;
     const tpBlock = document.getElementById('labTPOptBlock'); if(tpBlock) tpBlock.style.display = (showAdv && varTP)? 'flex':'none';
     const slBlock = document.getElementById('labSLOptBlock'); if(slBlock) slBlock.style.display = (showAdv && varSL)? 'flex':'none';
-    try{ console.log('[lab:adv] toggles', { varTP, varSL }); }catch(_){ }
     const tpAllowFib = !!document.getElementById('labTPAllowFib')?.checked;
     const slAllowFib = !!document.getElementById('labSLAllowFib')?.checked;
     const tpFibWrap = document.getElementById('labTPFibWrap'); if(tpFibWrap) tpFibWrap.style.display = (showAdv && varTP && tpAllowFib)? 'flex':'none';
     const slFibWrap = document.getElementById('labSLFibWrap'); if(slFibWrap) slFibWrap.style.display = (showAdv && varSL && slAllowFib)? 'flex':'none';
     const coreAny = ['labVarNol','labVarPrd','labVarSLInit','labVarBEBars','labVarBELock','labVarEMALen'].some(id=> !!document.getElementById(id)?.checked);
     const coreRanges = document.getElementById('labCoreRanges'); if(coreRanges) coreRanges.style.display = (showAdv && coreAny)? 'flex':'none';
-    try{ console.log('[lab:adv] coreAny', { coreAny }); }catch(_){ }
     // EA/Bayes blocks visibility
     const strat = (document.getElementById('labStrategy') && document.getElementById('labStrategy').value) || 'hybrid';
     const eaCfg = document.getElementById('labEAConfig'); const bayCfg = document.getElementById('labBayesConfig');
@@ -2407,26 +2374,23 @@ function updateLabAdvVisibility(){
     const showBay = showAdv && (strat==='bayes' || strat==='hybrid');
     if(eaCfg) eaCfg.style.display = showEA? 'flex':'none';
     if(bayCfg) bayCfg.style.display = showBay? 'flex':'none';
-    try{ console.log('[lab:adv] ea/bayes', { strat, showEA, showBay }); }catch(_){ }
     // Show the optional 'Entrées' toggle in advanced mode
     const varEntInput = document.getElementById('labVarEntries');
     const varEntLabel = varEntInput && varEntInput.closest ? varEntInput.closest('label') : null;
     if(varEntLabel){ varEntLabel.style.display = showAdv? '': 'none'; }
-  }catch(e){ try{ console.error('[lab:adv] update visibility error', e); }catch(_){ } }
+  }catch(_){ }
 }
 function setupLabAdvUI(){
-  try{ console.log('[lab:adv] setup start'); }catch(_){ }
-  try{ initLabAdvancedToggle(); ensureLabAdvContainer(); moveLabAdvBlocks(); updateLabAdvVisibility(); }catch(e){ try{ console.error('[lab:adv] setup error', e); }catch(_){ } }
+  try{ initLabAdvancedToggle(); ensureLabAdvContainer(); moveLabAdvBlocks(); updateLabAdvVisibility(); }catch(_){ }
   const ids=['labStrategy','labVarNol','labVarPrd','labVarSLInit','labVarBEBars','labVarBELock','labVarEMALen','labVarTP','labVarSL','labTPAllowFib','labSLAllowFib'];
-  for(const id of ids){ const el=document.getElementById(id); if(el && (!el.dataset || el.dataset.wiredAdv!=='1')){ try{ el.addEventListener('change', ()=>{ try{ console.log('[lab:adv] change', id); updateLabAdvVisibility(); }catch(e){ console.error('[lab:adv] change error', e); } }); }catch(e){ try{ console.error('[lab:adv] addEventListener error', id, e); }catch(_){ } } if(!el.dataset) el.dataset={}; el.dataset.wiredAdv='1'; } else { try{ console.log('[lab:adv] input not found or already wired', id, { found: !!el }); }catch(_){ } } }
+  for(const id of ids){ const el=document.getElementById(id); if(el && (!el.dataset || el.dataset.wiredAdv!=='1')){ try{ el.addEventListener('change', ()=>{ try{ updateLabAdvVisibility(); }catch(_){ } }); }catch(_){ } if(!el.dataset) el.dataset={}; el.dataset.wiredAdv='1'; } }
   // Force refresh when toggling Strategy by any interaction (click/input/change)
   const stratSel=document.getElementById('labStrategy');
-  function wireRefresh(el, key){ if(!el) return; if(el.dataset && el.dataset[key]==='1') return; ['change','input','click'].forEach(ev=>{ try{ el.addEventListener(ev, ()=>{ try{ console.log('[lab:adv] refresh by', ev, key); updateLabAdvVisibility(); }catch(e){ console.error('[lab:adv] refresh error', e); } }); }catch(e){ try{ console.error('[lab:adv] wireRefresh error', e); }catch(_){ } }); if(!el.dataset) el.dataset={}; el.dataset[key]='1'; }
+  function wireRefresh(el, key){ if(!el) return; if(el.dataset && el.dataset[key]==='1') return; ['change','input','click'].forEach(ev=>{ try{ el.addEventListener(ev, ()=>{ try{ updateLabAdvVisibility(); }catch(_){ } }); }catch(_){ } }); if(!el.dataset) el.dataset={}; el.dataset[key]='1'; }
   wireRefresh(stratSel, 'wiredAdvStrat');
   // Also refresh on toggle click (redundant with init wiring but safe)
   const advBtn=document.getElementById('labAdvancedToggle');
-  if(advBtn && (!advBtn.dataset || advBtn.dataset.wiredAdvRefresh!=='1')){ advBtn.addEventListener('click', ()=>{ try{ console.log('[lab:adv] toggle -> refresh'); updateLabAdvVisibility(); }catch(e){ console.error('[lab:adv] toggle refresh error', e); } }); if(!advBtn.dataset) advBtn.dataset={}; advBtn.dataset.wiredAdvRefresh='1'; }
-  try{ console.log('[lab:adv] setup end'); }catch(_){ }
+  if(advBtn && (!advBtn.dataset || advBtn.dataset.wiredAdvRefresh!=='1')){ advBtn.addEventListener('click', ()=>{ try{ updateLabAdvVisibility(); }catch(_){ } }); if(!advBtn.dataset) advBtn.dataset={}; advBtn.dataset.wiredAdvRefresh='1'; }
 }
 function sampleTPList(tpCfg){
   const { allowFib, allowPct, allowEMA, pctMin, pctMax, fibs } = tpCfg || {};
