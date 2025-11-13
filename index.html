@@ -1576,7 +1576,7 @@
               <label title="Temps limite de calcul (secondes); 0 = désactivé"><details class="param-help-inline"><summary>Temps (s)</summary><div class="param-help">Stoppe automatiquement l'entraînement après N secondes. Mettre 0 pour désactiver toute limite de temps.</div></details><input id="labTimeLimitSec" type="number" min="0" step="1" value="0" style="width:6rem" /></label>
               <label title="Nombre maximal d'évaluations globales; 0 = désactivé">Max évals <input id="labMaxEvals" type="number" min="0" step="1" value="0" style="width:7rem" /></label>
               <label title="Score minimum (0-100); 0 = désactivé">Score min <input id="labMinScore" type="number" min="0" max="100" step="0.1" value="0" style="width:6rem" /></label>
-              <div style="display:flex; gap:6px; margin-left:auto;">
+              <div class="lab-actions">
                 <button id="labRun" class="btn primary">Entraîner</button>
                 <button id="labRunNew" class="btn">Nouvelle stratégie</button>
               </div>

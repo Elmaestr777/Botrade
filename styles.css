@@ -138,7 +138,7 @@ main {
 .modal-footer { display:flex; justify-content: flex-end; gap:8px; padding: 12px 14px; border-top: 1px solid var(--header-border); }
 .form-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
 fieldset { border:1px solid var(--header-border); border-radius: 10px; padding: 10px; }
-legend { padding: 0 6px; color: var(--muted); }
+legend { padding: 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; font-size: 12px; }
 label { display:flex; align-items:center; gap:8px; margin:6px 0; }
 
 /* Floating compact windows (discreet look) */
@@ -365,6 +365,8 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
   border-left: 3px solid #2563eb;
   margin: 2px 0 6px;
 }
+/* Sticky action bar inside Lab */
+#labModal .lab-actions { position: sticky; bottom: 0; left: 0; right: 0; display:flex; gap:8px; justify-content:flex-end; padding: 8px 0 0; background: linear-gradient(180deg, rgba(0,0,0,0) 0%, var(--bg) 40%); border-top: 1px solid var(--header-border); z-index: 5; }
 /* Make heading summaries look like chips */
 #labModal details.param-help-inline.heading summary {
   background: var(--bg2, rgba(0,0,0,0.04));
@@ -377,6 +379,8 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
 /* When headings are inside the form grid, make them start on a new row */
 #labModal .form-grid details.param-help-inline.heading { display:block; width:100%; grid-column: 1 / -1; }
 #labModal details.param-help-inline.heading summary:hover { background: rgba(37,99,235,0.08); }
+#labModal details.param-help-inline.heading summary::before { content: '▸'; margin-right: 6px; opacity: 0.9; transition: transform 160ms ease; }
+#labModal details.param-help-inline.heading[open] summary::before { transform: rotate(90deg); }
 
 /* Unify number inputs and selects within Lab */
 #labModal input[type=number] { text-align: right; }
@@ -385,15 +389,16 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
 #labSLOptBlock input[type=number] { width: 6rem !important; }
 #labModal input[type=number], #labModal select {
   border: 1px solid var(--header-border);
-  border-radius: 6px;
-  padding: 4px 6px;
+  border-radius: 8px;
+  padding: 6px 8px;
+  min-height: 32px;
   background: var(--bg);
   color: var(--fg);
 }
 #labModal option { background: var(--bg); color: var(--fg); }
 #labModal input[type=number]:focus, #labModal select:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(37,99,235,0.25);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.22);
   border-color: #2563eb;
 }
 
@@ -416,12 +421,12 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
 #labModal #labTPOptBlock,
 #labModal #labTPFibWrap,
 #labModal #labSLOptBlock,
-#labModal #labSLFibWrap { background: var(--bg); border: 1px solid var(--header-border); border-radius: 10px; padding: 8px 10px; }
+#labModal #labSLFibWrap { background: var(--bg); border: 1px solid var(--header-border); border-radius: 12px; padding: 10px 12px; box-shadow: 0 1px 0 var(--header-border) inset, 0 8px 20px rgba(0,0,0,0.06); }
 #labModal #labAdvPanel { border-style: dashed; }
 #labTPFibWrap label:hover, #labSLFibWrap label:hover, #labAdvPanel label:hover { background: var(--bg2, rgba(0,0,0,0.04)); }
 #labAdvPanel label:has(> input[type=checkbox]:checked),
 #labTPFibWrap label:has(> input[type=checkbox]:checked),
-#labSLFibWrap label:has(> input[type=checkbox]:checked) { border-color: #2563eb; background: rgba(37,99,235,0.08); }
+#labSLFibWrap label:has(> input[type=checkbox]:checked) { border-color: #2563eb; background: rgba(37,99,235,0.10); box-shadow: 0 0 0 2px rgba(37,99,235,0.12); }
 #labTPFibWrap details.param-help-inline.heading summary,
 #labSLFibWrap details.param-help-inline.heading summary,
 #labEAConfig details.param-help-inline.heading summary,
