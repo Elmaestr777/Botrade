@@ -371,7 +371,11 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
   border: 1px solid var(--header-border);
   border-radius: 8px;
   padding: 4px 8px;
+  display: inline-flex;
+  align-items: center;
 }
+/* When headings are inside the form grid, make them start on a new row */
+#labModal .form-grid details.param-help-inline.heading { display:block; width:100%; grid-column: 1 / -1; }
 #labModal details.param-help-inline.heading summary:hover { background: rgba(37,99,235,0.08); }
 
 /* Unify number inputs and selects within Lab */
@@ -404,6 +408,16 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
   display: inline-flex; align-items: center; gap: 6px;
   padding: 4px 10px; border: 1px solid var(--header-border); border-radius: 999px; background: var(--bg);
 }
+/* Make main Lab blocks look like sections and span full width in grid */
+#labModal #labEAConfig,
+#labModal #labBayesConfig,
+#labModal #labAdvPanel,
+#labModal #labCoreRanges,
+#labModal #labTPOptBlock,
+#labModal #labTPFibWrap,
+#labModal #labSLOptBlock,
+#labModal #labSLFibWrap { background: var(--bg); border: 1px solid var(--header-border); border-radius: 10px; padding: 8px 10px; }
+#labModal #labAdvPanel { border-style: dashed; }
 #labTPFibWrap label:hover, #labSLFibWrap label:hover, #labAdvPanel label:hover { background: var(--bg2, rgba(0,0,0,0.04)); }
 #labAdvPanel label:has(> input[type=checkbox]:checked),
 #labTPFibWrap label:has(> input[type=checkbox]:checked),

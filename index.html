@@ -1552,20 +1552,20 @@
             <label>Frais (%) <input id="labFee" type="number" min="0" step="0.01" value="0.10" style="width:6rem" /></label>
             <label>Levier (x) <input id="labLev" type="number" min="1" max="125" step="0.1" value="1" style="width:6rem" /></label>
             <span></span>
-            <div id="labEAConfig" style="display:none; gap:8px; align-items:center; flex-wrap:wrap;">
+            <div id="labEAConfig" style="display:none; gap:8px; align-items:center; flex-wrap:wrap; grid-column:1/-1;">
               <details class="param-help-inline heading"><summary>EA</summary><div class="param-help">Algorithme évolutionnaire: Pop = taille de population, Gen = nombre de générations, Mut% = taux de mutation, Cx% = taux de croisement. « Resume » continue un run précédent si disponible.</div></details>
               <label>Pop <input id="labEAPop" type="number" min="4" max="2000" value="40" style="width:6rem" /></label>
               <label>Gen <input id="labEAGen" type="number" min="1" max="500" value="20" style="width:6rem" /></label>
               <label>Mut% <input id="labEAMut" type="number" min="0" max="100" step="1" value="20" style="width:6rem" /></label>
               <label>Cx% <input id="labEACx" type="number" min="0" max="100" step="1" value="60" style="width:6rem" /></label>
             </div>
-            <div id="labBayesConfig" style="display:none; gap:8px; align-items:center; flex-wrap:wrap;">
+            <div id="labBayesConfig" style="display:none; gap:8px; align-items:center; flex-wrap:wrap; grid-column:1/-1;">
               <details class="param-help-inline heading"><summary>Bayes</summary><div class="param-help">Optimisation de type Bayésienne/EDA: Iters = itérations totales, Init = points aléatoires initiaux, Elite% = proportion sélectionnée pour modéliser les prochaines propositions. « Resume » continue un run précédent si disponible.</div></details>
               <label>Iters <input id="labBayIters" type="number" min="10" max="5000" value="150" style="width:6rem" /></label>
               <label>Init <input id="labBayInit" type="number" min="5" max="2000" value="40" style="width:6rem" /></label>
               <label>Elite% <input id="labBayElitePct" type="number" min="5" max="80" step="1" value="30" style="width:6rem" /></label>
             </div>
-            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <div style="display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap; grid-column:1/-1;">
               <details class="param-help-inline heading"><summary>Focus</summary><div class="param-help">Permet d'orienter la recherche vers certains critères (drawdown, Sharpe, PF, pente, recovery, constance). Optionnel, utile pour prioriser des profils spécifiques.</div></details>
               <label style="display:none;"><input id="labFocusDD" type="checkbox" /> Min DD</label>
               <label style="display:none;"><input id="labFocusSharpe" type="checkbox" /> Sharpe</label>
@@ -1581,7 +1581,7 @@
                 <button id="labRunNew" class="btn">Nouvelle stratégie</button>
               </div>
             </div>
-            <div id="labAdvPanel" style="display:none; gap:12px; align-items:center; flex-wrap:wrap; padding:6px; border:1px dashed var(--header-border); border-radius:6px;">
+            <div id="labAdvPanel" style="display:none; gap:12px; align-items:center; flex-wrap:wrap; padding:6px; border:1px dashed var(--header-border); border-radius:6px; grid-column:1/-1;">
               <strong>Paramètres à tester</strong>
               <label><input id="labVarNol" type="checkbox" checked /> NOL</label>
               <label><input id="labVarPrd" type="checkbox" checked /> PRD</label>
@@ -1602,7 +1602,7 @@
               <label style="display:none;"><input id="labVarEntries" type="checkbox" /> Entrées (mode/FibRet/Confirm/382/500/618/786)</label>
             </div>
             <!-- Ranges for core params (shown in Avancée when toggles are ON) -->
-            <div id="labCoreRanges" style="display:none; gap:10px; align-items:center; flex-wrap:wrap; margin:6px 0 0; padding:6px; border:1px dashed var(--header-border); border-radius:6px;">
+            <div id="labCoreRanges" style="display:none; gap:10px; align-items:center; flex-wrap:wrap; margin:6px 0 0; padding:6px; border:1px dashed var(--header-border); border-radius:6px; grid-column:1/-1;">
               <div class="section-title">Plages d'étude</div>
               <div class="core-range-head"><span>Min</span><span>Max</span><span>Pas</span></div>
               <label title="NOL (barres de renversement)" class="core-range-row" style="width:100%;">
@@ -1636,7 +1636,7 @@
                 <span class="col">Pas <input id="labEMALenStep" type="number" min="1" value="4" style="width:6rem" /></span>
               </label>
             </div>
-            <div id="labTPOptBlock" style="display:none; gap:10px; align-items:center; flex-wrap:wrap; margin-top:6px;">
+            <div id="labTPOptBlock" style="display:none; gap:10px; align-items:center; flex-wrap:wrap; margin-top:6px; grid-column:1/-1;">
               <details class="param-help-inline heading"><summary>TP Opt</summary><div class="param-help">Active l'optimisation des TP. Choisissez le nombre de TP et les méthodes autorisées : Fib (ratios), Percent (intervalle %), EMA (moyennes). Les TP choisis seront uniques et affectés aux TP1..TPn.</div></details>
               <label><input id="labTPOptEn" type="checkbox" /> Optimiser TP</label>
               <label>Nb TP <input id="labTPCount" type="number" min="1" max="10" value="10" style="width:5rem" /></label>
@@ -1646,7 +1646,7 @@
               <label title="Pourcentage TP (si Percent)">Min % <input id="labTPPctMin" type="number" min="0" step="0.1" value="0.5" style="width:5rem" /></label>
               <label title="Pourcentage TP (si Percent)">Max % <input id="labTPPctMax" type="number" min="0" step="0.1" value="5.0" style="width:5rem" /></label>
             </div>
-            <div id="labTPFibWrap" style="display:none; gap:10px; flex-wrap:wrap; margin-bottom:6px;">
+            <div id="labTPFibWrap" style="display:none; gap:10px; flex-wrap:wrap; margin-bottom:6px; grid-column:1/-1;">
               <details class="param-help-inline heading"><summary>Ratios Fib TP</summary><div class="param-help">Sélectionnez les ratios Fibonacci autorisés pour les cibles (TP). Les ratios < 1 sont des retracements, > 1 des extensions (objectifs plus éloignés).</div></details>
               <label><input type="checkbox" data-r="0.236" checked />0.236</label>
               <label><input type="checkbox" data-r="0.382" checked />0.382</label>
@@ -1663,7 +1663,7 @@
               <label><input type="checkbox" data-r="2.618" />2.618</label>
               <label><input type="checkbox" data-r="3" />3.000</label>
             </div>
-            <div id="labSLOptBlock" style="display:none; gap:10px; align-items:center; flex-wrap:wrap; margin-top:6px;">
+            <div id="labSLOptBlock" style="display:none; gap:10px; align-items:center; flex-wrap:wrap; margin-top:6px; grid-column:1/-1;">
               <details class="param-help-inline heading"><summary>SL Opt</summary><div class="param-help">Active l'optimisation des SL. Définissez le nombre de SL et les méthodes autorisées. Avec Percent, utilisez Min/Max en %. Les niveaux seront uniques lorsque c'est possible.</div></details>
               <label><input id="labSLOptEn" type="checkbox" /> Optimiser SL</label>
               <label>Nb SL <input id="labSLCount" type="number" min="1" max="10" value="1" style="width:5rem" /></label>
@@ -1673,7 +1673,7 @@
               <label title="Pourcentage SL (si Percent)">Min % <input id="labSLPctMin" type="number" min="0" step="0.1" value="0.5" style="width:5rem" /></label>
               <label title="Pourcentage SL (si Percent)">Max % <input id="labSLPctMax" type="number" min="0" step="0.1" value="5.0" style="width:5rem" /></label>
             </div>
-            <div id="labSLFibWrap" style="display:none; gap:10px; flex-wrap:wrap; margin-bottom:6px;">
+            <div id="labSLFibWrap" style="display:none; gap:10px; flex-wrap:wrap; margin-bottom:6px; grid-column:1/-1;">
               <details class="param-help-inline heading"><summary>Ratios Fib SL</summary><div class="param-help">Sélectionnez les ratios Fibonacci autorisés pour les stops (SL). Typiquement des retracements (ex: 0.382–0.618). À combiner avec l’option Percent/EMA si activée.</div></details>
               <label><input type="checkbox" data-r="0.236" />0.236</label>
               <label><input type="checkbox" data-r="0.382" checked />0.382</label>
