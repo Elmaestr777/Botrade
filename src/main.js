@@ -612,7 +612,24 @@ try{ setupLabAdvUI(); }catch(_){ }
 // Unconditional global hook as last-resort safety (independent of init wiring)
 try{
   if(!window.__advGlobalHook){
-    const __advHandler=(e)=>{ const t=e.target; if(!t) return; const b=(t.id==='labAdvancedToggle')? t : (t.closest? t.closest('#labAdvancedToggle') : null); if(b){ try{ __toggleLabAdvanced(); }catch(_){ } e.preventDefault(); e.stopPropagation(); } };
+    const __advHandler=(e)=>{
+      try{
+        const btn=document.getElementById('labAdvancedToggle'); if(!btn) return;
+        const t=e.target;
+        const isBtn = (t===btn) || (t && t.closest ? t.closest('#labAdvancedToggle') : null);
+        if(isBtn){ try{ __toggleLabAdvanced(); }catch(_){ } e.preventDefault(); e.stopPropagation(); return; }
+        // Coordinate fallback: if click is within button rect while Lab modal is open, toggle
+        const modal=document.getElementById('labModal');
+        const open = !!(modal && modal.getAttribute('aria-hidden')==='false' && !modal.classList.contains('hidden'));
+        if(!open) return;
+        const r=btn.getBoundingClientRect();
+        const x=e.clientX, y=e.clientY;
+        if(typeof x==='number' && typeof y==='number' && x>=r.left && x<=r.right && y>=r.top && y<=r.bottom){
+          try{ __toggleLabAdvanced(); }catch(_){ }
+          e.preventDefault(); e.stopPropagation(); return;
+        }
+      }catch(_){ }
+    };
     document.addEventListener('pointerdown', __advHandler, true);
     document.addEventListener('click', __advHandler, true);
     window.__advGlobalHook = true;
