@@ -1822,6 +1822,10 @@ function setupDetailCompareUI(){
     const listSel=document.getElementById('detailCompPalmares');
     const applyBtn=document.getElementById('detailCompApply');
     if(!srcSel || srcSel.dataset && srcSel.dataset.wired==='1') return;
+    // Restaurer la source à partir de la config courante (Heaven / Palmarès)
+    try{
+      if(__detailCompareCfg && __detailCompareCfg.mode){ srcSel.value = __detailCompareCfg.mode; }
+    }catch(_){ }
     // Peupler les paires à partir de la liste principale du chart
     try{
       if(symSel && symbolSelect && symbolSelect.innerHTML){
@@ -1847,7 +1851,11 @@ function setupDetailCompareUI(){
       if(tfSel) tfSel.disabled = disabled;
       if(profSel) profSel.disabled = disabled;
     };
-    srcSel.addEventListener('change', ()=>{ syncVisibility(); });
+    srcSel.addEventListener('change', ()=>{
+      syncVisibility();
+      // Quand on passe en mode Palmarès, charger immédiatement la liste
+      if(srcSel.value==='palmares'){ populateDetailCompPalmares(); }
+    });
     syncVisibility();
     // Rafraîchir la liste Palmarès quand pair/TF/profil changent
     const triggerPalmares = ()=>{ populateDetailCompPalmares(); };
