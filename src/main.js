@@ -518,7 +518,8 @@ try{ chart.timeScale().subscribeVisibleTimeRangeChange(()=>{ try{ updateMkPositi
 const BATCH_LIMIT = 1000; let candles=[]; let candlesAll=[]; let ws=null;
 // Progressive history loading: fast first paint, then deep background fetch
 const PRELOAD_BARS = 1000;        // bars for instant display
-const API_MAX_BARS = Infinity;    // upper bound for history fetched via REST (per symbol/TF) when using REST-only helpers
+const API_MAX_BARS = Infinity;    // upper bound for history fetched via REST (per symbol/TF) when using REST-only helpers on main chart
+const REMOTE_MAX_BARS = 200000;   // safety cap for "full" history when fetching other TF/symbol combos (Lab/BT/detail)
 const BG_MAX_BARS = Infinity;     // upper bound for background history (max depth) on the main chart
 const CACHE_SAVE_BARS = 5000;     // persist last N bars per symbol/TF for instant next load
 const LIVE_MAX_BARS = 200000;     // cap for in-memory candles during live updates; increase if needed
@@ -820,7 +821,7 @@ async function computeLabBenchmarkAndUpdate(){
     }
     if(!bars || !bars.length){
       try{
-        bars = await fetchAllKlines(symSel, tfSel);
+        bars = await fetchAllKlines(symSel, tfSel, REMOTE_MAX_BARS);
         try{ saveMemSeries(symSel, tfSel, bars, bars.length); }catch(_){ }
       }catch(_){ bars = []; }
     }
@@ -1486,7 +1487,7 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
       bars = mem.bars;
     } else {
       try{
-        bars = await fetchAllKlines(currentSymbol, tfSel);
+        bars = await fetchAllKlines(currentSymbol, tfSel, REMOTE_MAX_BARS);
         try{ saveMemSeries(currentSymbol, tfSel, bars, bars.length); }catch(_){ }
       }catch(_){
         bars = __baseAfterCutoff();
@@ -2626,10 +2627,10 @@ const conf={ startCap: Math.max(0, parseFloat((document.getElementById('labStart
     const mem = loadMemSeries(sym, tfSel);
     if(mem && Array.isArray(mem.bars) && mem.bars.length){
       bars = mem.bars;
-      try{ addBtLog(`Données en cache: ${sym} @ ${tfSel} — ${bars.length} bougies`); }catch(_){ }
+      try{ addBtLog(`Données chargées: ${bars.length} bougies`); }catch(_){ }
     } else {
       try{
-        bars = await fetchAllKlines(sym, tfSel);
+        bars = await fetchAllKlines(sym, tfSel, REMOTE_MAX_BARS);
         try{ saveMemSeries(sym, tfSel, bars, bars.length); }catch(_){ }
         try{ addBtLog(`Chargement des données: ${sym} @ ${tfSel} — ${bars.length} bougies`); }catch(_){ }
       }catch(_){
