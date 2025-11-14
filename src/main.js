@@ -334,7 +334,21 @@ function setStatus(msg){ __statusMain = msg || ''; if(statusEl){ statusEl.textCo
 function setBgStatus(msg){ __statusBg = msg || ''; if(statusEl){ statusEl.textContent = __statusMain + (__statusBg ? (' • '+__statusBg) : ''); } }
 // Bars info indicator
 const barsInfoEl = document.getElementById('barsInfo');
-function updateBarsInfo(){ try{ if(!barsInfoEl) return; const vis = Array.isArray(candles)? candles.length:0; const tot = Array.isArray(candlesAll)? candlesAll.length:vis; const fmt=(n)=>{ if(n>=1000000) return (n/1000000).toFixed(1).replace(/\.0$/,'')+'m'; if(n>=1000) return (n/1000).toFixed(0)+'k'; return String(n); }; barsInfoEl.textContent = `Bougies: ${fmt(vis)} / ${fmt(tot)}`; }catch(_){ } }
+function updateBarsInfo(){
+  try{
+    if(!barsInfoEl) return;
+    const visLimit = DISPLAY_MAX_BARS;
+    const loaded = Array.isArray(candlesAll)? candlesAll.length : 0;
+    const maxApi = __currentBarsMaxApi>0 ? __currentBarsMaxApi : loaded;
+    const fmt=(n)=>{
+      if(n>=1000000) return (n/1000000).toFixed(1).replace(/\.0$/,'')+'m';
+      if(n>=1000) return (n/1000).toFixed(0)+'k';
+      return String(n);
+    };
+    // 5k (limite d'affichage) / nb de bougies chargées / nb max disponible via API (estimate)
+    barsInfoEl.textContent = `Bougies: ${fmt(visLimit)} / ${fmt(loaded)} / ${fmt(maxApi)}`;
+  }catch(_){ }
+}
 // Supabase config UI
 const supaCfgBtn = document.getElementById('supaCfgBtn');
 const supaModalEl = document.getElementById('supaModal');
@@ -504,12 +518,14 @@ try{ chart.timeScale().subscribeVisibleTimeRangeChange(()=>{ try{ updateMkPositi
 const BATCH_LIMIT = 1000; let candles=[]; let candlesAll=[]; let ws=null;
 // Progressive history loading: fast first paint, then deep background fetch
 const PRELOAD_BARS = 1000;        // bars for instant display
-const BG_MAX_BARS = Infinity;     // upper bound for background history (max depth)
+const API_MAX_BARS = Infinity;    // upper bound for history fetched via REST (per symbol/TF) when using REST-only helpers
+const BG_MAX_BARS = Infinity;     // upper bound for background history (max depth) on the main chart
 const CACHE_SAVE_BARS = 5000;     // persist last N bars per symbol/TF for instant next load
 const LIVE_MAX_BARS = 200000;     // cap for in-memory candles during live updates; increase if needed
-const DISPLAY_MAX_BARS = 5000;    // limit rendering to last N bars to avoid lag
+const DISPLAY_MAX_BARS = 5000;    // limit rendering to last N bars to avoid lag on chart
 const DISPLAY_PAD_BARS = 1000;    // how many bars to prepend when user scrolls to left edge
 let __bgLoadToken = 0;            // cancels previous background loaders
+let __currentBarsMaxApi = 0;      // best estimate of max bars available via API for current symbol/TF
 
 function __baseAfterCutoff(){ let base=candlesAll||[]; if(typeof window.__liveChartMinTimeSec==='number' && isFinite(window.__liveChartMinTimeSec)){ base = base.filter(b=> b.time >= window.__liveChartMinTimeSec); } return base; }
 function applyDisplayFromAll(){ const base=__baseAfterCutoff(); candles = base.length>DISPLAY_MAX_BARS? base.slice(-DISPLAY_MAX_BARS) : base.slice(); updateBarsInfo(); }
@@ -540,7 +556,7 @@ async function fetchKlinesBatch(symbol, interval, limit=BATCH_LIMIT, endTimeMs){
   const mapped = raw.map(k=>({ time: Math.floor(k[0]/1000), open:+k[1], high:+k[2], low:+k[3], close:+k[4] }));
   mapped.sort((a,b)=> a.time-b.time); return mapped;
 }
-async function fetchAllKlines(symbol, interval, max=5000){ let all=[]; let cursor=Date.now(); while(all.length<max){ setStatus(`Chargement... (${all.length}+)`); const need=Math.min(BATCH_LIMIT, max-all.length); const batch=await fetchKlinesBatch(symbol, interval, need, cursor); if(!batch.length) break; all=batch.concat(all); if(batch.length<need) break; cursor=batch[0].time*1000 - 1; } return all.slice(-max); }
+async function fetchAllKlines(symbol, interval, max=API_MAX_BARS){ let all=[]; let cursor=Date.now(); while(all.length<max){ setStatus(`Chargement... (${all.length}+)`); const need=Math.min(BATCH_LIMIT, max-all.length); const batch=await fetchKlinesBatch(symbol, interval, need, cursor); if(!batch.length) break; all=batch.concat(all); if(batch.length<need) break; cursor=batch[0].time*1000 - 1; } return all.slice(-max); }
 
 async function backgroundExtendKlines(symbol, interval, token){
   try{
@@ -578,6 +594,7 @@ try{ applyDisplayFromAll(); candleSeries.setData(candles); updateEMAs(); renderL
       await new Promise(r=> setTimeout(r, 0));
     }
     if(token === __bgLoadToken){
+      try{ __currentBarsMaxApi = Array.isArray(candlesAll)? candlesAll.length : 0; }catch(_){ __currentBarsMaxApi = 0; }
 try{ applyDisplayFromAll(); candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge(); updateBarsInfo(); }catch(_){ }
       try{ saveKlinesToCache(symbol, interval, candlesAll); }catch(_){ }
       setBgStatus('');
@@ -594,6 +611,7 @@ async function load(symbol, interval){
   try{
     __bgLoadToken++;
     const token = __bgLoadToken;
+    __currentBarsMaxApi = 0;
     // Try cache for instant paint
     const cached = loadKlinesFromCache(symbol, interval);
 if(cached && cached.length){
@@ -742,9 +760,13 @@ async function computeLabBenchmarkAndUpdate(){
   try{
     const tfSel = (labTFSelect&&labTFSelect.value) || currentInterval;
     const symSel = (labSymbolSelect&&labSymbolSelect.value) || currentSymbol;
-    let bars = candles;
-    if(tfSel !== currentInterval || symSel !== currentSymbol){
-      try{ bars = await fetchAllKlines(symSel, tfSel, 5000); }catch(_){ bars=candles; }
+    // Utiliser toutes les bougies chargées pour le symbole/TF courant, sinon charger l'historique complet via API
+    let bars = null;
+    if(tfSel === currentInterval && symSel === currentSymbol){
+      bars = __baseAfterCutoff();
+    }
+    if(!bars || !bars.length){
+      try{ bars = await fetchAllKlines(symSel, tfSel); }catch(_){ bars = []; }
     }
     if(!bars || !bars.length){ if(kpiScoreEl) kpiScoreEl.textContent='—'; if(kpiPFEl) kpiPFEl.textContent='—'; if(kpiWinEl) kpiWinEl.textContent='—'; if(kpiDDEl) kpiDDEl.textContent='—'; return; }
 
@@ -1399,7 +1421,12 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
   const usePrior = !!(document.getElementById('btUseTFPrior')&&document.getElementById('btUseTFPrior').checked);
   if(usePrior){ try{ let priorArr = Array.isArray(window.labPalmaresCache)? window.labPalmaresCache.slice(0, topN) : []; if((!priorArr.length) && window.SUPA && typeof SUPA.fetchPalmares==='function'){ priorArr = await SUPA.fetchPalmares(currentSymbol, tfSel, topN); } for(const it of priorArr){ if(it&&it.params){ combos.unshift({ ...it.params }); } } }catch(_){ } }
   if(combos.length>maxComb){ const sample=[]; while(sample.length<maxComb){ const i=Math.floor(Math.random()*combos.length); sample.push(combos[i]); combos.splice(i,1); } combos=sample; }
-  let bars=candles; if(tfSel!==currentInterval){ try{ bars = await fetchAllKlines(currentSymbol, tfSel, 5000); }catch(_){ bars=candles; } }
+  let bars=null;
+  if(tfSel===currentInterval){
+    bars = __baseAfterCutoff();
+  } else {
+    try{ bars = await fetchAllKlines(currentSymbol, tfSel); }catch(_){ bars = __baseAfterCutoff(); }
+  }
   let from=null,to=null;
   if(btRangeDates&&btRangeDates.checked){ const f=(btFrom&&btFrom.value)||''; const t=(btTo&&btTo.value)||''; from = f? Math.floor(new Date(f).getTime()/1000): null; to = t? Math.floor(new Date(t).getTime()/1000): null; }
   else if(btRangeAll&&btRangeAll.checked){ from=null; to=null; }
@@ -1840,8 +1867,14 @@ async function openLabStrategyDetail(item, ctx){ try{
   // Progress UI
   try{ openBtProgress('Analyse stratégie...'); }catch(_){ }
   // Charger les données (toujours pleine période pour le détail)
-  let bars=candles;
-  try{ bars = await fetchAllKlines(sym, tf, 5000); }catch(_){ /* keep current candles if same TF */ }
+  let bars=null;
+  if(sym===currentSymbol && tf===currentInterval){
+    bars = __baseAfterCutoff();
+  }
+  if(!bars || !bars.length){
+    try{ bars = await fetchAllKlines(sym, tf); }catch(_){ bars = []; }
+  }
+  if(!bars || !bars.length){ bars = candles||[]; }
   // Période complète
   let from=null, to=null;
   const [sIdx,eIdx]=(()=>{ let s=0,e=bars.length-1; return [s,e]; })();
@@ -2489,7 +2522,20 @@ const conf={ startCap: Math.max(0, parseFloat((document.getElementById('labStart
   }catch(_){ }
   try{ if(btProgText) btProgText.textContent='Entraînement...'; if(btProgNote) btProgNote.textContent=''; }catch(_){ }
   try{ const tl=(timeLimitSec>0? `${timeLimitSec}s`:'∞'); const mq=(maxEvals>0? `${maxEvals}`:'∞'); addBtLog(`Limites: temps ${tl}, max évals ${mq}`); }catch(_){ }
-  let bars=candles; if(tfSel!==currentInterval){ try{ bars=await fetchAllKlines(sym, tfSel, 5000); try{ addBtLog(`Chargement des données: ${sym} @ ${tfSel} — ${bars.length} bougies`); }catch(_){ } }catch(_){ bars=candles; try{ addBtLog('Échec du chargement — utilisation des bougies visibles'); }catch(__){} } } else { try{ addBtLog(`Données visibles: ${bars.length} bougies`); }catch(_){ } }
+  let bars=null;
+  if(sym===currentSymbol && tfSel===currentInterval){
+    bars = __baseAfterCutoff();
+    try{ addBtLog(`Données chargées: ${bars.length} bougies`); }catch(_){ }
+  } else {
+    try{
+      bars = await fetchAllKlines(sym, tfSel);
+      try{ addBtLog(`Chargement des données: ${sym} @ ${tfSel} — ${bars.length} bougies`); }catch(_){ }
+    }catch(_){
+      bars = [];
+      try{ addBtLog('Échec du chargement — aucune donnée Lab pour ce symbole/TF'); }catch(__){}
+    }
+  }
+  if(!bars || !bars.length){ bars = __baseAfterCutoff(); }
   let from=null,to=null; const rangeMode=(document.getElementById('labRangeMode')&&document.getElementById('labRangeMode').value)||'visible';
   if(rangeMode==='dates'){ const f=(document.getElementById('labFrom')&&document.getElementById('labFrom').value)||''; const t=(document.getElementById('labTo')&&document.getElementById('labTo').value)||''; from = f? Math.floor(new Date(f).getTime()/1000): null; to = t? Math.floor(new Date(t).getTime()/1000): null; }
   else if(rangeMode==='visible'){ const r=getVisibleRange(); if(r){ from=r.from; to=r.to; } }
@@ -3360,12 +3406,16 @@ if(lbcSupaSave){ lbcSupaSave.addEventListener('click', async ()=>{ try{
   if(!(window.SUPA && SUPA.isConfigured && SUPA.isConfigured())){ setStatus('Supabase non configuré'); return; }
   let name=(lbcSupaName&&lbcSupaName.value||'').trim(); if(!name){ try{ name=randomName(); }catch(_){ name='heaven'; } }
   const params=currentHeavenParamsForPersist();
-  // Optional metrics snapshot over visible range
+  // Optional metrics snapshot over visible range (sur l'intégralité des bougies chargées)
   let metrics=null; try{
     const conf={ startCap: 10000, fee: 0.1, lev: 1, maxPct:100, base:'initial' };
     let from=null, to=null; const r=getVisibleRange(); if(r){ from=r.from; to=r.to; }
-    const [sIdx,eIdx]=idxFromTime(from,to);
-    metrics = runBacktestSliceFor(candles, sIdx, eIdx, conf, params);
+    const bars = __baseAfterCutoff();
+    if(Array.isArray(bars) && bars.length){
+      const idxFromTimeLocal=(bars,from,to)=>{ let s=0,e=bars.length-1; if(from!=null){ for(let i=0;i<bars.length;i++){ if(bars[i].time>=from){ s=i; break; } } } if(to!=null){ for(let j=bars.length-1;j>=0;j--){ if(bars[j].time<=to){ e=j; break; } } } return [s,e]; };
+      const [sIdx,eIdx]=idxFromTimeLocal(bars, from, to);
+      metrics = runBacktestSliceFor(bars, sIdx, eIdx, conf, params);
+    }
   }catch(_){ metrics=null; }
   const tfSel = (heavenTFSelect&&heavenTFSelect.value) || ((intervalSelect&&intervalSelect.value)||currentInterval);
   const ok = await SUPA.persistHeavenStrategy({ symbol: ((symbolSelect&&symbolSelect.value)||currentSymbol), tf: tfSel, name, params, metrics });
