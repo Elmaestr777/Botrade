@@ -141,6 +141,12 @@ main {
 #labModal .modal-body { font-size: 13.5px; line-height: 1.35; }
 #labModal .form-grid { gap: 12px; }
 #labModal label { gap: 10px; }
+
+/* Strategy detail modal: slightly denser text + subtle canvas elevation */
+#detailModal .modal-body { font-size: 13px; line-height: 1.35; }
+#detailModal canvas {
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
 .modal-footer { display:flex; justify-content: flex-end; gap:8px; padding: 12px 14px; border-top: 1px solid var(--header-border); }
 .form-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
 fieldset { border:1px solid var(--header-border); border-radius: 10px; padding: 10px; }
