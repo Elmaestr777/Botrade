@@ -1787,6 +1787,52 @@ let __detailLastMain = null;
 let __detailCompareCfg = null; // { mode:'heaven' } ou { mode:'palmares', params, label }
 let __detailCompPalmaresList = [];
 
+function setupDetailConfigUI(){
+  try{
+    const capEl=document.getElementById('detailStartCap');
+    const feeEl=document.getElementById('detailFee');
+    const levEl=document.getElementById('detailLev');
+    const applyEl=document.getElementById('detailConfApply');
+    if(!capEl || (capEl.dataset && capEl.dataset.wired==='1')) return;
+    const ctxMain = __detailLastMain && __detailLastMain.ctx;
+    const conf = (ctxMain && ctxMain.conf) || {};
+    const labCapEl=document.getElementById('labStartCap');
+    const labFeeEl=document.getElementById('labFee');
+    const labLevEl=document.getElementById('labLev');
+    if(capEl && !capEl.value){ capEl.value = String(conf.startCap!=null? conf.startCap : (labCapEl && labCapEl.value) || 10000); }
+    if(feeEl && !feeEl.value){ feeEl.value = String(conf.fee!=null? conf.fee : (labFeeEl && labFeeEl.value) || 0.1); }
+    if(levEl && !levEl.value){ levEl.value = String(conf.lev!=null? conf.lev : (labLevEl && labLevEl.value) || 1); }
+    if(applyEl){
+      applyEl.addEventListener('click', ()=>{
+        try{
+          if(!__detailLastMain || !__detailLastMain.ctx) return;
+          const item = __detailLastMain.item;
+          const ctx = __detailLastMain.ctx;
+          const bars = ctx.bars||[];
+          if(!bars.length) return;
+          const sIdx = ctx.sIdx|0, eIdx = ctx.eIdx|0;
+          const p = ctx.params || (item && (item.params||item.p)) || {};
+          const startCap = Math.max(0, parseFloat(capEl.value||'0')||0);
+          const fee = Math.max(0, parseFloat(feeEl.value||'0')||0);
+          const lev = Math.max(1, parseFloat(levEl.value||'1')||1);
+          const confNew = { ...(ctx.conf||{}), startCap, fee, lev, maxPct: (ctx.conf&&ctx.conf.maxPct!=null? ctx.conf.maxPct:100), base:(ctx.conf&&ctx.conf.base)||'initial' };
+          ctx.conf = confNew;
+          try{
+            if(labCapEl) labCapEl.value = String(startCap);
+            if(labFeeEl) labFeeEl.value = String(fee);
+            if(labLevEl) labLevEl.value = String(lev);
+          }catch(_){ }
+          const resNew = runBacktestSliceFor(bars, sIdx, eIdx, confNew, p, true);
+          __detailLastMain = { item, ctx, res: resNew };
+          renderStrategyDetailIntoModal(resNew, ctx, __detailCompareCfg||{mode:'heaven'});
+        }catch(_){ }
+      });
+    }
+    if(!capEl.dataset) capEl.dataset={};
+    capEl.dataset.wired='1';
+  }catch(_){ }
+}
+
 // Nouveau flux: pop‑up simple via showStrategyResult (métriques & trades)
 async function openLabStrategyDetail(item, ctx){ try{
   const sym=ctx.symbol, tf=ctx.tf; const p=item.params||item.p||{};
@@ -1810,6 +1856,7 @@ async function openLabStrategyDetail(item, ctx){ try{
     __detailLastMain = { item, ctx: ctxFull, res };
     if(!__detailCompareCfg){ __detailCompareCfg = { mode:'heaven' }; }
     renderStrategyDetailIntoModal(res, ctxFull, __detailCompareCfg);
+    try{ setupDetailConfigUI(); }catch(_){ }
     try{ setupDetailCompareUI(); }catch(_){ }
   }catch(__err){
     // Fallback: modales Résultats+Trades existantes
@@ -2034,7 +2081,77 @@ function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
   try{ const canDDH = ensureHeavenClone('detailDD'); if(canDDH && eqCmp){ drawDD(canDDH, eqCmp); } }catch(_){ }
   // primary hist
   drawHist(canHist, rets); registerChart('detailHist', { type:'rets', values: rets.slice() });
-  try{ if(eq && eq.length>1){ const ret=((eq[eq.length-1].equity-eq[0].equity)/Math.max(1e-9,eq[0].equity))*100; const ddAbs=+res.maxDDAbs||0; const ddPct=(conf.startCap>0? (ddAbs/conf.startCap*100):NaN); setNote('detailEquityNote', `Perf cumulée: ${ret.toFixed(1)}% • Max DD: ${ddAbs.toFixed(0)}${Number.isFinite(ddPct)? ' ('+ddPct.toFixed(1)+'%)':''}`); setNote('detailDDNote', `Taille et fréquence des creux: max ${ddAbs.toFixed(0)} • Surveiller la phase de stress.`); if(resCmp){ const pf1=(res.profitFactor===Infinity? Infinity : (+res.profitFactor||0)); const pf2=(resCmp.profitFactor===Infinity? Infinity : (+resCmp.profitFactor||0)); const wr1=+res.winrate||0, wr2=+resCmp.winrate||0; const pnl1=+res.totalPnl||0, pnl2=+resCmp.totalPnl||0; const dd2=+resCmp.maxDDAbs||0; const d=(a,b)=> (Number.isFinite(a)&&Number.isFinite(b))? (a-b):NaN; setNote('detailCompareNote', `${cmpLabel} — PF ${pf2===Infinity?'∞':pf2.toFixed(2)} (Δ ${(pf2===Infinity||pf1===Infinity)?'∞':d(pf2,pf1).toFixed(2)}) • Win ${wr2.toFixed(1)}% (Δ ${(wr2-wr1).toFixed(1)}%) • P&L ${pnl2.toFixed(0)} (Δ ${(pnl2-pnl1).toFixed(0)}) • Max DD ${dd2.toFixed(0)} (Δ ${(dd2-ddAbs).toFixed(0)})`); } } const neg=rets.filter(x=>x<0).length, N=rets.length; setNote('detailHistNote', `Moyenne: ${m.toFixed(2)}% • Écart-type: ${sd.toFixed(2)} • Pertes: ${(N? (neg/N*100):0).toFixed(0)}% des trades`); }catch(_){ }
+  try{
+    if(eq && eq.length>1){
+      const startE = (eq[0].equity!=null? eq[0].equity : (conf.startCap||0));
+      const endE = (eq[eq.length-1].equity!=null? eq[eq.length-1].equity : startE);
+      const retPct1 = startE>0? ((endE-startE)/startE*100) : 0;
+      const ddAbs = +res.maxDDAbs||0;
+      const ddPct1 = startE>0? (ddAbs/startE*100) : NaN;
+      const totalSecs = Math.max(1, (maxTs>minTs? (maxTs-minTs) : (bars[eIdx].time-bars[sIdx].time)));
+      const days = totalSecs/86400;
+      const trades = res.tradesCount||0;
+      const freqDay = days>0? (trades/days) : 0;
+      const timeInMktLoc = Math.max(0, Math.min(100, 100*(totalDur/Math.max(1, totalSecs))));
+      const pf1Raw = (res.profitFactor===Infinity? Infinity : (+res.profitFactor||0));
+      const pf1Disp = pf1Raw===Infinity? '∞' : pf1Raw.toFixed(2);
+      const wr1 = +res.winrate||0;
+      // Descriptions qualitatives pour le graphique principal
+      const perfLabel = (retPct1>80? 'Performance globale très forte' : retPct1>30? 'Performance globale solide' : retPct1>10? 'Performance positive' : retPct1>-5? 'Performance quasi neutre' : 'Performance dégradée');
+      const riskLabel = (!Number.isFinite(ddPct1)? 'un profil de risque difficile à estimer' : ddPct1<10? 'un risque bien contenu' : ddPct1<25? 'un risque modéré' : 'un risque élevé');
+      const trendLabel = (r2N>=80? "une courbe d'équity très régulière (trend propre)" : r2N>=50? "une courbe d'équity assez lisible avec quelques phases de respiration marquées" : "une courbe d'équity heurtée, avec des phases de gains et de pertes alternées");
+      let activityLabel = '';
+      if(freqDay<0.3) activityLabel = `peu de positions (~${freqDay.toFixed(2)} trade/jour, ${timeInMktLoc.toFixed(0)}% du temps en marché)`;
+      else if(freqDay<1) activityLabel = `un rythme de trading modéré (~${freqDay.toFixed(2)} trades/jour, ${timeInMktLoc.toFixed(0)}% du temps en marché)`;
+      else activityLabel = `un trading dense (~${freqDay.toFixed(2)} trades/jour, ${timeInMktLoc.toFixed(0)}% du temps en marché)`;
+      const eqNote = `${perfLabel} (${retPct1.toFixed(1)}% cumulés, capital ${startE.toFixed(0)} → ${endE.toFixed(0)}). `+
+        `Le couple rendement/risque reste caractérisé par ${riskLabel} (PF ${pf1Disp}, Win ${wr1.toFixed(1)}%, DD max ${ddAbs.toFixed(0)}${Number.isFinite(ddPct1)? ' ('+ddPct1.toFixed(1)+'%)':''}). `+
+        `La courbe montre ${trendLabel} avec ${activityLabel}.`;
+      setNote('detailEquityNote', eqNote);
+      setNote('detailDDNote', `Taille et fréquence des creux cohérentes avec ce profil de risque (DD max ${ddAbs.toFixed(0)}).`);
+      if(resCmp && eqCmp && eqCmp.length>1){
+        const startE2 = (eqCmp[0].equity!=null? eqCmp[0].equity : (conf.startCap||0));
+        const endE2 = (eqCmp[eqCmp.length-1].equity!=null? eqCmp[eqCmp.length-1].equity : startE2);
+        const retPct2 = startE2>0? ((endE2-startE2)/startE2*100) : 0;
+        const dd2 = +resCmp.maxDDAbs||0;
+        const ddPct2 = startE2>0? (dd2/startE2*100) : NaN;
+        const pf2Raw = (resCmp.profitFactor===Infinity? Infinity : (+resCmp.profitFactor||0));
+        const pf2Disp = pf2Raw===Infinity? '∞' : pf2Raw.toFixed(2);
+        const wr2 = +resCmp.winrate||0;
+        const pnl1 = +res.totalPnl||0;
+        const pnl2 = +resCmp.totalPnl||0;
+        // Récap numérique entre les deux stratégies
+        setNote('detailCompareNote', `${cmpLabel} — PF ${pf2Disp} vs ${pf1Disp} • Win ${wr2.toFixed(1)}% vs ${wr1.toFixed(1)}% • P&L ${pnl2.toFixed(0)} vs ${pnl1.toFixed(0)} • Max DD ${dd2.toFixed(0)} vs ${ddAbs.toFixed(0)}`);
+        // Analyse concise: principaux avantages / inconvénients de la stratégie comparée
+        const advantages=[]; const limits=[];
+        if(Number.isFinite(retPct1)&&Number.isFinite(retPct2)){
+          const dR = retPct2-retPct1;
+          if(dR>2) advantages.push(`rendement supérieur (+${dR.toFixed(1)} pts)`);
+          else if(dR<-2) limits.push(`rendement inférieur (${dR.toFixed(1)} pts)`);
+        }
+        if(Number.isFinite(ddPct1)&&Number.isFinite(ddPct2)){
+          const dD = ddPct2-ddPct1;
+          if(dD<-2) advantages.push(`drawdown plus contenu (${dd2.toFixed(0)} vs ${ddAbs.toFixed(0)})`);
+          else if(dD>2) limits.push(`drawdown plus profond (${dd2.toFixed(0)} vs ${ddAbs.toFixed(0)})`);
+        }
+        if(Number.isFinite(pf1Raw)&&Number.isFinite(pf2Raw)){
+          const dPf = pf2Raw-pf1Raw;
+          if(dPf>0.1) advantages.push(`PF plus élevé (${pf2Disp} vs ${pf1Disp})`);
+          else if(dPf<-0.1) limits.push(`PF plus faible (${pf2Disp} vs ${pf1Disp})`);
+        }
+        if(Number.isFinite(wr1)&&Number.isFinite(wr2)){
+          const dW = wr2-wr1;
+          if(dW>1.5) advantages.push(`Win% supérieur (${wr2.toFixed(1)}% vs ${wr1.toFixed(1)}%)`);
+          else if(dW<-1.5) limits.push(`Win% plus faible (${wr2.toFixed(1)}% vs ${wr1.toFixed(1)}%)`);
+        }
+        const advStr = advantages.length? advantages.slice(0,3).join(', ') : 'un profil de performance globalement proche de la stratégie analysée';
+        const limStr = limits.length? limits.slice(0,3).join(', ') : 'pas de faiblesse majeure apparente par rapport à la stratégie analysée sur ces métriques simples';
+        setNote('detailEquityHeavenNote', `${cmpLabel} — Avantages: ${advStr} • Inconvénients: ${limStr}`);
+      }
+    }
+    const neg=rets.filter(x=>x<0).length, N=rets.length;
+    setNote('detailHistNote', `Moyenne: ${m.toFixed(2)}% • Écart-type: ${sd.toFixed(2)} • Pertes: ${(N? (neg/N*100):0).toFixed(0)}% des trades`);
+  }catch(_){ }
 const totalSecs=Math.max(1, (maxTs>minTs? (maxTs-minTs) : (bars[eIdx].time-bars[sIdx].time))); const days=totalSecs/86400; const freq = (res.tradesCount||0)/(days||1); const timeInMkt = Math.max(0, Math.min(100, 100*(totalDur/Math.max(1, totalSecs)))); const effLabels=['Win Rate','Avg R:R','Trade Efficiency','Time in Market','Trades / jour']; const effVals=[winrate, Math.max(0, Math.min(100, (avgRR/2)*100)), teN, timeInMkt, Math.max(0, Math.min(100, (freq/20)*100))];
   // Expectancy & trade stats (par position)
 const groups=(function(){ const t=(res.trades||[]).slice().sort((a,b)=> (a.exitTime||0)-(b.exitTime||0)); const map=new Map(); function keyOf(e){ return `${e.dir}|${e.entryTime}|${e.entry}|${e.initSL}`; } for(const ev of t){ const k=keyOf(ev); let g=map.get(k); if(!g){ g={ entryTime:ev.entryTime, exitTime:ev.exitTime, entry: (Number.isFinite(ev.entry)? ev.entry : null), initSL: (Number.isFinite(ev.initSL)? ev.initSL : null), net:0, dur:0, dir:ev.dir||'long', eq0: (Number(ev.eqBefore)||null) }; map.set(k,g); }
@@ -2240,7 +2357,13 @@ drawRegimeHeatmap(canRegime, mat);
   }catch(_){ }
   // Heaven WF
   try{ if(typeof H!=='undefined' && H){ const c=ensureHeavenClone('detailWF'); if(c){ drawWFTable(c, H.wf||[]); try{ registerChart('detailWFHeaven', { type:'wf', splits: (H.wf||[]).slice() }); }catch(__){} } } }catch(_){ }
-if(detailCtxEl){ const gtxt = (ctx && ctx.gen && ctx.gen>1)? ` • Gen ${ctx.gen}` : ''; detailCtxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — ${name}${gtxt} — PF ${(res.profitFactor===Infinity?'∞':(+res.profitFactor||0).toFixed(2))} • Trades ${res.tradesCount}`; }
+if(detailCtxEl){
+  const gtxt = (ctx && ctx.gen && ctx.gen>1)? ` • Gen ${ctx.gen}` : '';
+  const capStr = Number.isFinite(conf.startCap)? ` • Cap ${conf.startCap.toFixed ? conf.startCap.toFixed(0) : Number(conf.startCap).toFixed(0)}` : '';
+  const feeStr = Number.isFinite(conf.fee)? ` • Frais ${Number(conf.fee).toFixed(2)}%` : '';
+  const levStr = Number.isFinite(conf.lev)? ` • Lev x${Number(conf.lev).toFixed(1)}` : '';
+  detailCtxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — ${name}${gtxt}${capStr}${feeStr}${levStr} — PF ${(res.profitFactor===Infinity?'∞':(+res.profitFactor||0).toFixed(2))} • Trades ${res.tradesCount}`;
+}
   // Summary/commentary (pass advanced metrics)
   try{ const sum = generateStrategySummary(res, ctx, { timeInMkt, freq, expectancy: expNet, avgDurMin, bestNet, worstNet, r2, pf: (res.profitFactor===Infinity? Infinity : (+res.profitFactor||0)), winrate, avgRR, maxDDAbs: +res.maxDDAbs||0, ci: ciBoot }); if(detailSummaryEl) detailSummaryEl.innerHTML = sum; }catch(_){ }
   // Slippage what‑if (bps)

@@ -1323,6 +1323,19 @@
         </div>
         <div class="modal-body">
           <div id="detailCtx" style="margin-bottom:8px; color:var(--muted);"></div>
+          <div id="detailConfBar" style="margin-bottom:8px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+            <label>Capital initial
+              <input id="detailStartCap" type="number" min="0" step="100" style="width:8rem;" />
+            </label>
+            <label>Frais (%)
+              <input id="detailFee" type="number" min="0" step="0.01" style="width:6rem;" />
+            </label>
+            <label>Levier (x)
+              <input id="detailLev" type="number" min="1" max="125" step="0.1" style="width:6rem;" />
+            </label>
+            <button id="detailConfApply" class="btn">Appliquer</button>
+            <span style="color:var(--muted); font-size:12px;">Ces paramètres n'affectent que cette analyse détaillée.</span>
+          </div>
           <!-- Barre de configuration de la stratégie de comparaison -->
           <div id="detailCompareBar" style="margin-bottom:8px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
             <label>Comparer à
