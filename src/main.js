@@ -1931,25 +1931,46 @@ async function openLabStrategyDetail(item, ctx){ try{
   const sym=ctx.symbol, tf=ctx.tf; const p=item.params||item.p||{};
   const conf={ startCap: Math.max(0, +((document.getElementById('labStartCap')||{}).value||10000)), fee: Math.max(0, +((document.getElementById('labFee')||{}).value||0.1)), lev: Math.max(1, +((document.getElementById('labLev')||{}).value||1)), maxPct:100, base:'initial' };
   // Progress UI
-  try{ openBtProgress('Analyse stratégie...'); }catch(_){ }
+  try{
+    openBtProgress('Analyse stratégie...');
+    try{
+      if(typeof addBtLog==='function') addBtLog(`[detail] Analyse de "${item && item.name ? item.name : 'stratégie'}" sur ${symbolToDisplay(sym)} @ ${tf}`);
+    }catch(_){ }
+  }catch(_){ }
   // Charger les données (toujours pleine période pour le détail)
   let bars=null;
+  let srcLabel='';
   if(sym===currentSymbol && tf===currentInterval){
     bars = __baseAfterCutoff();
+    srcLabel = 'chart courant';
   }
-  if(!bars || !bars.length){
+  if((!bars || !bars.length) && !srcLabel){
     const mem = loadMemSeries(sym, tf);
     if(mem && Array.isArray(mem.bars) && mem.bars.length){
       bars = mem.bars;
+      srcLabel = 'cache mémoire';
     }
   }
   if(!bars || !bars.length){
+    srcLabel = srcLabel || 'API REST';
+    try{
+      if(btProgNote) btProgNote.textContent = `Chargement des bougies (${symbolToDisplay(sym)} • ${tf}) depuis l'API...`;
+    }catch(_){ }
     try{
       bars = await fetchAllKlines(sym, tf);
       try{ saveMemSeries(sym, tf, bars, bars.length); }catch(_){ }
     }catch(_){ bars = []; }
   }
-  if(!bars || !bars.length){ bars = candles||[]; }
+  if(!bars || !bars.length){
+    bars = candles||[];
+    if(!srcLabel) srcLabel='bougies visibles';
+  }
+  try{
+    const n = Array.isArray(bars)? bars.length:0;
+    const msg = `[detail] Source données: ${srcLabel||'inconnue'} — ${n} bougies`;
+    if(typeof addBtLog==='function') addBtLog(msg);
+    if(btProgNote) btProgNote.textContent = `Données: ${srcLabel||'—'} — ${n} bougies`;
+  }catch(_){ }
   // Période complète
   let from=null, to=null;
   const [sIdx,eIdx]=(()=>{ let s=0,e=bars.length-1; return [s,e]; })();
