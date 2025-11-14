@@ -535,6 +535,39 @@ function klinesCacheKey(symbol, interval){ return `klines:${symbol}:${interval}`
 function loadKlinesFromCache(symbol, interval){ try{ const s=localStorage.getItem(klinesCacheKey(symbol, interval)); if(!s) return []; const arr=JSON.parse(s); if(Array.isArray(arr) && arr.length && arr[0].time){ return arr; } }catch(_){ } return []; }
 function saveKlinesToCache(symbol, interval, arr){ try{ if(!Array.isArray(arr)||!arr.length) return; const slim = arr.slice(-CACHE_SAVE_BARS); localStorage.setItem(klinesCacheKey(symbol, interval), JSON.stringify(slim)); }catch(_){ } }
 
+// In-memory per-(symbol,interval) cache to avoid full reloads on TF/pair switches
+const MAX_MEM_SERIES = 6;                          // max distinct (sym,TF) in RAM
+const MAX_MEM_BARS_PER_SERIES = LIVE_MAX_BARS;     // cap per series (align with live)
+let __memSeries = new Map();                       // key -> { bars, maxApi, lastUsed }
+
+function memKey(symbol, interval){ return `${symbol}:${interval}`; }
+function saveMemSeries(symbol, interval, bars, maxApi){
+  try{
+    if(!Array.isArray(bars) || !bars.length) return;
+    const key = memKey(symbol, interval);
+    const trimmed = bars.length>MAX_MEM_BARS_PER_SERIES? bars.slice(-MAX_MEM_BARS_PER_SERIES) : bars.slice();
+    const rec = { bars: trimmed, maxApi: (Number.isFinite(maxApi)? maxApi : trimmed.length), lastUsed: Date.now() };
+    __memSeries.set(key, rec);
+    if(__memSeries.size>MAX_MEM_SERIES){
+      let oldestKey=null, oldestTs=Infinity;
+      for(const [k,v] of __memSeries.entries()){
+        const ts=v&&v.lastUsed||0;
+        if(ts<oldestTs){ oldestTs=ts; oldestKey=k; }
+      }
+      if(oldestKey!=null) __memSeries.delete(oldestKey);
+    }
+  }catch(_){ }
+}
+function loadMemSeries(symbol, interval){
+  try{
+    const key = memKey(symbol, interval);
+    const v = __memSeries.get(key);
+    if(!v || !Array.isArray(v.bars) || !v.bars.length) return null;
+    v.lastUsed = Date.now();
+    return { bars: v.bars.slice(), maxApi: (Number.isFinite(v.maxApi)? v.maxApi : v.bars.length) };
+  }catch(_){ return null; }
+}
+
 // --- FX: USDC -> EUR via Binance (EURUSDC)
 let __usdcEurRate = null; let __usdcEurRateTs = 0;
 function getUsdcEurRate(){ if(__usdcEurRate && (Date.now()-__usdcEurRateTs)<5*60*1000) return __usdcEurRate; const v=Number(localStorage.getItem('usdc:eurRate')); if(Number.isFinite(v)&&v>0) return v; return (__usdcEurRate!=null? __usdcEurRate : 0.93); }
@@ -595,6 +628,7 @@ try{ applyDisplayFromAll(); candleSeries.setData(candles); updateEMAs(); renderL
     }
     if(token === __bgLoadToken){
       try{ __currentBarsMaxApi = Array.isArray(candlesAll)? candlesAll.length : 0; }catch(_){ __currentBarsMaxApi = 0; }
+      try{ saveMemSeries(symbol, interval, candlesAll, __currentBarsMaxApi); }catch(_){ }
 try{ applyDisplayFromAll(); candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge(); updateBarsInfo(); }catch(_){ }
       try{ saveKlinesToCache(symbol, interval, candlesAll); }catch(_){ }
       setBgStatus('');
@@ -612,23 +646,36 @@ async function load(symbol, interval){
     __bgLoadToken++;
     const token = __bgLoadToken;
     __currentBarsMaxApi = 0;
-    // Try cache for instant paint
+    // 1) Try in-memory full-series cache first (instant switch)
+    const mem = loadMemSeries(symbol, interval);
+    if(mem && Array.isArray(mem.bars) && mem.bars.length){
+      candlesAll = mem.bars.slice();
+      __currentBarsMaxApi = mem.maxApi || mem.bars.length;
+      applyDisplayFromAll();
+      candleSeries.setData(candles);
+      updateEMAs(); renderLBC(); updateCutoffBadge(); updateBarsInfo();
+      // Optionally still extend in background in case history grew since last time
+      backgroundExtendKlines(symbol, interval, token);
+      return;
+    }
+    // 2) Fallback: disk cache (last N bars) for instant paint
     const cached = loadKlinesFromCache(symbol, interval);
 if(cached && cached.length){
       candlesAll = cached;
       applyDisplayFromAll();
-candleSeries.setData(candles);
+      candleSeries.setData(candles);
       updateEMAs(); renderLBC(); updateCutoffBadge(); updateBarsInfo();
     } else {
       setStatus('Chargement...');
     }
-// Ensure preload fetch (fresh)
+    // 3) Ensure fresh preload from REST
     candlesAll = await fetchAllKlines(symbol, interval, PRELOAD_BARS);
     applyDisplayFromAll();
-candleSeries.setData(candles);
+    candleSeries.setData(candles);
     setStatus('');
     updateEMAs(); renderLBC(); updateCutoffBadge(); updateBarsInfo();
     try{ saveKlinesToCache(symbol, interval, candlesAll); }catch(_){ }
+    try{ saveMemSeries(symbol, interval, candlesAll, candlesAll.length); }catch(_){ }
     // Deep background extend to maximize history depth for Lab/Backtest
     backgroundExtendKlines(symbol, interval, token);
   }catch(e){ setStatus('Erreur chargement'); }
@@ -760,13 +807,22 @@ async function computeLabBenchmarkAndUpdate(){
   try{
     const tfSel = (labTFSelect&&labTFSelect.value) || currentInterval;
     const symSel = (labSymbolSelect&&labSymbolSelect.value) || currentSymbol;
-    // Utiliser toutes les bougies chargées pour le symbole/TF courant, sinon charger l'historique complet via API
+    // Utiliser toutes les bougies chargées pour le symbole/TF courant, sinon réutiliser le cache mémoire ou charger l'historique complet via API
     let bars = null;
     if(tfSel === currentInterval && symSel === currentSymbol){
       bars = __baseAfterCutoff();
     }
     if(!bars || !bars.length){
-      try{ bars = await fetchAllKlines(symSel, tfSel); }catch(_){ bars = []; }
+      const mem = loadMemSeries(symSel, tfSel);
+      if(mem && Array.isArray(mem.bars) && mem.bars.length){
+        bars = mem.bars;
+      }
+    }
+    if(!bars || !bars.length){
+      try{
+        bars = await fetchAllKlines(symSel, tfSel);
+        try{ saveMemSeries(symSel, tfSel, bars, bars.length); }catch(_){ }
+      }catch(_){ bars = []; }
     }
     if(!bars || !bars.length){ if(kpiScoreEl) kpiScoreEl.textContent='—'; if(kpiPFEl) kpiPFEl.textContent='—'; if(kpiWinEl) kpiWinEl.textContent='—'; if(kpiDDEl) kpiDDEl.textContent='—'; return; }
 
@@ -1425,7 +1481,17 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
   if(tfSel===currentInterval){
     bars = __baseAfterCutoff();
   } else {
-    try{ bars = await fetchAllKlines(currentSymbol, tfSel); }catch(_){ bars = __baseAfterCutoff(); }
+    const mem = loadMemSeries(currentSymbol, tfSel);
+    if(mem && Array.isArray(mem.bars) && mem.bars.length){
+      bars = mem.bars;
+    } else {
+      try{
+        bars = await fetchAllKlines(currentSymbol, tfSel);
+        try{ saveMemSeries(currentSymbol, tfSel, bars, bars.length); }catch(_){ }
+      }catch(_){
+        bars = __baseAfterCutoff();
+      }
+    }
   }
   let from=null,to=null;
   if(btRangeDates&&btRangeDates.checked){ const f=(btFrom&&btFrom.value)||''; const t=(btTo&&btTo.value)||''; from = f? Math.floor(new Date(f).getTime()/1000): null; to = t? Math.floor(new Date(t).getTime()/1000): null; }
@@ -1872,7 +1938,16 @@ async function openLabStrategyDetail(item, ctx){ try{
     bars = __baseAfterCutoff();
   }
   if(!bars || !bars.length){
-    try{ bars = await fetchAllKlines(sym, tf); }catch(_){ bars = []; }
+    const mem = loadMemSeries(sym, tf);
+    if(mem && Array.isArray(mem.bars) && mem.bars.length){
+      bars = mem.bars;
+    }
+  }
+  if(!bars || !bars.length){
+    try{
+      bars = await fetchAllKlines(sym, tf);
+      try{ saveMemSeries(sym, tf, bars, bars.length); }catch(_){ }
+    }catch(_){ bars = []; }
   }
   if(!bars || !bars.length){ bars = candles||[]; }
   // Période complète
@@ -2527,12 +2602,19 @@ const conf={ startCap: Math.max(0, parseFloat((document.getElementById('labStart
     bars = __baseAfterCutoff();
     try{ addBtLog(`Données chargées: ${bars.length} bougies`); }catch(_){ }
   } else {
-    try{
-      bars = await fetchAllKlines(sym, tfSel);
-      try{ addBtLog(`Chargement des données: ${sym} @ ${tfSel} — ${bars.length} bougies`); }catch(_){ }
-    }catch(_){
-      bars = [];
-      try{ addBtLog('Échec du chargement — aucune donnée Lab pour ce symbole/TF'); }catch(__){}
+    const mem = loadMemSeries(sym, tfSel);
+    if(mem && Array.isArray(mem.bars) && mem.bars.length){
+      bars = mem.bars;
+      try{ addBtLog(`Données en cache: ${sym} @ ${tfSel} — ${bars.length} bougies`); }catch(_){ }
+    } else {
+      try{
+        bars = await fetchAllKlines(sym, tfSel);
+        try{ saveMemSeries(sym, tfSel, bars, bars.length); }catch(_){ }
+        try{ addBtLog(`Chargement des données: ${sym} @ ${tfSel} — ${bars.length} bougies`); }catch(_){ }
+      }catch(_){
+        bars = [];
+        try{ addBtLog('Échec du chargement — aucune donnée Lab pour ce symbole/TF'); }catch(__){}
+      }
     }
   }
   if(!bars || !bars.length){ bars = __baseAfterCutoff(); }
