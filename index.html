@@ -1323,6 +1323,41 @@
         </div>
         <div class="modal-body">
           <div id="detailCtx" style="margin-bottom:8px; color:var(--muted);"></div>
+          <!-- Barre de configuration de la stratégie de comparaison -->
+          <div id="detailCompareBar" style="margin-bottom:8px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+            <label>Comparer à
+              <select id="detailCompSource" style="min-width:12rem;">
+                <option value="heaven" selected>Heaven (config actuelle)</option>
+                <option value="palmares">Palmarès</option>
+              </select>
+            </label>
+            <label>Pair
+              <select id="detailCompSymbol" style="min-width:9rem;"></select>
+            </label>
+            <label>TF
+              <select id="detailCompTF" style="min-width:6rem;">
+                <option value="1m">1m</option>
+                <option value="5m">5m</option>
+                <option value="15m">15m</option>
+                <option value="1h">1h</option>
+                <option value="4h">4h</option>
+                <option value="1d">1d</option>
+              </select>
+            </label>
+            <label>Profil
+              <select id="detailCompProfile" style="min-width:10rem;">
+                <option value="sure">Stratégie sûre</option>
+                <option value="balancee" selected>Stratégie balancée</option>
+                <option value="agressive">Stratégie agressive</option>
+              </select>
+            </label>
+            <label>Stratégie
+              <select id="detailCompPalmares" style="min-width:14rem;">
+                <option value="">—</option>
+              </select>
+            </label>
+            <button id="detailCompApply" class="btn">Appliquer</button>
+          </div>
           <div style="display:grid; grid-template-columns: 1fr; gap:12px;">
             <div>
               <div style="font-weight:600;">Radar critères</div>

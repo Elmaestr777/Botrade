@@ -1738,6 +1738,11 @@ lines.push(`• Exposition: ${tim.toFixed(1)}%  • Trades/jour: ${freq.toFixed(
   return lines.join("\n");
 }catch(_){ return '—'; }}
 
+// Lab detail: dernier contexte principal (stratégie cliquée) et configuration de comparaison
+let __detailLastMain = null;
+let __detailCompareCfg = null; // { mode:'heaven' } ou { mode:'palmares', params, label }
+let __detailCompPalmaresList = [];
+
 // Nouveau flux: pop‑up simple via showStrategyResult (métriques & trades)
 async function openLabStrategyDetail(item, ctx){ try{
   const sym=ctx.symbol, tf=ctx.tf; const p=item.params||item.p||{};
@@ -1757,20 +1762,133 @@ async function openLabStrategyDetail(item, ctx){ try{
     if(detailCtxEl){ detailCtxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — Analyse en cours...`; }
     openModalEl(detailModalEl);
     try{ ensureFloatingModal(detailModalEl, 'detail', { left: 60, top: 60, width: 1000, height: 660, zIndex: bumpZ() }); }catch(_){ }
-const ctxFull = { symbol: sym, tf, name: (item && item.name) || 'Stratégie', conf, bars, sIdx, eIdx, params: p, gen: (item && item.gen) ? item.gen : 1 };
-    renderStrategyDetailIntoModal(res, ctxFull);
+    const ctxFull = { symbol: sym, tf, name: (item && item.name) || 'Stratégie', conf, bars, sIdx, eIdx, params: p, gen: (item && item.gen) ? item.gen : 1 };
+    __detailLastMain = { item, ctx: ctxFull, res };
+    if(!__detailCompareCfg){ __detailCompareCfg = { mode:'heaven' }; }
+    renderStrategyDetailIntoModal(res, ctxFull, __detailCompareCfg);
+    try{ setupDetailCompareUI(); }catch(_){ }
   }catch(__err){
     // Fallback: modales Résultats+Trades existantes
     try{ showStrategyResult(res, { symbol: sym, tf, startCap: conf.startCap }); }catch(__){ }
   }
 }catch(e){ try{ closeBtProgress(); }catch(_){ } setStatus('Erreur détail'); try{ addLabLog && addLabLog('Erreur détail: '+(e&&e.message?e.message:e)); }catch(__){} }}
 
-function renderStrategyDetailIntoModal(res, ctx){ try{
+// Met à jour complètement le détail en relançant le rendu avec la configuration de comparaison courante
+function refreshStrategyDetailComparator(){ try{
+  if(!__detailLastMain || !__detailLastMain.ctx || !__detailLastMain.res) return;
+  renderStrategyDetailIntoModal(__detailLastMain.res, __detailLastMain.ctx, __detailCompareCfg||{mode:'heaven'});
+}catch(_){ } }
+
+// UI de configuration de la stratégie comparée
+async function populateDetailCompPalmares(){
+  try{
+    const srcSel=document.getElementById('detailCompSource');
+    if(!srcSel || srcSel.value!=='palmares') return;
+    const symSel=document.getElementById('detailCompSymbol');
+    const tfSel=document.getElementById('detailCompTF');
+    const profSel=document.getElementById('detailCompProfile');
+    const listSel=document.getElementById('detailCompPalmares');
+    if(!symSel || !tfSel || !profSel || !listSel) return;
+    const sym = symSel.value || __detailLastMain?.ctx?.symbol || currentSymbol;
+    const tf = tfSel.value || __detailLastMain?.ctx?.tf || currentInterval;
+    const prof = profSel.value || localStorage.getItem('labWeightsProfile') || 'balancee';
+    let pal=[];
+    if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured() && typeof SUPA.fetchPalmares==='function'){
+      try{ pal = await SUPA.fetchPalmares(sym, tf, 50, prof); }catch(_){ pal=[]; }
+    } else {
+      try{ pal = readPalmares(sym, tf)||[]; }catch(_){ pal=[]; }
+    }
+    __detailCompPalmaresList = Array.isArray(pal)? pal.slice(): [];
+    const w=getWeights(prof||'balancee');
+    const opts = ['<option value="">—</option>'];
+    let idx=0;
+    for(const it of __detailCompPalmaresList){
+      const st=it.res||{};
+      const sc = Number.isFinite(it.score)? it.score.toFixed(2) : (st ? (function(){ try{ return scoreResult(st, w).toFixed(2);}catch(_){ return '—'; } })() : '—');
+      const nm = it.name || `Palmarès #${idx+1}`;
+      opts.push(`<option value="${idx}">${nm} — ${sc}</option>`);
+      idx++;
+    }
+    listSel.innerHTML = opts.join('');
+  }catch(_){ }
+}
+
+function setupDetailCompareUI(){
+  try{
+    const srcSel=document.getElementById('detailCompSource');
+    const symSel=document.getElementById('detailCompSymbol');
+    const tfSel=document.getElementById('detailCompTF');
+    const profSel=document.getElementById('detailCompProfile');
+    const listSel=document.getElementById('detailCompPalmares');
+    const applyBtn=document.getElementById('detailCompApply');
+    if(!srcSel || srcSel.dataset && srcSel.dataset.wired==='1') return;
+    // Peupler les paires à partir de la liste principale du chart
+    try{
+      if(symSel && symbolSelect && symbolSelect.innerHTML){
+        symSel.innerHTML = symbolSelect.innerHTML;
+        symSel.value = __detailLastMain?.ctx?.symbol || (symbolSelect && symbolSelect.value) || '';
+      }
+    }catch(_){ }
+    // TF par défaut = TF du détail
+    try{
+      if(tfSel){ tfSel.value = __detailLastMain?.ctx?.tf || currentInterval || '1h'; }
+    }catch(_){ }
+    // Profil par défaut: même que Heaven/Lab
+    try{
+      const pref = localStorage.getItem('heaven:profile') || localStorage.getItem('labWeightsProfile') || 'balancee';
+      if(profSel){ profSel.value = pref; }
+    }catch(_){ }
+    // Source: Heaven ou Palmarès
+    const syncVisibility = ()=>{
+      const mode = srcSel.value||'heaven';
+      const disabled = (mode!=='palmares');
+      if(listSel) listSel.disabled = disabled;
+      if(symSel) symSel.disabled = disabled;
+      if(tfSel) tfSel.disabled = disabled;
+      if(profSel) profSel.disabled = disabled;
+    };
+    srcSel.addEventListener('change', ()=>{ syncVisibility(); });
+    syncVisibility();
+    // Rafraîchir la liste Palmarès quand pair/TF/profil changent
+    const triggerPalmares = ()=>{ populateDetailCompPalmares(); };
+    if(symSel) symSel.addEventListener('change', triggerPalmares);
+    if(tfSel) tfSel.addEventListener('change', triggerPalmares);
+    if(profSel) profSel.addEventListener('change', triggerPalmares);
+    // Bouton Appliquer
+    if(applyBtn){
+      applyBtn.addEventListener('click', ()=>{
+        try{
+          const mode = srcSel.value||'heaven';
+          if(mode==='heaven'){
+            __detailCompareCfg = { mode:'heaven' };
+            refreshStrategyDetailComparator();
+            return;
+          }
+          // mode palmarès: utiliser la stratégie sélectionnée mais la rejouer sur les mêmes données que la stratégie analysée
+          if(!listSel) return;
+          const idxStr = listSel.value||'';
+          if(!idxStr) return;
+          const idx = parseInt(idxStr,10);
+          const it = Array.isArray(__detailCompPalmaresList)? __detailCompPalmaresList[idx] : null;
+          if(!it || !it.params){ return; }
+          const label = it.name || `Palmarès #${idx+1}`;
+          __detailCompareCfg = { mode:'palmares', params: it.params, label };
+          refreshStrategyDetailComparator();
+        }catch(_){ }
+      });
+    }
+    // Charger une première liste Palmarès si besoin
+    populateDetailCompPalmares();
+    srcSel.dataset.wired='1';
+  }catch(_){ }
+}
+
+function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
   const sym = ctx.symbol, tf = ctx.tf; const name = ctx.name||'Stratégie'; const conf = ctx.conf; const bars = ctx.bars; const sIdx = ctx.sIdx, eIdx=ctx.eIdx;
   const eq = (res.eqSeries||[]).map(x=>({ time:x.time, equity:x.equity }));
   const setNote = (id, txt)=>{ try{ const el=document.getElementById(id); if(el) el.textContent = String(txt||''); }catch(_){ } };
   const chartReg = {}; function registerChart(id, spec){ chartReg[id]=spec; }
-  function ensureHeavenClone(id){ try{ const can=document.getElementById(id); if(!can) return null; const heavenId=id+'Heaven'; let ch=document.getElementById(heavenId); if(ch) return ch; const note=document.getElementById(id+'Note'); const parent=(note&&note.parentElement)||can.parentElement; const lab=document.createElement('div'); lab.style.color='var(--muted)'; lab.style.fontSize='12px'; lab.style.marginTop='6px'; lab.textContent='Heaven'; parent.appendChild(lab); ch=document.createElement('canvas'); ch.id=heavenId; ch.width=can.width; ch.height=can.height; ch.style.cssText=can.style.cssText; parent.appendChild(ch); const note2=document.createElement('div'); note2.id=heavenId+'Note'; note2.style.color='var(--muted)'; note2.style.fontSize='12px'; note2.style.marginTop='4px'; note2.textContent='—'; parent.appendChild(note2); return ch; }catch(_){ return null; } }
+  function ensureHeavenClone(id){ try{ const can=document.getElementById(id); if(!can) return null; const heavenId=id+'Heaven'; let ch=document.getElementById(heavenId); if(ch) return ch; const note=document.getElementById(id+'Note'); const parent=(note&&note.parentElement)||can.parentElement; const lab=document.createElement('div'); lab.style.color='var(--muted)'; lab.style.fontSize='12px'; lab.style.marginTop='6px'; lab.textContent='Comparaison'; parent.appendChild(lab); ch=document.createElement('canvas'); ch.id=heavenId; ch.width=can.width; ch.height=can.height; ch.style.cssText=can.style.cssText; parent.appendChild(ch); const note2=document.createElement('div'); note2.id=heavenId+'Note'; note2.style.color='var(--muted)'; note2.style.fontSize='12px'; note2.style.marginTop='4px'; note2.textContent='—'; parent.appendChild(note2); return ch; }catch(_){ return null; } }
   // shared helpers
   function groupPositions(tr){ const t=(tr||[]).slice().sort((a,b)=> (a.exitTime||0)-(b.exitTime||0)); const map=new Map(); function keyOf(e){ return `${e.dir}|${e.entryTime}|${e.entry}|${e.initSL}`; } for(const ev of t){ const k=keyOf(ev); let g=map.get(k); if(!g){ g={ entryTime:ev.entryTime, exitTime:ev.exitTime, entry: (Number.isFinite(ev.entry)? ev.entry : null), initSL: (Number.isFinite(ev.initSL)? ev.initSL : null), net:0, dur:0, dir:ev.dir||'long', eq0: (Number(ev.eqBefore)||null) }; map.set(k,g); } g.net += Number(ev.net)||0; if(Number.isFinite(ev.exitTime)&&Number.isFinite(ev.entryTime)) g.dur = Math.max(g.dur, ev.exitTime-ev.entryTime); if(Number.isFinite(ev.exitTime)) g.exitTime = ev.exitTime; if(g.entry==null && Number.isFinite(ev.entry)) g.entry = ev.entry; if(g.initSL==null && Number.isFinite(ev.initSL)) g.initSL = ev.initSL; if(g.eq0==null && Number.isFinite(ev.eqBefore)) g.eq0 = Number(ev.eqBefore); }
     return Array.from(map.values()).sort((a,b)=> (a.exitTime||0)-(b.exitTime||0)); }
@@ -1836,9 +1954,23 @@ function renderStrategyDetailIntoModal(res, ctx){ try{
   // CI bootstrap moved after groups are computed
   drawRadar(canRadar, ['Profit Factor','Sharpe','Recovery','Consistency','Cap. Protection','R² equity','Trade Efficiency','Edge Robustness'], [pfN, sharpeN, recovN, consN, cpiN, r2N, teN, edgeN]);
   try{ const labs=['PF','Sharpe','Recovery','Consistency','CapProt','R²','TradeEff','Edge']; const vals=[pfN,sharpeN,recovN,consN,cpiN,r2N,teN,edgeN]; const idxs=vals.map((v,i)=>[v,i]).sort((a,b)=>b[0]-a[0]); const top=idxs.slice(0,2).map(([v,i])=>`${labs[i]} ${v.toFixed(0)}%`).join(', '); const bot=idxs.slice(-2).map(([v,i])=>`${labs[i]} ${v.toFixed(0)}%`).join(', '); setNote('detailRadarNote', `Forces: ${top} • Faiblesses: ${bot}`); }catch(_){ }
-  // Compare with current Heaven config on the same period
-  let resCmp=null, eqCmp=null, H=null; try{ const pHeaven={ ...(window.lbcOpts||{}) }; resCmp = runBacktestSliceFor(bars, sIdx, eIdx, conf, pHeaven, true); eqCmp = (resCmp.eqSeries||[]).map(x=>({ time:x.time, equity:x.equity })); try{ H = deriveFor(resCmp); }catch(__){ H=null; } }catch(_){ resCmp=null; eqCmp=null; H=null; }
-  // Heaven radar
+  // Comparaison: par défaut, config Heaven; optionnellement, une stratégie du Palmarès (rejouée sur les mêmes données)
+  let resCmp=null, eqCmp=null, H=null; let cmpLabel='Heaven';
+  try{
+    const mode = (compCfg && compCfg.mode) || 'heaven';
+    if(mode==='palmares' && compCfg && compCfg.params){
+      const pCmp = { ...(compCfg.params||{}) };
+      cmpLabel = compCfg.label || 'Palmarès';
+      resCmp = runBacktestSliceFor(bars, sIdx, eIdx, conf, pCmp, true);
+    } else {
+      const pHeaven={ ...(window.lbcOpts||{}) };
+      cmpLabel = 'Heaven';
+      resCmp = runBacktestSliceFor(bars, sIdx, eIdx, conf, pHeaven, true);
+    }
+    eqCmp = (resCmp.eqSeries||[]).map(x=>({ time:x.time, equity:x.equity }));
+    try{ H = deriveFor(resCmp); }catch(__){ H=null; }
+  }catch(_){ resCmp=null; eqCmp=null; H=null; }
+  // Radar de comparaison (Heaven ou Palmarès)
   try{ if(resCmp && eqCmp && H){ const meanH=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length : 0; const mH = meanH(H.rets||[]); const sdH = Math.sqrt(meanH((H.rets||[]).map(x=> (x-mH)*(x-mH)))); const sharpeH = (sdH>0? (mH/sdH*Math.sqrt(Math.max(1, (H.rets?H.rets.length:1)))) : 0); const pfHraw = (resCmp.profitFactor===Infinity? 3 : Math.max(0, Math.min(3, +resCmp.profitFactor||0))); const pfNH=(pfHraw/3)*100; const recovH = (resCmp.maxDDAbs>0? (resCmp.totalPnl/Math.max(1e-9, resCmp.maxDDAbs)) : 0); const recovNH = Math.max(0, Math.min(100, (recovH/3)*100)); const consNH = Math.max(0, Math.min(100, 100*(1 - Math.min(1, (sdH/3)||0)))); const cpiNH = Math.max(0, Math.min(100, 100*(1 - Math.min(1, ((+resCmp.maxDDAbs||0)/Math.max(1, conf.startCap)) / 0.5)))); const r2H=(function(){ const n=eqCmp.length; if(n<3) return 0; const xs=eqCmp.map((_,i)=>i); const ys=eqCmp.map(p=>p.equity); const xm=meanH(xs), ym=meanH(ys); let num=0, den=0; for(let i=0;i<n;i++){ const xv=xs[i]-xm, yv=ys[i]-ym; num += xv*yv; den += xv*xv; } const a=num/(den||1); const b=ym - a*xm; let ssTot=0, ssRes=0; for(let i=0;i<n;i++){ const y=ys[i]; const yhat=a*xs[i]+b; ssTot += (y-ym)*(y-ym); ssRes += (y-yhat)*(y-yhat); } return 1 - (ssRes/(ssTot||1)); })()*100; const teNH = Math.max(0, Math.min(100, ((+resCmp.winrate||0)/100) * (pfHraw/(pfHraw+1))*100)); const edgeNH = Math.max(0, Math.min(100, (pfHraw/(pfHraw+1)) * (1 - Math.min(1, (sdH/5)||0))*100)); const c=ensureHeavenClone('detailRadar'); if(c){ drawRadar(c, ['Profit Factor','Sharpe','Recovery','Consistency','Cap. Protection','R² equity','Trade Efficiency','Edge Robustness'], [pfNH, Math.max(0, Math.min(100, (sharpeH/3)*100)), recovNH, consNH, cpiNH, Math.max(0, Math.min(100, r2H)), teNH, edgeNH]); } } }catch(_){ }
   // primary equity
   try{ drawEquity(canEquity, eq); registerChart('detailEquity', { type:'equity', eq1:eq }); }catch(_){ }
@@ -1850,7 +1982,7 @@ function renderStrategyDetailIntoModal(res, ctx){ try{
   try{ const canDDH = ensureHeavenClone('detailDD'); if(canDDH && eqCmp){ drawDD(canDDH, eqCmp); } }catch(_){ }
   // primary hist
   drawHist(canHist, rets); registerChart('detailHist', { type:'rets', values: rets.slice() });
-  try{ if(eq && eq.length>1){ const ret=((eq[eq.length-1].equity-eq[0].equity)/Math.max(1e-9,eq[0].equity))*100; const ddAbs=+res.maxDDAbs||0; const ddPct=(conf.startCap>0? (ddAbs/conf.startCap*100):NaN); setNote('detailEquityNote', `Perf cumulée: ${ret.toFixed(1)}% • Max DD: ${ddAbs.toFixed(0)}${Number.isFinite(ddPct)? ' ('+ddPct.toFixed(1)+'%)':''}`); setNote('detailDDNote', `Taille et fréquence des creux: max ${ddAbs.toFixed(0)} • Surveiller la phase de stress.`); if(resCmp){ const pf1=(res.profitFactor===Infinity? Infinity : (+res.profitFactor||0)); const pf2=(resCmp.profitFactor===Infinity? Infinity : (+resCmp.profitFactor||0)); const wr1=+res.winrate||0, wr2=+resCmp.winrate||0; const pnl1=+res.totalPnl||0, pnl2=+resCmp.totalPnl||0; const dd2=+resCmp.maxDDAbs||0; const d=(a,b)=> (Number.isFinite(a)&&Number.isFinite(b))? (a-b):NaN; setNote('detailCompareNote', `Heaven — PF ${pf2===Infinity?'∞':pf2.toFixed(2)} (Δ ${(pf2===Infinity||pf1===Infinity)?'∞':d(pf2,pf1).toFixed(2)}) • Win ${wr2.toFixed(1)}% (Δ ${(wr2-wr1).toFixed(1)}%) • P&L ${pnl2.toFixed(0)} (Δ ${(pnl2-pnl1).toFixed(0)}) • Max DD ${dd2.toFixed(0)} (Δ ${(dd2-ddAbs).toFixed(0)})`); } } const neg=rets.filter(x=>x<0).length, N=rets.length; setNote('detailHistNote', `Moyenne: ${m.toFixed(2)}% • Écart-type: ${sd.toFixed(2)} • Pertes: ${(N? (neg/N*100):0).toFixed(0)}% des trades`); }catch(_){ }
+  try{ if(eq && eq.length>1){ const ret=((eq[eq.length-1].equity-eq[0].equity)/Math.max(1e-9,eq[0].equity))*100; const ddAbs=+res.maxDDAbs||0; const ddPct=(conf.startCap>0? (ddAbs/conf.startCap*100):NaN); setNote('detailEquityNote', `Perf cumulée: ${ret.toFixed(1)}% • Max DD: ${ddAbs.toFixed(0)}${Number.isFinite(ddPct)? ' ('+ddPct.toFixed(1)+'%)':''}`); setNote('detailDDNote', `Taille et fréquence des creux: max ${ddAbs.toFixed(0)} • Surveiller la phase de stress.`); if(resCmp){ const pf1=(res.profitFactor===Infinity? Infinity : (+res.profitFactor||0)); const pf2=(resCmp.profitFactor===Infinity? Infinity : (+resCmp.profitFactor||0)); const wr1=+res.winrate||0, wr2=+resCmp.winrate||0; const pnl1=+res.totalPnl||0, pnl2=+resCmp.totalPnl||0; const dd2=+resCmp.maxDDAbs||0; const d=(a,b)=> (Number.isFinite(a)&&Number.isFinite(b))? (a-b):NaN; setNote('detailCompareNote', `${cmpLabel} — PF ${pf2===Infinity?'∞':pf2.toFixed(2)} (Δ ${(pf2===Infinity||pf1===Infinity)?'∞':d(pf2,pf1).toFixed(2)}) • Win ${wr2.toFixed(1)}% (Δ ${(wr2-wr1).toFixed(1)}%) • P&L ${pnl2.toFixed(0)} (Δ ${(pnl2-pnl1).toFixed(0)}) • Max DD ${dd2.toFixed(0)} (Δ ${(dd2-ddAbs).toFixed(0)})`); } } const neg=rets.filter(x=>x<0).length, N=rets.length; setNote('detailHistNote', `Moyenne: ${m.toFixed(2)}% • Écart-type: ${sd.toFixed(2)} • Pertes: ${(N? (neg/N*100):0).toFixed(0)}% des trades`); }catch(_){ }
 const totalSecs=Math.max(1, (maxTs>minTs? (maxTs-minTs) : (bars[eIdx].time-bars[sIdx].time))); const days=totalSecs/86400; const freq = (res.tradesCount||0)/(days||1); const timeInMkt = Math.max(0, Math.min(100, 100*(totalDur/Math.max(1, totalSecs)))); const effLabels=['Win Rate','Avg R:R','Trade Efficiency','Time in Market','Trades / jour']; const effVals=[winrate, Math.max(0, Math.min(100, (avgRR/2)*100)), teN, timeInMkt, Math.max(0, Math.min(100, (freq/20)*100))];
   // Expectancy & trade stats (par position)
 const groups=(function(){ const t=(res.trades||[]).slice().sort((a,b)=> (a.exitTime||0)-(b.exitTime||0)); const map=new Map(); function keyOf(e){ return `${e.dir}|${e.entryTime}|${e.entry}|${e.initSL}`; } for(const ev of t){ const k=keyOf(ev); let g=map.get(k); if(!g){ g={ entryTime:ev.entryTime, exitTime:ev.exitTime, entry: (Number.isFinite(ev.entry)? ev.entry : null), initSL: (Number.isFinite(ev.initSL)? ev.initSL : null), net:0, dur:0, dir:ev.dir||'long', eq0: (Number(ev.eqBefore)||null) }; map.set(k,g); }
@@ -2090,21 +2222,21 @@ if(detailCtxEl){ const gtxt = (ctx && ctx.gen && ctx.gen>1)? ` • Gen ${ctx.gen
     }); detailModalEl.__expWired=true; }
     // Equity tooltip
     try{
-      if(canEquity){ const handler=(ev)=>{ try{ const rect=canEquity.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canEquity.width; const padL=46, padR=18; const n=(eq||[]).length; if(n<=1) return; const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const p=eq[i]; const t=new Date((p.time||0)*1000).toLocaleString(); let html=`${t}<br/>Sel: ${p.equity.toFixed(0)}`; if(eqCmp&&eqCmp.length){ const j=Math.max(0, Math.min(eqCmp.length-1, i)); html+=` • Heaven: ${eqCmp[j].equity.toFixed(0)}`; } showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
+      if(canEquity){ const handler=(ev)=>{ try{ const rect=canEquity.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canEquity.width; const padL=46, padR=18; const n=(eq||[]).length; if(n<=1) return; const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const p=eq[i]; const t=new Date((p.time||0)*1000).toLocaleString(); let html=`${t}<br/>Sel: ${p.equity.toFixed(0)}`; if(eqCmp&&eqCmp.length){ const j=Math.max(0, Math.min(eqCmp.length-1, i)); html+=` • ${cmpLabel}: ${eqCmp[j].equity.toFixed(0)}`; } showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
         canEquity.addEventListener('mousemove', handler); canEquity.addEventListener('mouseleave', ()=> hideTip()); }
     }catch(_){ }
-    // Equity tooltip (Heaven)
+    // Equity tooltip (comparateur)
     try{
       const canEquityH=document.getElementById('detailEquityHeaven');
-      if(canEquityH && eqCmp){ const handlerH=(ev)=>{ try{ const rect=canEquityH.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canEquityH.width; const padL=46, padR=18; const n=eqCmp.length||0; if(n<=1) return; const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const p=eqCmp[i]; const t=new Date((p.time||0)*1000).toLocaleString(); const html=`${t}<br/>Heaven: ${p.equity.toFixed(0)}`; showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
+      if(canEquityH && eqCmp){ const handlerH=(ev)=>{ try{ const rect=canEquityH.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canEquityH.width; const padL=46, padR=18; const n=eqCmp.length||0; if(n<=1) return; const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const p=eqCmp[i]; const t=new Date((p.time||0)*1000).toLocaleString(); const html=`${t}<br/>${cmpLabel}: ${p.equity.toFixed(0)}`; showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
         canEquityH.addEventListener('mousemove', handlerH); canEquityH.addEventListener('mouseleave', ()=> hideTip()); }
     }catch(_){ }
     // Heatmap tooltips + click filter on long/short
     function heatHover(can, lab){ if(!can) return; can.addEventListener('mousemove', (ev)=>{ try{ const cfg=can.__heatCfg; if(!cfg) return; const rect=can.getBoundingClientRect(); const x=ev.clientX-rect.left, y=ev.clientY-rect.top; const c=Math.floor((x-cfg.padL)/cfg.cw), r=Math.floor((y-cfg.padT)/cfg.ch); if(c<0||c>=cfg.cols||r<0||r>=cfg.rows) return hideTip(); const cell=cfg.cells[r*cfg.cols+c]; if(!cell) return hideTip(); const dnames=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']; const html=`${lab}: ${dnames[r]} ${String(c).padStart(2,'0')}h — ${Number(cell.r).toFixed(2)}%`; showTip(ev.clientX, ev.clientY, html); }catch(_){ } }); can.addEventListener('mouseleave', ()=> hideTip()); }
     heatHover(canDOWHour, 'Jour×Heure'); heatHover(canDOWHourLong, 'Long'); heatHover(canDOWHourShort, 'Short');
-    heatHover(document.getElementById('detailDOWHourHeaven'), 'Jour×Heure (H)');
-    heatHover(document.getElementById('detailDOWHourLongHeaven'), 'Long (H)');
-    heatHover(document.getElementById('detailDOWHourShortHeaven'), 'Short (H)');
+    heatHover(document.getElementById('detailDOWHourHeaven'), `Jour×Heure (${cmpLabel})`);
+    heatHover(document.getElementById('detailDOWHourLongHeaven'), `Long (${cmpLabel})`);
+    heatHover(document.getElementById('detailDOWHourShortHeaven'), `Short (${cmpLabel})`);
     function filterTradesByDOWHour(dir, r,c){ try{ const dnames=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']; const selGroups = groups.filter(g=>{ if(dir && g.dir!==dir) return false; const dt=new Date((g.entryTime||0)*1000); const dow=(dt.getUTCDay()+6)%7; const hr=dt.getUTCHours(); return dow===r && hr===c; }); const evs=[]; const keyOf=(e)=> `${e.dir}|${e.entryTime}|${e.entry}|${e.initSL}`; const map=new Map(); for(const ev of (res.trades||[])){ const k=keyOf(ev); map.set(k, (map.get(k)||[]).concat([ev])); }
       for(const g of selGroups){ const k=keyOf({dir:g.dir, entryTime:g.entryTime, entry:g.entry, initSL:g.initSL}); const arr=map.get(k)||[]; for(const ev of arr){ evs.push(ev); } }
       if(!evs.length){ setStatus && setStatus(`Aucun trade pour ${dnames[r]} ${String(c).padStart(2,'0')}h ${dir||''}`); return; }
