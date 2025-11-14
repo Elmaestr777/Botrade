@@ -1958,7 +1958,8 @@ async function openLabStrategyDetail(item, ctx){ try{
       if(btProgNote) btProgNote.textContent = `Chargement des bougies (${symbolToDisplay(sym)} • ${tf}) depuis l'API...`;
     }catch(_){ }
     try{
-      bars = await fetchAllKlines(sym, tf);
+      // Utiliser un plafond de sécurité pour éviter des téléchargements énormes (ex: 1m sur plusieurs années)
+      bars = await fetchAllKlines(sym, tf, REMOTE_MAX_BARS);
       try{ saveMemSeries(sym, tf, bars, bars.length); }catch(_){ }
     }catch(_){ bars = []; }
   }
