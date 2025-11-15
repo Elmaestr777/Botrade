@@ -1947,6 +1947,10 @@ async function openLabStrategyDetail(item, ctx){ try{
     try{
       if(typeof addBtLog==='function') addBtLog(`[detail] Analyse de "${item && item.name ? item.name : 'stratégie'}" sur ${symbolToDisplay(sym)} @ ${tf}`);
     }catch(_){ }
+    try{
+      if(btProgText) btProgText.textContent = 'Préparation des données (chart/cache/API)...';
+      if(btProgNote) btProgNote.textContent = `Sélection des bougies pour ${symbolToDisplay(sym)} • ${tf} (chart courant, cache mémoire ou API REST)...`;
+    }catch(_){ }
   }catch(_){ }
   // Charger les données (toujours pleine période pour le détail)
   let bars=null;
@@ -1954,18 +1958,25 @@ async function openLabStrategyDetail(item, ctx){ try{
   if(sym===currentSymbol && tf===currentInterval){
     bars = __baseAfterCutoff();
     srcLabel = 'chart courant';
+    try{
+      if(btProgNote) btProgNote.textContent = `Données trouvées sur le chart courant — ${bars.length} bougies`;
+    }catch(_){ }
   }
   if((!bars || !bars.length) && !srcLabel){
     const mem = loadMemSeries(sym, tf);
     if(mem && Array.isArray(mem.bars) && mem.bars.length){
       bars = mem.bars;
       srcLabel = 'cache mémoire';
+      try{
+        if(btProgNote) btProgNote.textContent = `Données rechargées depuis le cache mémoire — ${bars.length} bougies`;
+      }catch(_){ }
     }
   }
   if(!bars || !bars.length){
     srcLabel = srcLabel || 'API REST';
     try{
-      if(btProgNote) btProgNote.textContent = `Chargement des bougies (${symbolToDisplay(sym)} • ${tf}) depuis l'API...`;
+      if(btProgText) btProgText.textContent = 'Chargement des bougies depuis l\'API...';
+      if(btProgNote) btProgNote.textContent = `Pas de données locales pour ${symbolToDisplay(sym)} • ${tf} — chargement complet des bougies depuis l'API REST (peut prendre quelques secondes)...`;
     }catch(_){ }
     try{
       // Utiliser un plafond de sécurité pour éviter des téléchargements énormes (ex: 1m sur plusieurs années)
@@ -1986,6 +1997,10 @@ async function openLabStrategyDetail(item, ctx){ try{
   // Période complète
   let from=null, to=null;
   const [sIdx,eIdx]=(()=>{ let s=0,e=bars.length-1; return [s,e]; })();
+  try{
+    if(btProgText) btProgText.textContent = 'Simulation de la stratégie...';
+    if(btProgNote) btProgNote.textContent = `Simulation sur ${bars.length} bougies (source: ${srcLabel||'inconnue'})...`;
+  }catch(_){ }
   const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, p, true);
   try{ closeBtProgress(); }catch(_){ }
   // Ouvre la nouvelle fenêtre de Détail et rend l'analyse complète; fallback sur l'ancienne modale si besoin
