@@ -3096,21 +3096,115 @@ if(labExportBtn){ labExportBtn.addEventListener('click', ()=>{ try{ const tf=(la
   row.push(p.slEnable??''); const sl=Array.isArray(p.sl)? p.sl.slice(0,10):[]; for(let i=0;i<10;i++){ const s=sl[i]||{}; const slTyp=s.type||''; const slVal=(slTyp==='Fib')? (s.fib??s.value??'') : (slTyp==='Percent'? (s.pct??s.value??'') : (slTyp==='EMA'? (s.emaLen??'') : '')); const slTr=s.trail||{}; const slTrMode=slTr.mode||''; const slTrEL=slTr.emaLen??''; const slTrPct=slTr.pct??''; row.push(slTyp, slVal, slTrMode, slTrEL, slTrPct); }
   lines.push(row.map(esc).join(DL)); idx++; }
   const csv=lines.join('\r\n'); const blob=new Blob([csv], {type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`palmares_${sym}_${tf}.csv`; a.click(); }catch(_){ } }); }
+const WEIGHTS_HELP = {
+  pf: "Profit Factor : rapport entre gains bruts et pertes brutes. Un poids élevé favorise les stratégies où les pertes sont petites par rapport aux gains, même si le P&L absolu est modéré.",
+  wr: "Win % : pourcentage de trades gagnants. Un poids élevé privilégie les stratégies confortables psychologiquement (plus de trades gagnants), au détriment éventuel du R:R.",
+  rr: "Risk/Reward (Avg RR) : gain moyen par unité de risque. Un poids élevé favorise les stratégies avec des gains importants par rapport aux pertes (R:R élevés).",
+  pnl: "P&L net : résultat total sur la période (en dollars). Un poids élevé pousse l’algorithme vers les stratégies avec le P&L absolu le plus élevé.",
+  eq: "Capital final : valeur finale du portefeuille. Similaire au P&L, mais prend en compte le capital de départ et permet de comparer différentes configurations.",
+  trades: "Trades : nombre de trades. Un poids modéré permet de privilégier des stratégies avec assez de trades pour être statistiquement crédibles, sans basculer dans l’over‑trading.",
+  dd: "Max DD (inverse) : drawdown maximal en valeur absolue, pris à l’envers (plus il est faible, mieux c’est). Un poids élevé favorise les stratégies qui protègent fortement le capital.",
+  sharpe: "Sharpe Ratio : rendement ajusté de la volatilité des résultats. Un poids élevé privilégie les courbes d’équité régulières plutôt que les profils en dents de scie.",
+  recov: "Recovery Factor : P&L total divisé par le plus gros drawdown. Un poids élevé met en avant les stratégies qui génèrent beaucoup de gains pour chaque unité de drawdown subie.",
+  slope: "Equity Slope : pente moyenne de la courbe d’équité. Plus la pente est forte et régulière, plus la stratégie a une tendance haussière nette.",
+  cons: "Consistence / Stabilité : proportion de trades non perdants et régularité des résultats. Un poids élevé favorise les stratégies stables plutôt que celles qui alternent gros gains et grosses pertes.",
+  exp: "Espérance (Expectancy) : gain moyen par trade (en % ou en valeur). Un poids élevé pousse vers des stratégies avec un avantage statistique fort sur chaque trade.",
+  ret: "Return / période (%) : rendement total sur la période (ou annualisé). Un poids élevé favorise les stratégies agressives avec une croissance rapide du capital.",
+};
+
 function buildWeightsUI(){ if(!weightsBody) return; const prof=(weightsProfile&&weightsProfile.value)||(localStorage.getItem('labWeightsProfile')||'balancee'); const w=getWeights(prof); weightsBody.innerHTML = `
   <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
-    <label>Profit Factor <input id="w_pf" type="number" min="0" max="100" step="1" value="${w.pf}" /></label>
-    <label>Win % <input id="w_wr" type="number" min="0" max="100" step="1" value="${w.wr}" /></label>
-    <label>Risk/Reward (Avg RR) <input id="w_rr" type="number" min="0" max="100" step="1" value="${w.rr}" /></label>
-    <label>P&L net <input id="w_pnl" type="number" min="0" max="100" step="1" value="${w.pnl}" /></label>
-    <label>Capital final <input id="w_eq" type="number" min="0" max="100" step="1" value="${w.eq}" /></label>
-    <label>Trades <input id="w_trades" type="number" min="0" max="100" step="1" value="${w.trades}" /></label>
-    <label>Max DD (inverse) <input id="w_dd" type="number" min="0" max="100" step="1" value="${w.dd}" /></label>
-    <label>Sharpe Ratio <input id="w_sharpe" type="number" min="0" max="100" step="1" value="${w.sharpe??0}" /></label>
-    <label>Recovery Factor <input id="w_recov" type="number" min="0" max="100" step="1" value="${w.recov??0}" /></label>
-    <label>Equity Slope <input id="w_slope" type="number" min="0" max="100" step="1" value="${w.slope??0}" /></label>
-    <label>Consistence / Stabilité <input id="w_cons" type="number" min="0" max="100" step="1" value="${w.cons??0}" /></label>
-    <label>Espérance (Expectancy) <input id="w_exp" type="number" min="0" max="100" step="1" value="${w.exp??0}" /></label>
-    <label>Return / période (%) <input id="w_ret" type="number" min="0" max="100" step="1" value="${w.ret??0}" /></label>
+    <label>
+      <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
+        <span>Profit Factor</span>
+        <button type="button" class="icon-btn weightInfoBtn" data-factor="pf" title="Infos Profit Factor">i</button>
+      </span>
+      <input id="w_pf" type="number" min="0" max="100" step="1" value="${w.pf}" />
+    </label>
+    <label>
+      <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
+        <span>Win %</span>
+        <button type="button" class="icon-btn weightInfoBtn" data-factor="wr" title="Infos Win %">i</button>
+      </span>
+      <input id="w_wr" type="number" min="0" max="100" step="1" value="${w.wr}" />
+    </label>
+    <label>
+      <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
+        <span>Risk/Reward (Avg RR)</span>
+        <button type="button" class="icon-btn weightInfoBtn" data-factor="rr" title="Infos Risk/Reward">i</button>
+      </span>
+      <input id="w_rr" type="number" min="0" max="100" step="1" value="${w.rr}" />
+    </label>
+    <label>
+      <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
+        <span>P&L net</span>
+        <button type="button" class="icon-btn weightInfoBtn" data-factor="pnl" title="Infos P&L net">i</button>
+      </span>
+      <input id="w_pnl" type="number" min="0" max="100" step="1" value="${w.pnl}" />
+    </label>
+    <label>
+      <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
+        <span>Capital final</span>
+        <button type="button" class="icon-btn weightInfoBtn" data-factor="eq" title="Infos Capital final">i</button>
+      </span>
+      <input id="w_eq" type="number" min="0" max="100" step="1" value="${w.eq}" />
+    </label>
+    <label>
+      <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
+        <span>Trades</span>
+        <button type="button" class="icon-btn weightInfoBtn" data-factor="trades" title="Infos Trades">i</button>
+      </span>
+      <input id="w_trades" type="number" min="0" max="100" step="1" value="${w.trades}" />
+    </label>
+    <label>
+      <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
+        <span>Max DD (inverse)</span>
+        <button type="button" class="icon-btn weightInfoBtn" data-factor="dd" title="Infos Max DD">i</button>
+      </span>
+      <input id="w_dd" type="number" min="0" max="100" step="1" value="${w.dd}" />
+    </label>
+    <label>
+      <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
+        <span>Sharpe Ratio</span>
+        <button type="button" class="icon-btn weightInfoBtn" data-factor="sharpe" title="Infos Sharpe">i</button>
+      </span>
+      <input id="w_sharpe" type="number" min="0" max="100" step="1" value="${w.sharpe??0}" />
+    </label>
+    <label>
+      <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
+        <span>Recovery Factor</span>
+        <button type="button" class="icon-btn weightInfoBtn" data-factor="recov" title="Infos Recovery">i</button>
+      </span>
+      <input id="w_recov" type="number" min="0" max="100" step="1" value="${w.recov??0}" />
+    </label>
+    <label>
+      <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
+        <span>Equity Slope</span>
+        <button type="button" class="icon-btn weightInfoBtn" data-factor="slope" title="Infos Slope">i</button>
+      </span>
+      <input id="w_slope" type="number" min="0" max="100" step="1" value="${w.slope??0}" />
+    </label>
+    <label>
+      <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
+        <span>Consistence / Stabilité</span>
+        <button type="button" class="icon-btn weightInfoBtn" data-factor="cons" title="Infos Consistence">i</button>
+      </span>
+      <input id="w_cons" type="number" min="0" max="100" step="1" value="${w.cons??0}" />
+    </label>
+    <label>
+      <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
+        <span>Espérance (Expectancy)</span>
+        <button type="button" class="icon-btn weightInfoBtn" data-factor="exp" title="Infos Espérance">i</button>
+      </span>
+      <input id="w_exp" type="number" min="0" max="100" step="1" value="${w.exp??0}" />
+    </label>
+    <label>
+      <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
+        <span>Return / période (%)</span>
+        <button type="button" class="icon-btn weightInfoBtn" data-factor="ret" title="Infos Return / période">i</button>
+      </span>
+      <input id="w_ret" type="number" min="0" max="100" step="1" value="${w.ret??0}" />
+    </label>
   </div>`;
   // Wiring live update of total counter
   try{
@@ -3123,6 +3217,21 @@ function buildWeightsUI(){ if(!weightsBody) return; const prof=(weightsProfile&&
         el.dataset.wiredTotal='1';
       }
     }
+    // Wiring info buttons
+    const infoBox=document.getElementById('weightsInfoText');
+    const btns=weightsBody.querySelectorAll('.weightInfoBtn');
+    btns.forEach((btn)=>{
+      if(!btn || (btn.dataset && btn.dataset.wiredInfo==='1')) return;
+      btn.addEventListener('click', ()=>{
+        try{
+          const key=btn.getAttribute('data-factor');
+          const txt=WEIGHTS_HELP[key] || '';
+          if(infoBox && txt){ infoBox.textContent = txt; }
+        }catch(_){ }
+      });
+      if(!btn.dataset) btn.dataset={};
+      btn.dataset.wiredInfo='1';
+    });
   }catch(_){ }
 }
 function readWeightsFromUI(){
