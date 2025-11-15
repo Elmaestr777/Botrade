@@ -1419,13 +1419,14 @@
               <div style="display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-bottom:6px;">
                 <div>
                   <div style="font-weight:600;">Commentaire & analyse</div>
-                  <div style="color:var(--muted); font-size:11px;">Synthèse narrative de la stratégie et de sa comparée. À lire pour comprendre le profil de risque/rendement et les axes d'amélioration concrets.</div>
+                  <div style="color:var(--muted); font-size:11px;">Synthèse narrative de la stratégie et de sa comparée. À lire pour comprendre le profil de risque/rendement, les axes d'amélioration, et l'impact du slippage réel sur la performance.</div>
                 </div>
                 <div style="display:flex; gap:6px; align-items:center; font-size:12px;">
                   <label>Slippage (bps)
                     <input id="detailSlipBps" type="number" min="0" max="200" step="1" value="0" style="width:6rem;" />
                   </label>
                   <button id="detailSlipApply" class="btn">Appliquer</button>
+                  <button id="detailSlipInfo" class="icon-btn" type="button" aria-label="Infos slippage" title="Infos slippage">?</button>
                   <span id="detailSlipNote" style="color:var(--muted);"></span>
                 </div>
               </div>

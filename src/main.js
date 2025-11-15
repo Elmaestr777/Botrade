@@ -1677,6 +1677,11 @@ function __clr(){ const cs=getComputedStyle(document.documentElement); return { 
 function ensureTooltip(){ let el=document.getElementById('detailTooltip'); if(el) return el; el=document.createElement('div'); el.id='detailTooltip'; el.style.position='fixed'; el.style.pointerEvents='none'; el.style.background='rgba(0,0,0,0.75)'; el.style.color='#fff'; el.style.fontSize='12px'; el.style.padding='4px 6px'; el.style.borderRadius='4px'; el.style.zIndex='2000'; el.style.display='none'; document.body.appendChild(el); return el; }
 function showTip(x,y,html){ const el=ensureTooltip(); el.innerHTML=html; el.style.left=(x+12)+'px'; el.style.top=(y+12)+'px'; el.style.display='block'; }
 function hideTip(){ const el=ensureTooltip(); el.style.display='none'; }
+// Crosshair helper (vertical line following the mouse on interactive charts)
+function ensureCrosshairOverlay(canvas){ if(!canvas) return null; let ov=canvas.__crosshair; if(ov && ov.parentElement) return ov; ov=document.createElement('div'); ov.style.position='fixed'; ov.style.pointerEvents='none'; ov.style.top='0'; ov.style.left='0'; ov.style.width='0'; ov.style.height='0'; ov.style.zIndex='1500'; document.body.appendChild(ov); canvas.__crosshair=ov; return ov; }
+function updateCrosshair(canvas, clientX, clientY){ try{ const ov=ensureCrosshairOverlay(canvas); if(!ov||!canvas) return; const rect=canvas.getBoundingClientRect(); ov.style.left=rect.left+'px'; ov.style.top=rect.top+'px'; ov.style.width=rect.width+'px'; ov.style.height=rect.height+'px'; let line=ov.firstChild; if(!line){ line=document.createElement('div'); line.style.position='absolute'; line.style.top='0'; line.style.bottom='0'; line.style.width='1px'; line.style.background='rgba(148,163,184,0.9)'; ov.appendChild(line); }
+  const x=Math.max(0, Math.min(rect.width, clientX-rect.left)); line.style.left=(x-0.5)+'px'; line.style.display='block'; }catch(_){ } }
+function hideCrosshair(canvas){ try{ const ov=canvas && canvas.__crosshair; if(ov && ov.firstChild){ ov.firstChild.style.display='none'; } }catch(_){ } }
 function drawRadar(canvas, labels, vals){ if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 14, 'Radar critères (0–100)', 'center'); const cx=w/2, cy=h/2+10, R=Math.min(w,h)/2-30; const n=labels.length; ctx.strokeStyle=__clr().border; ctx.lineWidth=1; for(let r=0;r<=4;r++){ const rr=R*(r/4); ctx.beginPath(); for(let k=0;k<n;k++){ const ang = -Math.PI/2 + 2*Math.PI*k/n; const x=cx+rr*Math.cos(ang), y=cy+rr*Math.sin(ang); if(k===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); } ctx.closePath(); ctx.stroke(); __drawText(ctx, cx+rr+2, cy, String(r*25), 'left'); }
   for(let k=0;k<n;k++){ const ang=-Math.PI/2 + 2*Math.PI*k/n; const x=cx+(R+10)*Math.cos(ang), y=cy+(R+10)*Math.sin(ang); __drawText(ctx, x, y, labels[k], (Math.cos(ang)>0?'left':(Math.cos(ang)<0?'right':'center'))); }
   ctx.beginPath(); for(let k=0;k<n;k++){ const v=Math.max(0,Math.min(100, vals[k]||0))/100; const ang=-Math.PI/2 + 2*Math.PI*k/n; const x=cx+R*v*Math.cos(ang), y=cy+R*v*Math.sin(ang); if(k===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); } ctx.closePath(); ctx.fillStyle='rgba(37,99,235,0.25)'; ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.fill(); ctx.stroke(); }
@@ -2173,7 +2178,9 @@ function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
       return out;
     }catch(_){ return out; } }
   // placeholders for per-chart summaries
-  let weeklyCells=null, dowArr=null, dowHourCells=null, dhLongCells=null, dhShortCells=null, wfSegs=null, regimeMat=null, maePtsVar=null, mcBands=null;
+  let weeklyCells=null, dowArr=null, dowHourCells=null, dhLongCells=null, dhShortCells=null, wfSegs=null, regimeMat=null, maePtsVar=null, mcBands=null, mcBandsH=null;
+  // per-point series for interactive tooltips
+  let ddSeries=null, ddSeriesCmp=null, uwSeries=null, uwSeriesCmp=null;
   let compareSummaryText='';
   // returns per trade
   const tArr = Array.isArray(res.trades)? res.trades.slice() : [];
@@ -2217,6 +2224,11 @@ function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
   drawDD(canDD, eq);
   // heaven dd
   try{ const canDDH = ensureHeavenClone('detailDD'); if(canDDH && eqCmp){ drawDD(canDDH, eqCmp); } }catch(_){ }
+  // precompute DD series (per point) for interactive tooltips
+  try{
+    if(Array.isArray(eq) && eq.length){ let peak0=eq[0].equity||0; ddSeries = eq.map(p=>{ const e=p.equity||0; peak0=Math.max(peak0,e); return peak0-e; }); }
+    if(Array.isArray(eqCmp) && eqCmp.length){ let peak1=eqCmp[0].equity||0; ddSeriesCmp = eqCmp.map(p=>{ const e=p.equity||0; peak1=Math.max(peak1,e); return peak1-e; }); }
+  }catch(_){ ddSeries=null; ddSeriesCmp=null; }
   // primary hist
   drawHist(canHist, rets); registerChart('detailHist', { type:'rets', values: rets.slice() });
   // comparator hist (Heaven ou Palmarès), si disponible
@@ -2367,7 +2379,7 @@ const rrByPos=(function(){ const map=new Map(); const t=(res.trades||[]); functi
   // Heaven durations
   try{ if(typeof H!=='undefined' && H){ const c=ensureHeavenClone('detailDurHist'); if(c){ drawDurations(c, H.durationsMin||[]); try{ registerChart('detailDurHistHeaven', { type:'rolling', name:'Duration(min)', values: (H.durationsMin||[]).slice() }); }catch(__){} } } }catch(_){ }
   try{ drawUnderwater(document.getElementById('detailUnder'), eq); const days = Math.max(1,( (maxTs>minTs? (maxTs-minTs) : (bars[eIdx].time-bars[sIdx].time)) / 86400 )); const years=days/365; const startE=eq[0]?.equity||conf.startCap||0; const endE=eq[eq.length-1]?.equity||startE; const cagr = (startE>0 && years>0)? (Math.pow(endE/startE, 1/years)-1) : 0; // risk metrics
-    let peak=eq[0]?.equity||0; const uw=eq.map(p=>{ peak=Math.max(peak, p.equity||0); return peak>0? ((p.equity-peak)/peak*100) : 0; }); const ulcer = Math.sqrt(uw.reduce((s,v)=> s + Math.pow(Math.min(0,v),2),0)/Math.max(1,uw.length)); const ddMaxPct = Math.min(0, Math.min(...uw)); const mar = (ddMaxPct<0)? (cagr/Math.abs(ddMaxPct/100)) : 0; const negR = rets.filter(x=>x<0); const ddn = Math.sqrt((negR.length? negR.reduce((s,x)=>s+x*x,0)/negR.length : 0)); const sortino = (ddn>0)? (m/ddn) : 0; const posR=rets.filter(x=>x>0).reduce((s,x)=>s+x,0), negAbs=rets.filter(x=>x<0).reduce((s,x)=>s+Math.abs(x),0); const omega = (negAbs>0)? (posR/negAbs) : Infinity; // VaR/ES (95%)
+    let peak=eq[0]?.equity||0; const uw=eq.map(p=>{ peak=Math.max(peak, p.equity||0); return peak>0? ((p.equity-peak)/peak*100) : 0; }); uwSeries = uw.slice(); const ulcer = Math.sqrt(uw.reduce((s,v)=> s + Math.pow(Math.min(0,v),2),0)/Math.max(1,uw.length)); const ddMaxPct = Math.min(0, Math.min(...uw)); const mar = (ddMaxPct<0)? (cagr/Math.abs(ddMaxPct/100)) : 0; const negR = rets.filter(x=>x<0); const ddn = Math.sqrt((negR.length? negR.reduce((s,x)=>s+x*x,0)/negR.length : 0)); const sortino = (ddn>0)? (m/ddn) : 0; const posR=rets.filter(x=>x>0).reduce((s,x)=>s+x,0), negAbs=rets.filter(x=>x<0).reduce((s,x)=>s+Math.abs(x),0); const omega = (negAbs>0)? (posR/negAbs) : Infinity; // VaR/ES (95%)
     const sr=rets.slice().sort((a,b)=>a-b); const qIdx=Math.floor(0.05*Math.max(0,sr.length-1)); const var95 = sr.length? sr[qIdx] : 0; const es95 = sr.length? (sr.slice(0,qIdx+1).reduce((s,x)=>s+x,0)/Math.max(1,qIdx+1)) : 0; setNote('detailUnderNote', `CAGR ${(cagr*100).toFixed(1)}% • Ulcer ${ulcer.toFixed(2)} • MAR ${mar.toFixed(2)} • Sortino ${sortino.toFixed(2)} • Omega ${omega===Infinity?'∞':omega.toFixed(2)} • VaR95 ${var95.toFixed(2)}% • ES95 ${es95.toFixed(2)}%`); }catch(_){ }
   try{ drawStreaks(canStreaks, winCounts, loseCounts); try{ registerChart('detailStreaks', { type:'streaks', win: winCounts.slice(), lose: loseCounts.slice() }); }catch(__){} }catch(_){ }
   // Heaven durations + underwater + streaks/LS will follow after H derivation
@@ -2389,7 +2401,7 @@ try{ drawHistLongShort(canLS, retLong, retShort); try{ registerChart('detailLSHi
     try{ maePtsVar = maePts.slice(); const mean=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length:0; const aMFE=mean(maePts.map(p=>p.mfeR)); const aMAE=mean(maePts.map(p=>p.maeR)); setNote('detailMAEMFENote', `MFE moyen ${aMFE.toFixed(2)}R • MAE moyen ${aMAE.toFixed(2)}R`); }catch(__){}
   }catch(_){ }
   // Heaven Underwater
-  try{ if(typeof H!=='undefined' && H && eqCmp){ const canUH=ensureHeavenClone('detailUnder'); if(canUH){ drawUnderwater(canUH, eqCmp); const daysH = Math.max(1,( (H.maxTs>H.minTs? (H.maxTs-H.minTs) : (bars[eIdx].time-bars[sIdx].time)) / 86400 )); const yearsH=daysH/365; const startEH=H.eq[0]?.equity||conf.startCap||0; const endEH=H.eq[H.eq.length-1]?.equity||startEH; const cagrH = (startEH>0 && yearsH>0)? (Math.pow(endEH/startEH, 1/yearsH)-1) : 0; let peakH=H.eq[0]?.equity||0; const uwH=H.eq.map(p=>{ peakH=Math.max(peakH, p.equity||0); return peakH>0? ((p.equity-peakH)/peakH*100) : 0; }); const ulcerH = Math.sqrt(uwH.reduce((s,v)=> s + Math.pow(Math.min(0,v),2),0)/Math.max(1,uwH.length)); const ddMaxPctH = Math.min(0, Math.min(...uwH)); const marH = (ddMaxPctH<0)? (cagrH/Math.abs(ddMaxPctH/100)) : 0; const negRH = H.rets.filter(x=>x<0); const ddnH = Math.sqrt((negRH.length? negRH.reduce((s,x)=>s+x*x,0)/negRH.length : 0)); const mH=(H.rets.length? H.rets.reduce((a,b)=>a+b,0)/H.rets.length:0); const sortinoH = (ddnH>0)? (mH/ddnH) : 0; const posRH=H.rets.filter(x=>x>0).reduce((s,x)=>s+x,0), negAbsH=H.rets.filter(x=>x<0).reduce((s,x)=>s+Math.abs(x),0); const omegaH = (negAbsH>0)? (posRH/negAbsH) : Infinity; const srH=H.rets.slice().sort((a,b)=>a-b); const qIdxH=Math.floor(0.05*Math.max(0,srH.length-1)); const var95H = srH.length? srH[qIdxH] : 0; const es95H = srH.length? (srH.slice(0,qIdxH+1).reduce((s,x)=>s+x,0)/Math.max(1,qIdxH+1)) : 0; setNote('detailUnderHeavenNote', `CAGR ${(cagrH*100).toFixed(1)}% • Ulcer ${ulcerH.toFixed(2)} • MAR ${marH.toFixed(2)} • Sortino ${sortinoH.toFixed(2)} • Omega ${omegaH===Infinity?'∞':omegaH.toFixed(2)} • VaR95 ${var95H.toFixed(2)}% • ES95 ${es95H.toFixed(2)}%`); } } }catch(_){ }
+  try{ if(typeof H!=='undefined' && H && eqCmp){ const canUH=ensureHeavenClone('detailUnder'); if(canUH){ drawUnderwater(canUH, eqCmp); const daysH = Math.max(1,( (H.maxTs>H.minTs? (H.maxTs-H.minTs) : (bars[eIdx].time-bars[sIdx].time)) / 86400 )); const yearsH=daysH/365; const startEH=H.eq[0]?.equity||conf.startCap||0; const endEH=H.eq[H.eq.length-1]?.equity||startEH; const cagrH = (startEH>0 && yearsH>0)? (Math.pow(endEH/startEH, 1/yearsH)-1) : 0; let peakH=H.eq[0]?.equity||0; const uwH=H.eq.map(p=>{ peakH=Math.max(peakH, p.equity||0); return peakH>0? ((p.equity-peakH)/peakH*100) : 0; }); uwSeriesCmp = uwH.slice(); const ulcerH = Math.sqrt(uwH.reduce((s,v)=> s + Math.pow(Math.min(0,v),2),0)/Math.max(1,uwH.length)); const ddMaxPctH = Math.min(0, Math.min(...uwH)); const marH = (ddMaxPctH<0)? (cagrH/Math.abs(ddMaxPctH/100)) : 0; const negRH = H.rets.filter(x=>x<0); const ddnH = Math.sqrt((negRH.length? negRH.reduce((s,x)=>s+x*x,0)/negRH.length : 0)); const mH=(H.rets.length? H.rets.reduce((a,b)=>a+b,0)/H.rets.length:0); const sortinoH = (ddnH>0)? (mH/ddnH) : 0; const posRH=H.rets.filter(x=>x>0).reduce((s,x)=>s+x,0), negAbsH=H.rets.filter(x=>x<0).reduce((s,x)=>s+Math.abs(x),0); const omegaH = (negAbsH>0)? (posRH/negAbsH) : Infinity; const srH=H.rets.slice().sort((a,b)=>a-b); const qIdxH=Math.floor(0.05*Math.max(0,srH.length-1)); const var95H = srH.length? srH[qIdxH] : 0; const es95H = srH.length? (srH.slice(0,qIdxH+1).reduce((s,x)=>s+x,0)/Math.max(1,qIdxH+1)) : 0; setNote('detailUnderHeavenNote', `CAGR ${(cagrH*100).toFixed(1)}% • Ulcer ${ulcerH.toFixed(2)} • MAR ${marH.toFixed(2)} • Sortino ${sortinoH.toFixed(2)} • Omega ${omegaH===Infinity?'∞':omegaH.toFixed(2)} • VaR95 ${var95H.toFixed(2)}% • ES95 ${es95H.toFixed(2)}%`); } } }catch(_){ }
 // Seasonality — weekly heatmap
   try{
     function isoYearWeek(ts){ const d=new Date(ts*1000); // copy UTC date
@@ -2504,10 +2516,58 @@ drawRegimeHeatmap(canRegime, mat);
     }
   }catch(_){ }
   // Heaven Monte Carlo
-  try{ if(typeof H!=='undefined' && H){ const startCap = Number(conf.startCap)||10000; const rp = (H.retLong.concat(H.retShort)).filter(Number.isFinite); const L = Math.min(300, rp.length||0); const N = Math.min(50, 5 + Math.floor((rp.length||0)/2)); if(L>5 && N>1){ const paths=[]; for(let s=0;s<N;s++){ let eq=startCap; const path=[eq]; for(let i=0;i<L;i++){ const r = rp[Math.floor(Math.random()*rp.length)]/100; eq = eq*(1+r); path.push(eq); } paths.push(path); } const steps=paths[0].length; const p10=[], p50=[], p90=[]; for(let i=0;i<steps;i++){ const col=paths.map(p=> p[i]); col.sort((a,b)=>a-b); const q=(q)=> col[Math.max(0, Math.min(col.length-1, Math.floor((col.length-1)*q)))]; p10.push(q(0.10)); p50.push(q(0.50)); p90.push(q(0.90)); } const c=ensureHeavenClone('detailMC'); if(c){ const ctx=c.getContext('2d'); const w=c.width, h=c.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, "Monte Carlo — éventail d'équity", 'center'); const padL=56, padR=12, padT=22, padB=28; const min=Math.min(...p10), max=Math.max(...p90); const x=(i)=> i/(steps-1)*(w-padL-padR)+padL; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; for(let t=0;t<=ticks;t++){ const yy=h-padB - (h-padT-padB)*t/ticks; const val=(min + (max-min)*t/ticks); ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-8, yy, val.toFixed(0), 'right'); } for(let t=0;t<=ticks;t++){ const xx=padL + (w-padL-padR)*t/ticks; ctx.beginPath(); ctx.moveTo(xx, padT); ctx.lineTo(xx, h-padB); ctx.stroke(); __drawText(ctx, xx, h-8, String(Math.round((steps-1)*t/ticks)), 'center'); } ctx.fillStyle='rgba(37,99,235,0.15)'; ctx.beginPath(); ctx.moveTo(x(0), y(p10[0])); for(let i=1;i<steps;i++) ctx.lineTo(x(i), y(p10[i])); for(let i=steps-1;i>=0;i--) ctx.lineTo(x(i), y(p90[i])); ctx.closePath(); ctx.fill(); ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<steps;i++){ const xx=x(i), yy=y(p50[i]); if(i===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy); } ctx.stroke(); } } } }catch(_){ }
+  try{ if(typeof H!=='undefined' && H){ const startCap = Number(conf.startCap)||10000; const rp = (H.retLong.concat(H.retShort)).filter(Number.isFinite); const L = Math.min(300, rp.length||0); const N = Math.min(50, 5 + Math.floor((rp.length||0)/2)); if(L>5 && N>1){ const paths=[]; for(let s=0;s<N;s++){ let eq=startCap; const path=[eq]; for(let i=0;i<L;i++){ const r = rp[Math.floor(Math.random()*rp.length)]/100; eq = eq*(1+r); path.push(eq); } paths.push(path); } const steps=paths[0].length; const p10=[], p50=[], p90=[]; for(let i=0;i<steps;i++){ const col=paths.map(p=> p[i]); col.sort((a,b)=>a-b); const q=(q)=> col[Math.max(0, Math.min(col.length-1, Math.floor((col.length-1)*q)))]; p10.push(q(0.10)); p50.push(q(0.50)); p90.push(q(0.90)); } mcBandsH = { p10:p10.slice(), p50:p50.slice(), p90:p90.slice(), startCap }; const c=ensureHeavenClone('detailMC'); if(c){ const ctx=c.getContext('2d'); const w=c.width, h=c.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, "Monte Carlo — éventail d'équity", 'center'); const padL=56, padR=12, padT=22, padB=28; const min=Math.min(...p10), max=Math.max(...p90); const x=(i)=> i/(steps-1)*(w-padL-padR)+padL; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; for(let t=0;t<=ticks;t++){ const yy=h-padB - (h-padT-padB)*t/ticks; const val=(min + (max-min)*t/ticks); ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-8, yy, val.toFixed(0), 'right'); } for(let t=0;t<=ticks;t++){ const xx=padL + (w-padL-padR)*t/ticks; ctx.beginPath(); ctx.moveTo(xx, padT); ctx.lineTo(xx, h-padB); ctx.stroke(); __drawText(ctx, xx, h-8, String(Math.round((steps-1)*t/ticks)), 'center'); } ctx.fillStyle='rgba(37,99,235,0.15)'; ctx.beginPath(); ctx.moveTo(x(0), y(p10[0])); for(let i=1;i<steps;i++) ctx.lineTo(x(i), y(p10[i])); for(let i=steps-1;i>=0;i--) ctx.lineTo(x(i), y(p90[i])); ctx.closePath(); ctx.fill(); ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<steps;i++){ const xx=x(i), yy=y(p50[i]); if(i===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy); } ctx.stroke(); } } } }catch(_){ }
   // QQ & ACF
-  try{ const retsAll = (retLong.concat(retShort)).slice(); drawQQ(canQQ, retsAll); try{ const n=retsAll.length; const mean=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length:0; const m=mean(retsAll); const sd=Math.sqrt(mean(retsAll.map(x=>(x-m)*(x-m)))); const skew = (sd>0? mean(retsAll.map(x=>Math.pow((x-m)/sd,3))) : 0); const kurt = (sd>0? mean(retsAll.map(x=>Math.pow((x-m)/sd,4))) : 0); setNote('detailQQNote', `Skew ${skew.toFixed(2)} • Kurtosis ${kurt.toFixed(2)} (3≈normal)`); }catch(__){} try{ if(typeof H!=='undefined' && H){ const c=ensureHeavenClone('detailQQ'); if(c){ const retsAllH=(H.retLong.concat(H.retShort)).slice(); drawQQ(c, retsAllH); } } }catch(__){} }catch(_){ }
-  try{ const retsAll = (retLong.concat(retShort)).slice(); drawACF(canACF, retsAll, 10); try{ const n=retsAll.length; const z=1.96/Math.sqrt(Math.max(1,n)); let sig=0; const m=retsAll.reduce((a,b)=>a+b,0)/Math.max(1,n); const varr=retsAll.reduce((s,x)=>s+(x-m)*(x-m),0); for(let k=1;k<=10;k++){ let num=0; for(let i=0;i<n-k;i++){ num += (retsAll[i]-m)*(retsAll[i+k]-m); } const r = num/(varr||1); if(Math.abs(r)>z) sig++; } setNote('detailACFNote', `${sig} lags significatifs (>±${z.toFixed(2)})`); }catch(__){} try{ if(typeof H!=='undefined' && H){ const c=ensureHeavenClone('detailACF'); if(c){ const retsAllH=(H.retLong.concat(H.retShort)).slice(); drawACF(c, retsAllH, 10); } } }catch(__){} }catch(_){ }
+  try{
+    const retsAll = (retLong.concat(retShort)).slice();
+    drawQQ(canQQ, retsAll);
+    try{
+      registerChart('detailQQ', { type:'qq', values: retsAll.slice() });
+      const n=retsAll.length;
+      const mean=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length:0;
+      const m=mean(retsAll);
+      const sd=Math.sqrt(mean(retsAll.map(x=>(x-m)*(x-m))));
+      const skew = (sd>0? mean(retsAll.map(x=>Math.pow((x-m)/sd,3))) : 0);
+      const kurt = (sd>0? mean(retsAll.map(x=>Math.pow((x-m)/sd,4))) : 0);
+      setNote('detailQQNote', `Skew ${skew.toFixed(2)} • Kurtosis ${kurt.toFixed(2)} (3≈normal)`);
+    }catch(__){}
+    try{
+      if(typeof H!=='undefined' && H){
+        const c=ensureHeavenClone('detailQQ');
+        if(c){
+          const retsAllH=(H.retLong.concat(H.retShort)).slice();
+          drawQQ(c, retsAllH);
+          try{ registerChart('detailQQHeaven', { type:'qq', values: retsAllH.slice() }); }catch(__){}
+        }
+      }
+    }catch(__){}
+  }catch(_){ }
+  try{
+    const retsAll = (retLong.concat(retShort)).slice();
+    const maxLag=10;
+    drawACF(canACF, retsAll, maxLag);
+    try{
+      registerChart('detailACF', { type:'acf', values: retsAll.slice(), maxLag });
+      const n=retsAll.length; const z=1.96/Math.sqrt(Math.max(1,n)); let sig=0;
+      const m=retsAll.reduce((a,b)=>a+b,0)/Math.max(1,n);
+      const varr=retsAll.reduce((s,x)=>s+(x-m)*(x-m),0);
+      for(let k=1;k<=maxLag;k++){
+        let num=0; for(let i=0;i<n-k;i++){ num += (retsAll[i]-m)*(retsAll[i+k]-m); }
+        const r = num/(varr||1); if(Math.abs(r)>z) sig++;
+      }
+      setNote('detailACFNote', `${sig} lags significatifs (>±${z.toFixed(2)})`);
+    }catch(__){}
+    try{
+      if(typeof H!=='undefined' && H){
+        const c=ensureHeavenClone('detailACF');
+        if(c){
+          const retsAllH=(H.retLong.concat(H.retShort)).slice();
+          drawACF(c, retsAllH, maxLag);
+          try{ registerChart('detailACFHeaven', { type:'acf', values: retsAllH.slice(), maxLag }); }catch(__){}
+        }
+      }
+    }catch(__){}
+  }catch(_){ }
   // Walk-forward splits (4 segments)
   try{
     const N=4; if(eq && eq.length>10){ const t0=eq[0].time, t1=eq[eq.length-1].time; const bounds=[]; for(let k=0;k<=N;k++){ bounds.push(t0 + Math.round((t1-t0)*k/N)); }
@@ -2528,13 +2588,28 @@ if(detailCtxEl){
   try{ const sum = generateStrategySummary(res, ctx, { timeInMkt, freq, expectancy: expNet, avgDurMin, bestNet, worstNet, r2, pf: (res.profitFactor===Infinity? Infinity : (+res.profitFactor||0)), winrate, avgRR, maxDDAbs: +res.maxDDAbs||0, ci: ciBoot }); if(detailSummaryEl){ let full=sum; if(compareSummaryText){ full += "\n\n"+compareSummaryText; } detailSummaryEl.innerHTML = full; } }catch(_){ }
   // Slippage what‑if (bps)
   try{
-    const slipInp=document.getElementById('detailSlipBps'); const slipBtn=document.getElementById('detailSlipApply'); const slipNote=document.getElementById('detailSlipNote');
-    if(slipBtn && slipInp){ slipBtn.addEventListener('click', ()=>{ try{ const bps=Math.max(0, parseFloat(slipInp.value||'0')); if(!(bps>=0)) return; const evs=Array.isArray(res.trades)? res.trades.slice():[]; // compute adjusted nets per position
-      const map=new Map(); function keyOf(e){ return `${e.dir}|${e.entryTime}|${e.entry}|${e.initSL}`; }
-      for(const ev of evs){ const k=keyOf(ev); let g=map.get(k); if(!g){ g={ net:0 }; map.set(k,g); } const qty=Math.abs(Number(ev.qty)||0); const pe=Math.abs(Number(ev.entry)||0); const px=Math.abs(Number(ev.exit)||0); const extra=(pe*qty + px*qty)*(bps/10000); const newNet=(Number(ev.net)||0) - extra; g.net += newNet; }
-      const gs=Array.from(map.values()); const L=gs.length; let gp=0, gl=0, wins=0, sum=0; for(const g of gs){ const v=Number(g.net)||0; sum+=v; if(v>=0){ gp+=v; wins++; } else { gl+=v; } }
-      const pf = gl<0? (gp/Math.abs(gl)) : (L>0? Infinity:0); const win = L>0? (wins/L*100):0; const exp = L>0? (sum/L):0; if(slipNote){ slipNote.textContent = `→ PF ${(pf===Infinity?'∞':pf.toFixed(2))}, Win% ${win.toFixed(1)}%, Exp ${exp.toFixed(2)} USD`; }
-    }catch(__){} }); }
+    const slipInp=document.getElementById('detailSlipBps'); const slipBtn=document.getElementById('detailSlipApply'); const slipNote=document.getElementById('detailSlipNote'); const slipInfo=document.getElementById('detailSlipInfo');
+    if(slipBtn && slipInp && (!slipBtn.dataset || slipBtn.dataset.wired!=='1')){
+      slipBtn.addEventListener('click', ()=>{ try{ const bps=Math.max(0, parseFloat(slipInp.value||'0')); if(!(bps>=0)) return; const evs=Array.isArray(res.trades)? res.trades.slice():[]; // compute adjusted nets per position
+        const map=new Map(); function keyOf(e){ return `${e.dir}|${e.entryTime}|${e.entry}|${e.initSL}`; }
+        for(const ev of evs){ const k=keyOf(ev); let g=map.get(k); if(!g){ g={ net:0 }; map.set(k,g); } const qty=Math.abs(Number(ev.qty)||0); const pe=Math.abs(Number(ev.entry)||0); const px=Math.abs(Number(ev.exit)||0); const extra=(pe*qty + px*qty)*(bps/10000); const newNet=(Number(ev.net)||0) - extra; g.net += newNet; }
+        const gs=Array.from(map.values()); const L=gs.length; let gp=0, gl=0, wins=0, sum=0; for(const g of gs){ const v=Number(g.net)||0; sum+=v; if(v>=0){ gp+=v; wins++; } else { gl+=v; } }
+        const pf = gl<0? (gp/Math.abs(gl)) : (L>0? Infinity:0); const win = L>0? (wins/L*100):0; const exp = L>0? (sum/L):0; if(slipNote){ slipNote.textContent = `→ PF ${(pf===Infinity?'∞':pf.toFixed(2))}, Win% ${win.toFixed(1)}%, Exp ${exp.toFixed(2)} USD`; }
+      }catch(__){} });
+      if(!slipBtn.dataset) slipBtn.dataset={};
+      slipBtn.dataset.wired='1';
+    }
+    if(slipInfo && (!slipInfo.dataset || slipInfo.dataset.wired!=='1')){
+      slipInfo.addEventListener('click', ()=>{
+        try{
+          if(slipNote){
+            slipNote.textContent = "Le slippage (bps) ajoute un coût d'exécution sur chaque entrée/sortie (1 bps = 0,01%). Cela permet de voir comment PF, Win% et l'expectancy réagissent quand on tient compte du spread/slippage réel.";
+          }
+        }catch(__){}
+      });
+      if(!slipInfo.dataset) slipInfo.dataset={};
+      slipInfo.dataset.wired='1';
+    }
   }catch(_){ }
   // Exports + tooltips wiring
   try{
@@ -2557,21 +2632,201 @@ if(detailCtxEl){
     }); detailModalEl.__expWired=true; }
     // Equity tooltip
     try{
-      if(canEquity){ const handler=(ev)=>{ try{ const rect=canEquity.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canEquity.width; const padL=46, padR=18; const n=(eq||[]).length; if(n<=1) return; const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const p=eq[i]; const t=new Date((p.time||0)*1000).toLocaleString(); let html=`${t}<br/>Sel: ${p.equity.toFixed(0)}`; if(eqCmp&&eqCmp.length){ const j=Math.max(0, Math.min(eqCmp.length-1, i)); html+=` • ${cmpLabel}: ${eqCmp[j].equity.toFixed(0)}`; } showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
-        canEquity.addEventListener('mousemove', handler); canEquity.addEventListener('mouseleave', ()=> hideTip()); }
+      if(canEquity && !canEquity.__tipWired){ const handler=(ev)=>{ try{ const rect=canEquity.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canEquity.width; const padL=46, padR=18; const n=(eq||[]).length; if(n<=1) return; const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const p=eq[i]; const t=new Date((p.time||0)*1000).toLocaleString(); let html=`${t}<br/>Sel: ${p.equity.toFixed(0)}`; if(eqCmp&&eqCmp.length){ const j=Math.max(0, Math.min(eqCmp.length-1, i)); html+=` • ${cmpLabel}: ${eqCmp[j].equity.toFixed(0)}`; } updateCrosshair(canEquity, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
+        canEquity.addEventListener('mousemove', handler); canEquity.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(canEquity); }); canEquity.__tipWired=true; }
     }catch(_){ }
     // Equity tooltip (comparateur)
     try{
       const canEquityH=document.getElementById('detailEquityHeaven');
-      if(canEquityH && eqCmp){ const handlerH=(ev)=>{ try{ const rect=canEquityH.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canEquityH.width; const padL=46, padR=18; const n=eqCmp.length||0; if(n<=1) return; const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const p=eqCmp[i]; const t=new Date((p.time||0)*1000).toLocaleString(); const html=`${t}<br/>${cmpLabel}: ${p.equity.toFixed(0)}`; showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
-        canEquityH.addEventListener('mousemove', handlerH); canEquityH.addEventListener('mouseleave', ()=> hideTip()); }
+      if(canEquityH && eqCmp && !canEquityH.__tipWired){ const handlerH=(ev)=>{ try{ const rect=canEquityH.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canEquityH.width; const padL=46, padR=18; const n=eqCmp.length||0; if(n<=1) return; const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const p=eqCmp[i]; const t=new Date((p.time||0)*1000).toLocaleString(); const html=`${t}<br/>${cmpLabel}: ${p.equity.toFixed(0)}`; updateCrosshair(canEquityH, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
+        canEquityH.addEventListener('mousemove', handlerH); canEquityH.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(canEquityH); }); canEquityH.__tipWired=true; }
     }catch(_){ }
     // Heatmap tooltips + click filter on long/short
-    function heatHover(can, lab){ if(!can) return; can.addEventListener('mousemove', (ev)=>{ try{ const cfg=can.__heatCfg; if(!cfg) return; const rect=can.getBoundingClientRect(); const x=ev.clientX-rect.left, y=ev.clientY-rect.top; const c=Math.floor((x-cfg.padL)/cfg.cw), r=Math.floor((y-cfg.padT)/cfg.ch); if(c<0||c>=cfg.cols||r<0||r>=cfg.rows) return hideTip(); const cell=cfg.cells[r*cfg.cols+c]; if(!cell) return hideTip(); const dnames=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']; const html=`${lab}: ${dnames[r]} ${String(c).padStart(2,'0')}h — ${Number(cell.r).toFixed(2)}%`; showTip(ev.clientX, ev.clientY, html); }catch(_){ } }); can.addEventListener('mouseleave', ()=> hideTip()); }
+    function heatHover(can, lab){ if(!can) return; if(can.__heatTipWired) return; can.addEventListener('mousemove', (ev)=>{ try{ const cfg=can.__heatCfg; if(!cfg) return; const rect=can.getBoundingClientRect(); const x=ev.clientX-rect.left, y=ev.clientY-rect.top; const c=Math.floor((x-cfg.padL)/cfg.cw), r=Math.floor((y-cfg.padT)/cfg.ch); if(c<0||c>=cfg.cols||r<0||r>=cfg.rows) return hideTip(); const cell=cfg.cells[r*cfg.cols+c]; if(!cell) return hideTip(); const dnames=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']; const html=`${lab}: ${dnames[r]} ${String(c).padStart(2,'0')}h — ${Number(cell.r).toFixed(2)}%`; updateCrosshair(can, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } }); can.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(can); }); can.__heatTipWired=true; }
     heatHover(canDOWHour, 'Jour×Heure'); heatHover(canDOWHourLong, 'Long'); heatHover(canDOWHourShort, 'Short');
     heatHover(document.getElementById('detailDOWHourHeaven'), `Jour×Heure (${cmpLabel})`);
     heatHover(document.getElementById('detailDOWHourLongHeaven'), `Long (${cmpLabel})`);
     heatHover(document.getElementById('detailDOWHourShortHeaven'), `Short (${cmpLabel})`);
+    // DD tooltip (absolu USD)
+    try{
+      if(canDD && ddSeries && Array.isArray(eq) && !canDD.__tipWired){ const handlerDD=(ev)=>{ try{ const rect=canDD.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canDD.width; const padL=46, padR=18; const n=eq.length; if(n<=1) return; const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const p=eq[i]; const t=new Date((p.time||0)*1000).toLocaleString(); const dd=ddSeries[i]||0; const html=`${t}<br/>DD: ${dd.toFixed(0)} USD`; updateCrosshair(canDD, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
+        canDD.addEventListener('mousemove', handlerDD); canDD.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(canDD); }); canDD.__tipWired=true; }
+    }catch(_){ }
+    try{
+      const canDDH=document.getElementById('detailDDHeaven');
+      if(canDDH && ddSeriesCmp && Array.isArray(eqCmp) && !canDDH.__tipWired){ const handlerDDH=(ev)=>{ try{ const rect=canDDH.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canDDH.width; const padL=46, padR=18; const n=eqCmp.length; if(n<=1) return; const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const p=eqCmp[i]; const t=new Date((p.time||0)*1000).toLocaleString(); const dd=ddSeriesCmp[i]||0; const html=`${t}<br/>DD (${cmpLabel}): ${dd.toFixed(0)} USD`; updateCrosshair(canDDH, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
+        canDDH.addEventListener('mousemove', handlerDDH); canDDH.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(canDDH); }); canDDH.__tipWired=true; }
+    }catch(_){ }
+    // Underwater tooltip (DD%)
+    try{
+      const canUnder=document.getElementById('detailUnder');
+      if(canUnder && uwSeries && Array.isArray(eq) && !canUnder.__tipWired){ const handlerUW=(ev)=>{ try{ const rect=canUnder.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canUnder.width; const padL=46, padR=12; const n=eq.length; if(n<=1) return; const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const p=eq[i]; const t=new Date((p.time||0)*1000).toLocaleString(); const ddPct=uwSeries[i]||0; const html=`${t}<br/>Drawdown: ${ddPct.toFixed(2)}%`; updateCrosshair(canUnder, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
+        canUnder.addEventListener('mousemove', handlerUW); canUnder.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(canUnder); }); canUnder.__tipWired=true; }
+    }catch(_){ }
+    try{
+      const canUnderH=document.getElementById('detailUnderHeaven');
+      if(canUnderH && uwSeriesCmp && Array.isArray(eqCmp) && !canUnderH.__tipWired){ const handlerUWH=(ev)=>{ try{ const rect=canUnderH.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canUnderH.width; const padL=46, padR=12; const n=eqCmp.length; if(n<=1) return; const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const p=eqCmp[i]; const t=new Date((p.time||0)*1000).toLocaleString(); const ddPct=uwSeriesCmp[i]||0; const html=`${t}<br/>Drawdown (${cmpLabel}): ${ddPct.toFixed(2)}%`; updateCrosshair(canUnderH, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
+        canUnderH.addEventListener('mousemove', handlerUWH); canUnderH.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(canUnderH); }); canUnderH.__tipWired=true; }
+    }catch(_){ }
+    // Rolling charts tooltips (PF, Win, RR, Exp)
+    try{
+      const wireRoll=(can, data, label)=>{ if(!can || !Array.isArray(data) || data.length<2 || can.__rollTipWired) return; const handler=(ev)=>{ try{ const rect=can.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=can.width; const padL=40, padR=10; const n=data.length; const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const val=data[i]; const html=`Pos ${i+1}<br/>${label}: ${typeof val==='number'? val.toFixed(2):val}`; updateCrosshair(can, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
+        can.addEventListener('mousemove', handler); can.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(can); }); can.__rollTipWired=true; };
+      wireRoll(canRollPF, rollPF, 'PF');
+      wireRoll(canRollWin, rollWin, 'Win%');
+      wireRoll(canRollRR, rollRR, 'Avg R:R');
+      wireRoll(canRollExp, rollExp, 'Expectancy');
+      const canRollPFH=document.getElementById('detailRollPFHeaven');
+      const canRollWinH=document.getElementById('detailRollWinHeaven');
+      const canRollRRH=document.getElementById('detailRollRRHeaven');
+      const canRollExpH=document.getElementById('detailRollExpHeaven');
+      if(H){ wireRoll(canRollPFH, H.rollPF||[], 'PF'); wireRoll(canRollWinH, H.rollWin||[], 'Win%'); wireRoll(canRollRRH, H.rollRR||[], 'Avg R:R'); wireRoll(canRollExpH, H.rollExp||[], 'Expectancy'); }
+    }catch(_){ }
+    // Monte Carlo tooltip
+    try{
+      if(canMC && mcBands && mcBands.p50 && mcBands.p50.length && !canMC.__tipWired){ const handlerMC=(ev)=>{ try{ const rect=canMC.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canMC.width; const padL=56, padR=12; const n=mcBands.p50.length; if(n<=1) return; const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const t=i; const eMed=mcBands.p50[i]; const eLo=mcBands.p10[i]; const eHi=mcBands.p90[i]; const html=`Trade bootstrap ${t}<br/>P10: ${eLo.toFixed(0)} • Median: ${eMed.toFixed(0)} • P90: ${eHi.toFixed(0)}`; updateCrosshair(canMC, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
+        canMC.addEventListener('mousemove', handlerMC); canMC.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(canMC); }); canMC.__tipWired=true; }
+    }catch(_){ }
+    try{
+      const canMCH=document.getElementById('detailMCHeaven');
+      if(canMCH && mcBandsH && mcBandsH.p50 && mcBandsH.p50.length && !canMCH.__tipWired){ const handlerMCH=(ev)=>{ try{ const rect=canMCH.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canMCH.width; const padL=56, padR=12; const n=mcBandsH.p50.length; if(n<=1) return; const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const t=i; const eMed=mcBandsH.p50[i]; const eLo=mcBandsH.p10[i]; const eHi=mcBandsH.p90[i]; const html=`Trade bootstrap ${t} (${cmpLabel})<br/>P10: ${eLo.toFixed(0)} • Median: ${eMed.toFixed(0)} • P90: ${eHi.toFixed(0)}`; updateCrosshair(canMCH, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
+        canMCH.addEventListener('mousemove', handlerMCH); canMCH.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(canMCH); }); canMCH.__tipWired=true; }
+    }catch(_){ }
+    // Histograms, DOW, Pareto, QQ, ACF, WF tooltips
+    try{
+      // Distribution des rendements (%)
+      const wireHistRets=(id, label)=>{
+        const can=document.getElementById(id); if(!can || can.__histTipWired) return;
+        const spec=chartReg[id]||{}; if(spec.type!=='rets' || !Array.isArray(spec.values) || !spec.values.length) return;
+        const vals=spec.values.slice(); const bins=20;
+        if(!spec.__hist){
+          const min=Math.min(...vals), max=Math.max(...vals);
+          const range=max-min; const step=(range/(bins||1))||1;
+          const hist=new Array(bins).fill(0);
+          for(const v of vals){ let b=Math.floor((v-min)/step); if(b<0) b=0; if(b>=bins) b=bins-1; hist[b]++; }
+          spec.__hist={ min, max, step, hist };
+        }
+        const cfg=spec.__hist; const padL=36, padR=10;
+        const handler=(ev)=>{ try{
+          const rect=can.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=can.width;
+          const left=padL, right=w-padR; if(x<left || x>right){ hideTip(); hideCrosshair(can); return; }
+          const rel=x-left; const width=Math.max(1, right-left); const binsz=width/bins;
+          const b=Math.max(0, Math.min(bins-1, Math.floor(rel/binsz)));
+          const from=cfg.min + cfg.step*b; const to=cfg.min + cfg.step*(b+1); const count=(cfg.hist[b]||0);
+          const html=`${label}<br/>[${from.toFixed(2)} ; ${to.toFixed(2)}]% • n=${count}`;
+          updateCrosshair(can, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html);
+        }catch(_){ } };
+        can.addEventListener('mousemove', handler); can.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(can); });
+        can.__histTipWired=true;
+      };
+      wireHistRets('detailHist','Rendements');
+      wireHistRets('detailHistHeaven',`Rendements (${cmpLabel})`);
+      // Day-of-week bars
+      const wireDOW=(id, label)=>{
+        const can=document.getElementById(id); if(!can || can.__dowTipWired) return;
+        const spec=chartReg[id]||{}; if(spec.type!=='bars') return;
+        const labs=spec.labels||[], vals=spec.values||[]; if(!labs.length) return;
+        const padL=46, padR=12; const n=labs.length;
+        const handler=(ev)=>{ try{
+          const rect=can.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=can.width;
+          const left=padL, right=w-padR; if(x<left || x>right){ hideTip(); hideCrosshair(can); return; }
+          const rel=x-left; const width=Math.max(1,right-left); const idx=Math.max(0, Math.min(n-1, Math.floor(rel/(width/n))));
+          const k=labs[idx]; const v=vals[idx]||0; const html=`${label}: ${k}<br/>Ret: ${v.toFixed(2)}%`;
+          updateCrosshair(can, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html);
+        }catch(_){ } };
+        can.addEventListener('mousemove', handler); can.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(can); });
+        can.__dowTipWired=true;
+      };
+      wireDOW('detailDOW','Jour');
+      wireDOW('detailDOWHeaven',`Jour (${cmpLabel})`);
+      // Pareto (P&L vs Max DD)
+      const wirePareto=(id, label)=>{
+        const can=document.getElementById(id); if(!can || can.__paretoTipWired) return;
+        const spec=chartReg[id]||{}; if(spec.type!=='pareto' || !Array.isArray(spec.points) || !spec.points.length) return;
+        const pts=spec.points; const minX=0, maxX=Math.max(1, ...pts.map(p=>p.dd||0)); const padL=56, padR=12;
+        const handler=(ev)=>{ try{
+          const rect=can.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=can.width;
+          const left=padL, right=w-padR; if(x<left || x>right){ hideTip(); hideCrosshair(can); return; }
+          const rel=x-left; const width=Math.max(1,right-left); const xVal=minX + (rel/width)*(maxX-minX);
+          let best=null, bestD=Infinity, idx=-1;
+          for(let i=0;i<pts.length;i++){ const p=pts[i]; const d=Math.abs((p.dd||0)-xVal); if(d<bestD){ bestD=d; best=p; idx=i; } }
+          if(!best){ hideTip(); hideCrosshair(can); return; }
+          const html=`${label} #${idx+1}<br/>Max DD: ${(best.dd||0).toFixed(0)} • P&L: ${(best.pnl||0).toFixed(0)}${Number.isFinite(best.score)?` • Score: ${best.score.toFixed(1)}`:''}`;
+          updateCrosshair(can, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html);
+        }catch(_){ } };
+        can.addEventListener('mousemove', handler); can.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(can); });
+        can.__paretoTipWired=true;
+      };
+      wirePareto('detailPareto','Point');
+      wirePareto('detailParetoHeaven',`Point (${cmpLabel})`);
+      // QQ-plot
+      const wireQQTip=(id, label)=>{
+        const can=document.getElementById(id); if(!can || can.__qqTipWired) return;
+        const spec=chartReg[id]||{}; if(spec.type!=='qq' || !Array.isArray(spec.values) || !spec.values.length) return;
+        const ensureQQ=(s)=>{
+          if(s.theo && s.zs) return;
+          const vals=s.values.slice().filter(Number.isFinite).sort((a,b)=>a-b); const n=vals.length; if(n<3){ s.theo=[]; s.zs=[]; return; }
+          const mean=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length:0; const m=mean(vals);
+          const sd=Math.sqrt(mean(vals.map(x=>(x-m)*(x-m)))); const zs=vals.map(x=> (x-m)/(sd||1));
+          function qnorm(p){ const a=[-39.696830,220.946098,-275.928510,138.357751,-30.664798,2.506628]; const b=[-54.476098,161.585836,-155.698979,66.801311,-13.280681]; const c=[-0.007784894, -0.322396, -2.400758, -2.549732, 4.374664, 2.938163]; const d=[0.007784695, 0.322467, 2.445134, 3.754408]; const plow=0.02425, phigh=1-plow; let q,r; if(p<plow){ q=Math.sqrt(-2*Math.log(p)); return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); } if(p>phigh){ q=Math.sqrt(-2*Math.log(1-p)); return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); } q=p-0.5; r=q*q; return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*1; }
+          const theo=[]; for(let i=1;i<=n;i++){ const p=(i-0.5)/n; theo.push(qnorm(p)); }
+          s.theo=theo; s.zs=zs;
+        };
+        ensureQQ(spec); const padL=40, padR=10;
+        const handler=(ev)=>{ try{
+          const rect=can.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=can.width;
+          const left=padL, right=w-padR; if(x<left || x>right || !spec.theo.length){ hideTip(); hideCrosshair(can); return; }
+          const n=spec.theo.length; const rel=x-left; const width=Math.max(1,right-left); const idx=Math.max(0, Math.min(n-1, Math.round(rel/width*(n-1))));
+          const theo=spec.theo[idx], zs=spec.zs[idx];
+          const html=`${label} ${idx+1}/${n}<br/>Théorique: ${theo.toFixed(2)} • Observé: ${zs.toFixed(2)}`;
+          updateCrosshair(can, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html);
+        }catch(_){ } };
+        can.addEventListener('mousemove', handler); can.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(can); });
+        can.__qqTipWired=true;
+      };
+      wireQQTip('detailQQ','Quantile');
+      wireQQTip('detailQQHeaven',`Quantile (${cmpLabel})`);
+      // ACF
+      const wireACFTip=(id, label)=>{
+        const can=document.getElementById(id); if(!can || can.__acfTipWired) return;
+        const spec=chartReg[id]||{}; if(spec.type!=='acf' || !Array.isArray(spec.values) || !spec.values.length) return;
+        const ensureACF=(s)=>{
+          if(s.lags && s.lags.length) return;
+          const xs=s.values.slice().filter(Number.isFinite); const n=xs.length; if(n<3){ s.lags=[]; return; }
+          const mean=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length:0; const m=mean(xs); const varr=xs.reduce((r,x)=>r+(x-m)*(x-m),0);
+          const maxLag=s.maxLag||10; const acf=[]; for(let k=1;k<=maxLag;k++){ let num=0; for(let i=0;i<n-k;i++){ num += (xs[i]-m)*(xs[i+k]-m); } acf.push(num/(varr||1)); } s.lags=acf; s.maxLag=maxLag;
+        };
+        ensureACF(spec); const padL=30, padR=10;
+        const handler=(ev)=>{ try{
+          const rect=can.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=can.width;
+          const left=padL, right=w-padR; if(x<left || x>right || !spec.lags.length){ hideTip(); hideCrosshair(can); return; }
+          const L=spec.maxLag||spec.lags.length; const rel=x-left; const width=Math.max(1,right-left); const k=1 + Math.round(rel/width*(L-1)); const idx=Math.max(0, Math.min(L-1, k-1));
+          const val=spec.lags[idx]||0; const html=`${label} lag ${idx+1}<br/>ACF: ${val.toFixed(3)}`;
+          updateCrosshair(can, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html);
+        }catch(_){ } };
+        can.addEventListener('mousemove', handler); can.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(can); });
+        can.__acfTipWired=true;
+      };
+      wireACFTip('detailACF','ACF');
+      wireACFTip('detailACFHeaven',`ACF (${cmpLabel})`);
+      // Walk-forward
+      const wireWFTip=(id, label)=>{
+        const can=document.getElementById(id); if(!can || can.__wfTipWired) return;
+        const spec=chartReg[id]||{}; if(spec.type!=='wf' || !Array.isArray(spec.splits) || !spec.splits.length) return;
+        const splits=spec.splits; const padL=60, padR=10; const N=splits.length;
+        const handler=(ev)=>{ try{
+          const rect=can.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=can.width;
+          const left=padL, right=w-padR; if(x<left || x>right){ hideTip(); hideCrosshair(can); return; }
+          const rel=x-left; const width=Math.max(1,right-left); const idx=Math.max(0, Math.min(N-1, Math.floor(rel/(width/N))));
+          const s=splits[idx]; const html=`${label} S${idx+1}<br/>PF: ${(s.pf===Infinity?'∞':(s.pf||0).toFixed(2))} • Win: ${(s.win||0).toFixed(1)}% • Exp: ${(s.exp||0).toFixed(2)} • P&L: ${(s.pnl||0).toFixed(0)}`;
+          updateCrosshair(can, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html);
+        }catch(_){ } };
+        can.addEventListener('mousemove', handler); can.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(can); });
+        can.__wfTipWired=true;
+      };
+      wireWFTip('detailWF','WF');
+      wireWFTip('detailWFHeaven',`WF (${cmpLabel})`);
+    }catch(_){ }
     function filterTradesByDOWHour(dir, r,c){ try{ const dnames=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']; const selGroups = groups.filter(g=>{ if(dir && g.dir!==dir) return false; const dt=new Date((g.entryTime||0)*1000); const dow=(dt.getUTCDay()+6)%7; const hr=dt.getUTCHours(); return dow===r && hr===c; }); const evs=[]; const keyOf=(e)=> `${e.dir}|${e.entryTime}|${e.entry}|${e.initSL}`; const map=new Map(); for(const ev of (res.trades||[])){ const k=keyOf(ev); map.set(k, (map.get(k)||[]).concat([ev])); }
       for(const g of selGroups){ const k=keyOf({dir:g.dir, entryTime:g.entryTime, entry:g.entry, initSL:g.initSL}); const arr=map.get(k)||[]; for(const ev of arr){ evs.push(ev); } }
       if(!evs.length){ setStatus && setStatus(`Aucun trade pour ${dnames[r]} ${String(c).padStart(2,'0')}h ${dir||''}`); return; }
