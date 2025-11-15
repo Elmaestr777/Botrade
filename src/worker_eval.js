@@ -14,6 +14,10 @@ function getEMA(len){ let arr=__EMA_CACHE.get(len); if(!arr){ arr=emaCalc(BARS, 
 function computeLineBreakState(bars, nol){ const n=bars.length; if(!n) return {trend:[], level:[], flips:[]}; const trend=new Array(n).fill(0); const level=new Array(n).fill(null); const flips=[]; let t=bars[0].close>=bars[0].open?1:-1; let opens=[bars[0].open]; let closes=[bars[0].close]; for(let i=0;i<n;i++){ const c=bars[i].close; if(t===1){ const cnt=Math.min(nol, opens.length); const minUp=Math.min(...opens.slice(0,cnt), ...closes.slice(0,cnt)); if(c<minUp) t=-1; if(c>closes[0]||t===-1){ const o=(t===-1? opens[0]:closes[0]); opens.unshift(o); closes.unshift(c); } } else { const cnt=Math.min(nol, opens.length); const maxDn=Math.max(...opens.slice(0,cnt), ...closes.slice(0,cnt)); if(c>maxDn) t=1; if(c<closes[0]||t===1){ const o=(t===1? opens[0]:closes[0]); opens.unshift(o); closes.unshift(c); } } trend[i]=t; const cnt2=Math.min(nol, opens.length); const minUp2=Math.min(...opens.slice(0,cnt2), ...closes.slice(0,cnt2)); const maxDn2=Math.max(...opens.slice(0,cnt2), ...closes.slice(0,cnt2)); level[i]=(t===1? minUp2: maxDn2); if(i>0 && trend[i]!==trend[i-1]) flips.push(i); } return {trend, level, flips}; }
 function computePivots(bars, prd){ const piv=[]; for(let i=prd;i<bars.length-prd;i++){ let isH=true, isL=true; for(let j=1;j<=prd;j++){ if(!(bars[i].high>bars[i-j].high && bars[i].high>bars[i+j].high)) isH=false; if(!(bars[i].low<bars[i-j].low && bars[i].low<bars[i+j].low)) isL=false; if(!isH&&!isL) break; } if(isH||isL) piv.push({ idx:i, time:bars[i].time, price: isH? bars[i].high : bars[i].low }); } return piv; }
 
+function mean(a){ return a.length? a.reduce((x,y)=>x+y,0)/a.length : 0; }
+function std(a){ const m=mean(a); const v=a.length? a.reduce((s,v)=> s+(v-m)*(v-m),0)/a.length : 0; return Math.sqrt(v); }
+function linReg(y){ const n=y.length; if(n<2) {return {slope:0,r2:0};} const xs=Array.from({length:n},(_,i)=>i); const mx=(n-1)/2; const my=mean(y); let num=0,den=0,sst=0,sse=0; for(let i=0;i<n;i++){ const dx=xs[i]-mx; num+=dx*(y[i]-my); den+=dx*dx; } const a=num/Math.max(1e-9,den); const b=my - a*mx; for(let i=0;i<n;i++){ const fit=a*xs[i]+b; const err=y[i]-fit; sse+=err*err; const dy=y[i]-my; sst+=dy*dy; } return { slope:a, r2: sst>0? 1 - sse/sst : 0 }; }
+
 function runBacktestSliceFor(bars, sIdx, eIdx, conf, params){
   // Heaven-fidelity backtest (partial exits, per-TP BE/trails, attached SL per TP, compound/close-all-last)
   const nolVal=Math.max(1, params.nol|0);
@@ -67,6 +71,7 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params){
   }
   let equity=conf.startCap; let peak=equity; let maxDDAbs=0; let grossProfit=0, grossLoss=0; let wins=0, losses=0; let rrSum=0; let tradesCount=0;
   let positions=[]; let pendingFib=null;
+  const returns=[]; const eqSeries=[];
   const feePct=conf.fee/100; const maxPct=conf.maxPct/100; const lev=conf.lev; const baseMode=conf.base;
   function __computeQty(entry, sl){ if(!(isFinite(entry)&&isFinite(sl))) return 0; if(equity<=0) return 0; const capBase=(baseMode==='equity')?equity:conf.startCap; const budget=Math.max(0, Math.min(capBase*maxPct, equity)); const notional=budget*lev; const qty0=notional/Math.max(1e-12, entry); const riskAbs=Math.abs(entry-sl); const perUnitWorstLoss = riskAbs + ((Math.abs(entry)+Math.abs(sl)) * feePct); const qtyRisk = perUnitWorstLoss>0? (equity / perUnitWorstLoss) : 0; const q=Math.max(0, Math.min(qty0, qtyRisk)); return q; }
   function tryOpen(dir, entry, i){ let sl=computeSLFromLadder(dir, entry, i); if(sl==null){ const riskPx=entry*(params.slInitPct/100); sl=dir==='long'?(entry-riskPx):(entry+riskPx); } else { if(dir==='long' && sl>entry) sl=entry; if(dir==='short' && sl<entry) sl=entry; } const initQty=__computeQty(entry, sl); if(initQty>1e-12 && isFinite(initQty)){ const targets=buildTargets(dir, entry, Math.abs(entry-sl), i); positions.push({ dir, entry, sl, initSL:sl, qty:initQty, initQty, entryIdx:i, beActive:false, anyTP:false, tpIdx:0, targets, risk: Math.abs(entry-sl)*initQty, hiSince: bars[i].high, loSince: bars[i].low, lastTpIdx: 0, tpTrailCfg: null, slTrailCfg: null }); } }
@@ -92,9 +97,9 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params){
       // SL check
       let closedBySL=false;
       if(pos.dir==='long'){
-        if(bar.low <= pos.sl){ const portionQty = pos.qty; const pnl = (pos.sl - pos.entry) * portionQty; const fees = (pos.entry*portionQty + pos.sl*portionQty) * feePct; const net=pnl-fees; equity+=net; if(equity<0) equity=0; tradesCount++; if(pos.risk>0) rrSum+=(net/pos.risk); if(net>=0){ grossProfit+=net; wins++; } else { grossLoss+=net; losses++; } if(equity>peak) peak=equity; const dd=peak-equity; if(dd>maxDDAbs) maxDDAbs=dd; closedBySL=true; }
+        if(bar.low <= pos.sl){ const portionQty = pos.qty; const pnl = (pos.sl - pos.entry) * portionQty; const fees = (pos.entry*portionQty + pos.sl*portionQty) * feePct; const net=pnl-fees; const eqBefore=equity; equity+=net; if(equity<0) equity=0; tradesCount++; if(eqBefore>0) returns.push(net/eqBefore); eqSeries.push(equity/Math.max(1e-9, conf.startCap)); if(pos.risk>0) rrSum+=(net/pos.risk); if(net>=0){ grossProfit+=net; wins++; } else { grossLoss+=net; losses++; } if(equity>peak) peak=equity; const dd=peak-equity; if(dd>maxDDAbs) maxDDAbs=dd; closedBySL=true; }
       } else {
-        if(bar.high >= pos.sl){ const portionQty = pos.qty; const pnl = (pos.entry - pos.sl) * portionQty; const fees = (pos.entry*portionQty + pos.sl*portionQty) * feePct; const net=pnl-fees; equity+=net; if(equity<0) equity=0; tradesCount++; if(pos.risk>0) rrSum+=(net/pos.risk); if(net>=0){ grossProfit+=net; wins++; } else { grossLoss+=net; losses++; } if(equity>peak) peak=equity; const dd=peak-equity; if(dd>maxDDAbs) maxDDAbs=dd; closedBySL=true; }
+        if(bar.high >= pos.sl){ const portionQty = pos.qty; const pnl = (pos.entry - pos.sl) * portionQty; const fees = (pos.entry*portionQty + pos.sl*portionQty) * feePct; const net=pnl-fees; const eqBefore=equity; equity+=net; if(equity<0) equity=0; tradesCount++; if(eqBefore>0) returns.push(net/eqBefore); eqSeries.push(equity/Math.max(1e-9, conf.startCap)); if(pos.risk>0) rrSum+=(net/pos.risk); if(net>=0){ grossProfit+=net; wins++; } else { grossLoss+=net; losses++; } if(equity>peak) peak=equity; const dd=peak-equity; if(dd>maxDDAbs) maxDDAbs=dd; closedBySL=true; }
       }
       if(closedBySL){ positions.splice(k,1); continue; }
       // TP sequential
@@ -109,7 +114,7 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params){
           const exitPx = tp.price;
           const pnl = (pos.dir==='long'? (exitPx - pos.entry) : (pos.entry - exitPx)) * usedQty;
           const fees = (pos.entry*usedQty + exitPx*usedQty) * feePct;
-          const net = pnl - fees; equity += net; if(equity<0) equity=0; tradesCount++; if(pos.risk>0) rrSum += (net/pos.risk); if(net>=0){ grossProfit+=net; wins++; } else { grossLoss+=net; losses++; } if(equity>peak) peak=equity; const dd=peak-equity; if(dd>maxDDAbs) maxDDAbs=dd;
+          const net = pnl - fees; const eqBefore=equity; equity += net; if(equity<0) equity=0; tradesCount++; if(eqBefore>0) returns.push(net/eqBefore); eqSeries.push(equity/Math.max(1e-9, conf.startCap)); if(pos.risk>0) rrSum += (net/pos.risk); if(net>=0){ grossProfit+=net; wins++; } else { grossLoss+=net; losses++; } if(equity>peak) peak=equity; const dd=peak-equity; if(dd>maxDDAbs) maxDDAbs=dd;
           pos.qty -= usedQty; pos.anyTP=true;
           let tCfg = (Array.isArray(params.tp) && tp.srcIdx!=null)? params.tp[tp.srcIdx] : null; if(!tCfg){ tCfg={}; }
           if(tCfg.beOn){ pos.sl = pos.entry; }
@@ -117,7 +122,29 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params){
     }
     }
   }
-  const res = { equityFinal: equity, totalPnl: equity - conf.startCap, tradesCount: tradesCount, winrate: tradesCount? (wins/tradesCount*100):0, avgRR: tradesCount? (rrSum/tradesCount):0, profitFactor: (grossLoss<0? (grossProfit/Math.abs(grossLoss)) : (tradesCount? Infinity:0)), maxDDAbs };
+  const totalPnl = equity - conf.startCap;
+  const sharpe=(function(){ const m=mean(returns), s=std(returns); return s>0? m/s : 0; })();
+  let slope=0, r2=0;
+  if(eqSeries.length>=2){ const lr=linReg(eqSeries); slope=lr.slope; r2=lr.r2; }
+  const retPct = conf.startCap>1e-9? (totalPnl/conf.startCap*100) : 0;
+  const expectancy = returns.length? (mean(returns)*100) : 0;
+  const positives = returns.filter(x=> x>=0).length;
+  const consistency = returns.length? positives/returns.length : 0;
+  const res = {
+    equityFinal: equity,
+    totalPnl,
+    tradesCount: tradesCount,
+    winrate: tradesCount? (wins/tradesCount*100):0,
+    avgRR: tradesCount? (rrSum/tradesCount):0,
+    profitFactor: (grossLoss<0? (grossProfit/Math.abs(grossLoss)) : (tradesCount? Infinity:0)),
+    maxDDAbs,
+    sharpe,
+    slope,
+    r2,
+    retPct,
+    expectancy,
+    consistency,
+  };
   return res;
 }
 

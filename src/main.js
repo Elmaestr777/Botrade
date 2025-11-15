@@ -1119,22 +1119,140 @@ function buildHeavenMarkers(bars, lb, pivAll){ const markers=[]; if(!bars||!bars
   }
   return markers; }
 // Weights (Lab scoring)
-const defaultWeights = { pf:25, wr:20, rr:15, pnl:15, eq:10, trades:5, dd:10 };
+// Base factors (legacy): PF, Win%, Avg RR, P&L, Capital final, #Trades, Max DD (inverse)
+// Extended factors: Sharpe, Recovery, Equity slope, Consistency, Expectancy, Return/period (%)
+const defaultWeights = {
+  pf:25,
+  wr:20,
+  rr:15,
+  pnl:15,
+  eq:10,
+  trades:5,
+  dd:10,
+  // Extended metrics (0 by défaut pour rétro‑compatibilité – l'utilisateur peut les activer)
+  sharpe:0,
+  recov:0,
+  slope:0,
+  cons:0,
+  exp:0,
+  ret:0,
+};
 function weightsKey(profile){ return `lab:weights:${profile||'balancee'}`; }
-function getWeights(profile){ try{ const s=localStorage.getItem(weightsKey(profile)); return s? { ...defaultWeights, ...JSON.parse(s) } : { ...defaultWeights }; }catch(_){ return { ...defaultWeights }; } }
+function getWeights(profile){
+  try{
+    const s=localStorage.getItem(weightsKey(profile));
+    return s? { ...defaultWeights, ...JSON.parse(s) } : { ...defaultWeights };
+  }catch(_){
+    return { ...defaultWeights };
+  }
+}
 function saveWeights(profile, w){ try{ localStorage.setItem(weightsKey(profile), JSON.stringify(w)); }catch(_){ } }
 function clamp01(x){ return Math.max(0, Math.min(1, x)); }
-function scoreResult(st, w){ const pf=Number(st.profitFactor||0); const wr=Number(st.winrate||0); const rr=Number(st.avgRR||0); const pnl=Number(st.totalPnl||0); const eq=Number(st.equityFinal||0); const dd=Math.abs(Number(st.maxDDAbs||0)); const tr=Number(st.tradesCount||0);
-  const pfS = pf===Infinity? 1 : clamp01(pf/3);
-  const wrS = clamp01(wr/70);
-  const rrS = clamp01(rr/2);
-  const pnlS = pnl>0? (1 - 1/(1 + pnl/5000)) : 0;
-  const eqS = eq>0? (1 - 1/(1 + eq/20000)) : 0;
-  const trS = clamp01(tr/150);
-  const ddS = 1 - clamp01(dd/5000);
-  const totalW = w.pf+w.wr+w.rr+w.pnl+w.eq+w.trades+w.dd || 1;
-  const s = (pfS*w.pf + wrS*w.wr + rrS*w.rr + pnlS*w.pnl + eqS*w.eq + trS*w.trades + ddS*w.dd) / totalW;
-  return s*100; }
+function scoreResult(st, w){
+  // Valeurs brutes
+  const pfRaw = Number(st.profitFactor||0);
+  const wrRaw = Number(st.winrate||0);
+  const rrRaw = Number(st.avgRR||0);
+  const pnlRaw = Number(st.totalPnl||0);
+  const eqRaw = Number(st.equityFinal||0);
+  const ddAbsRaw = Math.abs(Number(st.maxDDAbs||0));
+  const trRaw = Number(st.tradesCount||0);
+
+  const hasPf = Number.isFinite(pfRaw) && pfRaw>=0;
+  const hasWr = Number.isFinite(wrRaw);
+  const hasRr = Number.isFinite(rrRaw);
+  const hasPnl = Number.isFinite(pnlRaw);
+  const hasEq = Number.isFinite(eqRaw);
+  const hasDd = Number.isFinite(ddAbsRaw);
+  const hasTr = Number.isFinite(trRaw);
+
+  // Normalisations legacy (0–1)
+  const pfS  = pfRaw===Infinity? 1 : clamp01(pfRaw/3);
+  const wrS  = clamp01(wrRaw/70);
+  const rrS  = clamp01(rrRaw/2);
+  const pnlS = pnlRaw>0? (1 - 1/(1 + pnlRaw/5000)) : 0;
+  const eqS  = eqRaw>0? (1 - 1/(1 + eqRaw/20000)) : 0;
+  const trS  = clamp01(trRaw/150);
+  const ddS  = hasDd? (1 - clamp01(ddAbsRaw/5000)) : 0;
+
+  // Sharpe ratio (basé sur st.sharpe si disponible)
+  const sharpeRaw = Number(st.sharpe ?? st.Sharpe ?? NaN);
+  const hasSharpe = Number.isFinite(sharpeRaw);
+  const sharpeS   = hasSharpe? clamp01(sharpeRaw/3) : 0;
+
+  // Recovery factor: P&L / Max DD abs
+  const recovRaw = (function(){
+    if(Number.isFinite(st.recov)) return Number(st.recov);
+    if(hasPnl && hasDd && ddAbsRaw>1e-9) return pnlRaw/ddAbsRaw;
+    return NaN;
+  })();
+  const hasRecov = Number.isFinite(recovRaw);
+  const recovS   = hasRecov? clamp01(recovRaw/3) : 0;
+
+  // Pente de l'équité (slope) – attend st.slope normalisé par backtest
+  const slopeRaw = Number(st.slope ?? NaN);
+  const hasSlope = Number.isFinite(slopeRaw);
+  const slopeS   = hasSlope? clamp01(slopeRaw/0.02) : 0; // heuristique: 0.02 ~ très bonne pente
+
+  // Consistency / stabilité
+  const consRaw = (function(){
+    if(Number.isFinite(st.consistency)) return Number(st.consistency); // déjà 0–1
+    if(hasWr) return clamp01(wrRaw/100); // fallback grossier sur Win%
+    return NaN;
+  })();
+  const hasCons = Number.isFinite(consRaw);
+  const consS   = hasCons? clamp01(consRaw) : 0;
+
+  // Expectancy (espérance par trade) – en % si fourni
+  const expRaw = (function(){
+    if(Number.isFinite(st.expectancy)) return Number(st.expectancy); // ex: % ou USD selon producer
+    return NaN;
+  })();
+  // Mappe une plage [-2 ; +2] vers [0 ; 1] (0% ~ 0.5)
+  const hasExp = Number.isFinite(expRaw);
+  const expS   = hasExp? clamp01((expRaw + 2) / 4) : 0;
+
+  // Return / période (%) – utilise retPerPeriod, retPct ou P&L / capital initial
+  const retRaw = (function(){
+    if(Number.isFinite(st.retPerPeriod)) return Number(st.retPerPeriod);
+    if(Number.isFinite(st.retPct)) return Number(st.retPct);
+    if(hasEq && hasPnl){
+      const startCap = eqRaw - pnlRaw;
+      if(startCap>0) return (pnlRaw/startCap)*100;
+    }
+    return NaN;
+  })();
+  const hasRet = Number.isFinite(retRaw);
+  const retS   = hasRet
+    ? (retRaw>0 ? (1 - 1/(1 + retRaw/50)) : 0) // fonction saturante similaire à pnlS
+    : 0;
+
+  let num=0; let totalW=0;
+  function acc(hasMetric, weight, value){
+    if(!weight || weight<=0) return;
+    if(!hasMetric) return; // ne tient compte du poids que si la métrique existe réellement
+    totalW += weight;
+    num    += weight*value;
+  }
+
+  acc(hasPf, w.pf, pfS);
+  acc(hasWr, w.wr, wrS);
+  acc(hasRr, w.rr, rrS);
+  acc(hasPnl, w.pnl, pnlS);
+  acc(hasEq, w.eq, eqS);
+  acc(hasTr, w.trades, trS);
+  acc(hasDd, w.dd, ddS);
+  acc(hasSharpe, w.sharpe, sharpeS);
+  acc(hasRecov, w.recov, recovS);
+  acc(hasSlope, w.slope, slopeS);
+  acc(hasCons, w.cons, consS);
+  acc(hasExp, w.exp, expS);
+  acc(hasRet, w.ret, retS);
+
+  if(!totalW) return 0;
+  const s = num/totalW;
+  return s*100;
+}
 function buildZigZagData(piv){ const up=[], dn=[]; for(let k=1;k<piv.length;k++){ const a=piv[k-1], b=piv[k]; const upSeg=b.price>a.price; if(upSeg){ up.push({ time:a.time, value:a.price }); up.push({ time:b.time, value:b.price }); } else { dn.push({ time:a.time, value:a.price }); dn.push({ time:b.time, value:b.price }); } } return { up, dn }; }
 function getLastPivotSeg(piv){ if(!piv || piv.length<2) return null; const a=piv[piv.length-2], b=piv[piv.length-1]; return { a, b, dir: b.price>a.price? 'up':'down' }; }
 function clearTPPriceLines(){ for(const pl of heavenTPPriceLines){ try{ candleSeries.removePriceLine(pl);}catch(_){ } } heavenTPPriceLines=[]; }
@@ -2982,13 +3100,59 @@ function buildWeightsUI(){ if(!weightsBody) return; const prof=(weightsProfile&&
   <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
     <label>Profit Factor <input id="w_pf" type="number" min="0" max="100" step="1" value="${w.pf}" /></label>
     <label>Win % <input id="w_wr" type="number" min="0" max="100" step="1" value="${w.wr}" /></label>
-    <label>Avg RR <input id="w_rr" type="number" min="0" max="100" step="1" value="${w.rr}" /></label>
-    <label>P&L <input id="w_pnl" type="number" min="0" max="100" step="1" value="${w.pnl}" /></label>
-    <label>Cap. final <input id="w_eq" type="number" min="0" max="100" step="1" value="${w.eq}" /></label>
+    <label>Risk/Reward (Avg RR) <input id="w_rr" type="number" min="0" max="100" step="1" value="${w.rr}" /></label>
+    <label>P&L net <input id="w_pnl" type="number" min="0" max="100" step="1" value="${w.pnl}" /></label>
+    <label>Capital final <input id="w_eq" type="number" min="0" max="100" step="1" value="${w.eq}" /></label>
     <label>Trades <input id="w_trades" type="number" min="0" max="100" step="1" value="${w.trades}" /></label>
     <label>Max DD (inverse) <input id="w_dd" type="number" min="0" max="100" step="1" value="${w.dd}" /></label>
-  </div>`; }
-function readWeightsFromUI(){ const w={ pf:+(document.getElementById('w_pf')?.value||defaultWeights.pf), wr:+(document.getElementById('w_wr')?.value||defaultWeights.wr), rr:+(document.getElementById('w_rr')?.value||defaultWeights.rr), pnl:+(document.getElementById('w_pnl')?.value||defaultWeights.pnl), eq:+(document.getElementById('w_eq')?.value||defaultWeights.eq), trades:+(document.getElementById('w_trades')?.value||defaultWeights.trades), dd:+(document.getElementById('w_dd')?.value||defaultWeights.dd)}; return w; }
+    <label>Sharpe Ratio <input id="w_sharpe" type="number" min="0" max="100" step="1" value="${w.sharpe??0}" /></label>
+    <label>Recovery Factor <input id="w_recov" type="number" min="0" max="100" step="1" value="${w.recov??0}" /></label>
+    <label>Equity Slope <input id="w_slope" type="number" min="0" max="100" step="1" value="${w.slope??0}" /></label>
+    <label>Consistence / Stabilité <input id="w_cons" type="number" min="0" max="100" step="1" value="${w.cons??0}" /></label>
+    <label>Espérance (Expectancy) <input id="w_exp" type="number" min="0" max="100" step="1" value="${w.exp??0}" /></label>
+    <label>Return / période (%) <input id="w_ret" type="number" min="0" max="100" step="1" value="${w.ret??0}" /></label>
+  </div>`;
+  // Wiring live update of total counter
+  try{
+    const ids=['w_pf','w_wr','w_rr','w_pnl','w_eq','w_trades','w_dd','w_sharpe','w_recov','w_slope','w_cons','w_exp','w_ret'];
+    for(const id of ids){
+      const el=document.getElementById(id);
+      if(el && (!el.dataset || el.dataset.wiredTotal!=='1')){
+        el.addEventListener('input', ()=>{ try{ updateWeightsTotalInfo(); }catch(_){ } });
+        if(!el.dataset) el.dataset={};
+        el.dataset.wiredTotal='1';
+      }
+    }
+  }catch(_){ }
+}
+function readWeightsFromUI(){
+  const w={
+    pf:+(document.getElementById('w_pf')?.value||defaultWeights.pf),
+    wr:+(document.getElementById('w_wr')?.value||defaultWeights.wr),
+    rr:+(document.getElementById('w_rr')?.value||defaultWeights.rr),
+    pnl:+(document.getElementById('w_pnl')?.value||defaultWeights.pnl),
+    eq:+(document.getElementById('w_eq')?.value||defaultWeights.eq),
+    trades:+(document.getElementById('w_trades')?.value||defaultWeights.trades),
+    dd:+(document.getElementById('w_dd')?.value||defaultWeights.dd),
+    sharpe:+(document.getElementById('w_sharpe')?.value||defaultWeights.sharpe),
+    recov:+(document.getElementById('w_recov')?.value||defaultWeights.recov),
+    slope:+(document.getElementById('w_slope')?.value||defaultWeights.slope),
+    cons:+(document.getElementById('w_cons')?.value||defaultWeights.cons),
+    exp:+(document.getElementById('w_exp')?.value||defaultWeights.exp),
+    ret:+(document.getElementById('w_ret')?.value||defaultWeights.ret),
+  };
+  return w;
+}
+function updateWeightsTotalInfo(){
+  try{
+    const info=document.getElementById('weightsTotalInfo');
+    if(!info) return;
+    const w=readWeightsFromUI();
+    const total=(w.pf+w.wr+w.rr+w.pnl+w.eq+w.trades+w.dd+w.sharpe+w.recov+w.slope+w.cons+w.exp+w.ret)||0;
+    const remaining=100-total;
+    info.textContent = `Total: ${total.toFixed(1)} pts • Reste: ${remaining.toFixed(1)} pts`;
+  }catch(_){ }
+}
 if(labWeightsBtn){ labWeightsBtn.addEventListener('click', async ()=>{ try{ const prof = localStorage.getItem('labWeightsProfile')||'balancee'; if(weightsProfile){ weightsProfile.value=prof; }
   // Si Supabase est configuré, synchroniser les pondérations depuis lab_profiles avant d'afficher l'UI
   try{
@@ -2998,9 +3162,10 @@ if(labWeightsBtn){ labWeightsBtn.addEventListener('click', async ()=>{ try{ cons
     }
   }catch(_){ }
   buildWeightsUI();
+  updateWeightsTotalInfo();
   openModalEl(weightsModalEl);
 }catch(_){ } }); }
-if(weightsProfile){ weightsProfile.addEventListener('change', ()=>{ try{ buildWeightsUI(); }catch(_){ } }); }
+if(weightsProfile){ weightsProfile.addEventListener('change', ()=>{ try{ buildWeightsUI(); updateWeightsTotalInfo(); }catch(_){ } }); }
 if(weightsClose){ weightsClose.addEventListener('click', ()=> closeModalEl(weightsModalEl)); }
 if(weightsSave){ weightsSave.addEventListener('click', async ()=>{ try{ const prof = (weightsProfile&&weightsProfile.value)||'balancee'; const w = readWeightsFromUI(); saveWeights(prof, w); localStorage.setItem('labWeightsProfile', prof);
   // Persistance Supabase best-effort (si configuré + connecté)
