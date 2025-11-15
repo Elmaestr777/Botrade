@@ -7,7 +7,8 @@
   --muted: #374151; /* un peu plus foncé pour meilleur contraste sur fond clair */
   --header-bg: #f7f7f7;
   --header-border: #e5e7eb;
-  --primary: #2563eb;
+  --primary: #22c55e; /* accent émeraude plus moderne */
+  --accent-warn: #f59e0b; /* accent ambré pour contraintes/avertissements légers */
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -18,7 +19,8 @@
     --muted: #cbd5e1; /* plus clair pour lisibilité sur fond sombre */
     --header-bg: #0f1627;
     --header-border: #1f2937;
-    --primary: #3b82f6; /* légèrement plus clair en sombre */
+    --primary: #22c55e; /* même accent en sombre pour cohérence */
+    --accent-warn: #f59e0b;
   }
 }
 /* Manual theme override */
@@ -112,7 +114,7 @@ main {
   cursor: pointer;
 }
 .btn:hover { background: var(--bg2); }
-.btn.primary { background: #2563eb; border-color: #2563eb; color: #fff; }
+.btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
 .btn.primary:hover { filter: brightness(0.95); }
 .icon-btn { background: transparent; border: none; font-size: 20px; cursor: pointer; color: var(--fg); }
 
@@ -132,14 +134,28 @@ main {
   border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.25);
   display: flex; flex-direction: column;
 }
+/* Lab modal slightly wider for more comfortable layout */
+.modal-content.lab-modal {
+  width: min(1040px, calc(100% - 32px));
+}
 .modal-content.small { width: min(420px, calc(100% - 32px)); }
 .progress { width: 100%; height: 10px; background: var(--header-border); border-radius: 6px; overflow: hidden; }
-.progress > #btProgBar { height: 100%; width: 0%; background: #2563eb; transition: width 120ms linear; }
+.progress > #btProgBar { height: 100%; width: 0%; background: var(--primary); transition: width 120ms linear; }
 .modal-header { display:flex; align-items:center; justify-content:space-between; padding: 12px 14px; border-bottom: 1px solid var(--header-border); }
 .modal-body { padding: 12px 14px; overflow: auto; }
 /* Legibility tuning for Lab */
 #labModal .modal-body { font-size: 13.5px; line-height: 1.35; }
 #labModal .form-grid { gap: 12px; }
+#labModal .lab-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+@media (min-width: 1100px) {
+  #labModal .lab-grid {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr);
+  }
+}
 #labModal label { gap: 10px; }
 
 /* Strategy detail modal: slightly denser text + subtle canvas elevation */
@@ -204,11 +220,24 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
 
 /* Lab panels inside Lab modal */
 .lab-panels { display:grid; grid-template-columns: 1fr 320px; gap: 10px; align-items:start; }
+@media (max-width: 900px) {
+  .lab-panels { grid-template-columns: 1fr; }
+}
 .kpi-cards { display:grid; grid-template-columns: repeat(4, minmax(80px, 1fr)); gap:8px; }
 .kpi-item { border:1px solid var(--header-border); border-radius:8px; padding:8px; background: var(--bg); }
 .kpi-label { color: var(--muted); font-size: 11px; }
 .kpi-value { font-weight: 600; font-size: 16px; }
 
+#labModal .log-panel {
+  border: 1px solid var(--header-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--bg);
+  box-shadow: 0 1px 0 var(--header-border) inset, 0 8px 20px rgba(0,0,0,0.06);
+}
+#labModal .log-panel pre {
+  border-radius: 8px;
+}
 .lbc-table { border-collapse: collapse; width: 100%; }
 .lbc-table th, .lbc-table td { border: 1px solid var(--header-border); padding: 4px 6px; text-align: center; }
 .lbc-table thead th { position: sticky; top: 0; background: var(--bg); z-index: 3; box-shadow: 0 1px 0 var(--header-border); }
@@ -276,9 +305,9 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
 
 /* Lab Advanced: CSS-only toggle via hidden checkbox */
 #labModal input#labAdvEn:checked ~ .modal-header #labAdvLabel {
-  background: #2563eb;
-  border-color: #2563eb;
-  color: #fff;
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #0b1120;
 }
 #labModal input#labAdvEn:checked ~ .modal-body #labAdvPanel,
 #labModal input#labAdvEn:checked ~ .modal-body #labCoreRanges,
@@ -328,7 +357,7 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
 #labBayesConfig details.param-help-inline summary,
 #labModal details.param-help-inline summary {
   cursor: pointer;
-  color: #2563eb;
+  color: var(--primary);
   text-decoration: underline;
   margin-right: 6px;
 }
@@ -372,7 +401,7 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
 /* Section title chip */
 #labCoreRanges .section-title,
 #labModal .section-title {
-  width: 100%;
+  width: auto;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -404,9 +433,30 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
 }
 /* When headings are inside the form grid, make them start on a new row */
 #labModal .form-grid details.param-help-inline.heading { display:block; width:100%; grid-column: 1 / -1; }
-#labModal details.param-help-inline.heading summary:hover { background: rgba(37,99,235,0.08); }
+#labModal details.param-help-inline.heading summary:hover { background: rgba(34,197,94,0.12); }
 #labModal details.param-help-inline.heading summary::before { content: '▸'; margin-right: 6px; opacity: 0.9; transition: transform 160ms ease; }
 #labModal details.param-help-inline.heading[open] summary::before { transform: rotate(90deg); }
+
+/* Lab cards header/body layout */
+#labModal .lab-section-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+#labModal .lab-section-body {
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+}
+#labModal details.param-help-inline.heading.lab-help-header {
+  display:inline-flex;
+  width:auto;
+}
+#labModal details.param-help-inline.heading.lab-help-header .param-help {
+  max-width: 640px;
+}
 
 /* Unify number inputs and selects within Lab */
 #labModal input[type=number] { text-align: right; }
@@ -452,6 +502,21 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
 #labModal #labSLOptBlock,
 #labModal #labSLFibWrap { background: var(--bg); border: 1px solid var(--header-border); border-radius: 12px; padding: 10px 12px; box-shadow: 0 1px 0 var(--header-border) inset, 0 8px 20px rgba(0,0,0,0.06); }
 #labModal #labAdvPanel { border-style: dashed; }
+/* Subtle differentiation between Objective and Context cards */
+#labModal #labObjectiveCard {
+  border-left-width: 3px;
+  border-left-color: var(--primary);
+}
+#labModal #labContextCard {
+  border-left-width: 3px;
+  border-left-color: color-mix(in srgb, var(--muted) 65%, transparent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--muted) 6%, transparent) 0%, var(--bg) 40%);
+}
+#labModal #labConstraintsCard {
+  border-left-width: 3px;
+  border-left-color: var(--accent-warn);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent-warn) 10%, transparent) 0%, var(--bg) 45%);
+}
 /* Card hover subtle lift */
 #labModal #labObjectiveCard:hover,
 #labModal #labContextCard:hover,
@@ -467,7 +532,11 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
 #labTPFibWrap label:hover, #labSLFibWrap label:hover, #labAdvPanel label:hover { background: var(--bg2, rgba(0,0,0,0.04)); }
 #labAdvPanel label:has(> input[type=checkbox]:checked),
 #labTPFibWrap label:has(> input[type=checkbox]:checked),
-#labSLFibWrap label:has(> input[type=checkbox]:checked) { border-color: #2563eb; background: rgba(37,99,235,0.10); box-shadow: 0 0 0 2px rgba(37,99,235,0.12); }
+#labSLFibWrap label:has(> input[type=checkbox]:checked) {
+  border-color: var(--primary);
+  background: rgba(34,197,94,0.10);
+  box-shadow: 0 0 0 2px rgba(34,197,94,0.16);
+}
 #labTPFibWrap details.param-help-inline.heading summary,
 #labSLFibWrap details.param-help-inline.heading summary,
 #labEAConfig details.param-help-inline.heading summary,
