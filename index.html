@@ -1374,43 +1374,53 @@
           <div style="display:grid; grid-template-columns: 1fr; gap:12px;">
             <div>
               <div style="font-weight:600;">Radar critères</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Vue synthétique des principaux critères (0–100). Permet de repérer d'un coup d'œil les forces et faiblesses globales de la stratégie.</div>
               <canvas id="detailRadar" width="980" height="300" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailRadarNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
               <div style="font-weight:600;">Équity</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Évolution du capital dans le temps. Cherchez une courbe régulière avec des phases de baisse limitées et un profil compatible avec votre tolérance au risque.</div>
               <canvas id="detailEquity" width="980" height="220" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailEquityNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
               <div id="detailCompareNote" style="color:var(--muted); font-size:12px; margin-top:2px;">—</div>
             </div>
             <div>
               <div style="font-weight:600;">Drawdown absolu</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Taille des creux en dollars. Permet d'identifier les pires périodes de pertes et de vérifier qu'elles restent acceptables pour le capital engagé.</div>
               <canvas id="detailDD" width="980" height="100" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailDDNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
               <div style="font-weight:600;">Underwater (drawdown %)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Drawdown en pourcentage du capital. Utile pour comparer le risque relatif entre stratégies ou paramètres sur des capitaux différents.</div>
               <canvas id="detailUnder" width="980" height="120" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailUnderNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
               <div style="font-weight:600;">Distribution des rendements</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Histogramme des retours par trade. Recherchez une queue de pertes limitée et une queue de gains étendue, signe d'un bon équilibre risque/rendement.</div>
               <canvas id="detailHist" width="980" height="180" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailHistNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
               <div style="font-weight:600;">Efficacité de la stratégie</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Barres normalisées (Win%, R:R, efficacité, temps en marché, fréquence). Permet de voir en un clin d'œil les composantes fortes et celles à optimiser.</div>
               <canvas id="detailEff" width="980" height="180" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailEffNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
               <div style="font-weight:600;">Complexité & Robustesse</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Mesure le compromis entre nombre de paramètres actifs et robustesse globale. Idéalement, viser une robustesse élevée avec une complexité raisonnable.</div>
               <canvas id="detailRobust" width="980" height="160" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailRobustNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div id="detailSummary" style="padding:8px; border:1px solid var(--header-border); border-radius:8px; background:var(--bg);">
               <div style="display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-bottom:6px;">
-                <div style="font-weight:600;">Commentaire & analyse</div>
+                <div>
+                  <div style="font-weight:600;">Commentaire & analyse</div>
+                  <div style="color:var(--muted); font-size:11px;">Synthèse narrative de la stratégie et de sa comparée. À lire pour comprendre le profil de risque/rendement et les axes d'amélioration concrets.</div>
+                </div>
                 <div style="display:flex; gap:6px; align-items:center; font-size:12px;">
                   <label>Slippage (bps)
                     <input id="detailSlipBps" type="number" min="0" max="200" step="1" value="0" style="width:6rem;" />
@@ -1423,101 +1433,121 @@
             </div>
             <div>
               <div style="font-weight:600;">IC (bootstrap 95%)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Intervalles de confiance estimés par bootstrap. Permettent de visualiser l'incertitude sur Win%, PF et expectancy plutôt que de se fier à un seul chiffre.</div>
               <canvas id="detailCIs" width="980" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailCIsNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
               <div style="font-weight:600;">Rolling PF (fenêtre 30)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Profit factor calculé sur une fenêtre glissante. Sert à détecter les phases où la stratégie passe durablement sous PF&nbsp;1 (non rentable).</div>
               <canvas id="detailRollPF" width="980" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailRollPFNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
               <div style="font-weight:600;">Rolling Win% (fenêtre 30)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Taux de réussite glissant. Met en évidence les périodes où la stratégie décroche ou s'améliore fortement.</div>
               <canvas id="detailRollWin" width="980" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailRollWinNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
               <div style="font-weight:600;">Rolling Avg R:R (fenêtre 30)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">R:R moyen sur 30 positions. Permet de voir si les objectifs deviennent trop courts ou trop ambitieux dans certains régimes.</div>
               <canvas id="detailRollRR" width="980" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailRollRRNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
               <div style="font-weight:600;">Rolling Expectancy (fenêtre 30)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Expectancy par trade sur fenêtre glissante. À utiliser pour repérer les zones temporelles où la stratégie devient négative.</div>
               <canvas id="detailRollExp" width="980" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailRollExpNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
               <div style="font-weight:600;">Durée des trades</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Répartition de la durée des positions. Vérifiez que la stratégie correspond bien à votre horizon de temps (scalping, swing, positionnel...).</div>
               <canvas id="detailDurHist" width="980" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailDurHistNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
               <div style="font-weight:600;">Séquences victoires/défaites</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Distribution des séries de gains et de pertes. Met en lumière la possibilité de longues séries perdantes à supporter psychologiquement.</div>
               <canvas id="detailStreaks" width="980" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailStreaksNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
               <div style="font-weight:600;">Distribution retours — Long vs Short</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Compare la distribution des performances Long et Short. Idéal pour voir si un côté du marché porte l'essentiel de la performance.</div>
               <canvas id="detailLSHist" width="980" height="160" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailLSHistNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
               <div style="font-weight:600;">MAE/MFE (excursions en R)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Dispersion des excursions maximales en R (risque). Sert à calibrer TP/SL et trailing en fonction de ce que le marché offre réellement.</div>
               <canvas id="detailMAEMFE" width="980" height="220" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailMAEMFENote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
               <div style="font-weight:600;">Saisonnalité — Retours hebdomadaires (%)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Carte des retours semaine par semaine. À utiliser pour repérer les périodes structurellement favorables ou défavorables à la stratégie.</div>
               <canvas id="detailWeekly" width="980" height="220" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailWeeklyNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
               <div style="font-weight:600;">Saisonnalité — par jour de semaine (%)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Retour moyen par jour de la semaine. Sert à filtrer d'éventuels jours structurellement faibles ou instables.</div>
               <canvas id="detailDOW" width="980" height="200" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailDOWNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
               <div style="font-weight:600;">Saisonnalité — Jour × Heure (retours %)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Heatmap jour × heure. Idéale pour identifier les créneaux horaires où la stratégie surperforme ou sous-performe.</div>
               <canvas id="detailDOWHour" width="980" height="220" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailDOWHourNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
               <div style="font-weight:600;">Jour × Heure — Long seulement</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Même carte jour × heure mais filtrée sur les positions Long. Permet de voir où la jambe acheteuse est réellement efficace.</div>
               <canvas id="detailDOWHourLong" width="980" height="200" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailDOWHourLongNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
               <div style="font-weight:600;">Jour × Heure — Short seulement</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Idem pour les positions Short. Utile pour voir si la jambe vendeuse est opportuniste ou trop fragile sur certains créneaux.</div>
               <canvas id="detailDOWHourShort" width="980" height="200" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailDOWHourShortNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
               <div style="font-weight:600;">Walk-forward — splits temporels</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Performance par segment temporel. Sert à vérifier que la stratégie reste exploitable hors échantillon et ne dépend pas d'une seule période.</div>
               <canvas id="detailWF" width="980" height="200" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailWFNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
               <div style="font-weight:600;">Régimes (Trend × Volatilité)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">PF par combinaison de tendance et de volatilité. Identifie clairement les régimes de marché où la stratégie fonctionne bien ou mal.</div>
               <canvas id="detailRegime" width="980" height="200" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailRegimeNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
               <div style="font-weight:600;">Pareto — P&L vs Max DD (Palmarès)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Nuage P&L vs drawdown. Permet de comparer visuellement le compromis rendement/risque de la stratégie par rapport au Palmarès.</div>
               <canvas id="detailPareto" width="980" height="220" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailParetoNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
               <div style="font-weight:600;">Monte Carlo — éventail d'équity (bootstrap trades)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Simulation aléatoire de l'ordre des trades. Montre la dispersion possible des trajectoires d'équity à partir du même historique de trades.</div>
               <canvas id="detailMC" width="980" height="220" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailMCNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
               <div style="font-weight:600;">QQ-Plot (retours normalisés)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Compare la distribution des rendements à une loi normale. Sert à repérer des queues épaisses ou des asymétries importantes.</div>
               <canvas id="detailQQ" width="980" height="200" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailQQNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
               <div style="font-weight:600;">Autocorrélation (lags)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Autocorrélation des rendements sur plusieurs lags. Permet de voir s'il existe un clustering de gains/pertes ou des dépendances exploitables.</div>
               <canvas id="detailACF" width="980" height="200" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailACFNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
