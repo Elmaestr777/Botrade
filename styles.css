@@ -511,6 +511,7 @@ label { display:flex; align-items:center; gap:8px; margin:6px 0; }
   border-left-width: 3px;
   border-left-color: var(--primary);
   background: linear-gradient(90deg, color-mix(in srgb, var(--primary) 6%, transparent) 0%, var(--bg) 40%);
+  grid-column: 1 / -1;
 }
 #labModal #labConstraintsCard {
   border-left-width: 3px;
