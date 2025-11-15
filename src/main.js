@@ -945,7 +945,20 @@ if(liveOpenBtn){ liveOpenBtn.addEventListener('click', async ()=>{ try{
   }
 } catch(_){ } }); }
 if(liveCloseBtn&&liveModalEl) liveCloseBtn.addEventListener('click', ()=> closeModalEl(liveModalEl)); if(liveModalEl) liveModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(liveModalEl); });
-if(labOpenBtn&&labModalEl) labOpenBtn.addEventListener('click', async ()=>{ try{ openModalEl(labModalEl); try{ setupLabAdvUI(); setupLabRiskUI(); }catch(_){ } await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); if(labCloseBtn&&labModalEl) labCloseBtn.addEventListener('click', ()=> closeModalEl(labModalEl)); if(labModalEl) labModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(labModalEl); });
+if(labOpenBtn&&labModalEl) labOpenBtn.addEventListener('click', async ()=>{ try{
+  openModalEl(labModalEl);
+  try{ setupLabAdvUI(); setupLabRiskUI(); }catch(_){ }
+  // Synchronise les pondérations du profil courant depuis Supabase (si disponible)
+  try{
+    if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchLabProfileWeights==='function'){
+      const prof = (document.getElementById('labProfile') && document.getElementById('labProfile').value) || (localStorage.getItem('labWeightsProfile')||'balancee');
+      const row = await SUPA.fetchLabProfileWeights(prof);
+      if(row && row.weights){ saveWeights(prof, row.weights); }
+    }
+  }catch(_){ }
+  await renderLabFromStorage();
+  await computeLabBenchmarkAndUpdate();
+}catch(_){ } }); if(labCloseBtn&&labModalEl) labCloseBtn.addEventListener('click', ()=> closeModalEl(labModalEl)); if(labModalEl) labModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(labModalEl); });
 
 if(btOpenBtn&&btModalEl) btOpenBtn.addEventListener('click', ()=> openModalEl(btModalEl)); if(btCloseBtn&&btModalEl) btCloseBtn.addEventListener('click', ()=> closeModalEl(btModalEl)); if(btModalEl) btModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(btModalEl); });
 if(heavenCfgBtn&&lbcModalEl) heavenCfgBtn.addEventListener('click', ()=>{ try{ populateHeavenModal(); try{ populateHeavenSupaList(); }catch(__){} try{ populateHeavenTFOptions(); }catch(__){} try{ populateHeavenLoadOptions(); }catch(__){} }catch(_){ } openModalEl(lbcModalEl); }); if(lbcCloseBtn&&lbcModalEl) lbcCloseBtn.addEventListener('click', ()=> closeModalEl(lbcModalEl)); if(lbcModalEl) lbcModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(lbcModalEl); });
@@ -2976,10 +2989,30 @@ function buildWeightsUI(){ if(!weightsBody) return; const prof=(weightsProfile&&
     <label>Max DD (inverse) <input id="w_dd" type="number" min="0" max="100" step="1" value="${w.dd}" /></label>
   </div>`; }
 function readWeightsFromUI(){ const w={ pf:+(document.getElementById('w_pf')?.value||defaultWeights.pf), wr:+(document.getElementById('w_wr')?.value||defaultWeights.wr), rr:+(document.getElementById('w_rr')?.value||defaultWeights.rr), pnl:+(document.getElementById('w_pnl')?.value||defaultWeights.pnl), eq:+(document.getElementById('w_eq')?.value||defaultWeights.eq), trades:+(document.getElementById('w_trades')?.value||defaultWeights.trades), dd:+(document.getElementById('w_dd')?.value||defaultWeights.dd)}; return w; }
-if(labWeightsBtn){ labWeightsBtn.addEventListener('click', ()=>{ try{ const prof = localStorage.getItem('labWeightsProfile')||'balancee'; if(weightsProfile){ weightsProfile.value=prof; } buildWeightsUI(); openModalEl(weightsModalEl); }catch(_){ } }); }
+if(labWeightsBtn){ labWeightsBtn.addEventListener('click', async ()=>{ try{ const prof = localStorage.getItem('labWeightsProfile')||'balancee'; if(weightsProfile){ weightsProfile.value=prof; }
+  // Si Supabase est configuré, synchroniser les pondérations depuis lab_profiles avant d'afficher l'UI
+  try{
+    if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchLabProfileWeights==='function'){
+      const row = await SUPA.fetchLabProfileWeights(prof);
+      if(row && row.weights){ saveWeights(prof, row.weights); }
+    }
+  }catch(_){ }
+  buildWeightsUI();
+  openModalEl(weightsModalEl);
+}catch(_){ } }); }
 if(weightsProfile){ weightsProfile.addEventListener('change', ()=>{ try{ buildWeightsUI(); }catch(_){ } }); }
 if(weightsClose){ weightsClose.addEventListener('click', ()=> closeModalEl(weightsModalEl)); }
-if(weightsSave){ weightsSave.addEventListener('click', ()=>{ try{ const prof = (weightsProfile&&weightsProfile.value)||'balancee'; const w = readWeightsFromUI(); saveWeights(prof, w); localStorage.setItem('labWeightsProfile', prof); closeModalEl(weightsModalEl); setStatus('Pondérations enregistrées'); try{ renderLabFromStorage(); computeLabBenchmarkAndUpdate(); }catch(_){ } }catch(_){ } }); }
+if(weightsSave){ weightsSave.addEventListener('click', async ()=>{ try{ const prof = (weightsProfile&&weightsProfile.value)||'balancee'; const w = readWeightsFromUI(); saveWeights(prof, w); localStorage.setItem('labWeightsProfile', prof);
+  // Persistance Supabase best-effort (si configuré + connecté)
+  try{
+    if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.upsertLabProfileWeights==='function'){
+      await SUPA.upsertLabProfileWeights(prof, w);
+    }
+  }catch(_){ }
+  closeModalEl(weightsModalEl);
+  setStatus('Pondérations enregistrées');
+  try{ renderLabFromStorage(); computeLabBenchmarkAndUpdate(); }catch(_){ }
+}catch(_){ } }); }
 
 // Lab — Entraîner
 const labRunBtn=document.getElementById('labRun');

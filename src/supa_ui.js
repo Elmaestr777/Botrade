@@ -58,18 +58,81 @@ function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfi
     if(__profileIdCacheByName.has(key)) return __profileIdCacheByName.get(key);
     const c = ensureClient(); if(!c) return null;
     try{
-      const { data, error } = await c
-        .from('lab_profiles')
-        .select('id')
-        .eq('name', key)
-        .is('is_public', true)
-        .limit(1)
-        .maybeSingle();
-      if(error) return null;
-      const id = (data && data.id) || null;
+      let row=null;
+      let uid=null;
+      try{ uid = await getUserId(); }catch(_){ uid=null; }
+      if(uid){
+        const { data, error } = await c
+          .from('lab_profiles')
+          .select('id')
+          .eq('name', key)
+          .eq('user_id', uid)
+          .limit(1)
+          .maybeSingle();
+        if(!error && data){ row=data; }
+      }
+      if(!row){
+        const { data, error } = await c
+          .from('lab_profiles')
+          .select('id')
+          .eq('name', key)
+          .is('is_public', true)
+          .limit(1)
+          .maybeSingle();
+        if(!error && data){ row=data; }
+      }
+      const id = (row && row.id) || null;
       __profileIdCacheByName.set(key, id);
       return id;
     }catch(_){ return null; }
+  }
+
+  async function fetchLabProfileWeights(profileName){
+    const c = ensureClient(); if(!c) return null;
+    const key = (profileName||'balancee').toLowerCase();
+    try{
+      let row=null;
+      let uid=null;
+      try{ uid = await getUserId(); }catch(_){ uid=null; }
+      if(uid){
+        const { data, error } = await c
+          .from('lab_profiles')
+          .select('name,weights')
+          .eq('name', key)
+          .eq('user_id', uid)
+          .limit(1)
+          .maybeSingle();
+        if(!error && data){ row=data; }
+      }
+      if(!row){
+        const { data, error } = await c
+          .from('lab_profiles')
+          .select('name,weights')
+          .eq('name', key)
+          .is('is_public', true)
+          .limit(1)
+          .maybeSingle();
+        if(!error && data){ row=data; }
+      }
+      return row || null;
+    }catch(_){ return null; }
+  }
+
+  async function upsertLabProfileWeights(profileName, weights){
+    const c = ensureClient(); if(!c) return false;
+    let uid=null;
+    try{ uid = await getUserId(); }catch(_){ uid=null; }
+    if(!uid){ slog('Supabase: impossible de sauvegarder les pondérations (non connecté)'); return false; }
+    const name = (profileName||'balancee').toLowerCase();
+    try{
+      const row = { user_id: uid, name, description: null, weights: weights||{}, is_public: false };
+      const { error } = await c
+        .from('lab_profiles')
+        .upsert([row], { onConflict: 'user_id,name', ignoreDuplicates: false, returning: 'minimal' });
+      if(error){ slog('Supabase: upsert lab_profiles KO — '+(error.message||error)); return false; }
+      __profileIdCacheByName.delete(name);
+      return true;
+    }catch(e){ slog('Supabase: upsert lab_profiles exception — '+(e&&e.message?e.message:e)); return false; }
   }
 
   function chunk(arr, n){ const out=[]; for(let i=0;i<arr.length;i+=n){ out.push(arr.slice(i,i+n)); } return out; }
@@ -525,6 +588,8 @@ async function fetchHeadlessSessionByName(name){
     fetchKnownKeys: fetchKnownCanonicalKeys,
     fetchPalmares,
     getProfileIdByName,
+    fetchLabProfileWeights,
+    upsertLabProfileWeights,
     // Heaven
     persistHeavenStrategy,
     fetchHeavenStrategies,
