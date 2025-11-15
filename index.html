@@ -45,13 +45,13 @@
       <img id="brandLogo" src="assets/botrade_header.png" alt="botrade" class="brand-logo" />
       <h1 id="pairTitle" style="display:none">BTC/USDC</h1>
         <div class="controls">
-          <label for="symbol">Symbole</label>
+          <label for="symbol" data-i18n="header.symbolLabel">Symbole</label>
         <select id="symbol">
           <option value="BTCUSDC" selected>BTC/USDC</option>
           <option value="ETHUSDC">ETH/USDC</option>
           <option value="BNBUSDC">BNB/USDC</option>
         </select>
-        <label for="interval">Intervalle</label>
+        <label for="interval" data-i18n="header.intervalLabel">Intervalle</label>
         <select id="interval">
           <option value="1m">1m</option>
           <option value="5m">5m</option>
@@ -60,19 +60,20 @@
           <option value="4h">4h</option>
           <option value="1d">1d</option>
         </select>
-        <label class="hdr-toggle" id="emaCtrl" title="Activer/Désactiver l'affichage des EMA/MA">
+        <label class="hdr-toggle" id="emaCtrl" title="Activer/Désactiver l'affichage des EMA/MA" data-i18n-title="header.emaToggleTitle">
           <input id="emaToggle" type="checkbox" checked />
-          <button id="emaCfg" class="link-btn" type="button" title="Paramètres EMA/MA">EMA ⚙</button>
+          <button id="emaCfg" class="link-btn" type="button" title="Paramètres EMA/MA" data-i18n-title="header.emaCfgTitle">EMA ⚙</button>
         </label>
-        <label class="hdr-toggle" id="heavenCtrl" title="Activer/Désactiver Heaven">
+        <label class="hdr-toggle" id="heavenCtrl" title="Activer/Désactiver Heaven" data-i18n-title="header.heavenToggleTitle">
           <input id="toggleLBC" type="checkbox" />
-          <button id="heavenCfg" class="link-btn" type="button" title="Paramètres Heaven">Heaven ⚙</button>
+          <button id="heavenCfg" class="link-btn" type="button" title="Paramètres Heaven" data-i18n-title="header.heavenCfgTitle">Heaven ⚙</button>
         </label>
-        <button id="btRunVisible" class="btn">Backtest</button>
-        <button id="labOpen" class="btn" title="Recherche/Apprentissage par TF">Lab</button>
-        <button id="liveOpen" class="btn" title="Paper/Live trading">Live</button>
-        <button id="supaCfgBtn" class="btn" title="Configurer Supabase">Supabase</button>
+        <button id="btRunVisible" class="btn" data-i18n="header.btRun">Backtest</button>
+        <button id="labOpen" class="btn" title="Recherche/Apprentissage par TF" data-i18n="header.lab" data-i18n-title="header.labTitle">Lab</button>
+        <button id="liveOpen" class="btn" title="Paper/Live trading" data-i18n="header.live" data-i18n-title="header.liveTitle">Live</button>
+        <button id="supaCfgBtn" class="btn" title="Configurer Supabase" data-i18n="header.supaBtn" data-i18n-title="header.supaTitle">Supabase</button>
         <button id="themeToggle" class="btn" title="Basculer thème (Auto → Sombre → Clair)">Thème: Auto</button>
+        <button id="langToggle" class="btn" title="Changer la langue (FR → EN → ES)">Langue: FR</button>
         <span id="status" class="status"></span>
         <span id="barsInfo" class="status"></span>
       </div>
@@ -83,7 +84,7 @@
           <div id="lbc-prob" class="lbc-card hidden"></div>
           <div id="lbc-table" class="lbc-card hidden"></div>
         </div>
-        <button id="gotoEndBtn" class="btn">⏭ Aller à la fin</button>
+        <button id="gotoEndBtn" class="btn" data-i18n="header.gotoEnd">⏭ Aller à la fin</button>
       </div>
     </main>
 
@@ -905,26 +906,26 @@
         </div>
         <div class="modal-footer" style="flex-wrap:wrap; gap:8px; align-items:center;">
           <div style="display:flex; gap:6px; align-items:center; flex:1 1 auto; min-width:260px;">
-            <input id="lbcSupaName" type="text" placeholder="Nom" style="flex:1 1 auto; min-width:160px;" />
-            <button id="lbcSupaSave" class="btn">Sauvegarder</button>
+            <input id="lbcSupaName" type="text" placeholder="Nom" style="flex:1 1 auto; min-width:160px;" data-i18n-placeholder="heaven.supa.namePlaceholder" />
+            <button id="lbcSupaSave" class="btn" data-i18n="common.save">Enregistrer</button>
           </div>
           <div style="display:flex; gap:6px; align-items:center; flex:2 1 auto; min-width:320px;">
             <label>TF
               <select id="heavenTFSelect" style="min-width:8rem;"></select>
             </label>
-            <label>Profil
+            <label data-i18n="lab.weights.profileLabel">Profil
               <select id="heavenProfileSelect" style="min-width:10rem;">
-                <option value="sure">Stratégie sûre</option>
-                <option value="balancee" selected>Stratégie balancée</option>
-                <option value="agressive">Stratégie agressive</option>
+                <option value="sure" data-i18n="lab.weights.profile.safe">Stratégie sûre</option>
+                <option value="balancee" selected data-i18n="lab.weights.profile.bal">Stratégie balancée</option>
+                <option value="agressive" data-i18n="lab.weights.profile.agg">Stratégie agressive</option>
               </select>
             </label>
             <select id="heavenLoadSelect" style="flex:1 1 auto; min-width:200px;"></select>
-            <button id="heavenLoadBtn" class="btn">Charger</button>
+            <button id="heavenLoadBtn" class="btn" data-i18n="common.load">Charger</button>
           </div>
           <span style="flex:1 1 100%; height:0;"></span>
-          <button id="lbcReset" class="btn">Réinitialiser</button>
-          <button id="lbcSave" class="btn primary">Charger</button>
+          <button id="lbcReset" class="btn" data-i18n="common.reset">Réinitialiser</button>
+          <button id="lbcSave" class="btn primary" data-i18n="common.load">Charger</button>
         </div>
       </div>
     </div>
@@ -934,7 +935,7 @@
       <div class="modal-backdrop" data-close="1"></div>
       <div class="modal-content">
         <div class="modal-header">
-          <h2>EMA / MA</h2>
+          <h2 data-i18n="ema.modal.title">EMA / MA</h2>
           <button id="emaClose" class="icon-btn" aria-label="Fermer">×</button>
         </div>
         <div class="modal-body">
@@ -955,7 +956,7 @@
           </form>
         </div>
         <div class="modal-footer">
-          <button id="emaSave" class="btn primary">Enregistrer</button>
+          <button id="emaSave" class="btn primary" data-i18n="common.save">Enregistrer</button>
         </div>
       </div>
     </div>
@@ -965,25 +966,25 @@
       <div class="modal-backdrop" data-close="1"></div>
       <div class="modal-content small">
         <div class="modal-header">
-          <h2>Simulation</h2>
+          <h2 data-i18n="bt.progress.title">Simulation</h2>
         </div>
         <div class="modal-body">
-          <div id="btProgText" style="margin-bottom:6px;">Préparation...</div>
+          <div id="btProgText" style="margin-bottom:6px;" data-i18n="bt.progress.initShort">Préparation...</div>
           <div class="progress"><div id="btProgBar"></div></div>
           <div id="btProgTime" style="margin-top:6px; font-size:12px;">⏱ 00:00</div>
           <div id="btProgNote" style="margin-top:4px; color:var(--muted); font-size:12px;"></div>
-          <div id="btProgGlobalText" style="margin-top:8px; font-size:12px;">Global: 0% (0/0) — ETA —</div>
+          <div id="btProgGlobalText" style="margin-top:8px; font-size:12px;" data-i18n="bt.progress.globalInit">Global: 0% (0/0) — ETA —</div>
           <div class="progress"><div id="btProgGlobalBar"></div></div>
           <pre id="btProgLog" style="margin-top:6px; max-height:35vh; overflow:auto; background:var(--bg2, rgba(0,0,0,0.04)); padding:6px; border-radius:4px; font-size:12px; white-space:pre-wrap;">—</pre>
         </div>
         <div class="modal-footer">
           <div style="margin-right:auto; display:flex; gap:8px;">
-            <button id="btPause" class="btn" title="Mettre en pause/Reprendre">Pause</button>
-            <button id="btStop" class="btn" title="Arrêter">Stop</button>
+            <button id="btPause" class="btn" title="Mettre en pause/Reprendre" data-i18n="bt.progress.btn.pause" data-i18n-title="bt.progress.pauseTitle">Pause</button>
+            <button id="btStop" class="btn" title="Arrêter" data-i18n="bt.progress.btn.stop" data-i18n-title="bt.progress.stopTitle">Stop</button>
           </div>
-          <button id="btShowDetails" class="btn" title="Afficher la liste complète des évaluations">Détails</button>
-          <button id="btExportDetails" class="btn" title="Exporter les évaluations en CSV">Exporter CSV</button>
-          <button id="btAbort" class="btn">Annuler</button>
+          <button id="btShowDetails" class="btn" title="Afficher la liste complète des évaluations" data-i18n="bt.progress.btn.details" data-i18n-title="bt.progress.detailsTitle">Détails</button>
+          <button id="btExportDetails" class="btn" title="Exporter les évaluations en CSV" data-i18n="bt.progress.btn.export" data-i18n-title="bt.progress.exportTitle">Exporter CSV</button>
+          <button id="btAbort" class="btn" data-i18n="bt.progress.btn.cancel">Annuler</button>
         </div>
       </div>
     </div>
@@ -993,48 +994,48 @@
       <div class="modal-backdrop" data-close="1"></div>
       <div class="modal-content">
         <div class="modal-header">
-          <h2>Paramètres de simulation</h2>
+          <h2 data-i18n="bt.modal.title">Paramètres de simulation</h2>
           <button id="btCloseModal" class="icon-btn" aria-label="Fermer">×</button>
         </div>
         <div class="modal-body">
           <form id="btForm" class="form-grid">
             <fieldset>
-              <legend>Général</legend>
-              <label>Capital initial <input id="btStartCap" type="number" min="0" step="100" value="10000" style="width:8rem" /></label>
-              <label>Frais (%) <input id="btFee" type="number" min="0" step="0.01" value="0.10" style="width:6rem" /></label>
-              <label>Levier (x) <input id="btLev" type="number" min="1" max="125" step="0.1" value="1" style="width:6rem" /></label>
-              <label>Max % par trade <input id="btMaxPct" type="number" min="0" max="100" step="1" value="100" style="width:6rem" /></label>
-              <label>Base du capital
+              <legend data-i18n="bt.modal.general.legend">G e9n e9ral</legend>
+              <label><span data-i18n="bt.modal.startCap">Capital initial</span> <input id="btStartCap" type="number" min="0" step="100" value="10000" style="width:8rem" /></label>
+              <label><span data-i18n="bt.modal.fee">Frais (%)</span> <input id="btFee" type="number" min="0" step="0.01" value="0.10" style="width:6rem" /></label>
+              <label><span data-i18n="bt.modal.lev">Levier (x)</span> <input id="btLev" type="number" min="1" max="125" step="0.1" value="1" style="width:6rem" /></label>
+              <label><span data-i18n="bt.modal.maxPct">Max % par trade</span> <input id="btMaxPct" type="number" min="0" max="100" step="1" value="100" style="width:6rem" /></label>
+              <label><span data-i18n="bt.modal.baseCap">Base du capital</span>
                 <select id="btMaxBase">
-                  <option value="initial" selected>Capital initial</option>
-                  <option value="equity">Capital variable</option>
+                  <option value="initial" selected data-i18n="bt.modal.base.initial">Capital initial</option>
+                  <option value="equity" data-i18n="bt.modal.base.equity">Capital variable</option>
                 </select>
               </label>
             </fieldset>
             <fieldset>
-              <legend>Période</legend>
-              <label><input type="radio" name="btRangeMode" id="btRangeVisible" value="visible" checked /> Période visible</label>
-              <label><input type="radio" name="btRangeMode" id="btRangeAll" value="all" /> Tout l'historique</label>
+              <legend data-i18n="bt.modal.period.legend">P e9riode</legend>
+              <label><input type="radio" name="btRangeMode" id="btRangeVisible" value="visible" checked /> <span data-i18n="bt.modal.range.visible">P e9riode visible</span></label>
+              <label><input type="radio" name="btRangeMode" id="btRangeAll" value="all" /> <span data-i18n="bt.modal.range.all">Tout l'historique</span></label>
               <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-                <label><input type="radio" name="btRangeMode" id="btRangeDates" value="dates" /> Dates</label>
-                <label>De <input id="btFrom" type="datetime-local" style="width: 14rem" /></label>
-                <label>À <input id="btTo" type="datetime-local" style="width: 14rem" /></label>
+                <label><input type="radio" name="btRangeMode" id="btRangeDates" value="dates" /> <span data-i18n="bt.modal.range.dates">Dates</span></label>
+                <label><span data-i18n="bt.modal.range.from">De</span> <input id="btFrom" type="datetime-local" style="width: 14rem" /></label>
+                <label><span data-i18n="bt.modal.range.to"> c0</span> <input id="btTo" type="datetime-local" style="width: 14rem" /></label>
               </div>
-              <p style="color:var(--muted);font-size:12px;margin:4px 0 0;">Les dates sont interprétées dans votre fuseau horaire local.</p>
+              <p style="color:var(--muted);font-size:12px;margin:4px 0 0;" data-i18n="bt.modal.range.note">Les dates sont interpr e9t e9es dans votre fuseau horaire local.</p>
             </fieldset>
             <fieldset style="display:none">
-              <legend>Optimisation (utiliser le Lab)</legend>
-              <p style="color:var(--muted);font-size:12px;margin:0 0 6px;">Optimise sur l'intervalle actuel (sélectionne 1m/5m/15m en haut).</p>
+              <legend data-i18n="bt.modal.opt.legend">Optimisation (utiliser le Lab)</legend>
+              <p style="color:var(--muted);font-size:12px;margin:0 0 6px;" data-i18n="bt.modal.opt.note">Optimise sur l'intervalle actuel (s e9lectionne 1m/5m/15m en haut).</p>
               <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
-                <label>Stratégie
+                <label><span data-i18n="bt.modal.opt.strategy">Strat e9gie</span>
                     <select id="btOptStrategy">
-                      <option value="grid" selected>Grille</option>
-                      <option value="random">Aléatoire</option>
-                      <option value="ea">Évolutionnaire</option>
-                      <option value="bayes">Bayes (EDA)</option>
+                      <option value="grid" selected data-i18n="bt.modal.opt.strategy.grid">Grille</option>
+                      <option value="random" data-i18n="bt.modal.opt.strategy.random">Al e9atoire</option>
+                      <option value="ea" data-i18n="bt.modal.opt.strategy.ea"> c9volutionnaire</option>
+                      <option value="bayes" data-i18n="bt.modal.opt.strategy.bayes">Bayes (EDA)</option>
                     </select>
                 </label>
-                <label>TF
+                <label><span data-i18n="bt.modal.opt.tf">TF</span>
                   <select id="btOptInterval" style="min-width:6rem;">
                     <option value="1m">1m</option>
                     <option value="5m">5m</option>
@@ -1044,94 +1045,94 @@
                     <option value="1d">1d</option>
                   </select>
                 </label>
-                <label>Profil
+                <label><span data-i18n="bt.modal.opt.profile">Profil</span>
                   <select id="btOptProfile" style="min-width:8rem;">
-                    <option value="sure">Sûre</option>
-                    <option value="balancee" selected>Balancée</option>
-                    <option value="agressive">Agressive</option>
+                    <option value="sure" data-i18n="bt.modal.opt.profile.safe">S bre</option>
+                    <option value="balancee" selected data-i18n="bt.modal.opt.profile.bal">Balanc e9e</option>
+                    <option value="agressive" data-i18n="bt.modal.opt.profile.agg">Agressive</option>
                   </select>
                 </label>
-                <label>Max combinaisons <input id="btOptMax" type="number" min="1" max="10000" step="1" value="100" style="width:6rem" /></label>
-                <label>Top N <input id="btOptTopN" type="number" min="1" max="1000" step="1" value="20" style="width:6rem" /></label>
+                <label><span data-i18n="bt.modal.opt.maxComb">Max combinaisons</span> <input id="btOptMax" type="number" min="1" max="10000" step="1" value="100" style="width:6rem" /></label>
+                <label><span data-i18n="bt.modal.opt.topN">Top N</span> <input id="btOptTopN" type="number" min="1" max="1000" step="1" value="20" style="width:6rem" /></label>
               </div>
               <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
-                <span>Modes d'entrée:</span>
-                <label><input id="btOptEMOrig" type="checkbox" /> Original</label>
-                <label><input id="btOptEMFib" type="checkbox" /> Fib Retracement</label>
-                <label><input id="btOptEMBoth" type="checkbox" checked /> Both</label>
+                <span data-i18n="bt.modal.opt.modesLabel">Modes d'entr e9e:</span>
+                <label><input id="btOptEMOrig" type="checkbox" /> <span data-i18n="bt.modal.opt.mode.original">Original</span></label>
+                <label><input id="btOptEMFib" type="checkbox" /> <span data-i18n="bt.modal.opt.mode.fib">Fib Retracement</span></label>
+                <label><input id="btOptEMBoth" type="checkbox" checked /> <span data-i18n="bt.modal.opt.mode.both">Both</span></label>
                 <span style="flex:1 1 auto"></span>
-                <label title="Utiliser les résultats historiques (même symbole+TF) comme prior pour l'optimisation"><input id="btUseTFPrior" type="checkbox" /> Prior TF</label>
+                <label data-i18n-title="bt.modal.opt.usePriorTitle"><input id="btUseTFPrior" type="checkbox" /> <span data-i18n="bt.modal.opt.usePrior">Prior TF</span></label>
               </div>
               <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px;">
                 <div>
-                  <label><input id="btOptNolEn" type="checkbox" checked /> NOL</label>
+                  <label><input id="btOptNolEn" type="checkbox" checked /> <span data-i18n="bt.modal.opt.nolEn">NOL</span></label>
                   <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                    <label>Min <input id="btOptNolMin" type="number" min="1" value="2" style="width:5rem" /></label>
-                    <label>Max <input id="btOptNolMax" type="number" min="1" value="5" style="width:5rem" /></label>
-                    <label>Pas <input id="btOptNolStep" type="number" min="1" value="1" style="width:5rem" /></label>
+                    <label><span data-i18n="bt.modal.opt.min">Min</span> <input id="btOptNolMin" type="number" min="1" value="2" style="width:5rem" /></label>
+                    <label><span data-i18n="bt.modal.opt.max">Max</span> <input id="btOptNolMax" type="number" min="1" value="5" style="width:5rem" /></label>
+                    <label><span data-i18n="bt.modal.opt.step">Pas</span> <input id="btOptNolStep" type="number" min="1" value="1" style="width:5rem" /></label>
                   </div>
                 </div>
                 <div>
-                  <label><input id="btOptPrdEn" type="checkbox" checked /> Période (prd)</label>
+                  <label><input id="btOptPrdEn" type="checkbox" checked /> <span data-i18n="bt.modal.opt.prdEn">P e9riode (prd)</span></label>
                   <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                    <label>Min <input id="btOptPrdMin" type="number" min="2" value="8" style="width:5rem" /></label>
-                    <label>Max <input id="btOptPrdMax" type="number" min="2" value="34" style="width:5rem" /></label>
-                    <label>Pas <input id="btOptPrdStep" type="number" min="1" value="2" style="width:5rem" /></label>
+                    <label><span data-i18n="bt.modal.opt.min">Min</span> <input id="btOptPrdMin" type="number" min="2" value="8" style="width:5rem" /></label>
+                    <label><span data-i18n="bt.modal.opt.max">Max</span> <input id="btOptPrdMax" type="number" min="2" value="34" style="width:5rem" /></label>
+                    <label><span data-i18n="bt.modal.opt.step">Pas</span> <input id="btOptPrdStep" type="number" min="1" value="2" style="width:5rem" /></label>
                   </div>
                 </div>
                 <div>
-                  <label><input id="btOptSLEn" type="checkbox" checked /> SL initial %</label>
+                  <label><input id="btOptSLEn" type="checkbox" checked /> <span data-i18n="bt.modal.opt.slEn">SL initial %</span></label>
                   <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                    <label>Min <input id="btOptSLMin" type="number" min="0" step="0.1" value="0.5" style="width:5rem" /></label>
-                    <label>Max <input id="btOptSLMax" type="number" min="0" step="0.1" value="3.0" style="width:5rem" /></label>
-                    <label>Pas <input id="btOptSLStep" type="number" min="0.1" step="0.1" value="0.5" style="width:5rem" /></label>
+                    <label><span data-i18n="bt.modal.opt.min">Min</span> <input id="btOptSLMin" type="number" min="0" step="0.1" value="0.5" style="width:5rem" /></label>
+                    <label><span data-i18n="bt.modal.opt.max">Max</span> <input id="btOptSLMax" type="number" min="0" step="0.1" value="3.0" style="width:5rem" /></label>
+                    <label><span data-i18n="bt.modal.opt.step">Pas</span> <input id="btOptSLStep" type="number" min="0.1" step="0.1" value="0.5" style="width:5rem" /></label>
                   </div>
                 </div>
                 <div>
-                  <label><input id="btOptBEBarsEn" type="checkbox" checked /> Bars to BE</label>
+                  <label><input id="btOptBEBarsEn" type="checkbox" checked /> <span data-i18n="bt.modal.opt.beBarsEn">Bars to BE</span></label>
                   <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                    <label>Min <input id="btOptBEBarsMin" type="number" min="1" value="3" style="width:5rem" /></label>
-                    <label>Max <input id="btOptBEBarsMax" type="number" min="1" value="8" style="width:5rem" /></label>
-                    <label>Pas <input id="btOptBEBarsStep" type="number" min="1" value="1" style="width:5rem" /></label>
+                    <label><span data-i18n="bt.modal.opt.min">Min</span> <input id="btOptBEBarsMin" type="number" min="1" value="3" style="width:5rem" /></label>
+                    <label><span data-i18n="bt.modal.opt.max">Max</span> <input id="btOptBEBarsMax" type="number" min="1" value="8" style="width:5rem" /></label>
+                    <label><span data-i18n="bt.modal.opt.step">Pas</span> <input id="btOptBEBarsStep" type="number" min="1" value="1" style="width:5rem" /></label>
                   </div>
                 </div>
                 <div>
-                  <label><input id="btOptBELockEn" type="checkbox" checked /> Lock % move</label>
+                  <label><input id="btOptBELockEn" type="checkbox" checked /> <span data-i18n="bt.modal.opt.beLockEn">Lock % move</span></label>
                   <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                    <label>Min <input id="btOptBELockMin" type="number" min="0" step="0.1" value="3" style="width:5rem" /></label>
-                    <label>Max <input id="btOptBELockMax" type="number" min="0" step="0.1" value="10" style="width:5rem" /></label>
-                    <label>Pas <input id="btOptBELockStep" type="number" min="0.1" step="0.1" value="1" style="width:5rem" /></label>
+                    <label><span data-i18n="bt.modal.opt.min">Min</span> <input id="btOptBELockMin" type="number" min="0" step="0.1" value="3" style="width:5rem" /></label>
+                    <label><span data-i18n="bt.modal.opt.max">Max</span> <input id="btOptBELockMax" type="number" min="0" step="0.1" value="10" style="width:5rem" /></label>
+                    <label><span data-i18n="bt.modal.opt.step">Pas</span> <input id="btOptBELockStep" type="number" min="0.1" step="0.1" value="1" style="width:5rem" /></label>
                   </div>
                 </div>
                 <div>
-                  <label><input id="btOptEMALenEn" type="checkbox" checked /> EMA len</label>
+                  <label><input id="btOptEMALenEn" type="checkbox" checked /> <span data-i18n="bt.modal.opt.emaLenEn">EMA len</span></label>
                   <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                    <label>Min <input id="btOptEMALenMin" type="number" min="1" value="21" style="width:5rem" /></label>
-                    <label>Max <input id="btOptEMALenMax" type="number" min="1" value="89" style="width:5rem" /></label>
-                    <label>Pas <input id="btOptEMALenStep" type="number" min="1" value="4" style="width:5rem" /></label>
+                    <label><span data-i18n="bt.modal.opt.min">Min</span> <input id="btOptEMALenMin" type="number" min="1" value="21" style="width:5rem" /></label>
+                    <label><span data-i18n="bt.modal.opt.max">Max</span> <input id="btOptEMALenMax" type="number" min="1" value="89" style="width:5rem" /></label>
+                    <label><span data-i18n="bt.modal.opt.step">Pas</span> <input id="btOptEMALenStep" type="number" min="1" value="4" style="width:5rem" /></label>
                   </div>
                 </div>
                 <!-- EA params -->
                 <div>
-                  <label>EA: Pop <input id="btEAPop" type="number" min="4" max="2000" value="40" style="width:6rem" /></label>
-                  <label>Gens <input id="btEAGen" type="number" min="1" max="500" value="20" style="width:6rem" /></label>
-                  <label>Mut % <input id="btEAMut" type="number" min="0" max="100" step="1" value="20" style="width:6rem" /></label>
-                  <label>Cx % <input id="btEACx" type="number" min="0" max="100" step="1" value="60" style="width:6rem" /></label>
-                  <label><input id="btEAResume" type="checkbox" /> Resume</label>
+                  <label><span data-i18n="bt.modal.opt.ea.pop">EA: Pop</span> <input id="btEAPop" type="number" min="4" max="2000" value="40" style="width:6rem" /></label>
+                  <label><span data-i18n="bt.modal.opt.ea.gens">Gens</span> <input id="btEAGen" type="number" min="1" max="500" value="20" style="width:6rem" /></label>
+                  <label><span data-i18n="bt.modal.opt.ea.mut">Mut %</span> <input id="btEAMut" type="number" min="0" max="100" step="1" value="20" style="width:6rem" /></label>
+                  <label><span data-i18n="bt.modal.opt.ea.cx">Cx %</span> <input id="btEACx" type="number" min="0" max="100" step="1" value="60" style="width:6rem" /></label>
+                  <label><input id="btEAResume" type="checkbox" /> <span data-i18n="bt.modal.opt.ea.resume">Resume</span></label>
                 </div>
                 <!-- Bayes(EDA) params -->
                 <div>
-                  <label>Bayes: Iters <input id="btBayIters" type="number" min="10" max="5000" value="150" style="width:6rem" /></label>
-                  <label>Init random <input id="btBayInit" type="number" min="5" max="2000" value="40" style="width:8rem" /></label>
-                  <label>Elite % <input id="btBayElitePct" type="number" min="5" max="80" step="1" value="30" style="width:6rem" /></label>
-                  <label><input id="btBayResume" type="checkbox" /> Resume</label>
+                  <label><span data-i18n="bt.modal.opt.bayes.iters">Bayes: Iters</span> <input id="btBayIters" type="number" min="10" max="5000" value="150" style="width:6rem" /></label>
+                  <label><span data-i18n="bt.modal.opt.bayes.init">Init random</span> <input id="btBayInit" type="number" min="5" max="2000" value="40" style="width:8rem" /></label>
+                  <label><span data-i18n="bt.modal.opt.bayes.elite">Elite %</span> <input id="btBayElitePct" type="number" min="5" max="80" step="1" value="30" style="width:6rem" /></label>
+                  <label><input id="btBayResume" type="checkbox" /> <span data-i18n="bt.modal.opt.bayes.resume">Resume</span></label>
                 </div>
               </div>
               <div style="margin-top:10px; border-top:1px solid var(--header-border); padding-top:10px;">
                 <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
-                  <label><input id="btOptTPEn" type="checkbox" /> Optimiser TP (Fib)</label>
-                  <label>Nb TP <input id="btOptTPCount" type="number" min="1" max="10" value="3" style="width:5rem" /></label>
-                  <span style="color:var(--muted);font-size:12px;">Les ratios sélectionnés seront affectés aux TP1..TPn (ordre croissant)</span>
+                  <label><input id="btOptTPEn" type="checkbox" /> <span data-i18n="bt.modal.opt.tpFibEn">Optimiser TP (Fib)</span></label>
+                  <label><span data-i18n="bt.modal.opt.tpCount">Nb TP</span> <input id="btOptTPCount" type="number" min="1" max="10" value="3" style="width:5rem" /></label>
+                  <span style="color:var(--muted);font-size:12px;" data-i18n="bt.modal.opt.tpFibNote">Les ratios s e9lectionn e9s seront affect e9s aux TP1..TPn (ordre croissant)</span>
                 </div>
                 <div id="btOptTPFibWrap" style="display:flex; gap:10px; flex-wrap:wrap;">
                   <label><input type="checkbox" data-r="0.236" checked />0.236</label>
@@ -1150,27 +1151,27 @@
               </div>
               <div style="margin-top:10px; border-top:1px solid var(--header-border); padding-top:10px;">
                 <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
-                  <label><input id="btOptTPPctEn" type="checkbox" /> Optimiser TP (Percent)</label>
-                  <label>Nb TP <input id="btOptTPPctCount" type="number" min="1" max="10" value="3" style="width:5rem" /></label>
-                  <label>Min % <input id="btOptTPPctMin" type="number" min="0" step="0.1" value="0.5" style="width:5rem" /></label>
-                  <label>Max % <input id="btOptTPPctMax" type="number" min="0" step="0.1" value="5.0" style="width:5rem" /></label>
-                  <label>Pas % <input id="btOptTPPctStep" type="number" min="0.1" step="0.1" value="0.5" style="width:5rem" /></label>
+                  <label><input id="btOptTPPctEn" type="checkbox" /> <span data-i18n="bt.modal.opt.tpPctEn">Optimiser TP (Percent)</span></label>
+                  <label><span data-i18n="bt.modal.opt.tpCount">Nb TP</span> <input id="btOptTPPctCount" type="number" min="1" max="10" value="3" style="width:5rem" /></label>
+                  <label><span data-i18n="bt.modal.opt.tpMinPct">Min %</span> <input id="btOptTPPctMin" type="number" min="0" step="0.1" value="0.5" style="width:5rem" /></label>
+                  <label><span data-i18n="bt.modal.opt.tpMaxPct">Max %</span> <input id="btOptTPPctMax" type="number" min="0" step="0.1" value="5.0" style="width:5rem" /></label>
+                  <label><span data-i18n="bt.modal.opt.tpStepPct">Pas %</span> <input id="btOptTPPctStep" type="number" min="0.1" step="0.1" value="0.5" style="width:5rem" /></label>
                 </div>
               </div>
               <div style="margin-top:10px; border-top:1px solid var(--header-border); padding-top:10px;">
                 <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
-                  <label><input id="btOptAllocEn" type="checkbox" /> Optimiser répartition (%)</label>
-                  <label>Pas <input id="btOptAllocStep" type="number" min="1" max="50" step="1" value="5" style="width:5rem" /></label>
-                  <label>Max patterns <input id="btOptAllocMax" type="number" min="1" max="100" step="1" value="8" style="width:7rem" /></label>
+                  <label><input id="btOptAllocEn" type="checkbox" /> <span data-i18n="bt.modal.opt.allocEn">Optimiser r e9partition (%)</span></label>
+                  <label><span data-i18n="bt.modal.opt.allocStep">Pas</span> <input id="btOptAllocStep" type="number" min="1" max="50" step="1" value="5" style="width:5rem" /></label>
+                  <label><span data-i18n="bt.modal.opt.allocMaxPat">Max patterns</span> <input id="btOptAllocMax" type="number" min="1" max="100" step="1" value="8" style="width:7rem" /></label>
                 </div>
               </div>
             </fieldset>
           </form>
         </div>
         <div class="modal-footer">
-          <button id="btCancel" class="btn">Annuler</button>
-          <button id="btOptimize" class="btn">Optimiser</button>
-          <button id="btRun" class="btn primary">Lancer</button>
+          <button id="btCancel" class="btn" data-i18n="bt.modal.btn.cancel">Annuler</button>
+          <button id="btOptimize" class="btn" data-i18n="bt.modal.btn.optimize">Optimiser</button>
+          <button id="btRun" class="btn primary" data-i18n="bt.modal.btn.run">Lancer</button>
         </div>
       </div>
     </div>
@@ -1180,46 +1181,46 @@
       <div class="modal-backdrop" data-close="1"></div>
       <div class="modal-content" style="max-width:680px;">
         <div class="modal-header">
-          <h2>Live</h2>
+          <h2 data-i18n="live.modal.title">Live</h2>
           <button id="liveClose" class="icon-btn" aria-label="Fermer">×</button>
         </div>
         <div class="modal-body">
           <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px;">
             <fieldset>
-              <legend>Mode</legend>
-              <label><input type="radio" name="liveMode" id="liveModePaper" value="paper" checked> Paper trading</label>
-              <label title="Bientôt"><input type="radio" name="liveMode" id="liveModeReal" value="real" disabled> Live trading</label>
+              <legend data-i18n="live.mode.legend">Mode</legend>
+              <label><input type="radio" name="liveMode" id="liveModePaper" value="paper" checked> <span data-i18n="live.mode.paper">Paper trading</span></label>
+              <label title="Bientôt"><input type="radio" name="liveMode" id="liveModeReal" value="real" disabled> <span data-i18n="live.mode.real">Live trading</span></label>
             </fieldset>
             <fieldset>
-              <legend>Wallet</legend>
-              <label>Portefeuille
+              <legend data-i18n="live.wallet.legend">Wallet</legend>
+              <label><span data-i18n="live.wallet.label">Portefeuille</span>
                 <select id="liveWalletSel">
-                  <option value="__new__" selected>+ Nouveau portefeuille…</option>
+                  <option value="__new__" selected data-i18n="live.wallet.newOption">+ Nouveau portefeuille…</option>
                 </select>
               </label>
-              <label>Nom <input id="liveWalletName" type="text" placeholder="Ex: Strat EMA55" /></label>
+              <label><span data-i18n="live.wallet.nameLabel">Nom</span> <input id="liveWalletName" type="text" placeholder="Ex: Strat EMA55" /></label>
               <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                <button id="liveWalletSave" class="btn" type="button">Enregistrer</button>
-                <button id="liveWalletLoad" class="btn" type="button">Charger</button>
-                <button id="liveWalletDelete" class="btn" type="button">Supprimer</button>
+                <button id="liveWalletSave" class="btn" type="button" data-i18n="common.save">Enregistrer</button>
+                <button id="liveWalletLoad" class="btn" type="button" data-i18n="common.load">Charger</button>
+                <button id="liveWalletDelete" class="btn" type="button" data-i18n="common.delete">Supprimer</button>
               </div>
             </fieldset>
             <fieldset>
-              <legend>Paramètres (paper)</legend>
-              <label>Capital initial <input id="liveStartCap" type="number" min="0" step="100" value="10000" style="width:8rem" /></label>
-              <label>Frais (%) <input id="liveFee" type="number" min="0" step="0.01" value="0.10" style="width:6rem" /></label>
-              <label>Levier (x) <input id="liveLev" type="number" min="1" max="125" step="0.1" value="1" style="width:6rem" /></label>
+              <legend data-i18n="live.params.legend">Paramètres (paper)</legend>
+              <label><span data-i18n="live.params.startCap">Capital initial</span> <input id="liveStartCap" type="number" min="0" step="100" value="10000" style="width:8rem" /></label>
+              <label><span data-i18n="live.params.fee">Frais (%)</span> <input id="liveFee" type="number" min="0" step="0.01" value="0.10" style="width:6rem" /></label>
+              <label><span data-i18n="live.params.lev">Levier (x)</span> <input id="liveLev" type="number" min="1" max="125" step="0.1" value="1" style="width:6rem" /></label>
             </fieldset>
             <fieldset>
-              <legend>TF & Stratégie</legend>
-              <label>TF
+              <legend data-i18n="live.tf.legend">TF & Stratégie</legend>
+              <label><span data-i18n="live.tf.label">TF</span>
                 <select id="liveTFSelect"></select>
               </label>
               <div style="display:flex; gap:8px; align-items:center;">
-                <label><input type="radio" name="liveStratSource" id="liveStratSrcHeaven" value="heaven" checked> Heaven</label>
-                <label><input type="radio" name="liveStratSource" id="liveStratSrcPalmares" value="palmares"> Palmarès</label>
+                <label><input type="radio" name="liveStratSource" id="liveStratSrcHeaven" value="heaven" checked> <span data-i18n="live.tf.source.heaven">Heaven</span></label>
+                <label><input type="radio" name="liveStratSource" id="liveStratSrcPalmares" value="palmares"> <span data-i18n="live.tf.source.palmares">Palmarès</span></label>
               </div>
-              <label>Stratégie
+              <label><span data-i18n="live.tf.strategyLabel">Stratégie</span>
                 <select id="liveStrategySel">
                   <option value="">—</option>
                 </select>
@@ -1229,8 +1230,8 @@
           </div>
         </div>
         <div class="modal-footer" style="display:flex; gap:8px; justify-content:flex-end;">
-          <button id="liveStop" class="btn">Arrêter</button>
-          <button id="liveStart" class="btn primary">Lancer</button>
+          <button id="liveStop" class="btn" data-i18n="live.footer.stop">Arrêter</button>
+          <button id="liveStart" class="btn primary" data-i18n="live.footer.start">Lancer</button>
         </div>
       </div>
     </div>
@@ -1240,7 +1241,7 @@
       <div class="modal-backdrop" data-close="1"></div>
       <div class="modal-content small" style="max-width:720px;">
         <div class="modal-header">
-          <h2>Détails stratégie</h2>
+          <h2 data-i18n="strat.modal.title">Détails stratégie</h2>
           <div style="display:flex; gap:6px; align-items:center;">
             <button id="stratCollapse" class="icon-btn" title="Replier">▾</button>
             <button id="stratClose" class="icon-btn" aria-label="Fermer">×</button>
@@ -1250,7 +1251,11 @@
           <div id="stratTitle" style="margin-bottom:8px; color:var(--muted);"></div>
           <table class="lbc-table" style="width:100%; table-layout:auto; font-size:12px;">
             <thead>
-              <tr><th style="text-align:left;">Critère</th><th>Note / 100</th><th style="text-align:right;">Valeur</th></tr>
+              <tr>
+                <th style="text-align:left;" data-i18n="strat.table.crit">Critère</th>
+                <th data-i18n="strat.table.score">Note / 100</th>
+                <th style="text-align:right;" data-i18n="strat.table.value">Valeur</th>
+              </tr>
             </thead>
             <tbody id="stratTBody"><tr><td colspan="3">—</td></tr></tbody>
           </table>
@@ -1263,7 +1268,7 @@
       <div class="modal-backdrop" data-close="1"></div>
       <div class="modal-content" style="max-width:920px;">
         <div class="modal-header">
-          <h2>Historique des trades</h2>
+          <h2 data-i18n="trades.modal.title">Historique des trades</h2>
           <span id="tradesHdrCtx" style="margin-left:auto; color:var(--muted); font-size:12px;"></span>
           <div style="display:flex; gap:6px; align-items:center;">
             <button id="tradesCollapse" class="icon-btn" title="Replier">▾</button>
@@ -1276,7 +1281,16 @@
             <table class="lbc-table" style="width:100%; table-layout:auto; font-size:12px;">
               <thead>
                 <tr>
-                  <th>#</th><th>Horaire</th><th>Capital</th><th>Trade</th><th>Quantité</th><th>Prix entrée</th><th>Prix sortie</th><th>Frais</th><th>P&L</th><th>Durée</th>
+                  <th>#</th>
+                  <th data-i18n="trades.table.time">Horaire</th>
+                  <th data-i18n="trades.table.equity">Capital</th>
+                  <th data-i18n="trades.table.trade">Trade</th>
+                  <th data-i18n="trades.table.qty">Quantité</th>
+                  <th data-i18n="trades.table.entry">Prix entrée</th>
+                  <th data-i18n="trades.table.exit">Prix sortie</th>
+                  <th data-i18n="trades.table.fee">Frais</th>
+                  <th data-i18n="trades.table.pnl">P&L</th>
+                  <th data-i18n="trades.table.duration">Durée</th>
                 </tr>
               </thead>
               <tbody id="tradesTBody"><tr><td colspan="11">—</td></tr></tbody>
@@ -1291,69 +1305,71 @@
       <div class="modal-backdrop" data-close="1"></div>
       <div class="modal-content" style="max-width:720px;">
         <div class="modal-header">
-          <h2>Pondérations — Score global</h2>
+          <h2 data-i18n="lab.weights.modalTitle">Pondérations — Score global</h2>
           <button id="weightsClose" class="icon-btn" aria-label="Fermer">×</button>
         </div>
         <div class="modal-body">
           <div style="display:flex; gap:10px; align-items:center; margin-bottom:8px; flex-wrap:wrap; justify-content:space-between;">
-            <label>Profil
+            <label>
+              <span data-i18n="lab.weights.profileLabel">Profil</span>
               <select id="weightsProfile">
-                <option value="sure">Sûre</option>
-                <option value="balancee" selected>Balancée</option>
-                <option value="agressive">Agressive</option>
+                <option value="sure" data-i18n="lab.weights.profile.safe">Sûre</option>
+                <option value="balancee" selected data-i18n="lab.weights.profile.bal">Balancée</option>
+                <option value="agressive" data-i18n="lab.weights.profile.agg">Agressive</option>
               </select>
             </label>
             <div style="display:flex; gap:8px; align-items:center; font-size:12px; color:var(--muted);">
-              <span>Les poids doivent totaliser 100%.</span>
+              <span data-i18n="lab.weights.totalHint">Les poids doivent totaliser 100%.</span>
               <span id="weightsTotalInfo">Total: 100 pts • Reste: 0 pts</span>
             </div>
           </div>
           <div id="weightsBody"></div>
-          <div id="weightsInfoText" style="margin-top:8px; font-size:12px; color:var(--muted);">
+          <div id="weightsInfoText" style="margin-top:8px; font-size:12px; color:var(--muted);" data-i18n="lab.weights.infoDefault">
             Cliquez sur le (i) d’un facteur pour voir à quoi il sert et comment intervient son poids dans le score.
           </div>
         </div>
         <div class="modal-footer">
-          <button id="weightsSave" class="btn primary">Enregistrer</button>
+          <button id="weightsSave" class="btn primary" data-i18n="lab.weights.save">Enregistrer</button>
         </div>
       </div>
     </div>
+
 
     <!-- Strategy detail modal -->
     <div id="detailModal" class="modal hidden" aria-hidden="true" role="dialog">
       <div class="modal-backdrop" data-close="1"></div>
       <div class="modal-content" style="max-width:1000px;">
         <div class="modal-header">
-          <h2>Analyse stratégie</h2>
+          <h2 data-i18n="detail.title">Analyse stratégie</h2>
           <button id="detailClose" class="icon-btn" aria-label="Fermer">×</button>
         </div>
         <div class="modal-body">
           <div id="detailCtx" style="margin-bottom:8px; color:var(--muted);"></div>
           <div id="detailConfBar" style="margin-bottom:8px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
-            <label>Capital initial
+            <label data-i18n="detail.conf.capital">Capital initial
               <input id="detailStartCap" type="number" min="0" step="100" style="width:8rem;" />
             </label>
-            <label>Frais (%)
+            <label data-i18n="detail.conf.fee">Frais (%)
               <input id="detailFee" type="number" min="0" step="0.01" style="width:6rem;" />
             </label>
-            <label>Levier (x)
+            <label data-i18n="detail.conf.lev">Levier (x)
               <input id="detailLev" type="number" min="1" max="125" step="0.1" style="width:6rem;" />
             </label>
-            <button id="detailConfApply" class="btn">Appliquer</button>
-            <span style="color:var(--muted); font-size:12px;">Ces paramètres n'affectent que cette analyse détaillée.</span>
+            <button id="detailConfApply" class="btn" data-i18n="detail.conf.apply">Appliquer</button>
+            <span style="color:var(--muted); font-size:12px;" data-i18n="detail.conf.note">Ces paramètres n'affectent que cette analyse détaillée.</span>
           </div>
           <!-- Barre de configuration de la stratégie de comparaison -->
           <div id="detailCompareBar" style="margin-bottom:8px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
-            <label>Comparer à
+            <label data-i18n="detail.compare.label">Comparer à
               <select id="detailCompSource" style="min-width:12rem;">
-                <option value="heaven" selected>Heaven (config actuelle)</option>
-                <option value="palmares">Palmarès</option>
+                <option value="heaven" selected data-i18n="detail.compare.source.heaven">Heaven (config actuelle)</option>
+                <option value="palmares" data-i18n="detail.compare.source.palmares">Palmarès</option>
               </select>
             </label>
-            <label>Pair
+            <label data-i18n="detail.compare.pair">Pair
               <select id="detailCompSymbol" style="min-width:9rem;"></select>
             </label>
-            <label>TF
+            <label data-i18n="detail.compare.tf">TF
               <select id="detailCompTF" style="min-width:6rem;">
                 <option value="1m">1m</option>
                 <option value="5m">5m</option>
@@ -1363,202 +1379,201 @@
                 <option value="1d">1d</option>
               </select>
             </label>
-            <label>Profil
+            <label data-i18n="detail.compare.profile">Profil
               <select id="detailCompProfile" style="min-width:10rem;">
-                <option value="sure">Stratégie sûre</option>
-                <option value="balancee" selected>Stratégie balancée</option>
-                <option value="agressive">Stratégie agressive</option>
+                <option value="sure" data-i18n="lab.weights.profile.safe">Stratégie sûre</option>
+                <option value="balancee" selected data-i18n="lab.weights.profile.bal">Stratégie balancée</option>
+                <option value="agressive" data-i18n="lab.weights.profile.agg">Stratégie agressive</option>
               </select>
             </label>
-            <label>Stratégie
+            <label data-i18n="detail.compare.strategy">Stratégie
               <select id="detailCompPalmares" style="min-width:14rem;">
                 <option value="">—</option>
               </select>
             </label>
-            <button id="detailCompApply" class="btn">Appliquer</button>
+            <button id="detailCompApply" class="btn" data-i18n="detail.compare.apply">Appliquer</button>
           </div>
           <div style="display:grid; grid-template-columns: 1fr; gap:12px;">
             <div>
-              <div style="font-weight:600;">Radar critères</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Vue synthétique des principaux critères (0–100). Permet de repérer d'un coup d'œil les forces et faiblesses globales de la stratégie.</div>
+              <div style="font-weight:600;" data-i18n="detail.section.radar.title">Radar critères</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.radar.desc">Vue synthétique des principaux critères (0–100). Permet de repérer d'un coup d'œil les forces et faiblesses globales de la stratégie.</div>
               <canvas id="detailRadar" width="980" height="300" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailRadarNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
-              <div style="font-weight:600;">Équity</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Évolution du capital dans le temps. Cherchez une courbe régulière avec des phases de baisse limitées et un profil compatible avec votre tolérance au risque.</div>
+              <div style="font-weight:600;" data-i18n="detail.section.eq.title">Équity</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.eq.desc">Évolution du capital dans le temps. Cherchez une courbe régulière avec des phases de baisse limitées et un profil compatible avec votre tolérance au risque.</div>
               <canvas id="detailEquity" width="980" height="220" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailEquityNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
               <div id="detailCompareNote" style="color:var(--muted); font-size:12px; margin-top:2px;">—</div>
             </div>
             <div>
-              <div style="font-weight:600;">Drawdown absolu</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Taille des creux en dollars. Permet d'identifier les pires périodes de pertes et de vérifier qu'elles restent acceptables pour le capital engagé.</div>
+              <div style="font-weight:600;" data-i18n="detail.section.dd.title">Drawdown absolu</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.dd.desc">Taille des creux en dollars. Permet d'identifier les pires périodes de pertes et de vérifier qu'elles restent acceptables pour le capital engagé.</div>
               <canvas id="detailDD" width="980" height="100" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailDDNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
-              <div style="font-weight:600;">Underwater (drawdown %)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Drawdown en pourcentage du capital. Utile pour comparer le risque relatif entre stratégies ou paramètres sur des capitaux différents.</div>
+              <div style="font-weight:600;" data-i18n="detail.section.under.title">Underwater (drawdown %)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.under.desc">Drawdown en pourcentage du capital. Utile pour comparer le risque relatif entre stratégies ou paramètres sur des capitaux différents.</div>
               <canvas id="detailUnder" width="980" height="120" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailUnderNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
-              <div style="font-weight:600;">Distribution des rendements</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Histogramme des retours par trade. Recherchez une queue de pertes limitée et une queue de gains étendue, signe d'un bon équilibre risque/rendement.</div>
+              <div style="font-weight:600;" data-i18n="detail.section.hist.title">Distribution des rendements</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.hist.desc">Histogramme des retours par trade. Recherchez une queue de pertes limitée et une queue de gains étendue, signe d'un bon équilibre risque/rendement.</div>
               <canvas id="detailHist" width="980" height="180" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailHistNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
-              <div style="font-weight:600;">Efficacité de la stratégie</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Barres normalisées (Win%, R:R, efficacité, temps en marché, fréquence). Permet de voir en un clin d'œil les composantes fortes et celles à optimiser.</div>
+              <div style="font-weight:600;" data-i18n="detail.section.eff.title">Efficacité de la stratégie</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.eff.desc">Barres normalisées (Win%, R:R, efficacité, temps en marché, fréquence). Permet de voir en un clin d'œil les composantes fortes et celles à optimiser.</div>
               <canvas id="detailEff" width="980" height="180" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailEffNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
-              <div style="font-weight:600;">Complexité & Robustesse</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Mesure le compromis entre nombre de paramètres actifs et robustesse globale. Idéalement, viser une robustesse élevée avec une complexité raisonnable.</div>
+              <div style="font-weight:600;" data-i18n="detail.section.robust.title">Complexité & Robustesse</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.robust.desc">Mesure le compromis entre nombre de paramètres actifs et robustesse globale. Idéalement, viser une robustesse élevée avec une complexité raisonnable.</div>
               <canvas id="detailRobust" width="980" height="160" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailRobustNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div id="detailSummary" style="padding:8px; border:1px solid var(--header-border); border-radius:8px; background:var(--bg);">
               <div style="display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-bottom:6px;">
                 <div>
-                  <div style="font-weight:600;">Commentaire & analyse</div>
-                  <div style="color:var(--muted); font-size:11px;">Synthèse narrative de la stratégie et de sa comparée. À lire pour comprendre le profil de risque/rendement, les axes d'amélioration, et l'impact du slippage réel sur la performance.</div>
+                  <div style="font-weight:600;" data-i18n="detail.section.summary.title">Commentaire & analyse</div>
+                  <div style="color:var(--muted); font-size:11px;" data-i18n="detail.section.summary.desc">Synthèse narrative de la stratégie et de sa comparée. À lire pour comprendre le profil de risque/rendement, les axes d'amélioration, et l'impact du slippage réel sur la performance.</div>
                 </div>
                 <div style="display:flex; gap:6px; align-items:center; font-size:12px;">
-                  <label>Slippage (bps)
+                  <label data-i18n="detail.slip.label">Slippage (bps)
                     <input id="detailSlipBps" type="number" min="0" max="200" step="1" value="0" style="width:6rem;" />
                   </label>
-                  <button id="detailSlipApply" class="btn">Appliquer</button>
-                  <button id="detailSlipInfo" class="icon-btn" type="button" aria-label="Infos slippage" title="Infos slippage">?</button>
+                  <button id="detailSlipApply" class="btn" data-i18n="detail.slip.apply">Appliquer</button>
+                  <button id="detailSlipInfo" class="icon-btn" type="button" aria-label="Infos slippage" title="Infos slippage" data-i18n-aria-label="detail.slip.infoTitle" data-i18n-title="detail.slip.infoTitle">?</button>
                   <span id="detailSlipNote" style="color:var(--muted);"></span>
                 </div>
               </div>
               <div id="detailSummaryBody" style="color:var(--muted); white-space:pre-wrap;">—</div>
             </div>
             <div>
-              <div style="font-weight:600;">IC (bootstrap 95%)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Intervalles de confiance estimés par bootstrap. Permettent de visualiser l'incertitude sur Win%, PF et expectancy plutôt que de se fier à un seul chiffre.</div>
+              <div style="font-weight:600;" data-i18n="detail.section.ci.title">IC (bootstrap 95%)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.ci.desc">Intervalles de confiance estimés par bootstrap. Permettent de visualiser l'incertitude sur Win%, PF et expectancy plutôt que de se fier à un seul chiffre.</div>
               <canvas id="detailCIs" width="980" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailCIsNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
-              <div style="font-weight:600;">Rolling PF (fenêtre 30)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Profit factor calculé sur une fenêtre glissante. Sert à détecter les phases où la stratégie passe durablement sous PF&nbsp;1 (non rentable).</div>
+              <div style="font-weight:600;" data-i18n="detail.section.rollpf.title">Rolling PF (fenêtre 30)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.rollpf.desc">Profit factor calculé sur une fenêtre glissante. Sert à détecter les phases où la stratégie passe durablement sous PF&nbsp;1 (non rentable).</div>
               <canvas id="detailRollPF" width="980" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailRollPFNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
-              <div style="font-weight:600;">Rolling Win% (fenêtre 30)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Taux de réussite glissant. Met en évidence les périodes où la stratégie décroche ou s'améliore fortement.</div>
+              <div style="font-weight:600;" data-i18n="detail.section.rollwin.title">Rolling Win% (fenêtre 30)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.rollwin.desc">Taux de réussite glissant. Met en évidence les périodes où la stratégie décroche ou s'améliore fortement.</div>
               <canvas id="detailRollWin" width="980" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailRollWinNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
-              <div style="font-weight:600;">Rolling Avg R:R (fenêtre 30)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">R:R moyen sur 30 positions. Permet de voir si les objectifs deviennent trop courts ou trop ambitieux dans certains régimes.</div>
+              <div style="font-weight:600;" data-i18n="detail.section.rollrr.title">Rolling Avg R:R (fenêtre 30)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.rollrr.desc">R:R moyen sur 30 positions. Permet de voir si les objectifs deviennent trop courts ou trop ambitieux dans certains régimes.</div>
               <canvas id="detailRollRR" width="980" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailRollRRNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
-              <div style="font-weight:600;">Rolling Expectancy (fenêtre 30)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Expectancy par trade sur fenêtre glissante. À utiliser pour repérer les zones temporelles où la stratégie devient négative.</div>
+              <div style="font-weight:600;" data-i18n="detail.section.rollexp.title">Rolling Expectancy (fenêtre 30)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.rollexp.desc">Expectancy par trade sur fenêtre glissante. À utiliser pour repérer les zones temporelles où la stratégie devient négative.</div>
               <canvas id="detailRollExp" width="980" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailRollExpNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
-              <div style="font-weight:600;">Durée des trades</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Répartition de la durée des positions. Vérifiez que la stratégie correspond bien à votre horizon de temps (scalping, swing, positionnel...).</div>
+              <div style="font-weight:600;" data-i18n="detail.section.dur.title">Durée des trades</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.dur.desc">Répartition de la durée des positions. Vérifiez que la stratégie correspond bien à votre horizon de temps (scalping, swing, positionnel...).</div>
               <canvas id="detailDurHist" width="980" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailDurHistNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
-              <div style="font-weight:600;">Séquences victoires/défaites</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Distribution des séries de gains et de pertes. Met en lumière la possibilité de longues séries perdantes à supporter psychologiquement.</div>
+              <div style="font-weight:600;" data-i18n="detail.section.streaks.title">Séquences victoires/défaites</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.streaks.desc">Distribution des séries de gains et de pertes. Met en lumière la possibilité de longues séries perdantes à supporter psychologiquement.</div>
               <canvas id="detailStreaks" width="980" height="140" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailStreaksNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
-              <div style="font-weight:600;">Distribution retours — Long vs Short</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Compare la distribution des performances Long et Short. Idéal pour voir si un côté du marché porte l'essentiel de la performance.</div>
+              <div style="font-weight:600;" data-i18n="detail.section.ls.title">Distribution retours — Long vs Short</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.ls.desc">Compare la distribution des performances Long et Short. Idéal pour voir si un côté du marché porte l'essentiel de la performance.</div>
               <canvas id="detailLSHist" width="980" height="160" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailLSHistNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
-              <div style="font-weight:600;">MAE/MFE (excursions en R)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Dispersion des excursions maximales en R (risque). Sert à calibrer TP/SL et trailing en fonction de ce que le marché offre réellement.</div>
+              <div style="font-weight:600;" data-i18n="detail.section.mae.title">MAE/MFE (excursions en R)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.mae.desc">Dispersion des excursions maximales en R (risque). Sert à calibrer TP/SL et trailing en fonction de ce que le marché offre réellement.</div>
               <canvas id="detailMAEMFE" width="980" height="220" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailMAEMFENote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
-              <div style="font-weight:600;">Saisonnalité — Retours hebdomadaires (%)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Carte des retours semaine par semaine. À utiliser pour repérer les périodes structurellement favorables ou défavorables à la stratégie.</div>
+              <div style="font-weight:600;" data-i18n="detail.section.weekly.title">Saisonnalité — Retours hebdomadaires (%)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.weekly.desc">Carte des retours semaine par semaine. À utiliser pour repérer les périodes structurellement favorables ou défavorables à la stratégie.</div>
               <canvas id="detailWeekly" width="980" height="220" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailWeeklyNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
-              <div style="font-weight:600;">Saisonnalité — par jour de semaine (%)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Retour moyen par jour de la semaine. Sert à filtrer d'éventuels jours structurellement faibles ou instables.</div>
+              <div style="font-weight:600;" data-i18n="detail.section.dow.title">Saisonnalité — par jour de semaine (%)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.dow.desc">Retour moyen par jour de la semaine. Sert à filtrer d'éventuels jours structurellement faibles ou instables.</div>
               <canvas id="detailDOW" width="980" height="200" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailDOWNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
-              <div style="font-weight:600;">Saisonnalité — Jour × Heure (retours %)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Heatmap jour × heure. Idéale pour identifier les créneaux horaires où la stratégie surperforme ou sous-performe.</div>
+              <div style="font-weight:600;" data-i18n="detail.section.dowHour.title">Saisonnalité — Jour × Heure (retours %)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.dowHour.desc">Heatmap jour × heure. Idéale pour identifier les créneaux horaires où la stratégie surperforme ou sous-performe.</div>
               <canvas id="detailDOWHour" width="980" height="220" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailDOWHourNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
-              <div style="font-weight:600;">Jour × Heure — Long seulement</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Même carte jour × heure mais filtrée sur les positions Long. Permet de voir où la jambe acheteuse est réellement efficace.</div>
+              <div style="font-weight:600;" data-i18n="detail.section.dowHourLong.title">Jour × Heure — Long seulement</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.dowHourLong.desc">Même carte jour × heure mais filtrée sur les positions Long. Permet de voir où la jambe acheteuse est réellement efficace.</div>
               <canvas id="detailDOWHourLong" width="980" height="200" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailDOWHourLongNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
-              <div style="font-weight:600;">Jour × Heure — Short seulement</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Idem pour les positions Short. Utile pour voir si la jambe vendeuse est opportuniste ou trop fragile sur certains créneaux.</div>
+              <div style="font-weight:600;" data-i18n="detail.section.dowHourShort.title">Jour × Heure — Short seulement</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.dowHourShort.desc">Idem pour les positions Short. Utile pour voir si la jambe vendeuse est opportuniste ou trop fragile sur certains créneaux.</div>
               <canvas id="detailDOWHourShort" width="980" height="200" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailDOWHourShortNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
-              <div style="font-weight:600;">Walk-forward — splits temporels</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Performance par segment temporel. Sert à vérifier que la stratégie reste exploitable hors échantillon et ne dépend pas d'une seule période.</div>
+              <div style="font-weight:600;" data-i18n="detail.section.wf.title">Walk-forward — splits temporels</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.wf.desc">Performance par segment temporel. Sert à vérifier que la stratégie reste exploitable hors échantillon et ne dépend pas d'une seule période.</div>
               <canvas id="detailWF" width="980" height="200" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailWFNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
-              <div style="font-weight:600;">Régimes (Trend × Volatilité)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">PF par combinaison de tendance et de volatilité. Identifie clairement les régimes de marché où la stratégie fonctionne bien ou mal.</div>
+              <div style="font-weight:600;" data-i18n="detail.section.regime.title">Régimes (Trend × Volatilité)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.regime.desc">PF par combinaison de tendance et de volatilité. Identifie clairement les régimes de marché où la stratégie fonctionne bien ou mal.</div>
               <canvas id="detailRegime" width="980" height="200" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailRegimeNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
-              <div style="font-weight:600;">Pareto — P&L vs Max DD (Palmarès)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Nuage P&L vs drawdown. Permet de comparer visuellement le compromis rendement/risque de la stratégie par rapport au Palmarès.</div>
+              <div style="font-weight:600;" data-i18n="detail.section.pareto.title">Pareto — P&L vs Max DD (Palmarès)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.pareto.desc">Nuage P&L vs drawdown. Permet de comparer visuellement le compromis rendement/risque de la stratégie par rapport au Palmarès.</div>
               <canvas id="detailPareto" width="980" height="220" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailParetoNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
-              <div style="font-weight:600;">Monte Carlo — éventail d'équity (bootstrap trades)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Simulation aléatoire de l'ordre des trades. Montre la dispersion possible des trajectoires d'équity à partir du même historique de trades.</div>
+              <div style="font-weight:600;" data-i18n="detail.section.mc.title">Monte Carlo — éventail d'équity (bootstrap trades)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.mc.desc">Simulation aléatoire de l'ordre des trades. Montre la dispersion possible des trajectoires d'équity à partir du même historique de trades.</div>
               <canvas id="detailMC" width="980" height="220" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailMCNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
-              <div style="font-weight:600;">QQ-Plot (retours normalisés)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Compare la distribution des rendements à une loi normale. Sert à repérer des queues épaisses ou des asymétries importantes.</div>
+              <div style="font-weight:600;" data-i18n="detail.section.qq.title">QQ-Plot (retours normalisés)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.qq.desc">Compare la distribution des rendements à une loi normale. Sert à repérer des queues épaisses ou des asymétries importantes.</div>
               <canvas id="detailQQ" width="980" height="200" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailQQNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
             <div>
-              <div style="font-weight:600;">Autocorrélation (lags)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;">Autocorrélation des rendements sur plusieurs lags. Permet de voir s'il existe un clustering de gains/pertes ou des dépendances exploitables.</div>
+              <div style="font-weight:600;" data-i18n="detail.section.acf.title">Autocorrélation (lags)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.acf.desc">Autocorrélation des rendements sur plusieurs lags. Permet de voir s'il existe un clustering de gains/pertes ou des dépendances exploitables.</div>
               <canvas id="detailACF" width="980" height="200" style="background:var(--bg); border:1px solid var(--header-border); border-radius:8px;"></canvas>
               <div id="detailACFNote" style="color:var(--muted); font-size:12px; margin-top:4px;">—</div>
             </div>
-          </div>
           </div>
         </div>
       </div>
@@ -1569,7 +1584,7 @@
       <div class="modal-backdrop" data-close="1"></div>
       <div class="modal-content" style="max-width:1000px;">
         <div class="modal-header">
-          <h2>Détails des évaluations</h2>
+          <h2 data-i18n="evals.modal.title">Détails des évaluations</h2>
           <button id="evalsClose" class="icon-btn" aria-label="Fermer">×</button>
         </div>
         <div class="modal-body">
@@ -1617,6 +1632,9 @@
                     <option value="agressive">Stratégie agressive</option>
                   </select>
                 </label>
+                        <div>
+              <div style="font-weight:600;" data-i18n="detail.section.eq.title">Équity</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.eq.desc">Évolution du capital dans le temps. Cherchez une courbe régulière avec des phases de baisse limitées et un profil compatible avec votre tolérance au risque.</div>
                 <label>Stratégie
                   <select id="labStrategy" style="min-width:12rem;">
                     <option value="hybrid" selected>Hybride (EA → Bayes)</option>
@@ -1700,7 +1718,10 @@
                 <label title="Score minimum (0-100); 0 = désactivé">Score min <input id="labMinScore" type="number" min="0" max="100" step="0.1" value="0" style="width:6rem" /></label>
               </div>
             </div>
-            <div id="labAdvPanel" style="display:none; gap:12px; align-items:center; flex-wrap:wrap; padding:6px; border:1px dashed var(--header-border); border-radius:6px; grid-column:1/-1;">
+            <div id="labAdvPanel" style="display:none; gap:12px; align-items:cent            <div>
+              <div style="font-weight:600;" data-i18n="detail.section.dd.title">Drawdown absolu</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.dd.desc">Taille des creux en dollars. Permet d'identifier les pires périodes de pertes et de vérifier qu'elles restent acceptables pour le capital engagé.</div>
+ align-items:center; flex-wrap:wrap; padding:6px; border:1px dashed var(--header-border); border-radius:6px; grid-column:1/-1;">
               <details class="param-help-inline heading"><summary>Paramètres à tester</summary><div class="param-help">Cochez les paramètres que l’algorithme pourra modifier. Les plages d’étude définissent Min/Max/Pas pour chaque paramètre coché. Astuce: partez large, puis resserrez progressivement.</div></details>
               <label><input id="labVarNol" type="checkbox" checked /> NOL</label>
               <label><input id="labVarPrd" type="checkbox" checked /> PRD</label>
@@ -1838,6 +1859,9 @@
             </table>
           </div>
         </div>
+        <div class=            <div>
+              <div style="font-weight:600;" data-i18n="detail.section.under.title">Underwater (drawdown %)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.under.desc">Drawdown en pourcentage du capital. Utile pour comparer le risque relatif entre stratégies ou paramètres sur des capitaux différents.</div>
         <div class="modal-footer">
           <span style="color:var(--muted);">Les données sont agrégées à partir des optimisations effectuées (symbole courant + TF sélectionné).</span>
         </div>
@@ -1889,3 +1913,84 @@
     <script src="src/main.js"></script>
   </body>
 </html>
+            <div>
+              <div style="font-weight:600;" data-i18n="detail.section.hist.title">Distribution des rendements</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.hist.desc">Histogramme des retours par trade. Recherchez une queue de pertes limitée et une queue de gains étendue, signe d'un bon équilibre risque/rendement.</div>
+            <div>
+              <div style="font-weight:600;" data-i18n="detail.section.eff.title">Efficacité de la stratégie</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.eff.desc">Barres normalisées (Win%, R:R, efficacité, temps en marché, fréquence). Permet de voir en un clin d'œil les composantes fortes et celles à optimiser.</div>
+            <div>
+              <div style="font-weight:600;" data-i18n="detail.section.robust.title">Complexité & Robustesse</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.robust.desc">Mesure le compromis entre nombre de paramètres actifs et robustesse globale. Idéalement, viser une robustesse élevée avec une complexité raisonnable.</div>
+                <div>
+                  <div style="font-weight:600;" data-i18n="detail.section.summary.title">Commentaire & analyse</div>
+                  <div style="color:var(--muted); font-size:11px;" data-i18n="detail.section.summary.desc">Synthèse narrative de la stratégie et de sa comparée. À lire pour comprendre le profil de risque/rendement, les axes d'amélioration, et l'impact du slippage réel sur la performance.</div>
+                </div>
+                <div style="display:flex; gap:6px; align-items:center; font-size:12px;">
+                  <label data-i18n="detail.slip.label">Slippage (bps)
+                    <input id="detailSlipBps" type="number" min="0" max="200" step="1" value="0" style="width:6rem;" />
+                  </label>
+                  <button id="detailSlipApply" class="btn" data-i18n="detail.slip.apply">Appliquer</button>
+                  <button id="detailSlipInfo" class="icon-btn" type="button" aria-label="Infos slippage" title="Infos slippage" data-i18n-aria-label="detail.slip.infoTitle" data-i18n-title="detail.slip.infoTitle">?</button>
+            <div>
+              <div style="font-weight:600;" data-i18n="detail.section.ci.title">IC (bootstrap 95%)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.ci.desc">Intervalles de confiance estimés par bootstrap. Permettent de visualiser l'incertitude sur Win%, PF et expectancy plutôt que de se fier à un seul chiffre.</div>
+            <div>
+              <div style="font-weight:600;" data-i18n="detail.section.rollpf.title">Rolling PF (fenêtre 30)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.rollpf.desc">Profit factor calculé sur une fenêtre glissante. Sert à détecter les phases où la stratégie passe durablement sous PF&nbsp;1 (non rentable).</div>
+            <div>
+              <div style="font-weight:600;" data-i18n="detail.section.rollwin.title">Rolling Win% (fenêtre 30)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.rollwin.desc">Taux de réussite glissant. Met en évidence les périodes où la stratégie décroche ou s'améliore fortement.</div>
+            <div>
+              <div style="font-weight:600;" data-i18n="detail.section.rollrr.title">Rolling Avg R:R (fenêtre 30)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.rollrr.desc">R:R moyen sur 30 positions. Permet de voir si les objectifs deviennent trop courts ou trop ambitieux dans certains régimes.</div>
+            <div>
+              <div style="font-weight:600;" data-i18n="detail.section.rollexp.title">Rolling Expectancy (fenêtre 30)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.rollexp.desc">Expectancy par trade sur fenêtre glissante. À utiliser pour repérer les zones temporelles où la stratégie devient négative.</div>
+            <div>
+              <div style="font-weight:600;" data-i18n="detail.section.dur.title">Durée des trades</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.dur.desc">Répartition de la durée des positions. Vérifiez que la stratégie correspond bien à votre horizon de temps (scalping, swing, positionnel...).</div>
+            <div>
+              <div style="font-weight:600;" data-i18n="detail.section.streaks.title">Séquences victoires/défaites</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.streaks.desc">Distribution des séries de gains et de pertes. Met en lumière la possibilité de longues séries perdantes à supporter psychologiquement.</div>
+            <div>
+              <div style="font-weight:600;" data-i18n="detail.section.ls.title">Distribution retours — Long vs Short</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.ls.desc">Compare la distribution des performances Long et Short. Idéal pour voir si un côté du marché porte l'essentiel de la performance.</div>
+            <div>
+              <div style="font-weight:600;" data-i18n="detail.section.mae.title">MAE/MFE (excursions en R)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.mae.desc">Dispersion des excursions maximales en R (risque). Sert à calibrer TP/SL et trailing en fonction de ce que le marché offre réellement.</div>
+            <div>
+              <div style="font-weight:600;" data-i18n="detail.section.weekly.title">Saisonnalité — Retours hebdomadaires (%)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.weekly.desc">Carte des retours semaine par semaine. À utiliser pour repérer les périodes structurellement favorables ou défavorables à la stratégie.</div>
+            <div>
+              <div style="font-weight:600;" data-i18n="detail.section.dow.title">Saisonnalité — par jour de semaine (%)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.dow.desc">Retour moyen par jour de la semaine. Sert à filtrer d'éventuels jours structurellement faibles ou instables.</div>
+            <div>
+              <div style="font-weight:600;" data-i18n="detail.section.dowHour.title">Saisonnalité — Jour × Heure (retours %)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.dowHour.desc">Heatmap jour × heure. Idéale pour identifier les créneaux horaires où la stratégie surperforme ou sous-performe.</div>
+            <div>
+              <div style="font-weight:600;" data-i18n="detail.section.dowHourLong.title">Jour × Heure — Long seulement</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.dowHourLong.desc">Même carte jour × heure mais filtrée sur les positions Long. Permet de voir où la jambe acheteuse est réellement efficace.</div>
+            <div>
+              <div style="font-weight:600;" data-i18n="detail.section.dowHourShort.title">Jour × Heure — Short seulement</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.dowHourShort.desc">Idem pour les positions Short. Utile pour voir si la jambe vendeuse est opportuniste ou trop fragile sur certains créneaux.</div>
+            <div>
+              <div style="font-weight:600;" data-i18n="detail.section.wf.title">Walk-forward — splits temporels</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.wf.desc">Performance par segment temporel. Sert à vérifier que la stratégie reste exploitable hors échantillon et ne dépend pas d'une seule période.</div>
+            <div>
+              <div style="font-weight:600;" data-i18n="detail.section.regime.title">Régimes (Trend × Volatilité)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.regime.desc">PF par combinaison de tendance et de volatilité. Identifie clairement les régimes de marché où la stratégie fonctionne bien ou mal.</div>
+            <div>
+              <div style="font-weight:600;" data-i18n="detail.section.pareto.title">Pareto — P&L vs Max DD (Palmarès)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.pareto.desc">Nuage P&L vs drawdown. Permet de comparer visuellement le compromis rendement/risque de la stratégie par rapport au Palmarès.</div>
+            <div>
+              <div style="font-weight:600;" data-i18n="detail.section.mc.title">Monte Carlo — éventail d'équity (bootstrap trades)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.mc.desc">Simulation aléatoire de l'ordre des trades. Montre la dispersion possible des trajectoires d'équity à partir du même historique de trades.</div>
+            <div>
+              <div style="font-weight:600;" data-i18n="detail.section.qq.title">QQ-Plot (retours normalisés)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.qq.desc">Compare la distribution des rendements à une loi normale. Sert à repérer des queues épaisses ou des asymétries importantes.</div>
+            <div>
+              <div style="font-weight:600;" data-i18n="detail.section.acf.title">Autocorrélation (lags)</div>
+              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.acf.desc">Autocorrélation des rendements sur plusieurs lags. Permet de voir s'il existe un clustering de gains/pertes ou des dépendances exploitables.</div>
+          <h2 data-i18n="evals.modal.title">Détails des évaluations</h2>
+          <button id="evalsClose" class="icon-btn" aria-label="Fermer">×</button>

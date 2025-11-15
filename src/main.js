@@ -139,8 +139,450 @@
 function isDark(){ try{ const t=document.documentElement.dataset && document.documentElement.dataset.theme; if(t==='dark') return true; if(t==='light') return false; }catch(_){ } return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; }
 function applyTheme(mode){ try{ if(mode==='dark'){ document.documentElement.dataset.theme='dark'; localStorage.setItem('ui:theme','dark'); } else if(mode==='light'){ document.documentElement.dataset.theme='light'; localStorage.setItem('ui:theme','light'); } else { delete document.documentElement.dataset.theme; localStorage.removeItem('ui:theme'); } refreshThemeOnChart(); updateThemeBtn(); }catch(_){ } }
 function cycleTheme(){ try{ const cur=localStorage.getItem('ui:theme')||'auto'; const next = (cur==='auto')? 'dark' : (cur==='dark'? 'light' : 'auto'); applyTheme(next); }catch(_){ } }
-function updateThemeBtn(){ try{ const btn=document.getElementById('themeToggle'); if(!btn) return; const cur=localStorage.getItem('ui:theme')||'auto'; btn.textContent = cur==='dark' ? 'Thème: Sombre' : cur==='light' ? 'Thème: Clair' : 'Thème: Auto'; btn.title='Basculer thème (Auto → Sombre → Clair)'; }catch(_){ } }
+function updateThemeBtn(){ try{ const btn=document.getElementById('themeToggle'); if(!btn) return; const cur=localStorage.getItem('ui:theme')||'auto'; const key = cur==='dark' ? 'ui.theme.dark' : (cur==='light' ? 'ui.theme.light' : 'ui.theme.auto'); btn.textContent = t(key); btn.title = t('ui.theme.btnTitle'); }catch(_){ } }
 try{ const m=window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)'); if(m && m.addEventListener){ m.addEventListener('change', ()=>{ try{ if(!localStorage.getItem('ui:theme')){ refreshThemeOnChart(); updateThemeBtn(); } }catch(_){ } }); } }catch(_){ }
+
+// --- Internationalisation (FR / EN / ES) ---
+const SUPPORTED_LANGS = ['fr','en','es'];
+const I18N = {
+  'ui.theme.auto':  { fr:'Thème: Auto',   en:'Theme: Auto',   es:'Tema: Auto' },
+  'ui.theme.dark':  { fr:'Thème: Sombre', en:'Theme: Dark',   es:'Tema: Oscuro' },
+  'ui.theme.light': { fr:'Thème: Clair',  en:'Theme: Light',  es:'Tema: Claro' },
+  'ui.theme.btnTitle': { fr:'Basculer thème (Auto → Sombre → Clair)', en:'Switch theme (Auto → Dark → Light)', es:'Cambiar tema (Auto → Oscuro → Claro)' },
+
+  'ui.lang.btn.fr': { fr:'Langue: FR', en:'Language: FR', es:'Idioma: FR' },
+  'ui.lang.btn.en': { fr:'Langue: EN', en:'Language: EN', es:'Idioma: EN' },
+  'ui.lang.btn.es': { fr:'Langue: ES', en:'Language: ES', es:'Idioma: ES' },
+  'ui.lang.btnTitle': { fr:'Changer la langue (FR → EN → ES)', en:'Change language (FR → EN → ES)', es:'Cambiar idioma (FR → EN → ES)' },
+
+  'status.loading':      { fr:'Chargement...', en:'Loading...',        es:'Cargando...' },
+  'status.loadingShort': { fr:'Chargement...', en:'Loading...',        es:'Cargando...' },
+  'status.live':         { fr:'Temps réel',    en:'Live',             es:'Tiempo real' },
+  'status.wsError':      { fr:'WS erreur',     en:'WS error',         es:'Error WS' },
+  'status.loadError':    { fr:'Erreur chargement', en:'Load error',   es:'Error de carga' },
+
+  'status.noEval':       { fr:'Aucune évaluation', en:'No evaluations', es:'Sin evaluaciones' },
+  'status.noStrategy':   { fr:'Aucune stratégie',   en:'No strategy',    es:'Sin estrategia' },
+  'status.applyOk':      { fr:'Paramètres appliqués à Heaven', en:'Parameters applied to Heaven', es:'Parámetros aplicados a Heaven' },
+  'status.applyError':   { fr:'Erreur application',             en:'Apply error',                  es:'Error al aplicar' },
+  'status.weightsSaved': { fr:'Pondérations enregistrées',       en:'Weights saved',              es:'Ponderaciones guardadas' },
+
+  'supa.urlAnonRequired': { fr:'URL et ANON requis', en:'URL and ANON are required', es:'Se requieren URL y ANON' },
+  'supa.testing':         { fr:'Test de connexion...', en:'Testing connection...', es:'Probando conexión...' },
+  'supa.ok':              { fr:'Connexion OK. Configuration enregistrée.', en:'Connection OK. Configuration saved.', es:'Conexión OK. Configuración guardada.' },
+  'supa.fail':            { fr:'Échec de connexion. Vérifiez URL/clé.', en:'Connection failed. Check URL/key.', es:'Fallo de conexión. Verifique URL/clave.' },
+
+  'lab.palmares.empty':   { fr:'Aucun palmarès', en:'No leaderboard', es:'Sin palmarés' },
+  'lab.palmares.prefix':  { fr:'Palmarès:', en:'Leaderboard:', es:'Palmarés:' },
+  'lab.palmares.strats':  { fr:'stratégies', en:'strategies', es:'estrategias' },
+  'lab.palmares.symbol':  { fr:'symbole', en:'symbol', es:'símbolo' },
+  'lab.palmares.tf':      { fr:'TF', en:'TF', es:'TF' },
+
+  'lab.table.noData':     { fr:'Aucune donnée', en:'No data', es:'Sin datos' },
+  'lab.table.detailBtn':  { fr:'Détail', en:'Detail', es:'Detalle' },
+  'lab.table.applyBtn':   { fr:'Appliquer', en:'Apply', es:'Aplicar' },
+  'lab.table.applyTitle': { fr:'Appliquer cette stratégie à Heaven', en:'Apply this strategy to Heaven', es:'Aplicar esta estrategia a Heaven' },
+
+  'chart.bars.prefix':  { fr:'Bougies:',           en:'Candles:',        es:'Velas:' },
+  'chart.cutoff.from':  { fr:'Affichage depuis:',  en:'Showing from:',    es:'Mostrando desde:' },
+  'chart.cutoff.full':  { fr:'Historique complet', en:'Full history',     es:'Histórico completo' },
+
+  'header.symbolLabel':   { fr:'Symbole',                     en:'Symbol',                 es:'Símbolo' },
+  'header.intervalLabel': { fr:'Intervalle',                  en:'Timeframe',              es:'Intervalo' },
+  'header.emaToggleTitle':{ fr:"Activer/Désactiver l'affichage des EMA/MA", en:'Toggle EMA/MA display', es:'Activar/Desactivar visualización EMA/MA' },
+  'header.emaCfgTitle':   { fr:'Paramètres EMA/MA',           en:'EMA/MA settings',        es:'Parámetros EMA/MA' },
+  'header.heavenToggleTitle': { fr:'Activer/Désactiver Heaven', en:'Enable/disable Heaven', es:'Activar/Desactivar Heaven' },
+  'header.heavenCfgTitle':{ fr:'Paramètres Heaven',           en:'Heaven settings',        es:'Parámetros Heaven' },
+  'header.btRun':         { fr:'Backtest',                    en:'Backtest',               es:'Backtest' },
+  'header.lab':           { fr:'Lab',                         en:'Lab',                    es:'Lab' },
+  'header.labTitle':      { fr:'Recherche/Apprentissage par TF', en:'Search/Learning by TF', es:'Búsqueda/Aprendizaje por TF' },
+  'header.live':          { fr:'Live',                        en:'Live',                   es:'Live' },
+  'header.liveTitle':     { fr:'Paper/Live trading',          en:'Paper/Live trading',     es:'Trading simulado/en vivo' },
+  'header.supaBtn':       { fr:'Supabase',                    en:'Supabase',               es:'Supabase' },
+  'header.supaTitle':     { fr:'Configurer Supabase',         en:'Configure Supabase',     es:'Configurar Supabase' },
+'header.gotoEnd':       { fr:'⏭ Aller à la fin',            en:'⏭ Go to end',            es:'⏭ Ir al final' },
+
+  'lab.weights.modalTitle':    { fr:'Pondérations — Score global',         en:'Weights — Global score',        es:'Ponderaciones — Puntuación global' },
+  'lab.weights.profileLabel':  { fr:'Profil',                              en:'Profile',                       es:'Perfil' },
+  'lab.weights.profile.safe':  { fr:'Sûre',                                en:'Safe',                          es:'Segura' },
+  'lab.weights.profile.bal':   { fr:'Balancée',                            en:'Balanced',                      es:'Balanceada' },
+  'lab.weights.profile.agg':   { fr:'Agressive',                           en:'Aggressive',                    es:'Agresiva' },
+  'lab.weights.totalHint':     { fr:'Les poids doivent totaliser 100%.',   en:'Weights must sum to 100.',      es:'Los pesos deben sumar 100%.' },
+  'lab.weights.infoDefault':   { fr:"Cliquez sur le (i) d’un facteur pour voir à quoi il sert et comment intervient son poids dans le score.", en:'Click on the (i) of a factor to see what it does and how its weight affects the score.', es:'Haz clic en la (i) de un factor para ver para qué sirve y cómo influye su peso en la puntuación.' },
+  'lab.weights.save':          { fr:'Enregistrer',                         en:'Save',                          es:'Guardar' },
+
+  'lab.weights.pf':            { fr:'Profit Factor',                       en:'Profit Factor',                 es:'Profit Factor' },
+  'lab.weights.wr':            { fr:'Win %',                               en:'Win %',                         es:'Win %' },
+  'lab.weights.rr':            { fr:'Risk/Reward (Avg RR)',                en:'Risk/Reward (Avg RR)',          es:'Risk/Reward (RR medio)' },
+  'lab.weights.pnl':           { fr:'P&L net',                             en:'Net P&L',                       es:'P&L neto' },
+  'lab.weights.eq':            { fr:'Capital final',                       en:'Final equity',                  es:'Capital final' },
+  'lab.weights.trades':        { fr:'Trades',                              en:'Trades',                        es:'Trades' },
+  'lab.weights.dd':            { fr:'Max DD (inverse)',                    en:'Max DD (inverse)',              es:'Max DD (inverso)' },
+  'lab.weights.sharpe':        { fr:'Sharpe Ratio',                        en:'Sharpe Ratio',                  es:'Ratio de Sharpe' },
+  'lab.weights.recov':         { fr:'Recovery Factor',                     en:'Recovery Factor',               es:'Recovery Factor' },
+  'lab.weights.slope':         { fr:'Equity Slope',                        en:'Equity Slope',                  es:'Pendiente de la equity' },
+  'lab.weights.cons':          { fr:'Consistence / Stabilité',             en:'Consistency / Stability',       es:'Consistencia / Estabilidad' },
+  'lab.weights.exp':           { fr:'Espérance (Expectancy)',              en:'Expectancy',                    es:'Esperanza (Expectancy)' },
+  'lab.weights.ret':           { fr:'Return / période (%)',                en:'Return / period (%)',           es:'Retorno / período (%)' },
+  'lab.weights.infoPrefix':    { fr:'Infos',                               en:'Info',                          es:'Info' },
+  'lab.weights.totalPrefix':   { fr:'Total:',                              en:'Total:',                        es:'Total:' },
+  'lab.weights.remainingPrefix': { fr:'Reste:',                            en:'Remaining:',                    es:'Restante:' },
+'lab.weights.pointsSuffix':  { fr:'pts',                                 en:'pts',                           es:'pts' },
+
+  // Detail / analysis modal
+  'detail.title':          { fr:'Analyse stratégie',                 en:'Strategy analysis',                 es:'Análisis de estrategia' },
+  'detail.conf.capital':   { fr:'Capital initial',                   en:'Initial capital',                   es:'Capital inicial' },
+  'detail.conf.fee':       { fr:'Frais (%)',                         en:'Fees (%)',                          es:'Comisiones (%)' },
+  'detail.conf.lev':       { fr:'Levier (x)',                         en:'Leverage (x)',                      es:'Apalancamiento (x)' },
+  'detail.conf.apply':     { fr:'Appliquer',                          en:'Apply',                             es:'Aplicar' },
+  'detail.conf.note':      { fr:"Ces paramètres n'affectent que cette analyse détaillée.", en:'These settings affect only this detailed analysis.', es:'Estos parámetros sólo afectan a este análisis detallado.' },
+
+  'detail.compare.label':  { fr:'Comparer à',                         en:'Compare to',                        es:'Comparar con' },
+  'detail.compare.source.heaven':   { fr:'Heaven (config actuelle)',  en:'Heaven (current config)',           es:'Heaven (config actual)' },
+  'detail.compare.source.palmares': { fr:'Palmarès',                  en:'Leaderboard',                       es:'Palmarés' },
+  'detail.compare.pair':   { fr:'Pair',                               en:'Pair',                              es:'Par' },
+  'detail.compare.tf':     { fr:'TF',                                 en:'TF',                                es:'TF' },
+  'detail.compare.profile':{ fr:'Profil',                             en:'Profile',                           es:'Perfil' },
+  'detail.compare.strategy':{ fr:'Stratégie',                          en:'Strategy',                          es:'Estrategia' },
+  'detail.compare.apply':  { fr:'Appliquer',                          en:'Apply',                             es:'Aplicar' },
+
+  'detail.section.radar.title':   { fr:'Radar critères',              en:'Criteria radar',                    es:'Radar de criterios' },
+  'detail.section.radar.desc':    { fr:'Vue synthétique des principaux critères (0–100). Permet de repérer d\'un coup d\'œil les forces et faiblesses globales de la stratégie.', en:'Synthetic view of the main criteria (0–100). Lets you spot strengths and weaknesses of the strategy at a glance.', es:'Vista sintética de los criterios principales (0–100). Permite ver de un vistazo los puntos fuertes y débiles de la estrategia.' },
+
+  'detail.section.eq.title':      { fr:'Équity',                       en:'Equity',                            es:'Equity' },
+  'detail.section.eq.desc':       { fr:'Évolution du capital dans le temps. Cherchez une courbe régulière avec des phases de baisse limitées et un profil compatible avec votre tolérance au risque.', en:'Evolution of equity over time. Look for a smooth curve with limited drawdown phases and a risk profile matching your tolerance.', es:'Evolución del capital en el tiempo. Busque una curva regular con fases de caída limitadas y un perfil acorde con su tolerancia al riesgo.' },
+
+  'detail.section.dd.title':      { fr:'Drawdown absolu',              en:'Absolute drawdown',                 es:'Drawdown absoluto' },
+  'detail.section.dd.desc':       { fr:"Taille des creux en dollars. Permet d'identifier les pires périodes de pertes et de vérifier qu'elles restent acceptables pour le capital engagé.", en:'Size of equity dips in currency. Helps to identify the worst loss periods and check they remain acceptable for the capital at risk.', es:'Tamaño de los baches en dinero. Permite identificar los peores periodos de pérdidas y comprobar que siguen siendo aceptables para el capital comprometido.' },
+
+  'detail.section.under.title':   { fr:'Underwater (drawdown %)',      en:'Underwater (drawdown %)',           es:'Underwater (drawdown %)' },
+  'detail.section.under.desc':    { fr:'Drawdown en pourcentage du capital. Utile pour comparer le risque relatif entre stratégies ou paramètres sur des capitaux différents.', en:'Drawdown as a percentage of equity. Useful to compare relative risk between strategies or parameter sets on different account sizes.', es:'Drawdown en porcentaje del capital. Útil para comparar el riesgo relativo entre estrategias o parámetros en distintos capitales.' },
+
+  'detail.section.hist.title':    { fr:'Distribution des rendements',  en:'Return distribution',               es:'Distribución de rendimientos' },
+  'detail.section.hist.desc':     { fr:"Histogramme des retours par trade. Recherchez une queue de pertes limitée et une queue de gains étendue, signe d'un bon équilibre risque/rendement.", en:'Histogram of returns per trade. Look for a limited loss tail and a wide gain tail: a sign of a good risk/reward profile.', es:'Histograma de retornos por operación. Busque una cola de pérdidas limitada y una cola de ganancias amplia: señal de un buen equilibrio riesgo/beneficio.' },
+
+  'detail.section.eff.title':     { fr:'Efficacité de la stratégie',   en:'Strategy efficiency',               es:'Eficiencia de la estrategia' },
+  'detail.section.eff.desc':      { fr:"Barres normalisées (Win%, R:R, efficacité, temps en marché, fréquence). Permet de voir en un clin d'œil les composantes fortes et celles à optimiser.", en:'Normalised bars (Win%, R:R, efficiency, time in market, frequency). Shows at a glance which components are strong and which need work.', es:'Barras normalizadas (Win%, R:R, eficiencia, tiempo en mercado, frecuencia). Permite ver de un vistazo qué componentes son fuertes y cuáles optimizar.' },
+
+  'detail.section.robust.title':  { fr:'Complexité & Robustesse',      en:'Complexity & robustness',           es:'Complejidad y robustez' },
+  'detail.section.robust.desc':   { fr:"Mesure le compromis entre nombre de paramètres actifs et robustesse globale. Idéalement, viser une robustesse élevée avec une complexité raisonnable.", en:'Measures the trade-off between number of active parameters and overall robustness. Ideally aim for high robustness with reasonable complexity.', es:'Mide el compromiso entre número de parámetros activos y robustez global. Idealmente, buscar alta robustez con complejidad razonable.' },
+
+  'detail.section.summary.title': { fr:'Commentaire & analyse',        en:'Commentary & analysis',             es:'Comentario y análisis' },
+  'detail.section.summary.desc':  { fr:"Synthèse narrative de la stratégie et de sa comparée. À lire pour comprendre le profil de risque/rendement, les axes d'amélioration, et l'impact du slippage réel sur la performance.", en:'Narrative summary of the strategy and its comparison. Read to understand risk/return profile, improvement axes and the impact of real slippage on performance.', es:'Síntesis narrativa de la estrategia y su comparativa. Sirve para entender el perfil riesgo/rendimiento, las vías de mejora y el impacto del slippage real en el rendimiento.' },
+
+  'detail.slip.label':      { fr:'Slippage (bps)',                    en:'Slippage (bps)',                    es:'Slippage (pbs)' },
+  'detail.slip.apply':      { fr:'Appliquer',                          en:'Apply',                             es:'Aplicar' },
+  'detail.slip.infoTitle':  { fr:'Infos slippage',                     en:'Slippage info',                     es:'Info de slippage' },
+  'detail.slip.infoText':   { fr:"Le slippage (bps) ajoute un coût d'exécution sur chaque entrée/sortie (1 bps = 0,01%). Cela permet de voir comment PF, Win% et l'expectancy réagissent quand on tient compte du spread/slippage réel.",
+                              en:'Slippage (bps) adds an execution cost on each entry/exit (1 bps = 0.01%). This lets you see how PF, Win% and expectancy react when you take real spread/slippage into account.',
+                              es:'El slippage (pbs) añade un coste de ejecución en cada entrada/salida (1 pbs = 0,01%). Permite ver cómo reaccionan PF, Win% y la expectancy cuando se tiene en cuenta el spread/slippage real.' },
+
+  'detail.section.ci.title':  { fr:'IC (bootstrap 95%)',               en:'CI (bootstrap 95%)',                es:'IC (bootstrap 95 %)' },
+  'detail.section.ci.desc':   { fr:"Intervalles de confiance estimés par bootstrap. Permettent de visualiser l'incertitude sur Win%, PF et expectancy plutôt que de se fier à un seul chiffre.", en:'Confidence intervals estimated via bootstrap. Visualises uncertainty on Win%, PF and expectancy instead of relying on a single number.', es:'Intervalos de confianza estimados por bootstrap. Permiten visualizar la incertidumbre sobre Win%, PF y expectancy en lugar de basarse en un único valor.' },
+
+  'detail.section.rollpf.title': { fr:"Rolling PF (fenêtre 30)",      en:'Rolling PF (window 30)',            es:'Rolling PF (ventana 30)' },
+  'detail.section.rollpf.desc':  { fr:"Profit factor calculé sur une fenêtre glissante. Sert à détecter les phases où la stratégie passe durablement sous PF 1 (non rentable).", en:'Profit factor computed on a rolling window. Used to detect phases where the strategy stays below PF 1 (unprofitable).', es:'Profit factor calculado sobre una ventana deslizante. Sirve para detectar fases en las que la estrategia se mantiene por debajo de PF 1 (no rentable).' },
+
+  'detail.section.rollwin.title': { fr:'Rolling Win% (fenêtre 30)',    en:'Rolling Win% (window 30)',          es:'Rolling Win% (ventana 30)' },
+  'detail.section.rollwin.desc':  { fr:'Taux de réussite glissant. Met en évidence les périodes où la stratégie décroche ou s\'améliore fortement.', en:'Rolling win rate. Highlights periods where the strategy degrades or improves significantly.', es:'Tasa de acierto deslizante. Resalta los periodos en los que la estrategia empeora o mejora claramente.' },
+
+  'detail.section.rollrr.title':  { fr:'Rolling Avg R:R (fenêtre 30)', en:'Rolling Avg R:R (window 30)',       es:'Rolling Avg R:R (ventana 30)' },
+  'detail.section.rollrr.desc':   { fr:'R:R moyen sur 30 positions. Permet de voir si les objectifs deviennent trop courts ou trop ambitieux dans certains régimes.', en:'Average R:R over 30 trades. Shows whether targets become too tight or too ambitious in some regimes.', es:'R:R medio sobre 30 posiciones. Permite ver si los objetivos se vuelven demasiado cortos o demasiado ambiciosos en ciertos regímenes.' },
+
+  'detail.section.rollexp.title': { fr:'Rolling Expectancy (fenêtre 30)', en:'Rolling Expectancy (window 30)',   es:'Rolling Expectancy (ventana 30)' },
+  'detail.section.rollexp.desc':  { fr:'Expectancy par trade sur fenêtre glissante. À utiliser pour repérer les zones temporelles où la stratégie devient négative.', en:'Expectancy per trade on a rolling window. Use it to spot time zones where the strategy turns negative.', es:'Expectancy por operación en ventana deslizante. Úselo para detectar zonas temporales donde la estrategia se vuelve negativa.' },
+
+  'detail.section.dur.title':     { fr:'Durée des trades',             en:'Trade duration',                    es:'Duración de las operaciones' },
+  'detail.section.dur.desc':      { fr:"Répartition de la durée des positions. Vérifiez que la stratégie correspond bien à votre horizon de temps (scalping, swing, positionnel...).", en:'Distribution of trade durations. Check that the strategy matches your time horizon (scalping, swing, position...).', es:'Distribución de la duración de las posiciones. Compruebe que la estrategia se ajusta a su horizonte temporal (scalping, swing, posición...).' },
+
+  'detail.section.streaks.title': { fr:'Séquences victoires/défaites', en:'Win/loss streaks',                  es:'Rachas de victorias/derrotas' },
+  'detail.section.streaks.desc':  { fr:'Distribution des séries de gains et de pertes. Met en lumière la possibilité de longues séries perdantes à supporter psychologiquement.', en:'Distribution of winning and losing streaks. Highlights the possibility of long losing streaks to withstand psychologically.', es:'Distribución de rachas de ganancias y pérdidas. Pone de relieve la posibilidad de largas rachas perdedoras que hay que soportar psicológicamente.' },
+
+  'detail.section.ls.title':      { fr:'Distribution retours — Long vs Short', en:'Return distribution — Long vs Short', es:'Distribución de retornos — Long vs Short' },
+  'detail.section.ls.desc':       { fr:"Compare la distribution des performances Long et Short. Idéal pour voir si un côté du marché porte l'essentiel de la performance.", en:'Compares the distribution of Long and Short performance. Ideal to see if one side of the market carries most of the performance.', es:'Compara la distribución del rendimiento Long y Short. Ideal para ver si un lado del mercado soporta la mayor parte del rendimiento.' },
+
+  'detail.section.mae.title':     { fr:'MAE/MFE (excursions en R)',    en:'MAE/MFE (excursions in R)',         es:'MAE/MFE (excursiones en R)' },
+  'detail.section.mae.desc':      { fr:"Dispersion des excursions maximales en R (risque). Sert à calibrer TP/SL et trailing en fonction de ce que le marché offre réellement.", en:'Spread of maximum excursions in R (risk). Helps to calibrate TP/SL and trailing according to what the market actually offers.', es:'Dispersión de las excursiones máximas en R (riesgo). Sirve para calibrar TP/SL y trailing según lo que realmente ofrece el mercado.' },
+
+  'detail.section.weekly.title':  { fr:'Saisonnalité — Retours hebdomadaires (%)', en:'Seasonality — Weekly returns (%)', es:'Estacionalidad — Retornos semanales (%)' },
+  'detail.section.weekly.desc':   { fr:"Carte des retours semaine par semaine. À utiliser pour repérer les périodes structurellement favorables ou défavorables à la stratégie.", en:'Map of returns week by week. Use it to spot periods structurally favourable or unfavourable to the strategy.', es:'Mapa de retornos semana a semana. Úselo para detectar periodos estructuralmente favorables o desfavorables para la estrategia.' },
+
+  'detail.section.dow.title':     { fr:'Saisonnalité — par jour de semaine (%)', en:'Seasonality — by weekday (%)', es:'Estacionalidad — por día de la semana (%)' },
+  'detail.section.dow.desc':      { fr:"Retour moyen par jour de la semaine. Sert à filtrer d'éventuels jours structurellement faibles ou instables.", en:'Average return per weekday. Used to filter structurally weak or unstable days.', es:'Retorno medio por día de la semana. Sirve para filtrar días estructuralmente débiles o inestables.' },
+
+  'detail.section.dowHour.title': { fr:'Saisonnalité — Jour × Heure (retours %)', en:'Seasonality — Day × Hour (returns %)', es:'Estacionalidad — Día × Hora (retornos %)' },
+  'detail.section.dowHour.desc':  { fr:'Heatmap jour × heure. Idéale pour identifier les créneaux horaires où la stratégie surperforme ou sous-performe.', en:'Day × hour heatmap. Ideal to identify time slots where the strategy over‑ or underperforms.', es:'Heatmap día × hora. Ideal para identificar franjas horarias en las que la estrategia sobre‑o infra‑rinde.' },
+
+  'detail.section.dowHourLong.title':  { fr:'Jour × Heure — Long seulement', en:'Day × Hour — Long only',        es:'Día × Hora — sólo Long' },
+  'detail.section.dowHourLong.desc':   { fr:'Même carte jour × heure mais filtrée sur les positions Long. Permet de voir où la jambe acheteuse est réellement efficace.', en:'Same day × hour map but filtered on Long positions. Shows where the long leg is actually effective.', es:'Mismo mapa día × hora pero filtrado por posiciones Long. Muestra dónde la pata compradora es realmente eficaz.' },
+
+  'detail.section.dowHourShort.title': { fr:'Jour × Heure — Short seulement', en:'Day × Hour — Short only',      es:'Día × Hora — sólo Short' },
+  'detail.section.dowHourShort.desc':  { fr:'Idem pour les positions Short. Utile pour voir si la jambe vendeuse est opportuniste ou trop fragile sur certains créneaux.', en:'Same for Short positions. Useful to see whether the short leg is opportunistic or too fragile in some time slots.', es:'Ídem para las posiciones Short. Útil para ver si la pata vendedora es oportunista o demasiado frágil en ciertos tramos horarios.' },
+
+  'detail.section.wf.title':      { fr:'Walk-forward — splits temporels', en:'Walk-forward — time splits',     es:'Walk-forward — splits temporales' },
+  'detail.section.wf.desc':       { fr:'Performance par segment temporel. Sert à vérifier que la stratégie reste exploitable hors échantillon et ne dépend pas d\'une seule période.', en:'Performance by time segment. Checks that the strategy remains usable out-of-sample and does not rely on a single period.', es:'Rendimiento por segmento temporal. Sirve para comprobar que la estrategia sigue siendo explotable fuera de muestra y no depende de un solo periodo.' },
+
+  'detail.section.regime.title':  { fr:'Régimes (Trend × Volatilité)',  en:'Regimes (Trend × Volatility)',    es:'Regímenes (Tendencia × Volatilidad)' },
+  'detail.section.regime.desc':   { fr:'PF par combinaison de tendance et de volatilité. Identifie clairement les régimes de marché où la stratégie fonctionne bien ou mal.', en:'PF by combination of trend and volatility. Clearly identifies market regimes where the strategy works well or poorly.', es:'PF por combinación de tendencia y volatilidad. Identifica claramente los regímenes de mercado donde la estrategia funciona bien o mal.' },
+
+  'detail.section.pareto.title':  { fr:'Pareto — P&L vs Max DD (Palmarès)', en:'Pareto — P&L vs Max DD (Leaderboard)', es:'Pareto — P&L vs Max DD (Palmarés)' },
+  'detail.section.pareto.desc':   { fr:'Nuage P&L vs drawdown. Permet de comparer visuellement le compromis rendement/risque de la stratégie par rapport au Palmarès.', en:'P&L vs drawdown scatter plot. Visually compares the strategy risk/return trade-off against the leaderboard.', es:'Nube P&L vs drawdown. Permite comparar visualmente el compromiso rendimiento/riesgo de la estrategia frente al Palmarés.' },
+
+  'detail.section.mc.title':      { fr:"Monte Carlo — éventail d'équity (bootstrap trades)", en:'Monte Carlo — equity fan (trade bootstrap)', es:'Monte Carlo — abanico de equity (bootstrap de trades)' },
+  'detail.section.mc.desc':       { fr:"Simulation aléatoire de l'ordre des trades. Montre la dispersion possible des trajectoires d'équity à partir du même historique de trades.", en:'Random simulation of trade order. Shows the possible dispersion of equity paths from the same trade history.', es:'Simulación aleatoria del orden de las operaciones. Muestra la posible dispersión de trayectorias de equity a partir del mismo histórico de operaciones.' },
+
+  'detail.section.qq.title':      { fr:'QQ-Plot (retours normalisés)', en:'QQ-Plot (normalised returns)',      es:'QQ-Plot (retornos normalizados)' },
+  'detail.section.qq.desc':       { fr:'Compare la distribution des rendements à une loi normale. Sert à repérer des queues épaisses ou des asymétries importantes.', en:'Compares the return distribution to a normal law. Used to detect fat tails or strong asymmetries.', es:'Compara la distribución de los retornos con una normal. Sirve para detectar colas gruesas o asimetrías importantes.' },
+
+  'detail.section.acf.title':     { fr:'Autocorrélation (lags)',       en:'Autocorrelation (lags)',            es:'Autocorrelación (lags)' },
+  'detail.section.acf.desc':      { fr:'Autocorrélation des rendements sur plusieurs lags. Permet de voir s\'il existe un clustering de gains/pertes ou des dépendances exploitables.', en:'Autocorrelation of returns over several lags. Shows whether there is clustering of gains/losses or exploitable dependencies.', es:'Autocorrelación de retornos en varios lags. Permite ver si existe agrupación de ganancias/pérdidas o dependencias explotables.' },
+
+  // Trades & evaluations modals
+  'strat.modal.title':      { fr:'Détails stratégie',                 en:'Strategy details',                  es:'Detalles de la estrategia' },
+  'strat.table.crit':       { fr:'Critère',                           en:'Criterion',                        es:'Criterio' },
+  'strat.table.score':      { fr:'Note / 100',                        en:'Score / 100',                      es:'Nota / 100' },
+  'strat.table.value':      { fr:'Valeur',                            en:'Value',                            es:'Valor' },
+
+  'trades.modal.title':     { fr:'Historique des trades',             en:'Trade history',                    es:'Historial de operaciones' },
+  'trades.table.time':      { fr:'Horaire',                           en:'Time',                             es:'Hora' },
+  'trades.table.equity':    { fr:'Capital',                           en:'Equity',                           es:'Capital' },
+  'trades.table.trade':     { fr:'Trade',                             en:'Trade',                            es:'Trade' },
+  'trades.table.qty':       { fr:'Quantité',                          en:'Quantity',                         es:'Cantidad' },
+  'trades.table.entry':     { fr:'Prix entrée',                       en:'Entry price',                      es:'Precio de entrada' },
+  'trades.table.exit':      { fr:'Prix sortie',                       en:'Exit price',                       es:'Precio de salida' },
+  'trades.table.fee':       { fr:'Frais',                             en:'Fees',                             es:'Comisiones' },
+  'trades.table.pnl':       { fr:'P&L',                               en:'P&L',                              es:'P&L' },
+  'trades.table.duration':  { fr:'Durée',                             en:'Duration',                         es:'Duración' },
+ 
+  'evals.modal.title':      { fr:'Détails des évaluations',           en:'Evaluation details',               es:'Detalles de las evaluaciones' },
+ 
+  'detail.error':           { fr:'Erreur analyse',                    en:'Analysis error',                   es:'Error de análisis' },
+ 
+  // Common generic UI
+  'common.save':            { fr:'Enregistrer',                        en:'Save',                             es:'Guardar' },
+  'common.load':            { fr:'Charger',                            en:'Load',                             es:'Cargar' },
+  'common.reset':           { fr:'Réinitialiser',                      en:'Reset',                            es:'Reiniciar' },
+  'common.delete':          { fr:'Supprimer',                          en:'Delete',                           es:'Eliminar' },
+  'common.cancel':          { fr:'Annuler',                            en:'Cancel',                           es:'Cancelar' },
+  'common.name':            { fr:'Nom',                                en:'Name',                             es:'Nombre' },
+ 
+  // EMA modal
+  'ema.modal.title':        { fr:'EMA / MA',                           en:'EMA / MA',                         es:'EMA / MA' },
+ 
+  // Backtest progress modal
+  'bt.progress.title':        { fr:'Simulation',                        en:'Simulation',                       es:'Simulación' },
+  'bt.progress.initShort':    { fr:'Préparation...',                    en:'Preparing...',                     es:'Preparación...' },
+  'bt.progress.trainingShort':{ fr:'Entraînement...',                   en:'Training...',                      es:'Entrenamiento...' },
+  'bt.progress.globalInit':   { fr:'Global: 0% (0/0) — ETA —',          en:'Global: 0% (0/0) — ETA —',         es:'Global: 0% (0/0) — ETA —' },
+  'bt.progress.btn.pause':    { fr:'Pause',                             en:'Pause',                            es:'Pausa' },
+  'bt.progress.btn.stop':     { fr:'Stop',                              en:'Stop',                             es:'Stop' },
+  'bt.progress.btn.details':  { fr:'Détails',                           en:'Details',                          es:'Detalles' },
+  'bt.progress.btn.export':   { fr:'Exporter CSV',                      en:'Export CSV',                       es:'Exportar CSV' },
+  'bt.progress.btn.cancel':   { fr:'Annuler',                           en:'Cancel',                           es:'Cancelar' },
+  'bt.progress.pauseTitle':   { fr:'Mettre en pause/Reprendre',         en:'Pause/Resume',                     es:'Pausar/Reanudar' },
+  'bt.progress.stopTitle':    { fr:'Arrêter',                           en:'Stop',                             es:'Detener' },
+  'bt.progress.detailsTitle': { fr:'Afficher la liste complète des évaluations', en:'Show full evaluations list', es:'Mostrar la lista completa de evaluaciones' },
+  'bt.progress.exportTitle':  { fr:'Exporter les évaluations en CSV',   en:'Export evaluations to CSV',        es:'Exportar evaluaciones a CSV' },
+  'bt.progress.globalLabel':  { fr:'Global',                            en:'Global',                           es:'Global' },
+  'bt.progress.etaLabel':     { fr:'ETA',                               en:'ETA',                              es:'ETA' },
+  'bt.progress.quotaPrefix':  { fr:'Quota:',                            en:'Quota:',                           es:'Cuota:' },
+ 
+  // Detail / analysis progress
+  'detail.progress':          { fr:'Analyse stratégie...',              en:'Strategy analysis...',             es:'Análisis de estrategia...' },
+ 
+  // Backtest settings modal (header & footer)
+'bt.modal.title':           { fr:'Paramètres de simulation',          en:'Simulation settings',              es:'Parámetros de simulación' },
+  'bt.modal.general.legend':  { fr:'Général',                           en:'General',                          es:'General' },
+  'bt.modal.period.legend':   { fr:'Période',                           en:'Period',                           es:'Período' },
+  'bt.modal.startCap':        { fr:'Capital initial',                   en:'Initial capital',                  es:'Capital inicial' },
+  'bt.modal.fee':             { fr:'Frais (%)',                         en:'Fees (%)',                         es:'Comisiones (%)' },
+  'bt.modal.lev':             { fr:'Levier (x)',                         en:'Leverage (x)',                     es:'Apalancamiento (x)' },
+  'bt.modal.maxPct':          { fr:'Max % par trade',                   en:'Max % per trade',                  es:'Max % por trade' },
+  'bt.modal.baseCap':         { fr:'Base du capital',                   en:'Capital base',                     es:'Base de capital' },
+  'bt.modal.base.initial':    { fr:'Capital initial',                   en:'Initial capital',                  es:'Capital inicial' },
+  'bt.modal.base.equity':     { fr:'Capital variable',                  en:'Variable equity',                  es:'Capital variable' },
+ 
+  'bt.modal.range.visible':   { fr:'Période visible',                   en:'Visible period',                   es:'Período visible' },
+  'bt.modal.range.all':       { fr:"Tout l'historique",               en:'Full history',                     es:'Todo el histórico' },
+  'bt.modal.range.dates':     { fr:'Dates',                             en:'Dates',                            es:'Fechas' },
+  'bt.modal.range.from':      { fr:'De',                                en:'From',                             es:'Desde' },
+  'bt.modal.range.to':        { fr:'À',                                 en:'To',                               es:'Hasta' },
+  'bt.modal.range.note':      { fr:'Les dates sont interprétées dans votre fuseau horaire local.', en:'Dates are interpreted in your local time zone.', es:'Las fechas se interpretan en tu zona horaria local.' },
+ 
+  'bt.modal.opt.legend':      { fr:'Optimisation (utiliser le Lab)',    en:'Optimisation (use Lab)',           es:'Optimización (usar Lab)' },
+  'bt.modal.opt.note':        { fr:"Optimise sur l'intervalle actuel (sélectionne 1m/5m/15m en haut).", en:'Optimises over the current interval (select 1m/5m/15m above).', es:'Optimiza sobre el intervalo actual (selecciona 1m/5m/15m arriba).' },
+  'bt.modal.opt.strategy':    { fr:'Stratégie',                         en:'Strategy',                         es:'Estrategia' },
+  'bt.modal.opt.strategy.grid':   { fr:'Grille',                        en:'Grid',                             es:'Grid' },
+  'bt.modal.opt.strategy.random': { fr:'Aléatoire',                     en:'Random',                           es:'Aleatorio' },
+  'bt.modal.opt.strategy.ea':     { fr:'Évolutionnaire',                en:'Evolutionary',                     es:'Evolutivo' },
+  'bt.modal.opt.strategy.bayes':  { fr:'Bayes (EDA)',                   en:'Bayes (EDA)',                      es:'Bayes (EDA)' },
+  'bt.modal.opt.tf':          { fr:'TF',                                en:'TF',                               es:'TF' },
+  'bt.modal.opt.profile':     { fr:'Profil',                            en:'Profile',                          es:'Perfil' },
+  'bt.modal.opt.profile.safe':{ fr:'Sûre',                              en:'Safe',                             es:'Segura' },
+  'bt.modal.opt.profile.bal': { fr:'Balancée',                          en:'Balanced',                         es:'Balanceada' },
+  'bt.modal.opt.profile.agg': { fr:'Agressive',                         en:'Aggressive',                       es:'Agresiva' },
+  'bt.modal.opt.maxComb':     { fr:'Max combinaisons',                  en:'Max combinations',                 es:'Máx combinaciones' },
+  'bt.modal.opt.topN':        { fr:'Top N',                             en:'Top N',                            es:'Top N' },
+ 
+  'bt.modal.opt.modesLabel':  { fr:"Modes d'entrée:",                  en:'Entry modes:',                     es:'Modos de entrada:' },
+  'bt.modal.opt.mode.original':{ fr:'Original',                         en:'Original',                         es:'Original' },
+  'bt.modal.opt.mode.fib':    { fr:'Fib Retracement',                   en:'Fib Retracement',                  es:'Fib Retracement' },
+  'bt.modal.opt.mode.both':   { fr:'Both',                              en:'Both',                             es:'Ambos' },
+  'bt.modal.opt.usePriorTitle':{ fr:"Utiliser les résultats historiques (même symbole+TF) comme prior pour l'optimisation", en:'Use historical results (same symbol+TF) as prior for optimisation', es:'Usar resultados históricos (mismo símbolo+TF) como prior para la optimización' },
+  'bt.modal.opt.usePrior':    { fr:'Prior TF',                          en:'TF prior',                         es:'Prior TF' },
+ 
+  'bt.modal.opt.nolEn':       { fr:'NOL',                               en:'NOL',                              es:'NOL' },
+  'bt.modal.opt.prdEn':       { fr:'Période (prd)',                     en:'Period (prd)',                     es:'Período (prd)' },
+  'bt.modal.opt.slEn':        { fr:'SL initial %',                      en:'Initial SL %',                     es:'SL inicial %' },
+  'bt.modal.opt.beBarsEn':    { fr:'Bars to BE',                        en:'Bars to BE',                       es:'Barras a BE' },
+  'bt.modal.opt.beLockEn':    { fr:'Lock % move',                        en:'Lock % move',                      es:'Lock % movimiento' },
+  'bt.modal.opt.emaLenEn':    { fr:'EMA len',                           en:'EMA len',                          es:'EMA len' },
+  'bt.modal.opt.min':         { fr:'Min',                               en:'Min',                              es:'Mín' },
+  'bt.modal.opt.max':         { fr:'Max',                               en:'Max',                              es:'Máx' },
+  'bt.modal.opt.step':        { fr:'Pas',                               en:'Step',                             es:'Paso' },
+ 
+  'bt.modal.opt.ea.pop':      { fr:'EA: Pop',                           en:'EA: Pop',                          es:'EA: Pop' },
+  'bt.modal.opt.ea.gens':     { fr:'Gens',                              en:'Gens',                             es:'Gens' },
+  'bt.modal.opt.ea.mut':      { fr:'Mut %',                             en:'Mut %',                            es:'Mut %' },
+  'bt.modal.opt.ea.cx':       { fr:'Cx %',                              en:'Cx %',                             es:'Cx %' },
+  'bt.modal.opt.ea.resume':   { fr:'Resume',                            en:'Resume',                           es:'Resume' },
+ 
+  'bt.modal.opt.bayes.iters': { fr:'Bayes: Iters',                      en:'Bayes: Iters',                     es:'Bayes: Iters' },
+  'bt.modal.opt.bayes.init':  { fr:'Init random',                       en:'Init random',                      es:'Init aleatorio' },
+  'bt.modal.opt.bayes.elite': { fr:'Elite %',                           en:'Elite %',                          es:'Elite %' },
+  'bt.modal.opt.bayes.resume':{ fr:'Resume',                            en:'Resume',                           es:'Resume' },
+ 
+  'bt.modal.opt.tpFibEn':     { fr:'Optimiser TP (Fib)',                en:'Optimise TP (Fib)',                es:'Optimizar TP (Fib)' },
+  'bt.modal.opt.tpCount':     { fr:'Nb TP',                             en:'# TP',                             es:'Nº TP' },
+  'bt.modal.opt.tpFibNote':   { fr:'Les ratios sélectionnés seront affectés aux TP1..TPn (ordre croissant)', en:'Selected ratios are assigned to TP1..TPn (ascending order)', es:'Los ratios seleccionados se asignan a TP1..TPn (orden ascendente)' },
+  'bt.modal.opt.tpPctEn':     { fr:'Optimiser TP (Percent)',            en:'Optimise TP (Percent)',            es:'Optimizar TP (Percent)' },
+  'bt.modal.opt.tpMinPct':    { fr:'Min %',                             en:'Min %',                            es:'Mín %' },
+  'bt.modal.opt.tpMaxPct':    { fr:'Max %',                             en:'Max %',                            es:'Máx %' },
+  'bt.modal.opt.tpStepPct':   { fr:'Pas %',                             en:'Step %',                           es:'Paso %' },
+  'bt.modal.opt.allocEn':     { fr:'Optimiser répartition (%)',         en:'Optimise allocation (%)',          es:'Optimizar reparto (%)' },
+  'bt.modal.opt.allocStep':   { fr:'Pas',                               en:'Step',                             es:'Paso' },
+  'bt.modal.opt.allocMaxPat': { fr:'Max patterns',                      en:'Max patterns',                     es:'Patrones máx' },
+ 
+  'bt.modal.btn.cancel':      { fr:'Annuler',                           en:'Cancel',                           es:'Cancelar' },
+  'bt.modal.btn.optimize':    { fr:'Optimiser',                         en:'Optimize',                         es:'Optimizar' },
+  'bt.modal.btn.run':         { fr:'Lancer',                            en:'Run',                              es:'Lanzar' },
+ 
+  // Live trading modal
+  'live.modal.title':         { fr:'Live',                              en:'Live',                             es:'Live' },
+  'live.mode.legend':         { fr:'Mode',                              en:'Mode',                             es:'Modo' },
+  'live.mode.paper':          { fr:'Paper trading',                     en:'Paper trading',                    es:'Paper trading' },
+  'live.mode.real':           { fr:'Live trading',                      en:'Live trading',                     es:'Live trading' },
+  'live.wallet.legend':       { fr:'Wallet',                            en:'Wallet',                           es:'Wallet' },
+  'live.wallet.label':        { fr:'Portefeuille',                      en:'Portfolio',                        es:'Cartera' },
+  'live.wallet.newOption':    { fr:'+ Nouveau portefeuille…',           en:'+ New portfolio…',                 es:'+ Nuevo portafolio…' },
+  'live.wallet.nameLabel':    { fr:'Nom',                               en:'Name',                             es:'Nombre' },
+  'live.params.legend':       { fr:'Paramètres (paper)',                en:'Settings (paper)',                 es:'Parámetros (paper)' },
+  'live.params.startCap':     { fr:'Capital initial',                   en:'Initial capital',                  es:'Capital inicial' },
+  'live.params.fee':          { fr:'Frais (%)',                         en:'Fees (%)',                         es:'Comisiones (%)' },
+  'live.params.lev':          { fr:'Levier (x)',                         en:'Leverage (x)',                     es:'Apalancamiento (x)' },
+  'live.tf.legend':           { fr:'TF & Stratégie',                    en:'TF & Strategy',                    es:'TF y Estrategia' },
+  'live.tf.label':            { fr:'TF',                                en:'TF',                               es:'TF' },
+  'live.tf.source.heaven':    { fr:'Heaven',                            en:'Heaven',                           es:'Heaven' },
+  'live.tf.source.palmares':  { fr:'Palmarès',                          en:'Leaderboard',                      es:'Palmarés' },
+  'live.tf.strategyLabel':    { fr:'Stratégie',                         en:'Strategy',                         es:'Estrategia' },
+  'live.footer.stop':         { fr:'Arrêter',                           en:'Stop',                             es:'Detener' },
+  'live.footer.start':        { fr:'Lancer',                            en:'Start',                            es:'Iniciar' },
+ 
+  // Heaven / LBC presets footer
+  'heaven.supa.namePlaceholder': { fr:'Nom',                             en:'Name',                             es:'Nombre' },
+ 
+  // Lab / training status messages
+  'status.palmaresUpdated':   { fr:'Palmarès mis à jour',               en:'Leaderboard updated',              es:'Palmarés actualizado' },
+  'status.improveDone':       { fr:'Amélioration terminée',             en:'Improvement completed',           es:'Mejora terminada' },
+  'status.trainingError':     { fr:'Erreur entraînement',               en:'Training error',                  es:'Error de entrenamiento' },
+};
+let __uiLang = (function(){
+  try{
+    const s = localStorage.getItem('ui:lang');
+    if(s && SUPPORTED_LANGS.indexOf(s) !== -1) return s;
+  }catch(_){ }
+  return 'fr';
+})();
+function currentLang(){ return __uiLang; }
+function setLang(lang, persist){
+  try{
+    if(SUPPORTED_LANGS.indexOf(lang) === -1) lang = 'fr';
+    __uiLang = lang;
+    if(persist!==false){ try{ localStorage.setItem('ui:lang', lang); }catch(_){ } }
+    try{ document.documentElement.lang = lang; }catch(_){ }
+    try{ updateThemeBtn(); }catch(_){ }
+    try{ updateLangBtn(); }catch(_){ }
+    try{ applyI18nToDom(); }catch(_){ }
+    // Refresh key dynamic sections so texts follow the new language
+    try{ if(typeof updateBarsInfo==='function') updateBarsInfo(); }catch(_){ }
+    try{ if(typeof updateCutoffBadge==='function') updateCutoffBadge(); }catch(_){ }
+    try{ if(typeof renderLabFromStorage==='function') renderLabFromStorage(); }catch(_){ }
+  }catch(_){ }
+}
+function cycleLang(){
+  const idx = SUPPORTED_LANGS.indexOf(__uiLang);
+  const next = SUPPORTED_LANGS[(idx+1) % SUPPORTED_LANGS.length];
+  setLang(next, true);
+}
+function t(key){
+  try{
+    const entry = I18N[key];
+    if(!entry) return key;
+    return entry[__uiLang] || entry.fr || key;
+  }catch(_){ return key; }
+}
+function applyI18nToDom(){
+  try{
+    const nodes = document.querySelectorAll('[data-i18n]');
+    nodes.forEach(el=>{
+      try{
+        const k = el.getAttribute('data-i18n');
+        if(!k) return;
+        const txt = t(k);
+        if(txt!=null) el.textContent = txt;
+      }catch(_){ }
+    });
+    const titleNodes = document.querySelectorAll('[data-i18n-title]');
+    titleNodes.forEach(el=>{
+      try{
+        const k = el.getAttribute('data-i18n-title');
+        if(!k) return;
+        const txt = t(k);
+        if(txt!=null) el.setAttribute('title', txt);
+      }catch(_){ }
+    });
+    const phNodes = document.querySelectorAll('[data-i18n-placeholder]');
+    phNodes.forEach(el=>{
+      try{
+        const k = el.getAttribute('data-i18n-placeholder');
+        if(!k) return;
+        const txt = t(k);
+        if(txt!=null) el.setAttribute('placeholder', txt);
+      }catch(_){ }
+    });
+    const ariaNodes = document.querySelectorAll('[data-i18n-aria-label]');
+    ariaNodes.forEach(el=>{
+      try{
+        const k = el.getAttribute('data-i18n-aria-label');
+        if(!k) return;
+        const txt = t(k);
+        if(txt!=null) el.setAttribute('aria-label', txt);
+      }catch(_){ }
+    });
+  }catch(_){ }
+}
+function updateLangBtn(){
+  try{
+    const btn = document.getElementById('langToggle');
+    if(!btn) return;
+    const key = __uiLang==='fr' ? 'ui.lang.btn.fr' : (__uiLang==='en' ? 'ui.lang.btn.en' : 'ui.lang.btn.es');
+    btn.textContent = t(key);
+    btn.title = t('ui.lang.btnTitle');
+  }catch(_){ }
+}
+// Initialise language on load (without re-saving)
+setLang(__uiLang, false);
+try{ window.BOTRADE_LANG = { currentLang, setLang, cycleLang, t }; }catch(_){ }
 
 // --- Lab: Entrainer (AI surrogate) ---
 
@@ -182,12 +624,23 @@ async function renderLabFromStorage(){
     arr = readPalmares(sym, tf) || []; source='local';
   }
   window.labPalmaresCache = Array.isArray(arr)? arr.slice() : [];
-  if(labSummaryEl) labSummaryEl.textContent = arr.length? `Palmarès: ${arr.length} stratégies (symbole ${symbolToDisplay(sym)} • TF ${tf}) — ${source}` : 'Aucun palmarès';
+  const prefix = t('lab.palmares.prefix');
+  const stratsWord = t('lab.palmares.strats');
+  const symWord = t('lab.palmares.symbol');
+  const tfWord = t('lab.palmares.tf');
+  if(labSummaryEl){
+    labSummaryEl.textContent = arr.length
+      ? `${prefix} ${arr.length} ${stratsWord} (${symWord} ${symbolToDisplay(sym)} • ${tfWord} ${tf}) — ${source}`
+      : t('lab.palmares.empty');
+  }
   if(!labTBody){ return; }
-  if(!arr.length){ labTBody.innerHTML = '<tr><td colspan=\"16\">Aucune donnée</td></tr>'; return; }
+  if(!arr.length){ labTBody.innerHTML = `<tr><td colspan=\"16\">${t('lab.table.noData')}</td></tr>`; return; }
   const rows=[]; let idx=1; const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
   const sorted=arr.slice().sort((a,b)=> (b.score||scoreResult(b.res||{},weights)) - (a.score||scoreResult(a.res||{},weights)));
   try{ window.labPalmaresSorted = sorted.slice(); }catch(_){ }
+  const detailLabel = t('lab.table.detailBtn');
+  const applyLabel = t('lab.table.applyBtn');
+  const applyTitle = t('lab.table.applyTitle');
   for(const r of sorted){
     const st=r.res||{}; const p=r.params||{};
     const pf=Number(st.profitFactor||0), pnl=Number(st.totalPnl||0), eq1=Number(st.equityFinal||0), cnt=Number(st.tradesCount||0), wr=Number(st.winrate||0), rr=Number(st.avgRR||0), mdd=Number(st.maxDDAbs||0);
@@ -214,7 +667,7 @@ rows.push(`
   <td>${wr.toFixed(1)}</td>
   <td>${Number.isFinite(rr)? rr.toFixed(2): '—'}</td>
   <td>${mdd.toFixed(0)}</td>
-  <td style=\"white-space:nowrap;\"><button class=\"btn\" data-action=\"detail\" data-idx=\"${idx-1}\">Détail</button> <button class=\"btn\" data-action=\"apply\" data-idx=\"${idx-1}\" title=\"Appliquer cette stratégie à Heaven\">Appliquer</button></td>
+  <td style=\"white-space:nowrap;\"><button class=\"btn\" data-action=\"detail\" data-idx=\"${idx-1}\">${detailLabel}</button> <button class=\"btn\" data-action=\"apply\" data-idx=\"${idx-1}\" title=\"${applyTitle}\">${applyLabel}</button></td>
 </tr>`);
     idx++;
   }
@@ -292,12 +745,12 @@ function handleLabApplyClick(ev){
       const arr = (window.labPalmaresSorted && Array.isArray(window.labPalmaresSorted))? window.labPalmaresSorted : (Array.isArray(window.labPalmaresCache)? (function(){ const w=getWeights(localStorage.getItem('labWeightsProfile')||'balancee'); return window.labPalmaresCache.slice().sort((a,b)=> (b.score||scoreResult(b.res||{},w)) - (a.score||scoreResult(a.res||{},w))); })() : []);
       item = arr[idx] || null;
     }catch(_){ item=null; }
-    if(!item || !item.params){ setStatus('Aucune stratégie'); return; }
+    if(!item || !item.params){ setStatus(t('status.noStrategy')); return; }
     applyHeavenParams(item.params);
-    setStatus('Paramètres appliqués à Heaven');
+    setStatus(t('status.applyOk'));
     try{ computeLabBenchmarkAndUpdate(); }catch(_){ }
     if(ev){ try{ ev.stopPropagation(); ev.preventDefault(); }catch(_){ } }
-  }catch(e){ setStatus('Erreur application'); }
+  }catch(e){ setStatus(t('status.applyError')); }
 }
 
 
@@ -345,8 +798,8 @@ function updateBarsInfo(){
       if(n>=1000) return (n/1000).toFixed(0)+'k';
       return String(n);
     };
-    // 5k (limite d'affichage) / nb de bougies chargées / nb max disponible via API (estimate)
-    barsInfoEl.textContent = `Bougies: ${fmt(visLimit)} / ${fmt(loaded)} / ${fmt(maxApi)}`;
+    // 5k (display limit) / loaded candles / estimated max via API
+    barsInfoEl.textContent = `${t('chart.bars.prefix')} ${fmt(visLimit)} / ${fmt(loaded)} / ${fmt(maxApi)}`;
   }catch(_){ }
 }
 // Supabase config UI
@@ -371,7 +824,7 @@ function openEvalsModal(sym, tf){ try{ const tb=document.getElementById('evalsTB
 function exportEvalsCSV(){
   try{
     const arr=Array.isArray(__lastLabTested)? __lastLabTested: [];
-    if(!arr.length){ setStatus('Aucune évaluation'); return; }
+    if(!arr.length){ setStatus(t('status.noEval')); return; }
     const DL = ';';
     function esc(v){ let s = (v==null? '': String(v)); if(s.includes('"')) s=s.replace(/"/g,'""'); if(s.includes(DL) || s.includes('\n')) s='"'+s+'"'; return s; }
     function tpColsHdr(){ const cols=[]; for(let i=1;i<=10;i++){ cols.push(`TP${i}_type`,`TP${i}_val`,`TP${i}_qty`,`TP${i}_beOn`,`TP${i}_trail_mode`,`TP${i}_trail_emaLen`,`TP${i}_trail_pct`,`TP${i}_SL_type`,`TP${i}_SL_val`,`TP${i}_SL_trail_mode`,`TP${i}_SL_trail_emaLen`,`TP${i}_SL_trail_pct`); } return cols; }
@@ -457,7 +910,7 @@ const candleSeries = chart.addCandlestickSeries({ upColor:'#26a69a', downColor:'
 function ensureCutoffBadge(){ try{ let el=document.getElementById('chartCutoff'); if(el) return el; if(!container) return null; el=document.createElement('div'); el.id='chartCutoff'; el.style.position='absolute'; el.style.right='8px'; el.style.top='8px'; el.style.bottom='auto'; el.style.zIndex='120'; el.style.background= isDark()? 'rgba(17,24,39,0.75)' : 'rgba(255,255,255,0.85)'; el.style.color= isDark()? '#e5e7eb':'#111827'; el.style.border= isDark()? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(0,0,0,0.12)'; el.style.borderRadius='8px'; el.style.padding='4px 8px'; el.style.fontSize='12px'; el.style.display='flex'; el.style.alignItems='center'; el.style.gap='6px'; el.style.backdropFilter='saturate(1.1) blur(6px)'; el.innerHTML = '<span id="chartCutoffText" style="pointer-events:none;"></span><button id="chartCutoffRestore" class="btn" style="font-size:12px; padding:2px 6px; display:none;" title="Afficher depuis le lancement">Depuis lancement</button><button id="chartCutoffClear" class="btn" style="font-size:12px; padding:2px 6px; display:none;" title="Afficher tout l\'historique">Tout l\'historique</button>'; el.style.display='none'; container.appendChild(el); const btnClear=document.getElementById('chartCutoffClear'); const btnRestore=document.getElementById('chartCutoffRestore'); if(btnClear){ btnClear.addEventListener('click', ()=>{ try{ delete window.__liveChartMinTimeSec; closeWs(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval)); updateCutoffBadge(); }catch(_){ } }); } if(btnRestore){ btnRestore.addEventListener('click', ()=>{ try{ if(typeof window.__liveChartMinTimeBaseSec==='number' && isFinite(window.__liveChartMinTimeBaseSec)){ window.__liveChartMinTimeSec = window.__liveChartMinTimeBaseSec; closeWs(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval)); updateCutoffBadge(); } }catch(_){ } }); } return el; }catch(_){ return null; } }
 function updateCutoffBadge(){ try{ const el=ensureCutoffBadge(); if(!el) return; // Hide completely when Live UI is hidden
   if(window.__liveUiHidden){ el.style.display='none'; return; }
-  const txt=document.getElementById('chartCutoffText'); const bClear=document.getElementById('chartCutoffClear'); const bRestore=document.getElementById('chartCutoffRestore'); const t=Number(window.__liveChartMinTimeSec); const base=Number(window.__liveChartMinTimeBaseSec); if(Number.isFinite(t) && t>0){ const d=new Date(t*1000); if(txt) txt.textContent = 'Affichage depuis: '+ d.toLocaleString(); if(bClear) bClear.style.display='inline-block'; if(bRestore) bRestore.style.display='none'; el.style.display='flex'; } else if(Number.isFinite(base) && base>0){ const d2=new Date(base*1000); if(txt) txt.textContent = 'Historique complet'; if(bClear) bClear.style.display='none'; if(bRestore) bRestore.style.display='inline-block'; el.style.display='flex'; } else { el.style.display='none'; } }catch(_){ } }
+  const txt=document.getElementById('chartCutoffText'); const bClear=document.getElementById('chartCutoffClear'); const bRestore=document.getElementById('chartCutoffRestore'); const tSec=Number(window.__liveChartMinTimeSec); const base=Number(window.__liveChartMinTimeBaseSec); if(Number.isFinite(tSec) && tSec>0){ const d=new Date(tSec*1000); if(txt) txt.textContent = `${t('chart.cutoff.from')} ${d.toLocaleString()}`; if(bClear) bClear.style.display='inline-block'; if(bRestore) bRestore.style.display='none'; el.style.display='flex'; } else if(Number.isFinite(base) && base>0){ if(txt) txt.textContent = t('chart.cutoff.full'); if(bClear) bClear.style.display='none'; if(bRestore) bRestore.style.display='inline-block'; el.style.display='flex'; } else { el.style.display='none'; } }catch(_){ } }
 // Flexible right space control
 try{
   const RIGHT_OFF_KEY='chart:rightOffset';
@@ -504,7 +957,18 @@ const ema200Series = chart.addLineSeries({ color: isDark() ? '#9ca3af' : '#11182
 
 function refreshThemeOnChart(){ try{ if(!chart) return; chart.applyOptions({ layout: { background: { color: isDark() ? '#0b0f1a' : '#ffffff' }, textColor: isDark() ? '#e5e7eb' : '#111827' }, grid: { vertLines: { color: isDark() ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)' }, horzLines: { color: isDark() ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)' } }, watermark: { color: isDark() ? 'rgba(229,231,235,0.20)' : 'rgba(17,24,39,0.12)' }, rightPriceScale: { borderColor: isDark() ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)' }, timeScale: { borderColor: isDark() ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)' } }); ema200Series.applyOptions({ color: isDark() ? '#9ca3af' : '#111827' }); updateWatermark(); updateCutoffBadge(); }catch(_){ } }
 
-try{ const btn=document.getElementById('themeToggle'); if(btn){ btn.addEventListener('click', (e)=>{ try{ e.preventDefault(); cycleTheme(); }catch(_){ } }); updateThemeBtn(); } }catch(_){ }
+try{
+  const themeBtn=document.getElementById('themeToggle');
+  if(themeBtn){
+    themeBtn.addEventListener('click', (e)=>{ try{ e.preventDefault(); cycleTheme(); }catch(_){ } });
+    updateThemeBtn();
+  }
+  const langBtn=document.getElementById('langToggle');
+  if(langBtn){
+    langBtn.addEventListener('click', (e)=>{ try{ e.preventDefault(); cycleLang(); }catch(_){ } });
+    updateLangBtn();
+  }
+} catch(_){ }
 const ma5Series = chart.addLineSeries({ color:'#3b82f6', lineWidth: 1, priceScaleId: 'right' });
 const ma8Series = chart.addLineSeries({ color:'#00ffff', lineWidth: 1, priceScaleId: 'right' });
 const ma13Series = chart.addLineSeries({ color:'#22c55e', lineWidth: 1, priceScaleId: 'right' });
@@ -589,7 +1053,7 @@ async function fetchKlinesBatch(symbol, interval, limit=BATCH_LIMIT, endTimeMs){
   const mapped = raw.map(k=>({ time: Math.floor(k[0]/1000), open:+k[1], high:+k[2], low:+k[3], close:+k[4] }));
   mapped.sort((a,b)=> a.time-b.time); return mapped;
 }
-async function fetchAllKlines(symbol, interval, max=API_MAX_BARS){ let all=[]; let cursor=Date.now(); while(all.length<max){ setStatus(`Chargement... (${all.length}+)`); const need=Math.min(BATCH_LIMIT, max-all.length); const batch=await fetchKlinesBatch(symbol, interval, need, cursor); if(!batch.length) break; all=batch.concat(all); if(batch.length<need) break; cursor=batch[0].time*1000 - 1; } return all.slice(-max); }
+async function fetchAllKlines(symbol, interval, max=API_MAX_BARS){ let all=[]; let cursor=Date.now(); while(all.length<max){ setStatus(`${t('status.loading')} (${all.length}+)`); const need=Math.min(BATCH_LIMIT, max-all.length); const batch=await fetchKlinesBatch(symbol, interval, need, cursor); if(!batch.length) break; all=batch.concat(all); if(batch.length<need) break; cursor=batch[0].time*1000 - 1; } return all.slice(-max); }
 
 async function backgroundExtendKlines(symbol, interval, token){
   try{
@@ -638,9 +1102,9 @@ try{ applyDisplayFromAll(); candleSeries.setData(candles); updateEMAs(); renderL
 
 function closeWs(){ try{ if(ws){ ws.onopen=ws.onmessage=ws.onerror=ws.onclose=null; ws.close(); } }catch(_){} ws=null; }
 function wsUrl(symbol, interval){ return `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_${interval}`; }
-function openWs(symbol, interval){ closeWs(); try{ ws=new WebSocket(wsUrl(symbol, interval)); }catch(e){ setStatus('WS erreur'); return; } ws.onopen=()=> setStatus('Temps réel'); ws.onmessage=(ev)=>{ try{ const msg=JSON.parse(ev.data); const k=(msg&&msg.k)||(msg&&msg.data&&msg.data.k); if(!k) return; const bar={ time:Math.floor(k.t/1000), open:+k.o, high:+k.h, low:+k.l, close:+k.c }; const lastAll=candlesAll[candlesAll.length-1]; if(lastAll && bar.time===lastAll.time){ candlesAll[candlesAll.length-1]=bar; } else if(!lastAll || bar.time>lastAll.time){ candlesAll.push(bar); if(candlesAll.length>LIVE_MAX_BARS) candlesAll=candlesAll.slice(-LIVE_MAX_BARS); }
+function openWs(symbol, interval){ closeWs(); try{ ws=new WebSocket(wsUrl(symbol, interval)); }catch(e){ setStatus(t('status.wsError')); return; } ws.onopen=()=> setStatus(t('status.live')); ws.onmessage=(ev)=>{ try{ const msg=JSON.parse(ev.data); const k=(msg&&msg.k)||(msg&&msg.data&&msg.data.k); if(!k) return; const bar={ time:Math.floor(k.t/1000), open:+k.o, high:+k.h, low:+k.l, close:+k.c }; const lastAll=candlesAll[candlesAll.length-1]; if(lastAll && bar.time===lastAll.time){ candlesAll[candlesAll.length-1]=bar; } else if(!lastAll || bar.time>lastAll.time){ candlesAll.push(bar); if(candlesAll.length>LIVE_MAX_BARS) candlesAll=candlesAll.slice(-LIVE_MAX_BARS); }
 applyDisplayFromAll(); candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge(); updateBarsInfo(); if(typeof anyLiveActive==='function' && anyLiveActive()){ try{ multiLiveOnBar(bar); }catch(_){ } } else if(liveSession && liveSession.active){ try{ liveOnBar(bar); }catch(_){ } }
-    }catch(_){ } }; ws.onerror=()=> setStatus('WS erreur'); ws.onclose=()=> {/* keep silent */}; }
+    }catch(_){ } }; ws.onerror=()=> setStatus(t('status.wsError')); ws.onclose=()=> {/* keep silent */}; }
 async function load(symbol, interval){
   try{
     __bgLoadToken++;
@@ -666,7 +1130,7 @@ if(cached && cached.length){
       candleSeries.setData(candles);
       updateEMAs(); renderLBC(); updateCutoffBadge(); updateBarsInfo();
     } else {
-      setStatus('Chargement...');
+      setStatus(t('status.loading'));
     }
     // 3) Ensure fresh preload from REST
     candlesAll = await fetchAllKlines(symbol, interval, PRELOAD_BARS);
@@ -678,7 +1142,7 @@ if(cached && cached.length){
     try{ saveMemSeries(symbol, interval, candlesAll, candlesAll.length); }catch(_){ }
     // Deep background extend to maximize history depth for Lab/Backtest
     backgroundExtendKlines(symbol, interval, token);
-  }catch(e){ setStatus('Erreur chargement'); }
+  }catch(e){ setStatus(t('status.loadError')); }
 }
 
 if(intervalSelect){ intervalSelect.addEventListener('change', ()=>{ currentInterval=intervalSelect.value; try{ localStorage.setItem('chart:tf', currentInterval); }catch(_){} updateWatermark(); closeWs(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval)); }); }
@@ -736,16 +1200,16 @@ try{
   if(supaModalEl){ supaModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(supaModalEl); }); }
   if(supaSaveBtn){ supaSaveBtn.addEventListener('click', async ()=>{ try{
       const url=(supaUrlInp&&supaUrlInp.value||'').trim(); const anon=(supaAnonInp&&supaAnonInp.value||'').trim();
-      if(!url||!anon){ if(supaMsgEl) supaMsgEl.textContent='URL et ANON requis'; return; }
+      if(!url||!anon){ if(supaMsgEl) supaMsgEl.textContent=t('supa.urlAnonRequired'); return; }
       try{ localStorage.setItem('supabase:url', url); localStorage.setItem('supabase:anon', anon); }catch(_){ }
-      if(supaMsgEl) supaMsgEl.textContent='Test de connexion...';
+      if(supaMsgEl) supaMsgEl.textContent=t('supa.testing');
       let ok=false;
       try{ ok = !!(window.SUPA && typeof SUPA.testConnection==='function' ? (await SUPA.testConnection()) : false); }catch(_){ ok=false; }
       if(ok){ try{ localStorage.setItem('supabase:locked','1'); }catch(_){ }
-        if(supaMsgEl) supaMsgEl.textContent='Connexion OK. Configuration enregistrée.';
+        if(supaMsgEl) supaMsgEl.textContent=t('supa.ok');
         setTimeout(()=>{ closeModalEl(supaModalEl); refreshSupaBtn(); }, 600);
       } else {
-        if(supaMsgEl) supaMsgEl.textContent='Échec de connexion. Vérifiez URL/clé.';
+        if(supaMsgEl) supaMsgEl.textContent=t('supa.fail');
       }
     }catch(_){ } }); }
   refreshSupaBtn();
@@ -1371,7 +1835,7 @@ let btAbort=false; let btPaused=false; let __btTimerId=null; let __btStartTs=0;
 function __fmtElapsed(ms){ const s=Math.floor(ms/1000); const m=Math.floor(s/60); const ss=String(s%60).padStart(2,'0'); const mm=String(m%60).padStart(2,'0'); const hh=Math.floor(m/60); return (hh>0? (String(hh).padStart(2,'0')+':'):'')+mm+':'+ss; }
 function __setBtTime(){ if(btProgTime){ const ms=Date.now()-__btStartTs; btProgTime.textContent = `⏱ ${__fmtElapsed(ms)}`; } }
 function addBtLog(msg){ try{ const t=new Date(); const hh=String(t.getHours()).padStart(2,'0'); const mm=String(t.getMinutes()).padStart(2,'0'); const ss=String(t.getSeconds()).padStart(2,'0'); const line=`[${hh}:${mm}:${ss}] ${msg}`; if(btProgLog){ if(btProgLog.textContent==='—') btProgLog.textContent=line; else btProgLog.textContent += ("\n"+line); btProgLog.scrollTop = btProgLog.scrollHeight; } if(typeof addLabLog==='function'){ addLabLog(msg); } }catch(_){ } }
-function openBtProgress(msg){ if(btProgText) btProgText.textContent = msg||''; if(btProgBar) btProgBar.style.width='0%'; if(btProgNote) btProgNote.textContent=''; if(btProgGlobalBar) btProgGlobalBar.style.width='0%'; if(btProgGlobalText) btProgGlobalText.textContent='Global: 0% (0/0) — ETA —'; if(btProgLog) btProgLog.textContent='—'; const pBtn=document.getElementById('btPause'); if(pBtn) pBtn.textContent='Pause'; __btStartTs=Date.now(); if(__btTimerId) { try{ clearInterval(__btTimerId);}catch(_){}} __setBtTime(); __btTimerId=setInterval(__setBtTime, 500); openModalEl(btProgressEl); }
+function openBtProgress(msg){ if(btProgText) btProgText.textContent = msg || t('bt.progress.initShort'); if(btProgBar) btProgBar.style.width='0%'; if(btProgNote) btProgNote.textContent=''; if(btProgGlobalBar) btProgGlobalBar.style.width='0%'; if(btProgGlobalText) btProgGlobalText.textContent=t('bt.progress.globalInit'); if(btProgLog) btProgLog.textContent='—'; const pBtn=document.getElementById('btPause'); if(pBtn) pBtn.textContent=t('bt.progress.btn.pause'); __btStartTs=Date.now(); if(__btTimerId) { try{ clearInterval(__btTimerId);}catch(_){}} __setBtTime(); __btTimerId=setInterval(__setBtTime, 500); openModalEl(btProgressEl); }
 function closeBtProgress(){ if(__btTimerId){ try{ clearInterval(__btTimerId);}catch(_){ } __btTimerId=null; } closeModalEl(btProgressEl); }
 function getVisibleRange(){ try{ const r=chart.timeScale().getVisibleRange(); if(!r) return null; return { from: r.from, to: r.to }; }catch(_){ return null; } }
 function idxFromTime(from, to){ let s=0, e=candles.length-1; if(from!=null){ for(let i=0;i<candles.length;i++){ if(candles[i].time>=from){ s=i; break; } } } if(to!=null){ for(let j=candles.length-1;j>=0;j--){ if(candles[j].time<=to){ e=j; break; } } } return [s,e]; }
@@ -2134,12 +2598,12 @@ async function openLabStrategyDetail(item, ctx){ try{
   }catch(_){ }
   // Progress UI
   try{
-    openBtProgress('Analyse stratégie...');
+    openBtProgress(t('detail.progress'));
     try{
       if(typeof addBtLog==='function') addBtLog(`[detail] Analyse de "${item && item.name ? item.name : 'stratégie'}" sur ${symbolToDisplay(sym)} @ ${tf}`);
     }catch(_){ }
     try{
-      if(btProgText) btProgText.textContent = 'Préparation des données (chart/cache/API)...';
+      if(btProgText) btProgText.textContent = t('bt.progress.initShort');
       if(btProgNote) btProgNote.textContent = `Sélection des bougies pour ${symbolToDisplay(sym)} • ${tf} (chart courant, cache mémoire ou API REST)...`;
     }catch(_){ }
   }catch(_){ }
@@ -2166,7 +2630,7 @@ async function openLabStrategyDetail(item, ctx){ try{
   if(!bars || !bars.length){
     srcLabel = srcLabel || 'API REST';
     try{
-      if(btProgText) btProgText.textContent = 'Chargement des bougies depuis l\'API...';
+      if(btProgText) btProgText.textContent = t('status.loading');
       if(btProgNote) btProgNote.textContent = `Pas de données locales pour ${symbolToDisplay(sym)} • ${tf} — chargement complet des bougies depuis l'API REST (peut prendre quelques secondes)...`;
     }catch(_){ }
     try{
@@ -2189,7 +2653,7 @@ async function openLabStrategyDetail(item, ctx){ try{
   let from=null, to=null;
   const [sIdx,eIdx]=(()=>{ let s=0,e=bars.length-1; return [s,e]; })();
   try{
-    if(btProgText) btProgText.textContent = 'Simulation de la stratégie...';
+    if(btProgText) btProgText.textContent = t('bt.progress.title');
     if(btProgNote) btProgNote.textContent = `Simulation sur ${bars.length} bougies (source: ${srcLabel||'inconnue'})...`;
   }catch(_){ }
   const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, p, true);
@@ -2831,7 +3295,7 @@ if(detailCtxEl){
       slipInfo.addEventListener('click', ()=>{
         try{
           if(slipNote){
-            slipNote.textContent = "Le slippage (bps) ajoute un coût d'exécution sur chaque entrée/sortie (1 bps = 0,01%). Cela permet de voir comment PF, Win% et l'expectancy réagissent quand on tient compte du spread/slippage réel.";
+            slipNote.textContent = t('detail.slip.infoText');
           }
         }catch(__){}
       });
@@ -3066,7 +3530,7 @@ if(detailCtxEl){
     function heatClick(can, dir){ if(!can) return; can.addEventListener('click', (ev)=>{ try{ const cfg=can.__heatCfg; if(!cfg) return; const rect=can.getBoundingClientRect(); const x=ev.clientX-rect.left, y=ev.clientY-rect.top; const c=Math.floor((x-cfg.padL)/cfg.cw), r=Math.floor((y-cfg.padT)/cfg.ch); if(c<0||c>=cfg.cols||r<0||r>=cfg.rows) return; filterTradesByDOWHour(dir, r, c); }catch(_){ } }); }
     heatClick(canDOWHourLong, 'long'); heatClick(canDOWHourShort, 'short');
   }catch(_){ }
- }catch(_){ if(detailCtxEl){ detailCtxEl.textContent = 'Erreur analyse'; } } }
+ }catch(_){ if(detailCtxEl){ detailCtxEl.textContent = t('detail.error'); } } }
 
 // Lab actions: refresh/export/weights
 const labExportBtn=document.getElementById('labExport'); const labWeightsBtn=document.getElementById('labWeights'); const labRunNewBtn=document.getElementById('labRunNew');
@@ -3097,111 +3561,163 @@ if(labExportBtn){ labExportBtn.addEventListener('click', ()=>{ try{ const tf=(la
   lines.push(row.map(esc).join(DL)); idx++; }
   const csv=lines.join('\r\n'); const blob=new Blob([csv], {type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`palmares_${sym}_${tf}.csv`; a.click(); }catch(_){ } }); }
 const WEIGHTS_HELP = {
-  pf: "Profit Factor : rapport entre gains bruts et pertes brutes. Un poids élevé favorise les stratégies où les pertes sont petites par rapport aux gains, même si le P&L absolu est modéré.",
-  wr: "Win % : pourcentage de trades gagnants. Un poids élevé privilégie les stratégies confortables psychologiquement (plus de trades gagnants), au détriment éventuel du R:R.",
-  rr: "Risk/Reward (Avg RR) : gain moyen par unité de risque. Un poids élevé favorise les stratégies avec des gains importants par rapport aux pertes (R:R élevés).",
-  pnl: "P&L net : résultat total sur la période (en dollars). Un poids élevé pousse l’algorithme vers les stratégies avec le P&L absolu le plus élevé.",
-  eq: "Capital final : valeur finale du portefeuille. Similaire au P&L, mais prend en compte le capital de départ et permet de comparer différentes configurations.",
-  trades: "Trades : nombre de trades. Un poids modéré permet de privilégier des stratégies avec assez de trades pour être statistiquement crédibles, sans basculer dans l’over‑trading.",
-  dd: "Max DD (inverse) : drawdown maximal en valeur absolue, pris à l’envers (plus il est faible, mieux c’est). Un poids élevé favorise les stratégies qui protègent fortement le capital.",
-  sharpe: "Sharpe Ratio : rendement ajusté de la volatilité des résultats. Un poids élevé privilégie les courbes d’équité régulières plutôt que les profils en dents de scie.",
-  recov: "Recovery Factor : P&L total divisé par le plus gros drawdown. Un poids élevé met en avant les stratégies qui génèrent beaucoup de gains pour chaque unité de drawdown subie.",
-  slope: "Equity Slope : pente moyenne de la courbe d’équité. Plus la pente est forte et régulière, plus la stratégie a une tendance haussière nette.",
-  cons: "Consistence / Stabilité : proportion de trades non perdants et régularité des résultats. Un poids élevé favorise les stratégies stables plutôt que celles qui alternent gros gains et grosses pertes.",
-  exp: "Espérance (Expectancy) : gain moyen par trade (en % ou en valeur). Un poids élevé pousse vers des stratégies avec un avantage statistique fort sur chaque trade.",
-  ret: "Return / période (%) : rendement total sur la période (ou annualisé). Un poids élevé favorise les stratégies agressives avec une croissance rapide du capital.",
+  pf: {
+    fr: "Profit Factor : rapport entre gains bruts et pertes brutes. Un poids élevé favorise les stratégies où les pertes sont petites par rapport aux gains, même si le P&L absolu est modéré.",
+    en: "Profit Factor: ratio between gross profits and gross losses. A high weight favors strategies where losses are small relative to gains, even if absolute P&L is moderate.",
+    es: "Profit Factor: relación entre ganancias brutas y pérdidas brutas. Un peso alto favorece estrategias donde las pérdidas son pequeñas en relación con las ganancias, incluso si el P&L absoluto es moderado.",
+  },
+  wr: {
+    fr: "Win % : pourcentage de trades gagnants. Un poids élevé privilégie les stratégies confortables psychologiquement (plus de trades gagnants), au détriment éventuel du R:R.",
+    en: "Win %: percentage of winning trades. A high weight emphasizes psychologically comfortable strategies (more winning trades), sometimes at the expense of risk/reward.",
+    es: "Win %: porcentaje de operaciones ganadoras. Un peso alto favorece estrategias cómodas psicológicamente (más operaciones ganadoras), a veces en detrimento del ratio riesgo/beneficio.",
+  },
+  rr: {
+    fr: "Risk/Reward (Avg RR) : gain moyen par unité de risque. Un poids élevé favorise les stratégies avec des gains importants par rapport aux pertes (R:R élevés).",
+    en: "Risk/Reward (Avg RR): average gain per unit of risk. A high weight favors strategies with large gains relative to losses (high R:R).",
+    es: "Risk/Reward (RR medio): ganancia media por unidad de riesgo. Un peso alto favorece estrategias con grandes ganancias en relación con las pérdidas (R:R altos).",
+  },
+  pnl: {
+    fr: "P&L net : résultat total sur la période (en dollars). Un poids élevé pousse l’algorithme vers les stratégies avec le P&L absolu le plus élevé.",
+    en: "Net P&L: total result over the period (in currency). A high weight pushes the algorithm towards strategies with the highest absolute P&L.",
+    es: "P&L neto: resultado total en el período (en divisa). Un peso alto empuja al algoritmo hacia las estrategias con el P&L absoluto más alto.",
+  },
+  eq: {
+    fr: "Capital final : valeur finale du portefeuille. Similaire au P&L, mais prend en compte le capital de départ et permet de comparer différentes configurations.",
+    en: "Final equity: final value of the account. Similar to P&L but takes starting capital into account, making different configurations comparable.",
+    es: "Capital final: valor final de la cuenta. Similar al P&L, pero tiene en cuenta el capital inicial y permite comparar diferentes configuraciones.",
+  },
+  trades: {
+    fr: "Trades : nombre de trades. Un poids modéré permet de privilégier des stratégies avec assez de trades pour être statistiquement crédibles, sans basculer dans l’over‑trading.",
+    en: "Trades: number of trades. A moderate weight favors strategies with enough trades to be statistically credible, without drifting into over-trading.",
+    es: "Trades: número de operaciones. Un peso moderado favorece estrategias con suficientes operaciones para ser estadísticamente creíbles, sin caer en sobre-operar.",
+  },
+  dd: {
+    fr: "Max DD (inverse) : drawdown maximal en valeur absolue, pris à l’envers (plus il est faible, mieux c’est). Un poids élevé favorise les stratégies qui protègent fortement le capital.",
+    en: "Max DD (inverse): maximum drawdown in absolute value, used inversely (the smaller, the better). A high weight favors strategies that strongly protect capital.",
+    es: "Max DD (inverso): drawdown máximo en valor absoluto, usado de forma inversa (cuanto más pequeño, mejor). Un peso alto favorece estrategias que protegen mucho el capital.",
+  },
+  sharpe: {
+    fr: "Sharpe Ratio : rendement ajusté de la volatilité des résultats. Un poids élevé privilégie les courbes d’équité régulières plutôt que les profils en dents de scie.",
+    en: "Sharpe Ratio: return adjusted for volatility of results. A high weight favors smooth equity curves over very choppy ones.",
+    es: "Ratio de Sharpe: rendimiento ajustado por la volatilidad de los resultados. Un peso alto favorece curvas de equity suaves frente a perfiles muy irregulares.",
+  },
+  recov: {
+    fr: "Recovery Factor : P&L total divisé par le plus gros drawdown. Un poids élevé met en avant les stratégies qui génèrent beaucoup de gains pour chaque unité de drawdown subie.",
+    en: "Recovery Factor: total P&L divided by the largest drawdown. A high weight highlights strategies that generate a lot of profit per unit of drawdown endured.",
+    es: "Recovery Factor: P&L total dividido por el mayor drawdown. Un peso alto resalta estrategias que generan muchas ganancias por cada unidad de drawdown soportado.",
+  },
+  slope: {
+    fr: "Equity Slope : pente moyenne de la courbe d’équité. Plus la pente est forte et régulière, plus la stratégie a une tendance haussière nette.",
+    en: "Equity Slope: average slope of the equity curve. The steeper and more regular the slope, the clearer the upward trend.",
+    es: "Pendiente de la equity: pendiente media de la curva de equity. Cuanto más pronunciada y regular es la pendiente, más clara es la tendencia alcista.",
+  },
+  cons: {
+    fr: "Consistence / Stabilité : proportion de trades non perdants et régularité des résultats. Un poids élevé favorise les stratégies stables plutôt que celles qui alternent gros gains et grosses pertes.",
+    en: "Consistency / Stability: proportion of non-losing trades and regularity of results. A high weight favors stable strategies over those alternating big wins and big losses.",
+    es: "Consistencia / Estabilidad: proporción de operaciones no perdedoras y regularidad de los resultados. Un peso alto favorece estrategias estables frente a las que alternan grandes ganancias y grandes pérdidas.",
+  },
+  exp: {
+    fr: "Espérance (Expectancy) : gain moyen par trade (en % ou en valeur). Un poids élevé pousse vers des stratégies avec un avantage statistique fort sur chaque trade.",
+    en: "Expectancy: average gain per trade (in % or value). A high weight pushes towards strategies with a strong statistical edge on each trade.",
+    es: "Esperanza (Expectancy): ganancia media por operación (en % o en valor). Un peso alto impulsa estrategias con una fuerte ventaja estadística en cada operación.",
+  },
+  ret: {
+    fr: "Return / période (%) : rendement total sur la période (ou annualisé). Un poids élevé favorise les stratégies agressives avec une croissance rapide du capital.",
+    en: "Return / period (%): total return over the period (or annualized). A high weight favors aggressive strategies with fast capital growth.",
+    es: "Retorno / período (%): rendimiento total en el período (o anualizado). Un peso alto favorece estrategias agresivas con un crecimiento rápido del capital.",
+  },
 };
 
 function buildWeightsUI(){ if(!weightsBody) return; const prof=(weightsProfile&&weightsProfile.value)||(localStorage.getItem('labWeightsProfile')||'balancee'); const w=getWeights(prof); weightsBody.innerHTML = `
   <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
     <label>
       <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
-        <span>Profit Factor</span>
-        <button type="button" class="icon-btn weightInfoBtn" data-factor="pf" title="Infos Profit Factor">i</button>
+        <span>${t('lab.weights.pf')}</span>
+        <button type="button" class="icon-btn weightInfoBtn" data-factor="pf" title="${t('lab.weights.infoPrefix')} ${t('lab.weights.pf')}">i</button>
       </span>
       <input id="w_pf" type="number" min="0" max="100" step="1" value="${w.pf}" />
     </label>
     <label>
       <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
-        <span>Win %</span>
-        <button type="button" class="icon-btn weightInfoBtn" data-factor="wr" title="Infos Win %">i</button>
+        <span>${t('lab.weights.wr')}</span>
+        <button type="button" class="icon-btn weightInfoBtn" data-factor="wr" title="${t('lab.weights.infoPrefix')} ${t('lab.weights.wr')}">i</button>
       </span>
       <input id="w_wr" type="number" min="0" max="100" step="1" value="${w.wr}" />
     </label>
     <label>
       <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
-        <span>Risk/Reward (Avg RR)</span>
-        <button type="button" class="icon-btn weightInfoBtn" data-factor="rr" title="Infos Risk/Reward">i</button>
+        <span>${t('lab.weights.rr')}</span>
+        <button type="button" class="icon-btn weightInfoBtn" data-factor="rr" title="${t('lab.weights.infoPrefix')} ${t('lab.weights.rr')}">i</button>
       </span>
       <input id="w_rr" type="number" min="0" max="100" step="1" value="${w.rr}" />
     </label>
     <label>
       <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
-        <span>P&L net</span>
-        <button type="button" class="icon-btn weightInfoBtn" data-factor="pnl" title="Infos P&L net">i</button>
+        <span>${t('lab.weights.pnl')}</span>
+        <button type="button" class="icon-btn weightInfoBtn" data-factor="pnl" title="${t('lab.weights.infoPrefix')} ${t('lab.weights.pnl')}">i</button>
       </span>
       <input id="w_pnl" type="number" min="0" max="100" step="1" value="${w.pnl}" />
     </label>
     <label>
       <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
-        <span>Capital final</span>
-        <button type="button" class="icon-btn weightInfoBtn" data-factor="eq" title="Infos Capital final">i</button>
+        <span>${t('lab.weights.eq')}</span>
+        <button type="button" class="icon-btn weightInfoBtn" data-factor="eq" title="${t('lab.weights.infoPrefix')} ${t('lab.weights.eq')}">i</button>
       </span>
       <input id="w_eq" type="number" min="0" max="100" step="1" value="${w.eq}" />
     </label>
     <label>
       <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
-        <span>Trades</span>
-        <button type="button" class="icon-btn weightInfoBtn" data-factor="trades" title="Infos Trades">i</button>
+        <span>${t('lab.weights.trades')}</span>
+        <button type="button" class="icon-btn weightInfoBtn" data-factor="trades" title="${t('lab.weights.infoPrefix')} ${t('lab.weights.trades')}">i</button>
       </span>
       <input id="w_trades" type="number" min="0" max="100" step="1" value="${w.trades}" />
     </label>
     <label>
       <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
-        <span>Max DD (inverse)</span>
-        <button type="button" class="icon-btn weightInfoBtn" data-factor="dd" title="Infos Max DD">i</button>
+        <span>${t('lab.weights.dd')}</span>
+        <button type="button" class="icon-btn weightInfoBtn" data-factor="dd" title="${t('lab.weights.infoPrefix')} ${t('lab.weights.dd')}">i</button>
       </span>
       <input id="w_dd" type="number" min="0" max="100" step="1" value="${w.dd}" />
     </label>
     <label>
       <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
-        <span>Sharpe Ratio</span>
-        <button type="button" class="icon-btn weightInfoBtn" data-factor="sharpe" title="Infos Sharpe">i</button>
+        <span>${t('lab.weights.sharpe')}</span>
+        <button type="button" class="icon-btn weightInfoBtn" data-factor="sharpe" title="${t('lab.weights.infoPrefix')} ${t('lab.weights.sharpe')}">i</button>
       </span>
       <input id="w_sharpe" type="number" min="0" max="100" step="1" value="${w.sharpe??0}" />
     </label>
     <label>
       <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
-        <span>Recovery Factor</span>
-        <button type="button" class="icon-btn weightInfoBtn" data-factor="recov" title="Infos Recovery">i</button>
+        <span>${t('lab.weights.recov')}</span>
+        <button type="button" class="icon-btn weightInfoBtn" data-factor="recov" title="${t('lab.weights.infoPrefix')} ${t('lab.weights.recov')}">i</button>
       </span>
       <input id="w_recov" type="number" min="0" max="100" step="1" value="${w.recov??0}" />
     </label>
     <label>
       <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
-        <span>Equity Slope</span>
-        <button type="button" class="icon-btn weightInfoBtn" data-factor="slope" title="Infos Slope">i</button>
+        <span>${t('lab.weights.slope')}</span>
+        <button type="button" class="icon-btn weightInfoBtn" data-factor="slope" title="${t('lab.weights.infoPrefix')} ${t('lab.weights.slope')}">i</button>
       </span>
       <input id="w_slope" type="number" min="0" max="100" step="1" value="${w.slope??0}" />
     </label>
     <label>
       <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
-        <span>Consistence / Stabilité</span>
-        <button type="button" class="icon-btn weightInfoBtn" data-factor="cons" title="Infos Consistence">i</button>
+        <span>${t('lab.weights.cons')}</span>
+        <button type="button" class="icon-btn weightInfoBtn" data-factor="cons" title="${t('lab.weights.infoPrefix')} ${t('lab.weights.cons')}">i</button>
       </span>
       <input id="w_cons" type="number" min="0" max="100" step="1" value="${w.cons??0}" />
     </label>
     <label>
       <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
-        <span>Espérance (Expectancy)</span>
-        <button type="button" class="icon-btn weightInfoBtn" data-factor="exp" title="Infos Espérance">i</button>
+        <span>${t('lab.weights.exp')}</span>
+        <button type="button" class="icon-btn weightInfoBtn" data-factor="exp" title="${t('lab.weights.infoPrefix')} ${t('lab.weights.exp')}">i</button>
       </span>
       <input id="w_exp" type="number" min="0" max="100" step="1" value="${w.exp??0}" />
     </label>
     <label>
       <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
-        <span>Return / période (%)</span>
-        <button type="button" class="icon-btn weightInfoBtn" data-factor="ret" title="Infos Return / période">i</button>
+        <span>${t('lab.weights.ret')}</span>
+        <button type="button" class="icon-btn weightInfoBtn" data-factor="ret" title="${t('lab.weights.infoPrefix')} ${t('lab.weights.ret')}">i</button>
       </span>
       <input id="w_ret" type="number" min="0" max="100" step="1" value="${w.ret??0}" />
     </label>
@@ -3225,7 +3741,9 @@ function buildWeightsUI(){ if(!weightsBody) return; const prof=(weightsProfile&&
       btn.addEventListener('click', ()=>{
         try{
           const key=btn.getAttribute('data-factor');
-          const txt=WEIGHTS_HELP[key] || '';
+          const entry=WEIGHTS_HELP[key];
+          const lang = (typeof currentLang==='function'? currentLang() : __uiLang);
+          const txt=entry ? (entry[lang] || entry.fr || '') : '';
           if(infoBox && txt){ infoBox.textContent = txt; }
         }catch(_){ }
       });
@@ -3259,7 +3777,10 @@ function updateWeightsTotalInfo(){
     const w=readWeightsFromUI();
     const total=(w.pf+w.wr+w.rr+w.pnl+w.eq+w.trades+w.dd+w.sharpe+w.recov+w.slope+w.cons+w.exp+w.ret)||0;
     const remaining=100-total;
-    info.textContent = `Total: ${total.toFixed(1)} pts • Reste: ${remaining.toFixed(1)} pts`;
+    const totalLbl=t('lab.weights.totalPrefix');
+    const remLbl=t('lab.weights.remainingPrefix');
+    const ptsLbl=t('lab.weights.pointsSuffix');
+    info.textContent = `${totalLbl} ${total.toFixed(1)} ${ptsLbl} • ${remLbl} ${remaining.toFixed(1)} ${ptsLbl}`;
   }catch(_){ }
 }
 if(labWeightsBtn){ labWeightsBtn.addEventListener('click', async ()=>{ try{ const prof = localStorage.getItem('labWeightsProfile')||'balancee'; if(weightsProfile){ weightsProfile.value=prof; }
@@ -3284,7 +3805,7 @@ if(weightsSave){ weightsSave.addEventListener('click', async ()=>{ try{ const pr
     }
   }catch(_){ }
   closeModalEl(weightsModalEl);
-  setStatus('Pondérations enregistrées');
+  setStatus(t('status.weightsSaved'));
   try{ renderLabFromStorage(); computeLabBenchmarkAndUpdate(); }catch(_){ }
 }catch(_){ } }); }
 
@@ -3314,13 +3835,13 @@ const conf=readLabRiskConf();
   }catch(_){ }
 // Show progress popup on top immediately (robust)
   try{
-    if(typeof openBtProgress==='function'){ openBtProgress('Préparation...'); }
+    if(typeof openBtProgress==='function'){ openBtProgress(t('bt.progress.initShort')); }
     if(btProgressEl){ openModalEl(btProgressEl); }
-    if(btProgText) btProgText.textContent='Préparation...';
+    if(btProgText) btProgText.textContent=t('bt.progress.initShort');
     if(btProgBar) btProgBar.style.width='0%';
     const pe=document.getElementById('btProgress'); if(pe){ pe.style.zIndex=String(bumpModalZ()); const pc=pe.querySelector('.modal-content'); if(pc){ pc.style.zIndex=String(bumpModalZ()); } }
   }catch(_){ }
-  try{ if(btProgText) btProgText.textContent='Entraînement...'; if(btProgNote) btProgNote.textContent=''; }catch(_){ }
+  try{ if(btProgText) btProgText.textContent=t('bt.progress.trainingShort'); if(btProgNote) btProgNote.textContent=''; }catch(_){ }
   try{ const tl=(timeLimitSec>0? `${timeLimitSec}s`:'∞'); const mq=(maxEvals>0? `${maxEvals}`:'∞'); addBtLog(`Limites: temps ${tl}, max évals ${mq}`); }catch(_){ }
   let bars=null;
   if(sym===currentSymbol && tfSel===currentInterval){
@@ -3357,7 +3878,7 @@ const weights=getWeights(profSel);
   function __fmtETA(ms){ if(!(ms>0)) return '—'; const s=Math.round(ms/1000); const m=Math.floor(s/60); const ss=String(s%60).padStart(2,'0'); const mm=String(m%60).padStart(2,'0'); const hh=Math.floor(m/60); return (hh>0? (String(hh).padStart(2,'0')+':'):'')+mm+':'+ss; }
 function updateGlobalProgressUI(){ try{ const plannedDen = (__labSimPlanned>0)? __labSimPlanned : (maxEvals>0? maxEvals : Math.max(1,__labSimTotal)); let dn=Math.max(0,__labSimDone); const tot=Math.max(1, plannedDen); if(maxEvals>0){ dn = Math.min(dn, maxEvals); }
   const pct = Math.max(0, Math.min(100, Math.round(dn/tot*100))); if(btProgGlobalBar) btProgGlobalBar.style.width=pct+'%'; let eta='—'; if(tot>0){ let avg=null; try{ const fallback=Number(localStorage.getItem('lab:avgEvalMs')); avg = (Number.isFinite(fallback)&&fallback>0)? fallback : null; }catch(_){ avg=null; } if(__labSimDtCnt>0){ avg = __labSimDtSum/Math.max(1,__labSimDtCnt); } if(!(avg>0)) avg = 1000; const effConc=Math.max(1,__labConc|0); const remain=Math.max(0, tot-dn); eta=__fmtETA((remain*avg)/effConc); }
-  const quotaStr = (maxEvals>0? ` • Quota: ${dn}/${maxEvals}` : ''); if(btProgGlobalText) btProgGlobalText.textContent = `Global: ${pct}% (${dn}/${tot}) — ETA ${eta}${quotaStr}`; }catch(_){ } }
+  const quotaStr = (maxEvals>0? ` • ${t('bt.progress.quotaPrefix')} ${dn}/${maxEvals}` : ''); if(btProgGlobalText) btProgGlobalText.textContent = `${t('bt.progress.globalLabel')}: ${pct}% (${dn}/${tot}) — ${t('bt.progress.etaLabel')} ${eta}${quotaStr}`; }catch(_){ } }
   __lastLabTested = allTested;
   // Preload known keys from Supabase to avoid retest across sessions
   let seenCanon = new Set();
@@ -4083,7 +4604,7 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
       try{ writePalmares(sym, tfSel, bestOut); }catch(_){ }
       try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
     }
-    setStatus('Palmarès mis à jour'); try{ __labSimDone = Math.max(__labSimDone, __labSimPlanned||__labSimDone); updateGlobalProgressUI(); }catch(_){ } closeBtProgress();
+    setStatus(t('status.palmaresUpdated')); try{ __labSimDone = Math.max(__labSimDone, __labSimPlanned||__labSimDone); updateGlobalProgressUI(); }catch(_){ } closeBtProgress();
   } else {
     const bestOut = finalResults.slice(0, Math.min(10, finalResults.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen: (x.gen||1), name: x.name||null }));
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.persistLabResults==='function'){
@@ -4093,9 +4614,9 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
       try{ writePalmares(sym, tfSel, bestOut); }catch(_){ }
       try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
     }
-    setStatus('Amélioration terminée'); try{ __labSimDone = Math.max(__labSimDone, __labSimPlanned||__labSimDone); updateGlobalProgressUI(); }catch(_){ } closeBtProgress();
+    setStatus(t('status.improveDone')); try{ __labSimDone = Math.max(__labSimDone, __labSimPlanned||__labSimDone); updateGlobalProgressUI(); }catch(_){ } closeBtProgress();
   }
- }catch(e){ try{ addBtLog(`Erreur entraînement: ${e&&e.message?e.message:e}`); }catch(_){ } setStatus('Erreur entraînement'); try{ closeBtProgress(); }catch(_){ } } }); }
+ }catch(e){ try{ addBtLog(`Erreur entraînement: ${e&&e.message?e.message:e}`); }catch(_){ } setStatus(t('status.trainingError')); try{ closeBtProgress(); }catch(_){ } } }); }
 
 // Lab Pause/Stop controls are now on the progress popup (btPause/btStop)
 
