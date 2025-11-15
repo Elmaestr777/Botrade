@@ -1632,9 +1632,6 @@
                     <option value="agressive">Stratégie agressive</option>
                   </select>
                 </label>
-                        <div>
-              <div style="font-weight:600;" data-i18n="detail.section.eq.title">Équity</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.eq.desc">Évolution du capital dans le temps. Cherchez une courbe régulière avec des phases de baisse limitées et un profil compatible avec votre tolérance au risque.</div>
                 <label>Stratégie
                   <select id="labStrategy" style="min-width:12rem;">
                     <option value="hybrid" selected>Hybride (EA → Bayes)</option>
@@ -1718,10 +1715,7 @@
                 <label title="Score minimum (0-100); 0 = désactivé">Score min <input id="labMinScore" type="number" min="0" max="100" step="0.1" value="0" style="width:6rem" /></label>
               </div>
             </div>
-            <div id="labAdvPanel" style="display:none; gap:12px; align-items:cent            <div>
-              <div style="font-weight:600;" data-i18n="detail.section.dd.title">Drawdown absolu</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.dd.desc">Taille des creux en dollars. Permet d'identifier les pires périodes de pertes et de vérifier qu'elles restent acceptables pour le capital engagé.</div>
- align-items:center; flex-wrap:wrap; padding:6px; border:1px dashed var(--header-border); border-radius:6px; grid-column:1/-1;">
+            <div id="labAdvPanel" style="display:none; gap:12px; align-items:center; flex-wrap:wrap; padding:6px; border:1px dashed var(--header-border); border-radius:6px; grid-column:1/-1;">
               <details class="param-help-inline heading"><summary>Paramètres à tester</summary><div class="param-help">Cochez les paramètres que l’algorithme pourra modifier. Les plages d’étude définissent Min/Max/Pas pour chaque paramètre coché. Astuce: partez large, puis resserrez progressivement.</div></details>
               <label><input id="labVarNol" type="checkbox" checked /> NOL</label>
               <label><input id="labVarPrd" type="checkbox" checked /> PRD</label>
@@ -1828,9 +1822,15 @@
             </div>
           </div>
           <div id="labSummary" style="margin-bottom:10px; color:var(--muted);"></div>
-          <div class="lab-fixed-actions">
-            <button id="labRun" class="btn primary">Entraîner</button>
-            <button id="labRunNew" class="btn">Nouvelle stratégie</button>
+          <div class="lab-fixed-actions" style="display:flex; gap:8px; justify-content:space-between; align-items:center;">
+            <label id="labAutoLoopLabel" for="labAutoLoop" class="btn" title="Relancer automatiquement l'entraînement" style="display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+              <input id="labAutoLoop" type="checkbox" style="width:auto; height:auto; margin:0; cursor:pointer;" />
+              <span>Auto-loop</span>
+            </label>
+            <div style="display:flex; gap:8px;">
+              <button id="labRun" class="btn primary">Entraîner</button>
+              <button id="labRunNew" class="btn">Nouvelle stratégie</button>
+            </div>
           </div>
           <!-- KPIs + Logs inline (no extra tab/dock) -->
           <div class="lab-panels">
@@ -1859,9 +1859,6 @@
             </table>
           </div>
         </div>
-        <div class=            <div>
-              <div style="font-weight:600;" data-i18n="detail.section.under.title">Underwater (drawdown %)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.under.desc">Drawdown en pourcentage du capital. Utile pour comparer le risque relatif entre stratégies ou paramètres sur des capitaux différents.</div>
         <div class="modal-footer">
           <span style="color:var(--muted);">Les données sont agrégées à partir des optimisations effectuées (symbole courant + TF sélectionné).</span>
         </div>
@@ -1913,84 +1910,3 @@
     <script src="src/main.js"></script>
   </body>
 </html>
-            <div>
-              <div style="font-weight:600;" data-i18n="detail.section.hist.title">Distribution des rendements</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.hist.desc">Histogramme des retours par trade. Recherchez une queue de pertes limitée et une queue de gains étendue, signe d'un bon équilibre risque/rendement.</div>
-            <div>
-              <div style="font-weight:600;" data-i18n="detail.section.eff.title">Efficacité de la stratégie</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.eff.desc">Barres normalisées (Win%, R:R, efficacité, temps en marché, fréquence). Permet de voir en un clin d'œil les composantes fortes et celles à optimiser.</div>
-            <div>
-              <div style="font-weight:600;" data-i18n="detail.section.robust.title">Complexité & Robustesse</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.robust.desc">Mesure le compromis entre nombre de paramètres actifs et robustesse globale. Idéalement, viser une robustesse élevée avec une complexité raisonnable.</div>
-                <div>
-                  <div style="font-weight:600;" data-i18n="detail.section.summary.title">Commentaire & analyse</div>
-                  <div style="color:var(--muted); font-size:11px;" data-i18n="detail.section.summary.desc">Synthèse narrative de la stratégie et de sa comparée. À lire pour comprendre le profil de risque/rendement, les axes d'amélioration, et l'impact du slippage réel sur la performance.</div>
-                </div>
-                <div style="display:flex; gap:6px; align-items:center; font-size:12px;">
-                  <label data-i18n="detail.slip.label">Slippage (bps)
-                    <input id="detailSlipBps" type="number" min="0" max="200" step="1" value="0" style="width:6rem;" />
-                  </label>
-                  <button id="detailSlipApply" class="btn" data-i18n="detail.slip.apply">Appliquer</button>
-                  <button id="detailSlipInfo" class="icon-btn" type="button" aria-label="Infos slippage" title="Infos slippage" data-i18n-aria-label="detail.slip.infoTitle" data-i18n-title="detail.slip.infoTitle">?</button>
-            <div>
-              <div style="font-weight:600;" data-i18n="detail.section.ci.title">IC (bootstrap 95%)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.ci.desc">Intervalles de confiance estimés par bootstrap. Permettent de visualiser l'incertitude sur Win%, PF et expectancy plutôt que de se fier à un seul chiffre.</div>
-            <div>
-              <div style="font-weight:600;" data-i18n="detail.section.rollpf.title">Rolling PF (fenêtre 30)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.rollpf.desc">Profit factor calculé sur une fenêtre glissante. Sert à détecter les phases où la stratégie passe durablement sous PF&nbsp;1 (non rentable).</div>
-            <div>
-              <div style="font-weight:600;" data-i18n="detail.section.rollwin.title">Rolling Win% (fenêtre 30)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.rollwin.desc">Taux de réussite glissant. Met en évidence les périodes où la stratégie décroche ou s'améliore fortement.</div>
-            <div>
-              <div style="font-weight:600;" data-i18n="detail.section.rollrr.title">Rolling Avg R:R (fenêtre 30)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.rollrr.desc">R:R moyen sur 30 positions. Permet de voir si les objectifs deviennent trop courts ou trop ambitieux dans certains régimes.</div>
-            <div>
-              <div style="font-weight:600;" data-i18n="detail.section.rollexp.title">Rolling Expectancy (fenêtre 30)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.rollexp.desc">Expectancy par trade sur fenêtre glissante. À utiliser pour repérer les zones temporelles où la stratégie devient négative.</div>
-            <div>
-              <div style="font-weight:600;" data-i18n="detail.section.dur.title">Durée des trades</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.dur.desc">Répartition de la durée des positions. Vérifiez que la stratégie correspond bien à votre horizon de temps (scalping, swing, positionnel...).</div>
-            <div>
-              <div style="font-weight:600;" data-i18n="detail.section.streaks.title">Séquences victoires/défaites</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.streaks.desc">Distribution des séries de gains et de pertes. Met en lumière la possibilité de longues séries perdantes à supporter psychologiquement.</div>
-            <div>
-              <div style="font-weight:600;" data-i18n="detail.section.ls.title">Distribution retours — Long vs Short</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.ls.desc">Compare la distribution des performances Long et Short. Idéal pour voir si un côté du marché porte l'essentiel de la performance.</div>
-            <div>
-              <div style="font-weight:600;" data-i18n="detail.section.mae.title">MAE/MFE (excursions en R)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.mae.desc">Dispersion des excursions maximales en R (risque). Sert à calibrer TP/SL et trailing en fonction de ce que le marché offre réellement.</div>
-            <div>
-              <div style="font-weight:600;" data-i18n="detail.section.weekly.title">Saisonnalité — Retours hebdomadaires (%)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.weekly.desc">Carte des retours semaine par semaine. À utiliser pour repérer les périodes structurellement favorables ou défavorables à la stratégie.</div>
-            <div>
-              <div style="font-weight:600;" data-i18n="detail.section.dow.title">Saisonnalité — par jour de semaine (%)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.dow.desc">Retour moyen par jour de la semaine. Sert à filtrer d'éventuels jours structurellement faibles ou instables.</div>
-            <div>
-              <div style="font-weight:600;" data-i18n="detail.section.dowHour.title">Saisonnalité — Jour × Heure (retours %)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.dowHour.desc">Heatmap jour × heure. Idéale pour identifier les créneaux horaires où la stratégie surperforme ou sous-performe.</div>
-            <div>
-              <div style="font-weight:600;" data-i18n="detail.section.dowHourLong.title">Jour × Heure — Long seulement</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.dowHourLong.desc">Même carte jour × heure mais filtrée sur les positions Long. Permet de voir où la jambe acheteuse est réellement efficace.</div>
-            <div>
-              <div style="font-weight:600;" data-i18n="detail.section.dowHourShort.title">Jour × Heure — Short seulement</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.dowHourShort.desc">Idem pour les positions Short. Utile pour voir si la jambe vendeuse est opportuniste ou trop fragile sur certains créneaux.</div>
-            <div>
-              <div style="font-weight:600;" data-i18n="detail.section.wf.title">Walk-forward — splits temporels</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.wf.desc">Performance par segment temporel. Sert à vérifier que la stratégie reste exploitable hors échantillon et ne dépend pas d'une seule période.</div>
-            <div>
-              <div style="font-weight:600;" data-i18n="detail.section.regime.title">Régimes (Trend × Volatilité)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.regime.desc">PF par combinaison de tendance et de volatilité. Identifie clairement les régimes de marché où la stratégie fonctionne bien ou mal.</div>
-            <div>
-              <div style="font-weight:600;" data-i18n="detail.section.pareto.title">Pareto — P&L vs Max DD (Palmarès)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.pareto.desc">Nuage P&L vs drawdown. Permet de comparer visuellement le compromis rendement/risque de la stratégie par rapport au Palmarès.</div>
-            <div>
-              <div style="font-weight:600;" data-i18n="detail.section.mc.title">Monte Carlo — éventail d'équity (bootstrap trades)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.mc.desc">Simulation aléatoire de l'ordre des trades. Montre la dispersion possible des trajectoires d'équity à partir du même historique de trades.</div>
-            <div>
-              <div style="font-weight:600;" data-i18n="detail.section.qq.title">QQ-Plot (retours normalisés)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.qq.desc">Compare la distribution des rendements à une loi normale. Sert à repérer des queues épaisses ou des asymétries importantes.</div>
-            <div>
-              <div style="font-weight:600;" data-i18n="detail.section.acf.title">Autocorrélation (lags)</div>
-              <div style="color:var(--muted); font-size:11px; margin-bottom:4px;" data-i18n="detail.section.acf.desc">Autocorrélation des rendements sur plusieurs lags. Permet de voir s'il existe un clustering de gains/pertes ou des dépendances exploitables.</div>
-          <h2 data-i18n="evals.modal.title">Détails des évaluations</h2>
-          <button id="evalsClose" class="icon-btn" aria-label="Fermer">×</button>

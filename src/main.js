@@ -1256,6 +1256,31 @@ async function populateLiveStrategyOptions(){ try{ if(!liveStrategySel) return; 
 
 // Lab inline panels (in Lab modal)
 const labRunStatusEl = document.getElementById('labRunStatus');
+const labAutoLoopEl = document.getElementById('labAutoLoop');
+let __labLastGoal = 'improve';
+function maybeScheduleLabAutoLoop(){
+  try{
+    if(typeof btAbort!=='undefined' && btAbort) return;
+    const autoEl = labAutoLoopEl || document.getElementById('labAutoLoop');
+    if(!autoEl || !autoEl.checked) return;
+    const nextGoal = __labLastGoal || 'improve';
+    try{
+      if(typeof addBtLog==='function'){
+        addBtLog(`Auto-loop: relance dans 1s (${nextGoal==='new'?'nouvelle stratégie':'entraîner'})`);
+      }
+    }catch(_){ }
+    setTimeout(()=>{
+      try{
+        const el = labAutoLoopEl || document.getElementById('labAutoLoop');
+        if(!el || !el.checked) return;
+        if(typeof btAbort!=='undefined' && btAbort) return;
+        try{ window.__labGoalOverride = nextGoal; }catch(_){ }
+        const btn = document.getElementById('labRun');
+        if(btn) btn.click();
+      }catch(_){ }
+    }, 1000);
+  }catch(_){ }
+}
 const kpiScoreEl = document.getElementById('kpiScore');
 const kpiPFEl = document.getElementById('kpiPF');
 const kpiWinEl = document.getElementById('kpiWin');
@@ -2101,8 +2126,8 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
   const btStopBtn=document.getElementById('btStop');
   const btAbortBtn=document.getElementById('btAbort');
   if(btPauseBtn){ btPauseBtn.addEventListener('click', ()=>{ btPaused=!btPaused; addBtLog(btPaused?'Pause':'Reprise'); if(labRunStatusEl) labRunStatusEl.textContent = btPaused? 'Pause' : 'En cours'; btPauseBtn.textContent = btPaused? 'Reprendre' : 'Pause'; }); }
-  if(btStopBtn){ btStopBtn.addEventListener('click', ()=>{ btAbort=true; addBtLog('Arrêt demandé'); if(labRunStatusEl) labRunStatusEl.textContent='Arrêt'; }); }
-  if(btAbortBtn){ btAbortBtn.addEventListener('click', ()=>{ btAbort=true; addBtLog('Annulation'); if(labRunStatusEl) labRunStatusEl.textContent='Arrêt'; try{ closeBtProgress(); }catch(_){ } }); }
+  if(btStopBtn){ btStopBtn.addEventListener('click', ()=>{ btAbort=true; addBtLog('Arrêt demandé'); if(labRunStatusEl) labRunStatusEl.textContent='Arrêt'; if(labAutoLoopEl){ labAutoLoopEl.checked=false; } }); }
+  if(btAbortBtn){ btAbortBtn.addEventListener('click', ()=>{ btAbort=true; addBtLog('Annulation'); if(labRunStatusEl) labRunStatusEl.textContent='Arrêt'; if(labAutoLoopEl){ labAutoLoopEl.checked=false; } try{ closeBtProgress(); }catch(_){ } }); }
   if(btShowDetails){ btShowDetails.addEventListener('click', ()=> openEvalsModal((labSymbolSelect&&labSymbolSelect.value)||currentSymbol, (labTFSelect&&labTFSelect.value)||currentInterval)); }
   if(btExportDetails){ btExportDetails.addEventListener('click', ()=> exportEvalsCSV()); }
 }catch(_){ }
@@ -3817,6 +3842,7 @@ if(labRunBtn){ labRunBtn.addEventListener('click', async ()=>{ try{
   const sym=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol;
   const tfSel=(labTFSelect&&labTFSelect.value)||currentInterval;
   const goal = (window.__labGoalOverride || ((document.getElementById('labGoal')&&document.getElementById('labGoal').value) || 'improve'));
+  try{ __labLastGoal = goal; }catch(_){ }
   try{ window.__labGoalOverride = null; }catch(_){ }
   const strategy=(document.getElementById('labStrategy')&&document.getElementById('labStrategy').value)||'hybrid';
 const conf=readLabRiskConf();
@@ -4605,6 +4631,7 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
       try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
     }
     setStatus(t('status.palmaresUpdated')); try{ __labSimDone = Math.max(__labSimDone, __labSimPlanned||__labSimDone); updateGlobalProgressUI(); }catch(_){ } closeBtProgress();
+    maybeScheduleLabAutoLoop();
   } else {
     const bestOut = finalResults.slice(0, Math.min(10, finalResults.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen: (x.gen||1), name: x.name||null }));
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.persistLabResults==='function'){
@@ -4615,8 +4642,9 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
       try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
     }
     setStatus(t('status.improveDone')); try{ __labSimDone = Math.max(__labSimDone, __labSimPlanned||__labSimDone); updateGlobalProgressUI(); }catch(_){ } closeBtProgress();
+    maybeScheduleLabAutoLoop();
   }
- }catch(e){ try{ addBtLog(`Erreur entraînement: ${e&&e.message?e.message:e}`); }catch(_){ } setStatus(t('status.trainingError')); try{ closeBtProgress(); }catch(_){ } } }); }
+ }catch(e){ try{ addBtLog(`Erreur entraînement: ${e&&e.message?e.message:e}`); }catch(_){ } setStatus(t('status.trainingError')); try{ closeBtProgress(); }catch(_){ } try{ if(labAutoLoopEl){ labAutoLoopEl.checked=false; } }catch(_){ } } }); }
 
 // Lab Pause/Stop controls are now on the progress popup (btPause/btStop)
 
