@@ -1782,13 +1782,15 @@ function drawMonthlyHeatmap(canvas, cells){ if(!canvas||!cells||!cells.length) r
 }
 
 function drawWeeklyHeatmap(canvas, cells){ if(!canvas||!cells||!cells.length) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 10, 'Weekly returns (%)', 'center'); const padL=58, padR=10, padT=30, padB=18; const years=Array.from(new Set(cells.map(c=>c.y))).sort((a,b)=>a-b); const cols=53; const cw=(w-padL-padR)/cols, ch=(h-padT-padB)/Math.max(1,years.length); const vals=cells.map(c=>c.r); const vMin=Math.min(...vals, -10), vMax=Math.max(...vals, 10); function color(v){ const x=(v - vMin)/(vMax-vMin+1e-9); const r=Math.round(239*(1-x)); const g=Math.round(68 + (185-68)*x); const b=Math.round(68*(1-x)); return `rgb(${r},${g},${b})`; }
-  // x ticks every 4 weeks
-  for(let k=1;k<=cols;k+=4){ __drawText(ctx, padL + (k-0.5)*cw, padT-6, String(k), 'center'); }
+  const showVals = (ch>=16 && cw>=22);
+  // x ticks every 4 weeks (limités pour éviter le chevauchement)
+  for(let k=1;k<=cols;k+=8){ __drawText(ctx, padL + (k-0.5)*cw, padT-6, String(k), 'center'); }
   for(let i=0;i<years.length;i++){ __drawText(ctx, padL-6, padT + i*ch + ch/2, String(years[i]), 'right'); }
   const map=new Map(); for(const c of cells){ map.set(`${c.y}-${c.w}`, c.r); }
   for(let i=0;i<years.length;i++){
     for(let wIdx=1; wIdx<=cols; wIdx++){
-      const key=`${years[i]}-${wIdx}`; const v=map.has(key)? map.get(key): null; const x=padL + (wIdx-1)*cw, y=padT + i*ch; ctx.fillStyle = v==null? '#e5e7eb' : color(v); ctx.fillRect(x+1,y+1,cw-2,ch-2); if(v!=null){ __drawText(ctx, x+cw/2, y+ch/2, String(v.toFixed(1)), 'center'); }
+      const key=`${years[i]}-${wIdx}`; const v=map.has(key)? map.get(key): null; const x=padL + (wIdx-1)*cw, y=padT + i*ch; ctx.fillStyle = v==null? '#e5e7eb' : color(v); ctx.fillRect(x+1,y+1,cw-2,ch-2);
+      if(v!=null && showVals){ __drawText(ctx, x+cw/2, y+ch/2, String(v.toFixed(1)), 'center'); }
     }
   }
 __drawText(ctx, w-8, h-6, 'Semaines (1–53) →', 'right');
@@ -1814,7 +1816,11 @@ function drawWFTable(canvas, splits){ if(!canvas||!Array.isArray(splits)||!split
 }
 
 function drawRegimeHeatmap(canvas, mat){ if(!canvas||!mat) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 10, 'PF par régime (Trend × Vol)', 'center'); const padL=80, padR=10, padT=30, padB=12; const rows=['Up','Down'], cols=['Low','Med','High']; const cw=(w-padL-padR)/cols.length, ch=(h-padT-padB)/rows.length; for(let r=0;r<rows.length;r++){ __drawText(ctx, padL-6, padT + r*ch + ch/2, rows[r], 'right'); for(let c=0;c<cols.length;c++){ const cell=mat[rows[r]][cols[c]]||{pf:0,count:0}; const pf=(cell.pf===Infinity? 5 : Math.max(0, Math.min(5, cell.pf||0))); const x=padL + c*cw, y=padT + r*ch; // green scale by PF
-      const g=Math.round(255*Math.min(1, pf/3)); const col=`rgb(${255-g},${g},120)`; ctx.fillStyle=col; ctx.fillRect(x+1,y+1,cw-2,ch-2); __drawText(ctx, x+cw/2, y+ch/2, `${(cell.pf===Infinity?'∞':pf.toFixed(2))} (${cell.count})`, 'center'); __drawText(ctx, x+cw/2, padT-6, cols[c], 'center'); }
+      const g=Math.round(255*Math.min(1, pf/3)); const col=`rgb(${255-g},${g},120)`; ctx.fillStyle=col; ctx.fillRect(x+1,y+1,cw-2,ch-2);
+      // Texte en surimpression avec couleur sombre pour lisibilité
+      const label = `${(cell.pf===Infinity?'∞':pf.toFixed(2))} (${cell.count})`;
+      ctx.save(); ctx.fillStyle='rgba(15,23,42,0.95)'; ctx.font='11px Segoe UI, Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(label, x+cw/2, y+ch/2); ctx.restore();
+      ctx.save(); ctx.fillStyle='rgba(15,23,42,0.95)'; ctx.font='11px Segoe UI, Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(cols[c], x+cw/2, padT-6); ctx.restore(); }
   }
 }
 
@@ -2168,6 +2174,7 @@ function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
     }catch(_){ return out; } }
   // placeholders for per-chart summaries
   let weeklyCells=null, dowArr=null, dowHourCells=null, dhLongCells=null, dhShortCells=null, wfSegs=null, regimeMat=null, maePtsVar=null, mcBands=null;
+  let compareSummaryText='';
   // returns per trade
   const tArr = Array.isArray(res.trades)? res.trades.slice() : [];
   // Fallback: compute eqBefore sequentially if missing
@@ -2182,8 +2189,8 @@ function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
   const r2 = (()=>{ const n=eq.length; if(n<3) return 0; const xs=eq.map((_,i)=>i); const ys=eq.map(p=>p.equity); const xm=mean(xs), ym=mean(ys); let num=0, den=0; for(let i=0;i<n;i++){ const xv=xs[i]-xm, yv=ys[i]-ym; num += xv*yv; den += xv*xv; } const a=num/(den||1); const b=ym - a*xm; let ssTot=0, ssRes=0; for(let i=0;i<n;i++){ const y=ys[i]; const yhat=a*xs[i]+b; ssTot += (y-ym)*(y-ym); ssRes += (y-yhat)*(y-yhat); } return 1 - (ssRes/(ssTot||1)); })();
   const r2N = Math.max(0, Math.min(100, r2*100)); const winrate = +res.winrate||0; const avgRR = +res.avgRR||0; const teN = Math.max(0, Math.min(100, (winrate/100) * (pf/(pf+1))*100)); const edgeN = Math.max(0, Math.min(100, (pf/(pf+1)) * (1 - Math.min(1, sd/5))*100));
   // CI bootstrap moved after groups are computed
-  drawRadar(canRadar, ['Profit Factor','Sharpe','Recovery','Consistency','Cap. Protection','R² equity','Trade Efficiency','Edge Robustness'], [pfN, sharpeN, recovN, consN, cpiN, r2N, teN, edgeN]);
-  try{ const labs=['PF','Sharpe','Recovery','Consistency','CapProt','R²','TradeEff','Edge']; const vals=[pfN,sharpeN,recovN,consN,cpiN,r2N,teN,edgeN]; const idxs=vals.map((v,i)=>[v,i]).sort((a,b)=>b[0]-a[0]); const top=idxs.slice(0,2).map(([v,i])=>`${labs[i]} ${v.toFixed(0)}%`).join(', '); const bot=idxs.slice(-2).map(([v,i])=>`${labs[i]} ${v.toFixed(0)}%`).join(', '); setNote('detailRadarNote', `Forces: ${top} • Faiblesses: ${bot}`); }catch(_){ }
+  drawRadar(canRadar, ['Profit Factor','Sharpe','Recovery (P&L/DD)','Consistency','Cap. Protection','R² equity','Trade Efficiency','Edge Robustness'], [pfN, sharpeN, recovN, consN, cpiN, r2N, teN, edgeN]);
+  try{ const labs=['PF','Sharpe','Recovery (P&L/DD)','Consistency','CapProt','R²','TradeEff','Edge']; const vals=[pfN,sharpeN,recovN,consN,cpiN,r2N,teN,edgeN]; const idxs=vals.map((v,i)=>[v,i]).sort((a,b)=>b[0]-a[0]); const top=idxs.slice(0,2).map(([v,i])=>`${labs[i]} ${v.toFixed(0)}%`).join(', '); const bot=idxs.slice(-2).map(([v,i])=>`${labs[i]} ${v.toFixed(0)}%`).join(', '); setNote('detailRadarNote', `Forces: ${top} • Faiblesses: ${bot}`); }catch(_){ }
   // Comparaison: par défaut, config Heaven; optionnellement, une stratégie du Palmarès (rejouée sur les mêmes données)
   let resCmp=null, eqCmp=null, H=null; let cmpLabel='Heaven';
   try{
@@ -2201,7 +2208,7 @@ function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
     try{ H = deriveFor(resCmp); }catch(__){ H=null; }
   }catch(_){ resCmp=null; eqCmp=null; H=null; }
   // Radar de comparaison (Heaven ou Palmarès)
-  try{ if(resCmp && eqCmp && H){ const meanH=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length : 0; const mH = meanH(H.rets||[]); const sdH = Math.sqrt(meanH((H.rets||[]).map(x=> (x-mH)*(x-mH)))); const sharpeH = (sdH>0? (mH/sdH*Math.sqrt(Math.max(1, (H.rets?H.rets.length:1)))) : 0); const pfHraw = (resCmp.profitFactor===Infinity? 3 : Math.max(0, Math.min(3, +resCmp.profitFactor||0))); const pfNH=(pfHraw/3)*100; const recovH = (resCmp.maxDDAbs>0? (resCmp.totalPnl/Math.max(1e-9, resCmp.maxDDAbs)) : 0); const recovNH = Math.max(0, Math.min(100, (recovH/3)*100)); const consNH = Math.max(0, Math.min(100, 100*(1 - Math.min(1, (sdH/3)||0)))); const cpiNH = Math.max(0, Math.min(100, 100*(1 - Math.min(1, ((+resCmp.maxDDAbs||0)/Math.max(1, conf.startCap)) / 0.5)))); const r2H=(function(){ const n=eqCmp.length; if(n<3) return 0; const xs=eqCmp.map((_,i)=>i); const ys=eqCmp.map(p=>p.equity); const xm=meanH(xs), ym=meanH(ys); let num=0, den=0; for(let i=0;i<n;i++){ const xv=xs[i]-xm, yv=ys[i]-ym; num += xv*yv; den += xv*xv; } const a=num/(den||1); const b=ym - a*xm; let ssTot=0, ssRes=0; for(let i=0;i<n;i++){ const y=ys[i]; const yhat=a*xs[i]+b; ssTot += (y-ym)*(y-ym); ssRes += (y-yhat)*(y-yhat); } return 1 - (ssRes/(ssTot||1)); })()*100; const teNH = Math.max(0, Math.min(100, ((+resCmp.winrate||0)/100) * (pfHraw/(pfHraw+1))*100)); const edgeNH = Math.max(0, Math.min(100, (pfHraw/(pfHraw+1)) * (1 - Math.min(1, (sdH/5)||0))*100)); const c=ensureHeavenClone('detailRadar'); if(c){ drawRadar(c, ['Profit Factor','Sharpe','Recovery','Consistency','Cap. Protection','R² equity','Trade Efficiency','Edge Robustness'], [pfNH, Math.max(0, Math.min(100, (sharpeH/3)*100)), recovNH, consNH, cpiNH, Math.max(0, Math.min(100, r2H)), teNH, edgeNH]); } } }catch(_){ }
+  try{ if(resCmp && eqCmp && H){ const meanH=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length : 0; const mH = meanH(H.rets||[]); const sdH = Math.sqrt(meanH((H.rets||[]).map(x=> (x-mH)*(x-mH)))); const sharpeH = (sdH>0? (mH/sdH*Math.sqrt(Math.max(1, (H.rets?H.rets.length:1)))) : 0); const pfHraw = (resCmp.profitFactor===Infinity? 3 : Math.max(0, Math.min(3, +resCmp.profitFactor||0))); const pfNH=(pfHraw/3)*100; const recovH = (resCmp.maxDDAbs>0? (resCmp.totalPnl/Math.max(1e-9, resCmp.maxDDAbs)) : 0); const recovNH = Math.max(0, Math.min(100, (recovH/3)*100)); const consNH = Math.max(0, Math.min(100, 100*(1 - Math.min(1, (sdH/3)||0)))); const cpiNH = Math.max(0, Math.min(100, 100*(1 - Math.min(1, ((+resCmp.maxDDAbs||0)/Math.max(1, conf.startCap)) / 0.5)))); const r2H=(function(){ const n=eqCmp.length; if(n<3) return 0; const xs=eqCmp.map((_,i)=>i); const ys=eqCmp.map(p=>p.equity); const xm=meanH(xs), ym=meanH(ys); let num=0, den=0; for(let i=0;i<n;i++){ const xv=xs[i]-xm, yv=ys[i]-ym; num += xv*yv; den += xv*xv; } const a=num/(den||1); const b=ym - a*xm; let ssTot=0, ssRes=0; for(let i=0;i<n;i++){ const y=ys[i]; const yhat=a*xs[i]+b; ssTot += (y-ym)*(y-ym); ssRes += (y-yhat)*(y-yhat); } return 1 - (ssRes/(ssTot||1)); })()*100; const teNH = Math.max(0, Math.min(100, ((+resCmp.winrate||0)/100) * (pfHraw/(pfHraw+1))*100)); const edgeNH = Math.max(0, Math.min(100, (pfHraw/(pfHraw+1)) * (1 - Math.min(1, (sdH/5)||0))*100)); const c=ensureHeavenClone('detailRadar'); if(c){ drawRadar(c, ['Profit Factor','Sharpe','Recovery (P&L/DD)','Consistency','Cap. Protection','R² equity','Trade Efficiency','Edge Robustness'], [pfNH, Math.max(0, Math.min(100, (sharpeH/3)*100)), recovNH, consNH, cpiNH, Math.max(0, Math.min(100, r2H)), teNH, edgeNH]); } } }catch(_){ }
   // primary equity
   try{ drawEquity(canEquity, eq); registerChart('detailEquity', { type:'equity', eq1:eq }); }catch(_){ }
   // heaven equity
@@ -2212,6 +2219,8 @@ function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
   try{ const canDDH = ensureHeavenClone('detailDD'); if(canDDH && eqCmp){ drawDD(canDDH, eqCmp); } }catch(_){ }
   // primary hist
   drawHist(canHist, rets); registerChart('detailHist', { type:'rets', values: rets.slice() });
+  // comparator hist (Heaven ou Palmarès), si disponible
+  try{ if(typeof H!=='undefined' && H && Array.isArray(H.rets) && H.rets.length){ const cH=ensureHeavenClone('detailHist'); if(cH){ drawHist(cH, H.rets); registerChart('detailHistHeaven', { type:'rets', values:(H.rets||[]).slice() }); } } }catch(_){ }
   try{
     if(eq && eq.length>1){
       const startE = (eq[0].equity!=null? eq[0].equity : (conf.startCap||0));
@@ -2235,9 +2244,11 @@ function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
       if(freqDay<0.3) activityLabel = `peu de positions (~${freqDay.toFixed(2)} trade/jour, ${timeInMktLoc.toFixed(0)}% du temps en marché)`;
       else if(freqDay<1) activityLabel = `un rythme de trading modéré (~${freqDay.toFixed(2)} trades/jour, ${timeInMktLoc.toFixed(0)}% du temps en marché)`;
       else activityLabel = `un trading dense (~${freqDay.toFixed(2)} trades/jour, ${timeInMktLoc.toFixed(0)}% du temps en marché)`;
+      const teLabel = (teN>=70? 'trade efficiency élevée' : teN>=40? 'trade efficiency correcte' : 'trade efficiency fragile');
       const eqNote = `${perfLabel} (${retPct1.toFixed(1)}% cumulés, capital ${startE.toFixed(0)} → ${endE.toFixed(0)}). `+
         `Le couple rendement/risque reste caractérisé par ${riskLabel} (PF ${pf1Disp}, Win ${wr1.toFixed(1)}%, DD max ${ddAbs.toFixed(0)}${Number.isFinite(ddPct1)? ' ('+ddPct1.toFixed(1)+'%)':''}). `+
-        `La courbe montre ${trendLabel} avec ${activityLabel}.`;
+        `La courbe montre ${trendLabel} avec ${activityLabel}. `+
+        `Trade Efficiency ≈ ${teN.toFixed(0)}% (${teLabel}).`;
       setNote('detailEquityNote', eqNote);
       setNote('detailDDNote', `Taille et fréquence des creux cohérentes avec ce profil de risque (DD max ${ddAbs.toFixed(0)}).`);
       if(resCmp && eqCmp && eqCmp.length>1){
@@ -2277,7 +2288,9 @@ function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
         }
         const advStr = advantages.length? advantages.slice(0,3).join(', ') : 'un profil de performance globalement proche de la stratégie analysée';
         const limStr = limits.length? limits.slice(0,3).join(', ') : 'pas de faiblesse majeure apparente par rapport à la stratégie analysée sur ces métriques simples';
-        setNote('detailEquityHeavenNote', `${cmpLabel} — Avantages: ${advStr} • Inconvénients: ${limStr}`);
+        const cmpText = `${cmpLabel} — Avantages: ${advStr} • Inconvénients: ${limStr}`;
+        setNote('detailEquityHeavenNote', cmpText);
+        compareSummaryText = cmpText;
       }
     }
     const neg=rets.filter(x=>x<0).length, N=rets.length;
@@ -2321,6 +2334,22 @@ const rrByPos=(function(){ const map=new Map(); const t=(res.trades||[]); functi
   const complexity = (6 + (+!!(ctx.params&&ctx.params.useFibRet)) + (ctx.params&&ctx.params.confirmMode?1:0) + (Array.isArray((ctx.params&&ctx.params.tp))? ctx.params.tp.length:0)); const compN = Math.max(0, Math.min(100, (complexity/20)*100));
   drawRobust(canRob, compN, edgeN);
   try{ setNote('detailRobustNote', `Complexité ${compN.toFixed(0)}% • Robustesse ${edgeN.toFixed(0)}%`); }catch(_){ }
+  // Graphique de robustesse pour la stratégie comparée (Heaven / Palmarès)
+  try{
+    if(typeof H!=='undefined' && H && resCmp){
+      const retsH=(H.rets||[]).slice();
+      const meanH=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length : 0;
+      const mH=meanH(retsH);
+      const sdH=Math.sqrt(meanH(retsH.map(x=> (x-mH)*(x-mH))));
+      const pfHraw = (resCmp.profitFactor===Infinity? 3 : Math.max(0, Math.min(3, +resCmp.profitFactor||0)));
+      const edgeNH = Math.max(0, Math.min(100, (pfHraw/(pfHraw+1)) * (1 - Math.min(1, (sdH/5)||0))*100));
+      const pCmpConf = (compCfg && compCfg.mode==='palmares' && compCfg.params)? (compCfg.params||{}) : (window.lbcOpts||{});
+      const complexityCmp = (6 + (+!!(pCmpConf&&pCmpConf.useFibRet)) + (pCmpConf&&pCmpConf.confirmMode?1:0) + (Array.isArray(pCmpConf&&pCmpConf.tp)? pCmpConf.tp.length:0));
+      const compNCmp = Math.max(0, Math.min(100, (complexityCmp/20)*100));
+      const canRobH = ensureHeavenClone('detailRobust');
+      if(canRobH){ drawRobust(canRobH, compNCmp, edgeNH); }
+    }
+  }catch(_){ }
   // Rolling charts
   try{ drawLineChart(canRollPF, rollPF, { title:'Rolling PF (fenêtre 30)', yMin:0, yMax: Math.max(3, Math.min(5, Math.max(...rollPF,3))), fmt:(v)=> (v===Infinity?'∞':v.toFixed(2)) }); registerChart('detailRollPF', { type:'rolling', name:'PF', values: rollPF.slice() }); }catch(_){ }
   try{ drawLineChart(canRollWin, rollWin, { title:'Rolling Win% (fenêtre 30)', yMin:0, yMax:100, fmt:(v)=> v.toFixed(0)+'%' }); registerChart('detailRollWin', { type:'rolling', name:'Win%', values: rollWin.slice() }); }catch(_){ }
@@ -2496,7 +2525,7 @@ if(detailCtxEl){
   detailCtxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — ${name}${gtxt}${capStr}${feeStr}${levStr} — PF ${(res.profitFactor===Infinity?'∞':(+res.profitFactor||0).toFixed(2))} • Trades ${res.tradesCount}`;
 }
   // Summary/commentary (pass advanced metrics)
-  try{ const sum = generateStrategySummary(res, ctx, { timeInMkt, freq, expectancy: expNet, avgDurMin, bestNet, worstNet, r2, pf: (res.profitFactor===Infinity? Infinity : (+res.profitFactor||0)), winrate, avgRR, maxDDAbs: +res.maxDDAbs||0, ci: ciBoot }); if(detailSummaryEl) detailSummaryEl.innerHTML = sum; }catch(_){ }
+  try{ const sum = generateStrategySummary(res, ctx, { timeInMkt, freq, expectancy: expNet, avgDurMin, bestNet, worstNet, r2, pf: (res.profitFactor===Infinity? Infinity : (+res.profitFactor||0)), winrate, avgRR, maxDDAbs: +res.maxDDAbs||0, ci: ciBoot }); if(detailSummaryEl){ let full=sum; if(compareSummaryText){ full += "\n\n"+compareSummaryText; } detailSummaryEl.innerHTML = full; } }catch(_){ }
   // Slippage what‑if (bps)
   try{
     const slipInp=document.getElementById('detailSlipBps'); const slipBtn=document.getElementById('detailSlipApply'); const slipNote=document.getElementById('detailSlipNote');
