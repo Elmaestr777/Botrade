@@ -1618,7 +1618,7 @@
             </div>
             <div id="labContextCard" style="grid-column:1/-1; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
               <div class="section-title">Contexte</div>
-              <details class="param-help-inline heading"><summary>Aide</summary><div class="param-help">Pair et TF définissent la série à étudier. Plage choisit l’intervalle: Visible (fenêtre chart), Tout l’historique (dataset complet), Dates (personnalisées, fuseau local). Capital/Frais/Levier impactent les résultats (P&L, PF, DD) et sont intégrés dans toutes les évaluations.</div></details>
+              <details class="param-help-inline heading"><summary>Aide</summary><div class="param-help">Pair et TF définissent la série à étudier. Plage choisit l’intervalle: Visible (fenêtre chart), Tout l’historique (dataset complet), Dates (personnalisées, fuseau local). Capital/Frais/Levier et Max % par trade (plafond de capital par position, 0,1–100%, Auto = algo) impactent les résultats (P&L, PF, DD) et sont intégrés dans toutes les évaluations.</div></details>
               <label>Pair
                 <select id="labSymbolSelect" style="min-width:10rem;"></select>
               </label>
@@ -1644,6 +1644,15 @@
               <label>Capital initial <input id="labStartCap" type="number" min="0" step="100" value="10000" style="width:8rem" /></label>
               <label>Frais (%) <input id="labFee" type="number" min="0" step="0.01" value="0.10" style="width:6rem" /></label>
               <label>Levier (x) <input id="labLev" type="number" min="1" max="125" step="0.1" value="1" style="width:6rem" /></label>
+              <label>Max % par trade
+                <select id="labMaxPctMode" style="min-width:8rem;">
+                  <option value="auto" selected>Auto (algo)</option>
+                  <option value="fixed">Fixe (%)</option>
+                </select>
+              </label>
+              <label>Valeur (%)
+                <input id="labMaxPct" type="number" min="0.1" max="100" step="0.1" value="100" style="width:6rem" />
+              </label>
             </div>
             <div id="labEAConfig" style="display:none; gap:8px; align-items:center; flex-wrap:wrap; grid-column:1/-1;">
               <details class="param-help-inline heading"><summary>EA</summary><div class="param-help">Algorithme évolutionnaire: Pop = taille de population, Gen = nombre de générations, Mut% = taux de mutation, Cx% = taux de croisement. « Resume » continue un run précédent si disponible.</div></details>

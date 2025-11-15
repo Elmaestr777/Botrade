@@ -685,8 +685,8 @@ if(intervalSelect){ intervalSelect.addEventListener('change', ()=>{ currentInter
 if(symbolSelect){ symbolSelect.addEventListener('change', ()=>{ currentSymbol=symbolSelect.value; updateTitle(currentSymbol); updateWatermark(); closeWs(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval)); }); }
 if(gotoEndBtn){ gotoEndBtn.addEventListener('click', ()=>{ try{ const v=(window.__rightOff|0)||10; chart.timeScale().scrollToPosition(v, false); }catch(_){ } }); }
 updateTitle(currentSymbol); updateWatermark(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval));
-// Ensure Lab advanced UI is wired from startup as well (idempotent)
-try{ setupLabAdvUI(); }catch(_){ }
+// Ensure Lab advanced UI and risk UI are wired from startup as well (idempotent)
+try{ setupLabAdvUI(); setupLabRiskUI(); }catch(_){ }
 // Unconditional global hook as last-resort safety (independent of init wiring)
 try{
   if(!window.__advGlobalHook){
@@ -802,6 +802,56 @@ function addLabLog(msg){ try{ if(!labLogEl) return; const t=new Date(); const hh
 function updateLabKpis(best){ try{ if(!best||!best.length){ if(kpiScoreEl) kpiScoreEl.textContent='—'; if(kpiPFEl) kpiPFEl.textContent='—'; if(kpiWinEl) kpiWinEl.textContent='—'; if(kpiDDEl) kpiDDEl.textContent='—'; return; } const top=best[0]; const st=top.res||{}; if(kpiScoreEl) kpiScoreEl.textContent = Number(top.score||0).toFixed(2); if(kpiPFEl) kpiPFEl.textContent = (st.profitFactor===Infinity? '∞' : Number(st.profitFactor||0).toFixed(2)); if(kpiWinEl) kpiWinEl.textContent = Number(st.winrate||0).toFixed(1)+'%'; if(kpiDDEl) kpiDDEl.textContent = Number(st.maxDDAbs||0).toFixed(0); }catch(_){ } }
 function updateLabKpiFrom(score, res){ try{ if(kpiScoreEl) kpiScoreEl.textContent = Number(score||0).toFixed(2); if(kpiPFEl) kpiPFEl.textContent = (res.profitFactor===Infinity? '∞' : Number(res.profitFactor||0).toFixed(2)); if(kpiWinEl) kpiWinEl.textContent = Number(res.winrate||0).toFixed(1)+'%'; if(kpiDDEl) kpiDDEl.textContent = Number(res.maxDDAbs||0).toFixed(0); }catch(_){ } }
 
+function readLabRiskConf(){
+  try{
+    const startCap = Math.max(0, parseFloat((document.getElementById('labStartCap')&&document.getElementById('labStartCap').value)||'10000'));
+    const fee = Math.max(0, parseFloat((document.getElementById('labFee')&&document.getElementById('labFee').value)||'0.1'));
+    const lev = Math.max(1, parseFloat((document.getElementById('labLev')&&document.getElementById('labLev').value)||'1'));
+    let maxPct = 100;
+    try{
+      const modeEl=document.getElementById('labMaxPctMode');
+      const valEl=document.getElementById('labMaxPct');
+      const mode=(modeEl&&modeEl.value)||'auto';
+      if(mode==='fixed'){
+        let v=parseFloat((valEl&&valEl.value)||'0');
+        if(!(v>0)) v=100;
+        if(v<0.1) v=0.1;
+        if(v>100) v=100;
+        maxPct=v;
+      }
+    }catch(_){ }
+    return { startCap, fee, lev, maxPct, base:'initial' };
+  }catch(_){
+    return { startCap:10000, fee:0.1, lev:1, maxPct:100, base:'initial' };
+  }
+}
+
+function setupLabRiskUI(){
+  try{
+    const modeEl=document.getElementById('labMaxPctMode');
+    const valEl=document.getElementById('labMaxPct');
+    if(!modeEl || !valEl) return;
+    if(modeEl.dataset && modeEl.dataset.wired==='1') return;
+    function applyState(){
+      try{
+        const m=modeEl.value||'auto';
+        valEl.disabled = (m!=='fixed');
+      }catch(_){ }
+    }
+    modeEl.addEventListener('change', ()=>{ try{ applyState(); }catch(_){ } });
+    valEl.addEventListener('change', ()=>{ try{
+      let v=parseFloat(valEl.value||'0');
+      if(!(v>0)) v=100;
+      if(v<0.1) v=0.1;
+      if(v>100) v=100;
+      valEl.value=String(v);
+    }catch(_){ } });
+    applyState();
+    if(!modeEl.dataset) modeEl.dataset={};
+    modeEl.dataset.wired='1';
+  }catch(_){ }
+}
+
 // Compute KPI benchmark: Heaven (current config) vs top Palmarès over Lab-selected period
 async function computeLabBenchmarkAndUpdate(){
   try{
@@ -840,7 +890,7 @@ async function computeLabBenchmarkAndUpdate(){
     const idxFromTimeLocal=(bars,from,to)=>{ let s=0,e=bars.length-1; if(from!=null){ for(let i=0;i<bars.length;i++){ if(bars[i].time>=from){ s=i; break; } } } if(to!=null){ for(let j=bars.length-1;j>=0;j--){ if(bars[j].time<=to){ e=j; break; } } } return [s,e]; };
     const [sIdx,eIdx]=idxFromTimeLocal(bars, from, to);
 
-    const conf={ startCap: Math.max(0, parseFloat((document.getElementById('labStartCap')&&document.getElementById('labStartCap').value)||'10000')), fee: Math.max(0, parseFloat((document.getElementById('labFee')&&document.getElementById('labFee').value)||'0.1')), lev: Math.max(1, parseFloat((document.getElementById('labLev')&&document.getElementById('labLev').value)||'1')), maxPct:100, base:'initial' };
+    const conf=readLabRiskConf();
 
     const p={ nol:lbcOpts.nol, prd:lbcOpts.prd, slInitPct:lbcOpts.slInitPct, beAfterBars:lbcOpts.beAfterBars, beLockPct:lbcOpts.beLockPct, emaLen:lbcOpts.emaLen, entryMode:lbcOpts.entryMode||'Both', useFibRet:!!lbcOpts.useFibRet, confirmMode:lbcOpts.confirmMode||'Bounce', ent382:!!lbcOpts.ent382, ent500:!!lbcOpts.ent500, ent618:!!lbcOpts.ent618, ent786:!!lbcOpts.ent786, tpEnable:!!lbcOpts.tpEnable, tp:Array.isArray(lbcOpts.tp)? lbcOpts.tp.slice(0,10):[], slEnable:!!lbcOpts.slEnable, sl:Array.isArray(lbcOpts.sl)? lbcOpts.sl.slice(0,10):[], tp1R:lbcOpts.tp1R };
 
@@ -895,7 +945,7 @@ if(liveOpenBtn){ liveOpenBtn.addEventListener('click', async ()=>{ try{
   }
 } catch(_){ } }); }
 if(liveCloseBtn&&liveModalEl) liveCloseBtn.addEventListener('click', ()=> closeModalEl(liveModalEl)); if(liveModalEl) liveModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(liveModalEl); });
-if(labOpenBtn&&labModalEl) labOpenBtn.addEventListener('click', async ()=>{ try{ openModalEl(labModalEl); try{ setupLabAdvUI(); }catch(_){ } await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); if(labCloseBtn&&labModalEl) labCloseBtn.addEventListener('click', ()=> closeModalEl(labModalEl)); if(labModalEl) labModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(labModalEl); });
+if(labOpenBtn&&labModalEl) labOpenBtn.addEventListener('click', async ()=>{ try{ openModalEl(labModalEl); try{ setupLabAdvUI(); setupLabRiskUI(); }catch(_){ } await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); if(labCloseBtn&&labModalEl) labCloseBtn.addEventListener('click', ()=> closeModalEl(labModalEl)); if(labModalEl) labModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(labModalEl); });
 
 if(btOpenBtn&&btModalEl) btOpenBtn.addEventListener('click', ()=> openModalEl(btModalEl)); if(btCloseBtn&&btModalEl) btCloseBtn.addEventListener('click', ()=> closeModalEl(btModalEl)); if(btModalEl) btModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(btModalEl); });
 if(heavenCfgBtn&&lbcModalEl) heavenCfgBtn.addEventListener('click', ()=>{ try{ populateHeavenModal(); try{ populateHeavenSupaList(); }catch(__){} try{ populateHeavenTFOptions(); }catch(__){} try{ populateHeavenLoadOptions(); }catch(__){} }catch(_){ } openModalEl(lbcModalEl); }); if(lbcCloseBtn&&lbcModalEl) lbcCloseBtn.addEventListener('click', ()=> closeModalEl(lbcModalEl)); if(lbcModalEl) lbcModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(lbcModalEl); });
@@ -1940,7 +1990,17 @@ function setupDetailConfigUI(){
 // Nouveau flux: pop‑up simple via showStrategyResult (métriques & trades)
 async function openLabStrategyDetail(item, ctx){ try{
   const sym=ctx.symbol, tf=ctx.tf; const p=item.params||item.p||{};
-  const conf={ startCap: Math.max(0, +((document.getElementById('labStartCap')||{}).value||10000)), fee: Math.max(0, +((document.getElementById('labFee')||{}).value||0.1)), lev: Math.max(1, +((document.getElementById('labLev')||{}).value||1)), maxPct:100, base:'initial' };
+  const conf=readLabRiskConf();
+  try{
+    if(typeof addBtLog==='function'){
+      const modeEl=document.getElementById('labMaxPctMode');
+      const mode=(modeEl&&modeEl.value)||'auto';
+      const mp=Number(conf.maxPct)||0;
+      const mpStr=Number.isFinite(mp)? mp.toFixed(2): String(mp);
+      const modeStr = (mode==='fixed') ? `${mpStr}% (fixe)` : 'Auto (algo, plafond 100% du capital de référence)';
+      addBtLog(`[detail] Contexte risque: startCap=${conf.startCap}, frais=${conf.fee}%, levier=${conf.lev}x, Max % par trade: ${modeStr}`);
+    }
+  }catch(_){ }
   // Progress UI
   try{
     openBtProgress('Analyse stratégie...');
@@ -2931,7 +2991,20 @@ if(labRunBtn){ labRunBtn.addEventListener('click', async ()=>{ try{
   const goal = (window.__labGoalOverride || ((document.getElementById('labGoal')&&document.getElementById('labGoal').value) || 'improve'));
   try{ window.__labGoalOverride = null; }catch(_){ }
   const strategy=(document.getElementById('labStrategy')&&document.getElementById('labStrategy').value)||'hybrid';
-const conf={ startCap: Math.max(0, parseFloat((document.getElementById('labStartCap')&&document.getElementById('labStartCap').value)||'10000')), fee: Math.max(0, parseFloat((document.getElementById('labFee')&&document.getElementById('labFee').value)||'0.1')), lev: Math.max(1, parseFloat((document.getElementById('labLev')&&document.getElementById('labLev').value)||'1')), maxPct:100, base:'initial' };
+const conf=readLabRiskConf();
+  try{
+    if(typeof addBtLog==='function'){
+      const modeEl=document.getElementById('labMaxPctMode');
+      const mode=(modeEl&&modeEl.value)||'auto';
+      const mp=Number(conf.maxPct)||0;
+      const mpStr=Number.isFinite(mp)? mp.toFixed(2): String(mp);
+      if(mode==='fixed'){
+        addBtLog(`Max % par trade: ${mpStr}% (fixe)`);
+      } else {
+        addBtLog('Max % par trade: Auto (algo, plafond 100% du capital de référence)');
+      }
+    }
+  }catch(_){ }
 // Show progress popup on top immediately (robust)
   try{
     if(typeof openBtProgress==='function'){ openBtProgress('Préparation...'); }
