@@ -2751,8 +2751,9 @@ if(detailCtxEl){
           let best=null, bestD=Infinity, idx=-1;
           for(let i=0;i<pts.length;i++){ const p=pts[i]; const d=Math.abs((p.dd||0)-xVal); if(d<bestD){ bestD=d; best=p; idx=i; } }
           if(!best){ hideTip(); hideCrosshair(can); return; }
-          const html=`${label} #${idx+1}<br/>Max DD: ${(best.dd||0).toFixed(0)} • P&L: ${(best.pnl||0).toFixed(0)}${Number.isFinite(best.score)?` • Score: ${best.score.toFixed(1)}`:''}`;
-          updateCrosshair(can, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html);
+          const scorePart = Number.isFinite(best.score) ? (' • Score: ' + best.score.toFixed(1)) : '';
+          const html=`${label} #${idx+1}<br/>Max DD: ${(best.dd||0).toFixed(0)} • P&L: ${(best.pnl||0).toFixed(0)}${scorePart}`;
+          updateCrosshair(can, ev.clientX, ev.clientY);
         }catch(_){ } };
         can.addEventListener('mousemove', handler); can.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(can); });
         can.__paretoTipWired=true;
