@@ -1598,10 +1598,10 @@
         </div>
         <div class="modal-body">
           <div class="form-grid lab-grid">
-            <div id="labObjectiveCard" style="display:flex; flex-direction:column; gap:8px;">
+            <div id="labContextCard" style="display:flex; flex-direction:column; gap:8px;">
               <div class="lab-section-header">
-                <div class="section-title">Objectif</div>
-                <details class="param-help-inline heading lab-help-header"><summary>Aide</summary><div class="param-help">Profil ajuste les pondérations du score global (sécurité vs performance). Stratégie définit la méthode de recherche: Hybride (EA pour explorer → Bayes pour affiner), EA (évolutionnaire), ou Bayes (modèle probabiliste). Choisissez d’abord l’intention (Profil) puis l’approche (Stratégie).</div></details>
+                <div class="section-title">Objectif &amp; Contexte</div>
+                <details class="param-help-inline heading lab-help-header"><summary>Aide</summary><div class="param-help">Profil ajuste les pondérations du score global (sécurité vs performance) et définit l’intention générale de la recherche. Stratégie choisit la méthode d’exploration (Hybride EA→Bayes, EA pur, ou Bayes). Pair et TF définissent la série à étudier. Plage choisit l’intervalle (Visible, Tout l’historique, Dates). Capital/Frais/Levier et Max % par trade (plafond de capital par position, 0,1–100%, Auto = algo) impactent directement les résultats (P&amp;L, PF, DD) et sont intégrés dans toutes les évaluations.</div></details>
               </div>
               <div class="lab-section-body">
                 <label>Profil
@@ -1618,14 +1618,6 @@
                     <option value="bayes">Bayes (EDA)</option>
                   </select>
                 </label>
-              </div>
-            </div>
-            <div id="labContextCard" style="display:flex; flex-direction:column; gap:8px;">
-              <div class="lab-section-header">
-                <div class="section-title">Contexte</div>
-                <details class="param-help-inline heading lab-help-header"><summary>Aide</summary><div class="param-help">Pair et TF définissent la série à étudier. Plage choisit l’intervalle: Visible (fenêtre chart), Tout l’historique (dataset complet), Dates (personnalisées, fuseau local). Capital/Frais/Levier et Max % par trade (plafond de capital par position, 0,1–100%, Auto = algo) impactent les résultats (P&L, PF, DD) et sont intégrés dans toutes les évaluations.</div></details>
-              </div>
-              <div class="lab-section-body">
                 <label>Pair
                   <select id="labSymbolSelect" style="min-width:10rem;"></select>
                 </label>
