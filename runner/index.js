@@ -99,7 +99,7 @@ async function syncSessions(){
   for(const [k,g] of groups.entries()){ const [sym,tf]=k.split('|'); const expected = byKey.get(k)?.list?.map(s=>s.id) || []; for(const id of Array.from(g.refs)){ if(!expected.includes(id)){ g.refs.delete(id); sessions.delete(id); } } }
 }
 
-async function main(){ console.log('[runner] starting'); let backoff=1000; while(true){ try{ await syncSessions(); backoff=1000; }catch(e){ console.warn('[runner] syncSessions', e.message||e); backoff=Math.min(30000, backoff*1.5); } await sleep(5000); }
+async function main(){ console.log('[runner] starting'); let backoff=1000; for(;;){ try{ await syncSessions(); backoff=1000; }catch(e){ console.warn('[runner] syncSessions', e.message||e); backoff=Math.min(30000, backoff*1.5); } await sleep(5000); }
 }
 
 main().catch(e=>{ console.error('[runner] fatal', e); process.exit(1); });

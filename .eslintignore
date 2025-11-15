@@ -3,3 +3,4 @@ node_modules/
 runs/
 heaven_opt/**
 *.min.js
+vendor/**

@@ -247,7 +247,7 @@ async function fetchKnownCanonicalKeys(symbol, tf, profileName){
     const profileId = await getProfileIdByName(profileName || currentProfileName());
     const out=new Set();
     let from=0, step=1000; // simple paging
-    while(true){
+    for(;;){
       try{
         let q = c
           .from('strategy_evaluations')

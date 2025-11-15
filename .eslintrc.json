@@ -28,6 +28,11 @@
       "files": ["tools/*.js"],
       "env": { "node": true, "browser": false },
       "parserOptions": { "sourceType": "script" }
+    },
+    {
+      "files": ["runner/*.js"],
+      "env": { "node": true, "browser": false },
+      "parserOptions": { "sourceType": "module" }
     }
   ],
   "rules": {
