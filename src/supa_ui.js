@@ -122,10 +122,13 @@ function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfi
     const c = ensureClient(); if(!c) return false;
     let uid=null;
     try{ uid = await getUserId(); }catch(_){ uid=null; }
-    if(!uid){ slog('Supabase: impossible de sauvegarder les pondérations (non connecté)'); return false; }
     const name = (profileName||'balancee').toLowerCase();
     try{
-      const row = { user_id: uid, name, description: null, weights: weights||{}, is_public: false };
+      // Si l'utilisateur est connecté, on stocke un profil privé (user_id != NULL).
+      // Sinon, on met à jour le profil public (user_id NULL, is_public=true) pour partager la config sur tous les postes.
+      const row = uid
+        ? { user_id: uid,  name, description: null, weights: weights||{}, is_public: false }
+        : { user_id: null, name, description: null, weights: weights||{}, is_public: true };
       const { error } = await c
         .from('lab_profiles')
         .upsert([row], { onConflict: 'user_id,name', ignoreDuplicates: false, returning: 'minimal' });

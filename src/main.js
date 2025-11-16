@@ -591,6 +591,7 @@ try{ window.BOTRADE_LANG = { currentLang, setLang, cycleLang, t }; }catch(_){ }
 const labTBody = document.getElementById('labTBody'); const labSummaryEl=document.getElementById('labSummary'); const labTFSelect=document.getElementById('labTFSelect');
 // TF d'exécution du Lab: restitue la dernière valeur utilisée
 const labSymbolSelect=document.getElementById('labSymbolSelect');
+const labProfileEl=document.getElementById('labProfile');
 try{ const savedLabTf=localStorage.getItem('lab:tf'); if(savedLabTf && labTFSelect){ labTFSelect.value=savedLabTf; } }catch(_){ }
 try{ const savedLabSym=localStorage.getItem('lab:sym'); if(savedLabSym && labSymbolSelect){ labSymbolSelect.value=savedLabSym; } }catch(_){ }
 // Populate lab symbol list from chart symbol select
@@ -1436,7 +1437,7 @@ if(liveOpenBtn){ liveOpenBtn.addEventListener('click', async ()=>{ try{
 if(liveCloseBtn&&liveModalEl) liveCloseBtn.addEventListener('click', ()=> closeModalEl(liveModalEl)); if(liveModalEl) liveModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(liveModalEl); });
 if(labOpenBtn&&labModalEl) labOpenBtn.addEventListener('click', async ()=>{ try{
   openModalEl(labModalEl);
-  try{ setupLabAdvUI(); setupLabRiskUI(); }catch(_){ }
+  try{ setupLabAdvUI(); setupLabRiskUI(); updateLabAlgoPlaceholders(); }catch(_){ }
   // Synchronise les pondérations du profil courant depuis Supabase (si disponible)
   try{
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchLabProfileWeights==='function'){
@@ -3562,6 +3563,7 @@ const labExportBtn=document.getElementById('labExport'); const labWeightsBtn=doc
 const weightsModalEl=document.getElementById('weightsModal'); const weightsClose=document.getElementById('weightsClose'); const weightsSave=document.getElementById('weightsSave'); const weightsProfile=document.getElementById('weightsProfile'); const weightsBody=document.getElementById('weightsBody');
 if(labTFSelect){ labTFSelect.addEventListener('change', async ()=>{ try{ localStorage.setItem('lab:tf', labTFSelect.value); await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
 if(labSymbolSelect){ labSymbolSelect.addEventListener('change', async ()=>{ try{ localStorage.setItem('lab:sym', labSymbolSelect.value); await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
+if(labProfileEl){ labProfileEl.addEventListener('change', ()=>{ try{ updateLabAlgoPlaceholders(); }catch(_){ } }); }
 // Lab range controls: mode + date inputs trigger KPI recompute
 try{
   const labRangeModeEl=document.getElementById('labRangeMode');
@@ -3809,11 +3811,12 @@ function updateWeightsTotalInfo(){
   }catch(_){ }
 }
 if(labWeightsBtn){ labWeightsBtn.addEventListener('click', async ()=>{ try{ const prof = localStorage.getItem('labWeightsProfile')||'balancee'; if(weightsProfile){ weightsProfile.value=prof; }
-  // Si Supabase est configuré, synchroniser les pondérations depuis lab_profiles avant d'afficher l'UI
+  // Si Supabase est configuré, récupérer systématiquement la version distante des pondérations
+  // pour que le profil soit identique sur tous les postes (la version locale sert de cache).
   try{
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchLabProfileWeights==='function'){
       const row = await SUPA.fetchLabProfileWeights(prof);
-      if(row && row.weights){ saveWeights(prof, row.weights); }
+      if(row && row.weights && typeof row.weights==='object'){ saveWeights(prof, row.weights); }
     }
   }catch(_){ }
   buildWeightsUI();
@@ -3924,10 +3927,15 @@ function updateGlobalProgressUI(){ try{ const plannedDen = (__labSimPlanned>0)? 
   function timeUp(){ return deadline!=null && Date.now()>=deadline; }
   // Establish a planned evaluation count for stable global progress and ETA
   try{
-    const estPop = Math.max(4, parseInt((document.getElementById('labEAPop')&&document.getElementById('labEAPop').value)||'40',10));
-    const estGens = Math.max(1, parseInt((document.getElementById('labEAGen')&&document.getElementById('labEAGen').value)||'20',10));
-    const estIters = Math.max(0, parseInt((document.getElementById('labBayIters')&&document.getElementById('labBayIters').value)||'150',10));
-    const estInitN = Math.max(1, parseInt((document.getElementById('labBayInit')&&document.getElementById('labBayInit').value)||'40',10));
+    const estPopBase = Math.max(4, parseInt((document.getElementById('labEAPop')&&document.getElementById('labEAPop').value)||'40',10));
+    const estGensBase = Math.max(1, parseInt((document.getElementById('labEAGen')&&document.getElementById('labEAGen').value)||'20',10));
+    const estItersBase = Math.max(0, parseInt((document.getElementById('labBayIters')&&document.getElementById('labBayIters').value)||'150',10));
+    const estInitBase = Math.max(1, parseInt((document.getElementById('labBayInit')&&document.getElementById('labBayInit').value)||'40',10));
+    const tune = labProfileTuning();
+    const estPop = Math.max(4, Math.round(estPopBase * (tune.eaPopMul||1)));
+    const estGens = Math.max(1, Math.round(estGensBase * (tune.eaGenMul||1)));
+    const estIters = Math.max(0, Math.round(estItersBase * (tune.bayItersMul||1)));
+    const estInitN = Math.max(1, Math.round(estInitBase * (tune.bayInitMul||1)));
     const bayBatch = Math.max(50, estInitN, 10); // typical batch size per iter
     let plan=0;
     if(strategy==='ea' || strategy==='hybrid') plan += estPop + estGens*estPop;
@@ -3965,19 +3973,26 @@ function updateGlobalProgressUI(){ try{ const plannedDen = (__labSimPlanned>0)? 
     const tpCfg = readTPOpt();
     const slCfg = readSLOpt();
     const strat = (document.getElementById('labStrategy')&&document.getElementById('labStrategy').value)||'hybrid';
-    const eaPop = parseInt(document.getElementById('labEAPop')?.value||'40',10);
-    const eaGen = parseInt(document.getElementById('labEAGen')?.value||'20',10);
-    const eaMut = parseFloat(document.getElementById('labEAMut')?.value||'20');
+    const eaPopBase = parseInt(document.getElementById('labEAPop')?.value||'40',10);
+    const eaGenBase = parseInt(document.getElementById('labEAGen')?.value||'20',10);
+    const eaMutBase = parseFloat(document.getElementById('labEAMut')?.value||'20');
     const eaCx  = parseFloat(document.getElementById('labEACx')?.value||'60');
-    const bayIters = parseInt(document.getElementById('labBayIters')?.value||'150',10);
-    const bayInit  = parseInt(document.getElementById('labBayInit')?.value||'40',10);
-    const bayElite = parseInt(document.getElementById('labBayElitePct')?.value||'30',10);
+    const bayItersBase = parseInt(document.getElementById('labBayIters')?.value||'150',10);
+    const bayInitBase  = parseInt(document.getElementById('labBayInit')?.value||'40',10);
+    const bayEliteBase = parseInt(document.getElementById('labBayElitePct')?.value||'30',10);
+    const tune = labProfileTuning();
+    const eaPopEff = Math.max(4, Math.round(eaPopBase * (tune.eaPopMul||1)));
+    const eaGenEff = Math.max(1, Math.round(eaGenBase * (tune.eaGenMul||1)));
+    const eaMutEff = Math.max(1, Math.min(95, Math.round(eaMutBase * (tune.mutMul||1))));
+    const bayItersEff = Math.max(0, Math.round(bayItersBase * (tune.bayItersMul||1)));
+    const bayInitEff  = Math.max(1, Math.round(bayInitBase * (tune.bayInitMul||1)));
+    const bayEliteEff = Math.max(5, Math.min(80, (tune.eliteOverride!=null? tune.eliteOverride : bayEliteBase)));
     addBtLog(`Pré-vol: Avancé ${adv?'on':'off'} • Vars NOL ${b(vars.varNol)} PRD ${b(vars.varPrd)} SL% ${b(vars.varSLInit)} BEbars ${b(vars.varBEBars)} BElock ${b(vars.varBELock)} EMA ${b(vars.varEMALen)} TP ${b(vars.varTP)} SL ${b(vars.varSL)} Entrées ${b(vars.varEntries)}`);
     if(adv){
       addBtLog(`Plages: NOL ${rng('labNolMin','labNolMax','labNolStep')} PRD ${rng('labPrdMin','labPrdMax','labPrdStep')} SL% ${rng('labSLInitMin','labSLInitMax','labSLInitStep')} BEbars ${rng('labBEBarsMin','labBEBarsMax','labBEBarsStep')} BElock ${rng('labBELockMin','labBELockMax','labBELockStep')} EMA ${rng('labEMALenMin','labEMALenMax','labEMALenStep')}`);
     }
     addBtLog(`TPOpt ${tpCfg.en?'on':'off'} (n=${tpCfg.count}, fib=${tpCfg.allowFib?1:0}, pct=${tpCfg.allowPct?1:0}, ema=${tpCfg.allowEMA?1:0}, % ${tpCfg.pctMin}–${tpCfg.pctMax}, fibs=${(tpCfg.fibs||[]).length}) • SLOpt ${slCfg.en?'on':'off'} (n=${slCfg.count}, fib=${slCfg.allowFib?1:0}, pct=${slCfg.allowPct?1:0}, ema=${slCfg.allowEMA?1:0}, % ${slCfg.pctMin}–${slCfg.pctMax}, fibs=${(slCfg.fibs||[]).length})`);
-    addBtLog(`Stratégie ${strat} • EA pop=${eaPop} gen=${eaGen} mut%=${eaMut} cx%=${eaCx} • Bayes iters=${bayIters} init=${bayInit} elite%=${bayElite}`);
+    addBtLog(`Stratégie ${strat} • EA pop=${eaPopEff} gen=${eaGenEff} mut%=${eaMutEff} cx%=${eaCx} • Bayes iters=${bayItersEff} init=${bayInitEff} elite%=${bayEliteEff}`);
   }catch(_){ }
   const keyOf=(p)=> JSON.stringify([p.nol,p.prd,p.slInitPct,p.beAfterBars,p.beLockPct,p.emaLen,p.entryMode,p.useFibRet,p.confirmMode,p.ent382,p.ent500,p.ent618,p.ent786,Array.isArray(p.tp)? p.tp.slice(0,10):[], Array.isArray(p.sl)? p.sl.slice(0,10):[]]);
 const canonKey=(p)=>{ try{
@@ -4164,7 +4179,81 @@ function readLabVarToggles(){
     return { varNol:true, varPrd:true, varSLInit:true, varBEBars:true, varBELock:true, varEMALen:true, varTP:true, varSL:true, varEntries:false };
   }
 }
-function varIntensityFactor(){ try{ const v=(document.getElementById('labVarIntensity')&&document.getElementById('labVarIntensity').value)||'medium'; if(v==='weak') return 0.7; if(v==='strong') return 1.3; return 1.0; }catch(_){ return 1.0; } }
+// Profile-based tuning for EA/Bayes hyperparameters
+function labProfileTuning(){
+  try{
+    const el = (typeof labProfileEl!=='undefined' && labProfileEl) ? labProfileEl : document.getElementById('labProfile');
+    const prof=(el&&el.value) || (localStorage.getItem('labWeightsProfile')||'balancee');
+    const p=String(prof||'').toLowerCase();
+    if(p==='sure'){
+      // Stratégie sûre: variations plus douces, Bayes un peu plus profond
+      return { eaPopMul:0.8, eaGenMul:0.8, mutMul:0.7, bayItersMul:1.3, bayInitMul:1.1, eliteOverride:40, varIntMul:0.85 };
+    }
+    if(p==='agressive'){
+      // Stratégie agressive: EA plus large, mutation plus forte
+      return { eaPopMul:1.3, eaGenMul:1.3, mutMul:1.3, bayItersMul:1.0, bayInitMul:1.0, eliteOverride:25, varIntMul:1.2 };
+    }
+    // Stratégie balancée (par défaut)
+    return { eaPopMul:1.0, eaGenMul:1.0, mutMul:1.0, bayItersMul:1.0, bayInitMul:1.0, eliteOverride:null, varIntMul:1.0 };
+  }catch(_){
+    return { eaPopMul:1.0, eaGenMul:1.0, mutMul:1.0, bayItersMul:1.0, bayInitMul:1.0, eliteOverride:null, varIntMul:1.0 };
+  }
+}
+function varIntensityFactor(){
+  try{
+    const v=(document.getElementById('labVarIntensity')&&document.getElementById('labVarIntensity').value)||'medium';
+    let f = (v==='weak')?0.7 : (v==='strong')?1.3 : 1.0;
+    const tune = labProfileTuning();
+    if(tune && typeof tune.varIntMul==='number'){
+      f *= tune.varIntMul;
+    }
+    if(f<0.3) f=0.3;
+    if(f>2.0) f=2.0;
+    return f;
+  }catch(_){ return 1.0; }
+}
+// Met à jour les placeholders EA/Bayes et les hints en fonction du profil
+function updateLabAlgoPlaceholders(){
+  try{
+    const tune = labProfileTuning();
+    const profEl = (typeof labProfileEl!=='undefined' && labProfileEl) ? labProfileEl : document.getElementById('labProfile');
+    const profVal = (profEl && profEl.value) || 'balancee';
+    const label = profVal==='sure' ? 'Stratégie sûre' : (profVal==='agressive' ? 'Stratégie agressive' : 'Stratégie balancée');
+    function baseOf(id, def){
+      const el=document.getElementById(id);
+      if(!el) return def;
+      if(!el.dataset) el.dataset={};
+      if(el.dataset.base){ const v=parseFloat(el.dataset.base); return Number.isFinite(v)? v: def; }
+      const v=parseFloat(el.value||String(def));
+      const b=Number.isFinite(v)? v: def;
+      el.dataset.base=String(b);
+      return b;
+    }
+    const eaPopBase  = baseOf('labEAPop',40);
+    const eaGenBase  = baseOf('labEAGen',20);
+    const eaMutBase  = baseOf('labEAMut',20);
+    const bayItersBase = baseOf('labBayIters',150);
+    const bayInitBase  = baseOf('labBayInit',40);
+    const bayEliteBase = baseOf('labBayElitePct',30);
+    const eaPopEff   = Math.max(4, Math.round(eaPopBase * (tune.eaPopMul||1)));
+    const eaGenEff   = Math.max(1, Math.round(eaGenBase * (tune.eaGenMul||1)));
+    const eaMutEff   = Math.max(1, Math.min(95, Math.round(eaMutBase * (tune.mutMul||1))));
+    const bayItersEff= Math.max(0, Math.round(bayItersBase * (tune.bayItersMul||1)));
+    const bayInitEff = Math.max(1, Math.round(bayInitBase * (tune.bayInitMul||1)));
+    const bayEliteEff= Math.max(5, Math.min(80, (tune.eliteOverride!=null? tune.eliteOverride : bayEliteBase)));
+    function setPh(id,v){ const el=document.getElementById(id); if(el) el.placeholder=String(v); }
+    setPh('labEAPop', eaPopEff);
+    setPh('labEAGen', eaGenEff);
+    setPh('labEAMut', eaMutEff);
+    setPh('labBayIters', bayItersEff);
+    setPh('labBayInit', bayInitEff);
+    setPh('labBayElitePct', bayEliteEff);
+    const eaHint=document.getElementById('labEAProfileHint');
+    if(eaHint){ eaHint.textContent = `${label} : EA pop≈${eaPopEff}, gen≈${eaGenEff}, mut≈${eaMutEff}%`; }
+    const bayHint=document.getElementById('labBayesProfileHint');
+    if(bayHint){ bayHint.textContent = `${label} : Bayes iters≈${bayItersEff}, init≈${bayInitEff}, élite≈${bayEliteEff}%`; }
+  }catch(_){ }
+}
 function updateLabAdvVisibility(){
   try{
     const showAdv = isLabAdvMode();
@@ -4503,10 +4592,17 @@ try{ const pfStr = (res.profitFactor===Infinity?'∞':(Number(res.profitFactor||
   }
   function updateProgress(text, pct){ if(btProgText) btProgText.textContent=text; if(btProgBar) btProgBar.style.width = Math.max(0,Math.min(100,Math.round(pct)))+'%'; }
 
-  async function runEA(seed){ const pop = Math.max(4, parseInt((document.getElementById('labEAPop')&&document.getElementById('labEAPop').value)||'40',10));
-    const gens = Math.max(1, parseInt((document.getElementById('labEAGen')&&document.getElementById('labEAGen').value)||'20',10));
-    const mutPct = Math.max(0, Math.min(100, parseFloat((document.getElementById('labEAMut')&&document.getElementById('labEAMut').value)||'20')))/100;
+  async function runEA(seed){
+    const tune = labProfileTuning();
+    const popBase = Math.max(4, parseInt((document.getElementById('labEAPop')&&document.getElementById('labEAPop').value)||'40',10));
+    const gensBase = Math.max(1, parseInt((document.getElementById('labEAGen')&&document.getElementById('labEAGen').value)||'20',10));
+    const mutBase = Math.max(0, Math.min(100, parseFloat((document.getElementById('labEAMut')&&document.getElementById('labEAMut').value)||'20')))/100;
     const cxPct = Math.max(0, Math.min(100, parseFloat((document.getElementById('labEACx')&&document.getElementById('labEACx').value)||'60')))/100;
+    const pop = Math.max(4, Math.round(popBase * (tune.eaPopMul||1)));
+    const gens = Math.max(1, Math.round(gensBase * (tune.eaGenMul||1)));
+    let mutPct = mutBase * (tune.mutMul||1);
+    if(mutPct<0.01) mutPct=0.01;
+    if(mutPct>0.99) mutPct=0.99;
     const seen=new Set(); const isDup=(p)=>{ const k=keyOf(p); if(seen.has(k)) return true; const ck=canonKey(p); if(seenCanon.has(ck)) return true; return false; }; const pushSeen=(p)=>{ seen.add(keyOf(p)); seenCanon.add(canonKey(p)); };
     let pool=[];
     // init population
@@ -4550,9 +4646,14 @@ try{ const top=cur[0]; if(top){ addBtLog(`EA g ${g-1}→${g-1} done — ${childr
     }
     return cur; }
 
-  async function runBayes(seed){ const iters = Math.max(0, parseInt((document.getElementById('labBayIters')&&document.getElementById('labBayIters').value)||'150',10));
-    const initN = Math.max(1, parseInt((document.getElementById('labBayInit')&&document.getElementById('labBayInit').value)||'40',10));
-    const elitePct = Math.max(5, Math.min(80, parseInt((document.getElementById('labBayElitePct')&&document.getElementById('labBayElitePct').value)||'30',10)));
+  async function runBayes(seed){
+    const tune = labProfileTuning();
+    const baseIters = Math.max(0, parseInt((document.getElementById('labBayIters')&&document.getElementById('labBayIters').value)||'150',10));
+    const baseInitN = Math.max(1, parseInt((document.getElementById('labBayInit')&&document.getElementById('labBayInit').value)||'40',10));
+    const baseElite = Math.max(5, Math.min(80, parseInt((document.getElementById('labBayElitePct')&&document.getElementById('labBayElitePct').value)||'30',10)));
+    const iters = Math.max(0, Math.round(baseIters * (tune.bayItersMul||1)));
+    const initN = Math.max(1, Math.round(baseInitN * (tune.bayInitMul||1)));
+    const elitePct = Math.max(5, Math.min(80, (tune.eliteOverride!=null? tune.eliteOverride : baseElite)));
     const seen=new Set(); const isDup=(p)=>{ const k=keyOf(p); if(seen.has(k)) return true; const ck=canonKey(p); if(seenCanon.has(ck)) return true; return false; }; const pushSeen=(p)=>{ seen.add(keyOf(p)); seenCanon.add(canonKey(p)); };
     let pool=[];
     const seeds = Array.isArray(seed)? seed.slice(0) : [];
