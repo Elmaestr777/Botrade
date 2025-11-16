@@ -247,15 +247,20 @@ async function persistLabResults(ctx){
  
       // Upsert tested strategies (selected=false)
       const toEval = [];
+      // Limiter le volume d'évaluations envoyées à Supabase pour accélérer la fin des runs
       if(Array.isArray(ctx.tested)){
-        for(const t of ctx.tested){
+        const tested = ctx.tested.slice();
+        try{ tested.sort((a,b)=> (Number(b.score)||0) - (Number(a.score)||0)); }catch(_){ }
+        const MAX_EVAL_ROWS = 1000;
+        const subset = tested.slice(0, MAX_EVAL_ROWS);
+        for(const t of subset){
           const params = canonicalParamsFromUI(t.params||{});
           const metrics = t.metrics||t.res||{};
           const score = (typeof t.score==='number')? t.score : 0;
           toEval.push({ user_id: uid, symbol: sym, tf, profile_id: profileId || null, params, metrics, score, selected: false, palmares_set_id: null, provenance: 'UI:Lab', run_context: runContext });
         }
       }
-      if(toEval.length){ slog(`Supabase: upsert ${toEval.length} évaluations...`); await upsertStrategyEvaluations(toEval); slog('Supabase: évaluations enregistrées'); }
+      if(toEval.length){ slog(`Supabase: upsert ${toEval.length} évaluations (top) ...`); await upsertStrategyEvaluations(toEval); slog('Supabase: évaluations enregistrées'); }
  
       // Palmarès Top-N
       const best = Array.isArray(ctx.best)? ctx.best.slice() : [];
@@ -322,6 +327,9 @@ async function fetchKnownCanonicalKeys(symbol, tf, profileName){
         if(error) break;
         if(!Array.isArray(data) || !data.length) break;
         for(const row of data){ try{ const p=row.params||{}; const keys=Object.keys(p).sort(); out.add(JSON.stringify(p, keys)); }catch(_){ } }
+        // Limite de sécurité pour ne pas charger un volume énorme en mémoire
+        const MAX_KEYS = 5000;
+        if(out.size >= MAX_KEYS) break;
         if(data.length<step) break;
         from += step;
       }catch(_){ break; }

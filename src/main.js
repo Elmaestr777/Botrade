@@ -3846,6 +3846,13 @@ if(labRunBtn){ labRunBtn.addEventListener('click', async ()=>{ try{
   try{ window.__labGoalOverride = null; }catch(_){ }
   const strategy=(document.getElementById('labStrategy')&&document.getElementById('labStrategy').value)||'hybrid';
 const conf=readLabRiskConf();
+  // Log mode (Nouvelle stratégie vs Entraîner) for clarity
+  try{
+    if(typeof addBtLog==='function'){
+      if(goal==='new') addBtLog('Mode Lab: Nouvelle stratégie (exploration aléatoire guidée)');
+      else addBtLog('Mode Lab: Entraîner (amélioration du palmarès existant)');
+    }
+  }catch(_){ }
   try{
     if(typeof addBtLog==='function'){
       const modeEl=document.getElementById('labMaxPctMode');
@@ -4620,14 +4627,44 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
   }
 
   if(goal==='new'){
-    const bestOut = finalResults.slice(0, Math.min(10, finalResults.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen:1, name: x.name||null }));
+    let bestOut = finalResults.slice(0, Math.min(10, finalResults.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen:1, name: x.name||null }));
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.persistLabResults==='function'){
-      // Tout passe par Supabase
+      // Tout passe par Supabase (naming + persistance gérés côté SUPA)
       try{ await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut, profileName: (localStorage.getItem('labWeightsProfile')||'balancee') }); }catch(_){ }
       try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
     } else {
       // Fallback local uniquement si Supabase non configuré
-      try{ writePalmares(sym, tfSel, bestOut); }catch(_){ }
+      try{
+        const existing = readPalmares(sym, tfSel) || [];
+        // Donner un nom unique aux nouvelles stratégies si absent
+        const namedNew = bestOut.map((it)=>{
+          if(it.name && typeof it.name==='string') return it;
+          let base='strat';
+          try{ base = randomName(); }catch(_){ base='strat'; }
+          const nm = uniqueNameFor(sym, tfSel, base);
+          return { ...it, name: nm };
+        });
+        // Fusionner ancien palmarès et nouvelles entrées en dédupliquant par params
+        const weightsLocal = getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
+        const byKey = new Map();
+        const pushOrUpdate = (item)=>{
+          if(!item || !item.params) return;
+          const key = paramsKey(item.params||{});
+          const st = item.res || item.metrics || {};
+          const sc = Number.isFinite(item.score)? item.score : scoreResult(st, weightsLocal);
+          const prev = byKey.get(key);
+          if(!prev || sc > (Number(prev.score)||0)){
+            byKey.set(key, { ...item, score: sc });
+          }
+        };
+        existing.forEach(pushOrUpdate);
+        namedNew.forEach(pushOrUpdate);
+        let merged = Array.from(byKey.values());
+        merged.sort((a,b)=> (Number(b.score)||0) - (Number(a.score)||0));
+        const MAX_LOCAL = 50;
+        if(merged.length>MAX_LOCAL) merged = merged.slice(0, MAX_LOCAL);
+        writePalmares(sym, tfSel, merged);
+      }catch(_){ }
       try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
     }
     setStatus(t('status.palmaresUpdated')); try{ __labSimDone = Math.max(__labSimDone, __labSimPlanned||__labSimDone); updateGlobalProgressUI(); }catch(_){ } closeBtProgress();
