@@ -1437,13 +1437,21 @@ if(liveOpenBtn){ liveOpenBtn.addEventListener('click', async ()=>{ try{
 if(liveCloseBtn&&liveModalEl) liveCloseBtn.addEventListener('click', ()=> closeModalEl(liveModalEl)); if(liveModalEl) liveModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(liveModalEl); });
 if(labOpenBtn&&labModalEl) labOpenBtn.addEventListener('click', async ()=>{ try{
   openModalEl(labModalEl);
+  // Aligner le sélecteur de profil Lab sur le dernier profil de pondérations utilisé
+  try{
+    const storedProf = localStorage.getItem('labWeightsProfile');
+    if(labProfileEl && storedProf){ labProfileEl.value = storedProf; }
+  }catch(_){ }
   try{ setupLabAdvUI(); setupLabRiskUI(); updateLabAlgoPlaceholders(); }catch(_){ }
   // Synchronise les pondérations du profil courant depuis Supabase (si disponible)
+  // et les considère comme source de vérité (écrase le cache local).
   try{
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchLabProfileWeights==='function'){
       const prof = (document.getElementById('labProfile') && document.getElementById('labProfile').value) || (localStorage.getItem('labWeightsProfile')||'balancee');
       const row = await SUPA.fetchLabProfileWeights(prof);
-      if(row && row.weights){ saveWeights(prof, row.weights); }
+      if(row && row.weights && typeof row.weights==='object'){
+        saveWeights(prof, row.weights);
+      }
     }
   }catch(_){ }
   await renderLabFromStorage();
@@ -3811,12 +3819,14 @@ function updateWeightsTotalInfo(){
   }catch(_){ }
 }
 if(labWeightsBtn){ labWeightsBtn.addEventListener('click', async ()=>{ try{ const prof = localStorage.getItem('labWeightsProfile')||'balancee'; if(weightsProfile){ weightsProfile.value=prof; }
-  // Si Supabase est configuré, récupérer systématiquement la version distante des pondérations
-  // pour que le profil soit identique sur tous les postes (la version locale sert de cache).
+  // Si Supabase est configuré, récupérer la version distante des pondérations en best-effort
+  // et la considérer comme source de vérité (écrase le cache local).
   try{
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchLabProfileWeights==='function'){
       const row = await SUPA.fetchLabProfileWeights(prof);
-      if(row && row.weights && typeof row.weights==='object'){ saveWeights(prof, row.weights); }
+      if(row && row.weights && typeof row.weights==='object'){
+        saveWeights(prof, row.weights);
+      }
     }
   }catch(_){ }
   buildWeightsUI();
