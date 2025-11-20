@@ -2687,7 +2687,7 @@ async function computeDefaultDetailCompareCfgForSymbol(sym){
           if(!best || sc > best.score){
             const labelBase = it.name || `Palmarès ${symbolToDisplay(sym)} • ${tf}`;
             const label = `${labelBase} • ${prof}`;
-            best = { score: sc, params: it.params, label };
+            best = { score: sc, params: it.params, label, tf, profile: prof };
           }
         }
       }
@@ -2707,14 +2707,14 @@ async function computeDefaultDetailCompareCfgForSymbol(sym){
         if(!Number.isFinite(sc)) continue;
         if(!best || sc > best.score){
           const label = it.name || `Palmarès ${symbolToDisplay(sym)} • ${tf}`;
-          best = { score: sc, params: it.params, label };
+          best = { score: sc, params: it.params, label, tf, profile: prof };
         }
       }
     }
   }
   let cfg;
   if(best && best.params){
-    cfg = { mode:'palmares', params: best.params, label: best.label };
+    cfg = { mode:'palmares', params: best.params, label: best.label, symbol: sym, tf: best.tf, profile: best.profile };
   } else {
     cfg = { mode:'heaven' };
   }
@@ -2933,25 +2933,36 @@ function setupDetailCompareUI(){
     const applyBtn=document.getElementById('detailCompApply');
     if(!srcSel) return;
     const alreadyWired = !!(srcSel.dataset && srcSel.dataset.wired==='1');
-    // Restaurer/mettre à jour la source à partir de la config courante (Heaven / Palmarès)
+    // Restaurer/mettre à jour la source + méta (pair/TF/profil) à partir de la config courante
+    let cmpMode = 'heaven';
+    let cmpSym = __detailLastMain?.ctx?.symbol || (symbolSelect && symbolSelect.value) || '';
+    let cmpTf = __detailLastMain?.ctx?.tf || currentInterval || '1h';
+    let cmpProf = null;
     try{
-      if(__detailCompareCfg && __detailCompareCfg.mode){ srcSel.value = __detailCompareCfg.mode; }
+      if(__detailCompareCfg){
+        if(__detailCompareCfg.mode) cmpMode = __detailCompareCfg.mode;
+        if(__detailCompareCfg.symbol) cmpSym = __detailCompareCfg.symbol;
+        if(__detailCompareCfg.tf) cmpTf = __detailCompareCfg.tf;
+        if(__detailCompareCfg.profile) cmpProf = __detailCompareCfg.profile;
+      }
     }catch(_){ }
+    try{ srcSel.value = cmpMode; }catch(_){ }
     // Peupler les paires à partir de la liste principale du chart (toujours rafraîchi selon le contexte courant)
     try{
       if(symSel && symbolSelect && symbolSelect.innerHTML){
         symSel.innerHTML = symbolSelect.innerHTML;
-        symSel.value = __detailLastMain?.ctx?.symbol || (symbolSelect && symbolSelect.value) || '';
+        symSel.value = cmpSym || (__detailLastMain?.ctx?.symbol || (symbolSelect && symbolSelect.value) || '');
       }
     }catch(_){ }
-    // TF par défaut = TF du détail
+    // TF par défaut = TF du détail ou TF de la stratégie comparée
     try{
-      if(tfSel){ tfSel.value = __detailLastMain?.ctx?.tf || currentInterval || '1h'; }
+      if(tfSel){ tfSel.value = cmpTf || (__detailLastMain?.ctx?.tf || currentInterval || '1h'); }
     }catch(_){ }
-    // Profil par défaut: même que Heaven/Lab
+    // Profil par défaut: profil de la stratégie comparée ou même que Heaven/Lab
     try{
-      const pref = localStorage.getItem('heaven:profile') || localStorage.getItem('labWeightsProfile') || 'balancee';
-      if(profSel){ profSel.value = pref; }
+      const prefBase = localStorage.getItem('heaven:profile') || localStorage.getItem('labWeightsProfile') || 'balancee';
+      const profVal = cmpProf || prefBase;
+      if(profSel){ profSel.value = profVal; }
     }catch(_){ }
     // Source: Heaven ou Palmarès
     const syncVisibility = ()=>{
@@ -2991,7 +3002,13 @@ function setupDetailCompareUI(){
             const it = Array.isArray(__detailCompPalmaresList)? __detailCompPalmaresList[idx] : null;
             if(!it || !it.params){ return; }
             const label = it.name || `Palmarès #${idx+1}`;
-            __detailCompareCfg = { mode:'palmares', params: it.params, label };
+            const selSym = (symSel && symSel.value) || __detailLastMain?.ctx?.symbol || currentSymbol;
+            const selTf = (tfSel && tfSel.value) || __detailLastMain?.ctx?.tf || currentInterval;
+            let selProf = (profSel && profSel.value) || null;
+            if(!selProf){
+              try{ selProf = localStorage.getItem('heaven:profile') || localStorage.getItem('labWeightsProfile') || 'balancee'; }catch(_){ selProf='balancee'; }
+            }
+            __detailCompareCfg = { mode:'palmares', params: it.params, label, symbol: selSym, tf: selTf, profile: selProf };
             refreshStrategyDetailComparator();
           }catch(_){ }
         });
@@ -3545,7 +3562,33 @@ if(detailCtxEl){
   const capStr = Number.isFinite(conf.startCap)? ` • Cap ${conf.startCap.toFixed ? conf.startCap.toFixed(0) : Number(conf.startCap).toFixed(0)}` : '';
   const feeStr = Number.isFinite(conf.fee)? ` • Frais ${Number(conf.fee).toFixed(2)}%` : '';
   const levStr = Number.isFinite(conf.lev)? ` • Lev x${Number(conf.lev).toFixed(1)}` : '';
-  detailCtxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — ${name}${gtxt}${capStr}${feeStr}${levStr} — PF ${(res.profitFactor===Infinity?'∞':(+res.profitFactor||0).toFixed(2))} • Trades ${res.tradesCount}`;
+  let header = '';
+  try{
+    header = `${symbolToDisplay(sym)} • ${tf} — ${name}${gtxt}${capStr}${feeStr}${levStr} — PF ${(res.profitFactor===Infinity?'∞':(+res.profitFactor||0).toFixed(2))} • Trades ${res.tradesCount}`;
+  }catch(_){
+    header = `${sym} • ${tf} — ${name}${gtxt}${capStr}${feeStr}${levStr} — PF ${(res.profitFactor===Infinity?'∞':(+res.profitFactor||0).toFixed(2))} • Trades ${res.tradesCount}`;
+  }
+  // Ajout d'un rappel explicite de la stratégie comparée (Heaven / Palmarès)
+  try{
+    const cmpMode = (compCfg && compCfg.mode) || 'heaven';
+    const prefix = (typeof t==='function') ? t('detail.compare.label') : 'Comparer à';
+    if(cmpMode === 'palmares'){
+      const rawSym = (compCfg && compCfg.symbol) || sym;
+      let csymDisp = rawSym;
+      try{ csymDisp = symbolToDisplay(rawSym); }catch(_){ }
+      const ctf = (compCfg && compCfg.tf) || tf;
+      let cprof = (compCfg && compCfg.profile) || null;
+      if(!cprof){
+        try{ cprof = localStorage.getItem('heaven:profile') || localStorage.getItem('labWeightsProfile') || 'balancee'; }catch(_){ cprof = null; }
+      }
+      const meta = cprof ? ` (${csymDisp} • ${ctf} • ${cprof})` : ` (${csymDisp} • ${ctf})`;
+      header += ` — ${prefix}: ${cmpLabel}${meta}`;
+    } else {
+      const heavenTxt = (typeof t==='function') ? t('detail.compare.source.heaven') : 'Heaven';
+      header += ` — ${prefix}: ${heavenTxt}`;
+    }
+  }catch(_){ }
+  detailCtxEl.textContent = header;
 }
   // Summary/commentary (pass advanced metrics)
   try{ const sum = generateStrategySummary(res, ctx, { timeInMkt, freq, expectancy: expNet, avgDurMin, bestNet, worstNet, r2, pf: (res.profitFactor===Infinity? Infinity : (+res.profitFactor||0)), winrate, avgRR, maxDDAbs: +res.maxDDAbs||0, ci: ciBoot }); if(detailSummaryEl){ let full=sum; if(compareSummaryText){ full += "\n\n"+compareSummaryText; } detailSummaryEl.innerHTML = full; } }catch(_){ }
