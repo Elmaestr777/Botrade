@@ -3574,7 +3574,27 @@ const labExportBtn=document.getElementById('labExport'); const labWeightsBtn=doc
 const weightsModalEl=document.getElementById('weightsModal'); const weightsClose=document.getElementById('weightsClose'); const weightsSave=document.getElementById('weightsSave'); const weightsProfile=document.getElementById('weightsProfile'); const weightsBody=document.getElementById('weightsBody');
 if(labTFSelect){ labTFSelect.addEventListener('change', async ()=>{ try{ localStorage.setItem('lab:tf', labTFSelect.value); await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
 if(labSymbolSelect){ labSymbolSelect.addEventListener('change', async ()=>{ try{ localStorage.setItem('lab:sym', labSymbolSelect.value); await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
-if(labProfileEl){ labProfileEl.addEventListener('change', ()=>{ try{ updateLabAlgoPlaceholders(); }catch(_){ } }); }
+if(labProfileEl){ labProfileEl.addEventListener('change', ()=>{ try{
+  // Quand l'utilisateur change de profil dans le Lab, on le considère comme profil actif global
+  const prof = (labProfileEl && labProfileEl.value) || 'balancee';
+  try{ localStorage.setItem('labWeightsProfile', prof); }catch(_){ }
+  // Garder le sélecteur de la modale Pondérations aligné si elle est ouverte
+  try{ if(typeof weightsProfile!=='undefined' && weightsProfile){ weightsProfile.value = prof; } }catch(_){ }
+  // Optionnel: mettre à jour les pondérations locales depuis Supabase pour ce profil
+  try{
+    if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchLabProfileWeights==='function'){
+      (async()=>{
+        try{
+          const row = await SUPA.fetchLabProfileWeights(prof);
+          if(row && row.weights && typeof row.weights==='object'){
+            saveWeights(prof, row.weights);
+          }
+        }catch(_){ }
+      })();
+    }
+  }catch(_){ }
+  updateLabAlgoPlaceholders();
+}catch(_){ } }); }
 // Lab range controls: mode + date inputs trigger KPI recompute
 try{
   const labRangeModeEl=document.getElementById('labRangeMode');
@@ -3821,7 +3841,12 @@ function updateWeightsTotalInfo(){
     info.textContent = `${totalLbl} ${total.toFixed(1)} ${ptsLbl} • ${remLbl} ${remaining.toFixed(1)} ${ptsLbl}`;
   }catch(_){ }
 }
-if(labWeightsBtn){ labWeightsBtn.addEventListener('click', async ()=>{ try{ const prof = localStorage.getItem('labWeightsProfile')||'balancee'; if(weightsProfile){ weightsProfile.value=prof; }
+if(labWeightsBtn){ labWeightsBtn.addEventListener('click', async ()=>{ try{
+  // Profil actif prioritaire: sélecteur du Lab s'il est présent, sinon dernier profil utilisé
+  let prof = (labProfileEl && labProfileEl.value) || localStorage.getItem('labWeightsProfile') || 'balancee';
+  try{ localStorage.setItem('labWeightsProfile', prof); }catch(_){ }
+  if(weightsProfile){ weightsProfile.value=prof; }
+  try{ if(typeof addLabLog==='function') addLabLog(`Ouverture Pondérations (profil ${prof})`); }catch(_){ }
   // Si Supabase est configuré, récupérer la version distante des pondérations en best-effort
   // et la considérer comme source de vérité (écrase le cache local).
   try{
@@ -3829,6 +3854,9 @@ if(labWeightsBtn){ labWeightsBtn.addEventListener('click', async ()=>{ try{ cons
       const row = await SUPA.fetchLabProfileWeights(prof);
       if(row && row.weights && typeof row.weights==='object'){
         saveWeights(prof, row.weights);
+        try{ if(typeof addLabLog==='function') addLabLog(`Pondérations chargées depuis Supabase pour ${prof}`); }catch(_){ }
+      } else {
+        try{ if(typeof addLabLog==='function') addLabLog(`Aucune pondération Supabase trouvée pour ${prof} (utilisation du cache local)`); }catch(_){ }
       }
     }
   }catch(_){ }
@@ -3836,7 +3864,15 @@ if(labWeightsBtn){ labWeightsBtn.addEventListener('click', async ()=>{ try{ cons
   updateWeightsTotalInfo();
   openModalEl(weightsModalEl);
 }catch(_){ } }); }
-if(weightsProfile){ weightsProfile.addEventListener('change', ()=>{ try{ buildWeightsUI(); updateWeightsTotalInfo(); }catch(_){ } }); }
+if(weightsProfile){ weightsProfile.addEventListener('change', ()=>{ try{
+  const prof = (weightsProfile && weightsProfile.value) || 'balancee';
+  // Quand on change de profil dans la modale Pondérations, on met aussi à jour le profil actif global
+  try{ localStorage.setItem('labWeightsProfile', prof); }catch(_){ }
+  // Maintenir le sélecteur de profil du Lab aligné s'il est présent
+  try{ if(typeof labProfileEl!=='undefined' && labProfileEl){ labProfileEl.value = prof; } }catch(_){ }
+  buildWeightsUI();
+  updateWeightsTotalInfo();
+}catch(_){ } }); }
 if(weightsClose){ weightsClose.addEventListener('click', ()=> closeModalEl(weightsModalEl)); }
 if(weightsSave){ weightsSave.addEventListener('click', async ()=>{ try{
   const prof = (weightsProfile&&weightsProfile.value)||'balancee';
