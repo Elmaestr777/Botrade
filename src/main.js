@@ -4569,7 +4569,23 @@ function mutateTP(list,tpCfg){
   } else if(t.type==='EMA' && (r<0.5)){
     let tries=0; while(tries++<20){ const len = rEMALen[(Math.random()*rEMALen.length)|0]; const key=`E:${len}`; if(!used.has(key)){ out[i].emaLen=len; used.add(key); break; } }
   } else { // change type
-    const types=[]; if(tpCfg.allowFib) types.push('Fib'); if(tpCfg.allowPct) types.push('Percent'); if(tpCfg.allowEMA) types.push('EMA'); if(types.length){ const nt=types[(Math.random()*types.length)|0]; const baseQty = t.qty||null; if(nt==='Fib'){ const fibs=tpCfg.fibs; return { type:'Fib', fib:fibs[(Math.random()*fibs.length)|0], qty: baseQty }; } else if(nt==='Percent'){ const p=tpCfg.pctMin + Math.random()*(Math.max(0,tpCfg.pctMax-tpCfg.pctMin)); const val=+p.toFixed(3); return { type:'Percent', pct:val, qty: baseQty }; } else { const len = rEMALen[(Math.random()*rEMALen.length)|0]; return { type:'EMA', emaLen: len, qty: baseQty }; } }
+    const types=[]; if(tpCfg.allowFib) types.push('Fib'); if(tpCfg.allowPct) types.push('Percent'); if(tpCfg.allowEMA) types.push('EMA');
+    if(types.length){
+      const nt=types[(Math.random()*types.length)|0];
+      const baseQty = t.qty||null;
+      if(nt==='Fib'){
+        const fibs=tpCfg.fibs; const v=fibs[(Math.random()*fibs.length)|0];
+        out[i]={ type:'Fib', fib:v, value:v, qty: baseQty };
+      } else if(nt==='Percent'){
+        const p=tpCfg.pctMin + Math.random()*(Math.max(0,tpCfg.pctMax-tpCfg.pctMin));
+        const val=+p.toFixed(3);
+        out[i]={ type:'Percent', pct:val, value:val, qty: baseQty };
+      } else {
+        const len = rEMALen[(Math.random()*rEMALen.length)|0];
+        out[i]={ type:'EMA', emaLen: len, qty: baseQty };
+      }
+      used.add(keyOfTP(out[i]));
+    }
   }
   // Mutation BE: resample en fonction du profil ET de l'index (décaler le TP de départ du BE)
   if(Math.random() < beMutRate){
