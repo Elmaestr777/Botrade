@@ -2250,7 +2250,18 @@ if(btRunBtn){ btRunBtn.addEventListener('click', ()=>{ if(!candles.length){ setS
 const [sIdx,eIdx]=idxFromTime(from,to); btAbort=false; try{ clearTPHitMarkers(); clearSLHitMarkers(); clearBEHitMarkers(); }catch(_){ } openBtProgress('Préparation...'); setTimeout(()=>{ const res=runBacktestSlice(sIdx,eIdx,conf); try{ clearTPHitMarkers(); clearSLHitMarkers(); clearBEHitMarkers(); const tr = Array.isArray(res.trades)? res.trades: []; for(const ev of tr){ if(ev && ev.reason){ if(ev.reason==='SL'){ const be = Math.abs(ev.exit - ev.entry) <= 1e-8; if(be){ addBEHitMarker(ev.exitTime, ev.dir); } else { addSLHitMarker(ev.exitTime, ev.dir); } } else if(typeof ev.reason==='string' && ev.reason.startsWith('TP')){ addTPHitMarker(ev.exitTime, ev.dir); } } } }catch(_){ } renderLBC(); closeBtProgress(); closeModalEl(btModalEl); showStrategyResult(res, {symbol: currentSymbol, tf: (intervalSelect&&intervalSelect.value)||'', startCap: conf.startCap}); try{ renderLabFromStorage(); }catch(_){ } }, 20); }); }
 
 // Strategy result modal
-const stratModalEl=document.getElementById('stratModal'); const stratClose=document.getElementById('stratClose'); const stratClose2=document.getElementById('stratClose2'); const stratTitle=document.getElementById('stratTitle'); const stratTBody=document.getElementById('stratTBody'); const tradesModalEl=document.getElementById('tradesModal'); const tradesClose=document.getElementById('tradesClose'); const tradesClose2=document.getElementById('tradesClose2'); const tradesTBody=document.getElementById('tradesTBody'); const tradesCtx=document.getElementById('tradesCtx'); const tradesHdrCtx=document.getElementById('tradesHdrCtx'); let lastTradesCtx=null;
+const stratModalEl=document.getElementById('stratModal');
+const stratClose=document.getElementById('stratClose');
+const stratClose2=document.getElementById('stratClose2');
+const stratTitle=document.getElementById('stratTitle');
+const stratTBody=document.getElementById('stratTBody');
+const tradesModalEl=document.getElementById('tradesModal');
+const tradesClose=document.getElementById('tradesClose');
+const tradesClose2=document.getElementById('tradesClose2');
+const tradesTBody=document.getElementById('tradesTBody');
+const tradesCtx=document.getElementById('tradesCtx');
+const tradesHdrCtx=document.getElementById('tradesHdrCtx');
+let lastTradesCtx=null;
 // Floating windows helpers (persist position/size)
 let __winZCtr = +(localStorage.getItem('win:zCtr')||'2000');
 function bumpZ(){ __winZCtr++; try{ localStorage.setItem('win:zCtr', String(__winZCtr)); }catch(_){ } return __winZCtr; }
@@ -2629,6 +2640,7 @@ lines.push(`• Exposition: ${tim.toFixed(1)}%  • Trades/jour: ${freq.toFixed(
 let __detailLastMain = null;
 let __detailCompareCfg = null; // { mode:'heaven' } ou { mode:'palmares', params, label }
 let __detailCompPalmaresList = [];
+let __detailLastCmp = null; // dernier résultat de stratégie comparée (Heaven/Palmarès)
 
 function setupDetailConfigUI(){
   try{
@@ -2668,6 +2680,7 @@ function setupDetailConfigUI(){
           const resNew = runBacktestSliceFor(bars, sIdx, eIdx, confNew, p, true);
           __detailLastMain = { item, ctx, res: resNew };
           renderStrategyDetailIntoModal(resNew, ctx, __detailCompareCfg||{mode:'heaven'});
+          try{ setupDetailTradesUI(); }catch(_){ }
         }catch(_){ }
       });
       if(!applyEl.dataset) applyEl.dataset={};
@@ -2763,6 +2776,7 @@ async function openLabStrategyDetail(item, ctx){ try{
     renderStrategyDetailIntoModal(res, ctxFull, __detailCompareCfg);
     try{ setupDetailConfigUI(); }catch(_){ }
     try{ setupDetailCompareUI(); }catch(_){ }
+    try{ setupDetailTradesUI(); }catch(_){ }
   }catch(__err){
     // Fallback: modales Résultats+Trades existantes
     try{ showStrategyResult(res, { symbol: sym, tf, startCap: conf.startCap }); }catch(__){ }
@@ -2773,6 +2787,7 @@ async function openLabStrategyDetail(item, ctx){ try{
 function refreshStrategyDetailComparator(){ try{
   if(!__detailLastMain || !__detailLastMain.ctx || !__detailLastMain.res) return;
   renderStrategyDetailIntoModal(__detailLastMain.res, __detailLastMain.ctx, __detailCompareCfg||{mode:'heaven'});
+  try{ setupDetailTradesUI(); }catch(_){ }
 }catch(_){ } }
 
 // UI de configuration de la stratégie comparée
@@ -2891,6 +2906,64 @@ function setupDetailCompareUI(){
   }catch(_){ }
 }
 
+function setupDetailTradesUI(){
+  try{
+    const btnMain = document.getElementById('detailTradesMainBtn');
+    const btnCmp = document.getElementById('detailTradesCmpBtn');
+    if(btnMain && (!btnMain.dataset || btnMain.dataset.wired!=='1')){
+      btnMain.addEventListener('click', ()=>{
+        try{
+          if(!__detailLastMain || !__detailLastMain.ctx || !__detailLastMain.res) return;
+          const ctx = __detailLastMain.ctx;
+          const res = __detailLastMain.res;
+          const conf = ctx.conf || {};
+          let startCap = (conf.startCap!=null ? conf.startCap : undefined);
+          if(startCap==null && Number.isFinite(res?.equityFinal) && Number.isFinite(res?.totalPnl)){
+            startCap = res.equityFinal - res.totalPnl;
+          }
+          const ctxFor = { symbol: ctx.symbol, tf: ctx.tf, startCap };
+          showStrategyResult(res, ctxFor);
+          try{
+            if(stratTitle){
+              stratTitle.textContent = `${symbolToDisplay(ctx.symbol)} • ${ctx.tf} — Résultats (stratégie analysée)`;
+            }
+          }catch(_){ }
+        }catch(_){ }
+      });
+      if(!btnMain.dataset) btnMain.dataset={};
+      btnMain.dataset.wired='1';
+    }
+    if(btnCmp && (!btnCmp.dataset || btnCmp.dataset.wired!=='1')){
+      btnCmp.addEventListener('click', ()=>{
+        try{
+          if(!__detailLastMain || !__detailLastMain.ctx || !__detailLastCmp || !__detailLastCmp.res) return;
+          const ctx = __detailLastMain.ctx;
+          const resCmp = __detailLastCmp.res;
+          const label = __detailLastCmp.label || 'Heaven';
+          const conf = ctx.conf || {};
+          let startCap = (conf.startCap!=null ? conf.startCap : undefined);
+          if(startCap==null && Number.isFinite(resCmp?.equityFinal) && Number.isFinite(resCmp?.totalPnl)){
+            startCap = resCmp.equityFinal - resCmp.totalPnl;
+          }
+          const ctxFor = { symbol: ctx.symbol, tf: ctx.tf, startCap };
+          showStrategyResult(resCmp, ctxFor);
+          try{
+            if(stratTitle){
+              stratTitle.textContent = `${symbolToDisplay(ctx.symbol)} • ${ctx.tf} — Résultats (${label})`;
+            }
+          }catch(_){ }
+        }catch(_){ }
+      });
+      if(!btnCmp.dataset) btnCmp.dataset={};
+      btnCmp.dataset.wired='1';
+    }
+    const mainHasTrades = !!(__detailLastMain && __detailLastMain.res && Array.isArray(__detailLastMain.res.trades) && __detailLastMain.res.trades.length);
+    if(btnMain) btnMain.disabled = !mainHasTrades;
+    const cmpHasTrades = !!(__detailLastCmp && __detailLastCmp.res && Array.isArray(__detailLastCmp.res.trades) && __detailLastCmp.res.trades.length);
+    if(btnCmp) btnCmp.disabled = !cmpHasTrades;
+  }catch(_){ }
+}
+
 function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
   const sym = ctx.symbol, tf = ctx.tf; const name = ctx.name||'Stratégie'; const conf = ctx.conf; const bars = ctx.bars; const sIdx = ctx.sIdx, eIdx=ctx.eIdx;
   const eq = (res.eqSeries||[]).map(x=>({ time:x.time, equity:x.equity }));
@@ -3003,7 +3076,8 @@ function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
     }
     eqCmp = (resCmp.eqSeries||[]).map(x=>({ time:x.time, equity:x.equity }));
     try{ H = deriveFor(resCmp); }catch(__){ H=null; }
-  }catch(_){ resCmp=null; eqCmp=null; H=null; }
+    try{ __detailLastCmp = resCmp ? { res: resCmp, label: cmpLabel } : null; }catch(__){ }
+  }catch(_){ resCmp=null; eqCmp=null; H=null; __detailLastCmp=null; }
   // Radar de comparaison (Heaven ou Palmarès)
   try{ if(resCmp && eqCmp && H){ const meanH=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length : 0; const mH = meanH(H.rets||[]); const sdH = Math.sqrt(meanH((H.rets||[]).map(x=> (x-mH)*(x-mH)))); const sharpeH = (sdH>0? (mH/sdH*Math.sqrt(Math.max(1, (H.rets?H.rets.length:1)))) : 0); const pfHraw = (resCmp.profitFactor===Infinity? 3 : Math.max(0, Math.min(3, +resCmp.profitFactor||0))); const pfNH=(pfHraw/3)*100; const recovH = (resCmp.maxDDAbs>0? (resCmp.totalPnl/Math.max(1e-9, resCmp.maxDDAbs)) : 0); const recovNH = Math.max(0, Math.min(100, (recovH/3)*100)); const consNH = Math.max(0, Math.min(100, 100*(1 - Math.min(1, (sdH/3)||0)))); const cpiNH = Math.max(0, Math.min(100, 100*(1 - Math.min(1, ((+resCmp.maxDDAbs||0)/Math.max(1, conf.startCap)) / 0.5)))); const r2H=(function(){ const n=eqCmp.length; if(n<3) return 0; const xs=eqCmp.map((_,i)=>i); const ys=eqCmp.map(p=>p.equity); const xm=meanH(xs), ym=meanH(ys); let num=0, den=0; for(let i=0;i<n;i++){ const xv=xs[i]-xm, yv=ys[i]-ym; num += xv*yv; den += xv*xv; } const a=num/(den||1); const b=ym - a*xm; let ssTot=0, ssRes=0; for(let i=0;i<n;i++){ const y=ys[i]; const yhat=a*xs[i]+b; ssTot += (y-ym)*(y-ym); ssRes += (y-yhat)*(y-yhat); } return 1 - (ssRes/(ssTot||1)); })()*100; const teNH = Math.max(0, Math.min(100, ((+resCmp.winrate||0)/100) * (pfHraw/(pfHraw+1))*100)); const edgeNH = Math.max(0, Math.min(100, (pfHraw/(pfHraw+1)) * (1 - Math.min(1, (sdH/5)||0))*100)); const c=ensureHeavenClone('detailRadar'); if(c){ drawRadar(c, ['Profit Factor','Sharpe','Recovery (P&L/DD)','Consistency','Cap. Protection','R² equity','Trade Efficiency','Edge Robustness'], [pfNH, Math.max(0, Math.min(100, (sharpeH/3)*100)), recovNH, consNH, cpiNH, Math.max(0, Math.min(100, r2H)), teNH, edgeNH]); } } }catch(_){ }
   // primary equity
