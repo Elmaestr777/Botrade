@@ -820,9 +820,65 @@ function setBtTitle(text){ try{ const h=btProgressEl && btProgressEl.querySelect
 
 let __lastLabTested = [];
 function formatParamsBrief(p){ try{ return JSON.stringify(p||{}, (k,v)=> (typeof v==='number' && !isFinite(v)? null : v)); }catch(_){ return ''; } }
-function formatParamsPretty(p){ try{ const core = `nol=${p.nol} • prd=${p.prd} • SL init=${p.slInitPct}% • BE=${p.beAfterBars}/${p.beLockPct}% • EMA=${p.emaLen}`; const entFlags = [p.ent382?'382':null,p.ent500?'500':null,p.ent618?'618':null,p.ent786?'786':null].filter(Boolean).join('/'); const entry = `Entrée: mode=${p.entryMode||'Both'} • FibRet=${p.useFibRet? 'Oui':'Non'} • Confirm=${p.confirmMode||'Bounce'}${entFlags? ' • Ent='+entFlags:''}`; const tpArr=(Array.isArray(p.tp)? p.tp.slice(0,10):[]); const slArr=(Array.isArray(p.sl)? p.sl.slice(0,10):[]); const tpStr = tpArr.length? tpArr.map(t=>{ const typ=t.type||'Fib'; if(typ==='Fib') return `F:${t.fib}`; if(typ==='Percent') return `P:${t.pct}%`; if(typ==='EMA') return `E:${t.emaLen}`; return typ; }).join(' ; ') : '—'; const slStr = slArr.length? slArr.map(t=>{ const typ=t.type||'Percent'; if(typ==='Fib') return `F:${t.fib}`; if(typ==='Percent') return `P:${t.pct}%`; if(typ==='EMA') return `E:${t.emaLen}`; return typ; }).join(' ; ') : '—'; const tpLine = `TP ladder: ${tpStr}`; const slLine = `SL ladder: ${slStr}`; // Capital distribution per TP (as % of position)
-  let capLine=''; try{ const wsum = tpArr.reduce((s,t)=> s + (Number(t.qty)||0), 0) || 0; if(wsum>0){ const parts = tpArr.map(t=> `${Math.round(((Number(t.qty)||0)/wsum)*100)}%`).join(' / '); capLine = `Cap/TP: ${parts}`; } }catch(_){ capLine=''; }
-  return `<div>${core}</div><div>${entry}</div><div>${tpLine}</div><div>${slLine}</div>${capLine? ('<div>'+capLine+'</div>'):''}`; }catch(_){ return ''; } }
+function formatParamsPretty(p){ try{
+  const core = `nol=${p.nol} • prd=${p.prd} • SL init=${p.slInitPct}% • BE=${p.beAfterBars}/${p.beLockPct}% • EMA=${p.emaLen}`;
+  const entFlags = [p.ent382?'382':null,p.ent500?'500':null,p.ent618?'618':null,p.ent786?'786':null].filter(Boolean).join('/');
+  const entry = `Entrée: mode=${p.entryMode||'Both'} • FibRet=${p.useFibRet? 'Oui':'Non'} • Confirm=${p.confirmMode||'Bounce'}${entFlags? ' • Ent='+entFlags:''}`;
+  const tpArr=(Array.isArray(p.tp)? p.tp.slice(0,10):[]);
+  const slArr=(Array.isArray(p.sl)? p.sl.slice(0,10):[]);
+  
+  // TP ladder détaillé: type, beOn, trail per TP, attached SL per TP
+  const tpDetails = tpArr.length? tpArr.map((t,idx)=>{
+    const typ=t.type||'Fib';
+    let base = '';
+    if(typ==='Fib') base=`F:${t.fib}`;
+    else if(typ==='Percent') base=`P:${t.pct}%`;
+    else if(typ==='EMA') base=`E:${t.emaLen}`;
+    else base=typ;
+    const extras=[];
+    if(t.beOn) extras.push('BE');
+    if(t.trail && t.trail.mode){
+      const tm = t.trail.mode;
+      if(tm==='be') extras.push('Trail:BE');
+      else if(tm==='prev') extras.push('Trail:Prev');
+      else if(tm==='ema') extras.push(`Trail:EMA${t.trail.emaLen||''}`);
+      else if(tm==='percent') extras.push(`Trail:${t.trail.pct||0}%`);
+    }
+    if(t.sl){
+      const slTyp=t.sl.type||'Percent';
+      let slLabel='';
+      if(slTyp==='Fib') slLabel=`SL:F${t.sl.fib||0}`;
+      else if(slTyp==='Percent') slLabel=`SL:${t.sl.pct||0}%`;
+      else if(slTyp==='EMA') slLabel=`SL:EMA${t.sl.emaLen||0}`;
+      if(slLabel) extras.push(slLabel);
+      if(t.sl.trail && t.sl.trail.mode){
+        const stm=t.sl.trail.mode;
+        if(stm==='ema') extras.push(`SLTr:EMA${t.sl.trail.emaLen||''}`);
+        else if(stm==='percent') extras.push(`SLTr:${t.sl.trail.pct||0}%`);
+      }
+    }
+    return `TP${idx+1}=${base}${extras.length? ' ('+extras.join(', ')+')':''}}`;
+  }).join(' ; ') : '—';
+  
+  const slStr = slArr.length? slArr.map(t=>{ const typ=t.type||'Percent'; if(typ==='Fib') return `F:${t.fib}`; if(typ==='Percent') return `P:${t.pct}%`; if(typ==='EMA') return `E:${t.emaLen}`; return typ; }).join(' ; ') : '—';
+  const tpLine = `TP: ${tpDetails}`;
+  const slLine = `SL ladder: ${slStr}`;
+  
+  // Capital distribution per TP (as % of position)
+  let capLine='';
+  try{
+    const wsum = tpArr.reduce((s,t)=> s + (Number(t.qty)||0), 0) || 0;
+    if(wsum>0){ const parts = tpArr.map(t=> `${Math.round(((Number(t.qty)||0)/wsum)*100)}%`).join(' / '); capLine = `Cap/TP: ${parts}`; }
+  }catch(_){ capLine=''; }
+  
+  // TP compound & closeAllLast
+  const optLine = [];
+  if(typeof p.tpCompound==='boolean') optLine.push(`Compound=${p.tpCompound?'On':'Off'}`);
+  if(typeof p.tpCloseAllLast==='boolean') optLine.push(`CloseAllLast=${p.tpCloseAllLast?'On':'Off'}`);
+  const optStr = optLine.length? optLine.join(' • '):'';
+  
+  return `<div>${core}</div><div>${entry}</div><div>${tpLine}</div><div>${slLine}</div>${capLine? ('<div>'+capLine+'</div>'):''}${optStr? ('<div>'+optStr+'</div>'):''}`;
+}catch(_){ return ''; } }
 function openEvalsModal(sym, tf){ try{ const tb=document.getElementById('evalsTBody'); const ctxEl=document.getElementById('evalsCtx'); if(!tb) return; const arr = Array.isArray(__lastLabTested)? __lastLabTested.slice(): []; const rows=[]; let idx=1; const sorted=arr.slice().sort((a,b)=> (b.score||0)-(a.score||0)); for(const it of sorted){ const st=it.metrics||it.res||{}; rows.push(`<tr><td>${idx}</td><td>${(it.score!=null? it.score.toFixed(2): '—')}</td><td>${(st.profitFactor===Infinity?'∞':(st.profitFactor||0).toFixed(2))}</td><td>${(st.totalPnl||0).toFixed(0)}</td><td>${st.tradesCount||0}</td><td>${(st.winrate||0).toFixed(1)}</td><td>${(Number.isFinite(st.avgRR)? st.avgRR.toFixed(2):'—')}</td><td style=\"text-align:left; white-space:normal; line-height:1.2;\">${formatParamsPretty(it.params||{})}</td></tr>`); idx++; }
   tb.innerHTML = rows.length? rows.join('') : '<tr><td colspan="8">—</td></tr>'; if(ctxEl) ctxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — ${arr.length} évaluations`; openModalEl(document.getElementById('evalsModal')); }catch(_){ }
 }
