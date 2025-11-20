@@ -124,21 +124,45 @@ function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfi
     try{ uid = await getUserId(); }catch(_){ uid=null; }
     const name = (profileName||'balancee').toLowerCase();
     try{
-      // Si l'utilisateur est connecté, on stocke un profil privé (user_id != NULL, is_public=false)
-      // Sinon, on met à jour le profil public (user_id NULL, is_public=true).
-      // Dans les deux cas, on s'appuie sur la contrainte UNIQUE (user_id, name)
-      // définie dans 0001_init_heaven.sql pour supporter ON CONFLICT.
-      const row = uid
-        ? { user_id: uid,  name, description: null, weights: weights||{}, is_public: false }
-        : { user_id: null, name, description: null, weights: weights||{}, is_public: true };
-      const onConflict = 'user_id,name';
-      const { error } = await c
-        .from('lab_profiles')
-        .upsert([row], { onConflict, ignoreDuplicates: false, returning: 'minimal' });
-      if(error){ slog('Supabase: upsert lab_profiles KO  '+(error.message||error)); return false; }
+      if(uid){
+        // Cas utilisateur connecté: profil privé, protégé par UNIQUE (user_id, name)
+        const row = { user_id: uid, name, description: null, weights: weights||{}, is_public: false };
+        const { error } = await c
+          .from('lab_profiles')
+          .upsert([row], { onConflict: 'user_id,name', ignoreDuplicates: false, returning: 'minimal' });
+        if(error){ slog('Supabase: upsert lab_profiles (privé) KO \u0014 '+(error.message||error)); return false; }
+      } else {
+        // Cas public (non connecté): on ne peut pas cibler directement l'index partiel
+        // lab_profiles_public_name_unique(name) dans ON CONFLICT via supabase-js.
+        // On émule donc un upsert manuel: SELECT puis UPDATE ou INSERT.
+        let existing=null;
+        try{
+          const { data, error: selErr } = await c
+            .from('lab_profiles')
+            .select('id')
+            .eq('name', name)
+            .is('user_id', null)
+            .limit(1)
+            .maybeSingle();
+          if(selErr){ slog('Supabase: select lab_profiles (public) KO \u0014 '+(selErr.message||selErr)); }
+          existing = data||null;
+        }catch(eSel){ slog('Supabase: select lab_profiles (public) exception \u0014 '+(eSel&&eSel.message?eSel.message:eSel)); }
+        if(existing && existing.id){
+          const { error: updErr } = await c
+            .from('lab_profiles')
+            .update({ description:null, weights: weights||{}, is_public: true })
+            .eq('id', existing.id);
+          if(updErr){ slog('Supabase: update lab_profiles (public) KO \u0014 '+(updErr.message||updErr)); return false; }
+        } else {
+          const { error: insErr } = await c
+            .from('lab_profiles')
+            .insert({ user_id:null, name, description:null, weights: weights||{}, is_public:true });
+          if(insErr){ slog('Supabase: insert lab_profiles (public) KO \u0014 '+(insErr.message||insErr)); return false; }
+        }
+      }
       __profileIdCacheByName.delete(name);
       return true;
-    }catch(e){ slog('Supabase: upsert lab_profiles exception  '+(e&&e.message?e.message:e)); return false; }
+    }catch(e){ slog('Supabase: upsert lab_profiles exception \u0014 '+(e&&e.message?e.message:e)); return false; }
   }
 
   function chunk(arr, n){ const out=[]; for(let i=0;i<arr.length;i+=n){ out.push(arr.slice(i,i+n)); } return out; }
