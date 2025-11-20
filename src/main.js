@@ -751,6 +751,7 @@ function handleLabApplyClick(ev){
     }catch(_){ item=null; }
     if(!item || !item.params){ setStatus(t('status.noStrategy')); return; }
     applyHeavenParams(item.params);
+    try{ populateHeavenModal(); }catch(_){ }
     setStatus(t('status.applyOk'));
     try{ computeLabBenchmarkAndUpdate(); }catch(_){ }
     if(ev){ try{ ev.stopPropagation(); ev.preventDefault(); }catch(_){ } }
@@ -4268,16 +4269,48 @@ function labProfileTuning(){
     const p=String(prof||'').toLowerCase();
     if(p==='sure'){
       // Stratégie sûre: variations plus douces, Bayes un peu plus profond
-      return { eaPopMul:0.8, eaGenMul:0.8, mutMul:0.7, bayItersMul:1.3, bayInitMul:1.1, eliteOverride:40, varIntMul:0.85 };
+      // Capital très protégé : BE tôt dans la ladder
+      return {
+        eaPopMul:0.8, eaGenMul:0.8, mutMul:0.7,
+        bayItersMul:1.3, bayInitMul:1.1, eliteOverride:40, varIntMul:0.85,
+        // BE quasiment toujours présent, dès les premiers TP
+        beBaseProb:0.9,
+        beMutMul:0.8,
+        // fraction de la ladder à partir de laquelle BE doit être quasi systématique
+        // 0.0 ⇒ on peut poser le BE dès TP1
+        beStartFrac:0.0,
+      };
     }
     if(p==='agressive'){
       // Stratégie agressive: EA plus large, mutation plus forte
-      return { eaPopMul:1.3, eaGenMul:1.3, mutMul:1.3, bayItersMul:1.0, bayInitMul:1.0, eliteOverride:25, varIntMul:1.2 };
+      // Capital toujours protégé, mais BE posé plus tard dans la ladder
+      return {
+        eaPopMul:1.3, eaGenMul:1.3, mutMul:1.3,
+        bayItersMul:1.0, bayInitMul:1.0, eliteOverride:25, varIntMul:1.2,
+        // BE encore fréquent, mais un peu moins que Sûre/Balancée
+        beBaseProb:0.7,
+        beMutMul:1.2,
+        // 0.4 ⇒ en moyenne BE commence plutôt vers le milieu de la ladder
+        beStartFrac:0.4,
+      };
     }
     // Stratégie balancée (par défaut)
-    return { eaPopMul:1.0, eaGenMul:1.0, mutMul:1.0, bayItersMul:1.0, bayInitMul:1.0, eliteOverride:null, varIntMul:1.0 };
+    return {
+      eaPopMul:1.0, eaGenMul:1.0, mutMul:1.0,
+      bayItersMul:1.0, bayInitMul:1.0, eliteOverride:null, varIntMul:1.0,
+      // BE bien présent, avec démarrage plutôt sur les TP intermédiaires
+      beBaseProb:0.8,
+      beMutMul:1.0,
+      beStartFrac:0.2,
+    };
   }catch(_){
-    return { eaPopMul:1.0, eaGenMul:1.0, mutMul:1.0, bayItersMul:1.0, bayInitMul:1.0, eliteOverride:null, varIntMul:1.0 };
+    return {
+      eaPopMul:1.0, eaGenMul:1.0, mutMul:1.0,
+      bayItersMul:1.0, bayInitMul:1.0, eliteOverride:null, varIntMul:1.0,
+      beBaseProb:0.8,
+      beMutMul:1.0,
+      beStartFrac:0.2,
+    };
   }
 }
 function varIntensityFactor(){
@@ -4413,21 +4446,41 @@ function setupLabAdvUI(){
 }
 // Global helper to compute a unique key for a TP rung
 function keyOfTP(t){ try{ if(!t) return ''; const typ=t.type||'Fib'; if(typ==='Fib') return `F:${t.fib}`; if(typ==='Percent') return `P:${t.pct}`; if(typ==='EMA') return `E:${t.emaLen}`; return String(typ); }catch(_){ return ''; } }
-function sampleTPList(tpCfg){
-  const { allowFib, allowPct, allowEMA, pctMin, pctMax, fibs } = tpCfg || {};
-  const n = Math.max(1, Math.min(10, Number(tpCfg && tpCfg.count) || 10));
-  const types=[]; if(allowFib) types.push('Fib'); if(allowPct) types.push('Percent'); if(allowEMA) types.push('EMA'); if(!types.length) types.push('Fib');
-  const ws=randWeights(n);
-  const list=[];
-  // ranges for trailing percent (fallback if no UI): 0.1% .. 100%
-  const trailPctMin = 0.1, trailPctMax = 100.0;
-  const slCfgLocal = readSLOpt();
-  const usedKeys=new Set();
-  function pickFibUnique(){ const pool=fibs.slice(); for(let k=0;k<pool.length;k++){ const i=(Math.random()*pool.length)|0; const v=pool[i]; const key=`F:${v}`; if(!usedKeys.has(key)) return v; pool.splice(i,1); k--; }
-    return fibs[(Math.random()*fibs.length)|0]; }
-  function pickPctUnique(min,max){ let tries=0; while(tries++<20){ const p = min + Math.random()*Math.max(0,max-min); const val=+p.toFixed(3); const key=`P:${val}`; if(!usedKeys.has(key)) return val; } return +(min + Math.random()*Math.max(0,max-min)).toFixed(3); }
-  function pickEmaUnique(){ let tries=0; while(tries++<20){ const len = rEMALen[(Math.random()*rEMALen.length)|0]; const key=`E:${len}`; if(!usedKeys.has(key)) return len; } return rEMALen[(Math.random()*rEMALen.length)|0]; }
-  function sampleAttachedSL(){
+  function sampleTPList(tpCfg){
+    const { allowFib, allowPct, allowEMA, pctMin, pctMax, fibs } = tpCfg || {};
+    const n = Math.max(1, Math.min(10, Number(tpCfg && tpCfg.count) || 10));
+    const types=[]; if(allowFib) types.push('Fib'); if(allowPct) types.push('Percent'); if(allowEMA) types.push('EMA'); if(!types.length) types.push('Fib');
+    const ws=randWeights(n);
+    const list=[];
+    // Bias BE par profil Lab : même probabilité globale élevée, mais TP de départ différent
+    const tune = labProfileTuning();
+    const beBase = (tune && typeof tune.beBaseProb==='number') ? Math.max(0, Math.min(1, tune.beBaseProb)) : 0.8;
+    const beStartFrac = (tune && typeof tune.beStartFrac==='number') ? Math.max(0, Math.min(1, tune.beStartFrac)) : 0.2;
+    function beProbForIndex(idx){
+      // idx = 0..n-1, on travaille sur la position relative dans la ladder
+      const pos = (idx + 0.5) / Math.max(1,n); // 0..1
+      let p;
+      if(pos < beStartFrac){
+        // Avant la zone "normale" de BE : faible proba mais non nulle
+        const rel = pos / Math.max(1e-6, beStartFrac);
+        p = beBase * (0.2 + 0.8 * rel); // de 0.2*base à ~base au seuil
+      } else {
+        // Après le TP cible de démarrage : BE quasi systématique
+        const rel = (pos - beStartFrac) / Math.max(1e-6, 1 - beStartFrac);
+        // 0.7*base → base
+        p = beBase * (0.7 + 0.3 * Math.min(1, Math.max(0, rel)));
+      }
+      return Math.max(0, Math.min(1, p));
+    }
+    // ranges for trailing percent (fallback if no UI): 0.1% .. 100%
+    const trailPctMin = 0.1, trailPctMax = 100.0;
+    const slCfgLocal = readSLOpt();
+    const usedKeys=new Set();
+    function pickFibUnique(){ const pool=fibs.slice(); for(let k=0;k<pool.length;k++){ const i=(Math.random()*pool.length)|0; const v=pool[i]; const key=`F:${v}`; if(!usedKeys.has(key)) return v; pool.splice(i,1); k--; }
+      return fibs[(Math.random()*fibs.length)|0]; }
+    function pickPctUnique(min,max){ let tries=0; while(tries++<20){ const p = min + Math.random()*Math.max(0,max-min); const val=+p.toFixed(3); const key=`P:${val}`; if(!usedKeys.has(key)) return val; } return +(min + Math.random()*Math.max(0,max-min)).toFixed(3); }
+    function pickEmaUnique(){ let tries=0; while(tries++<20){ const len = rEMALen[(Math.random()*rEMALen.length)|0]; const key=`E:${len}`; if(!usedKeys.has(key)) return len; } return rEMALen[(Math.random()*rEMALen.length)|0]; }
+    function sampleAttachedSL(){
     const allowSTypes=[]; if(slCfgLocal.allowFib) allowSTypes.push('Fib'); if(slCfgLocal.allowPct) allowSTypes.push('Percent'); if(slCfgLocal.allowEMA) allowSTypes.push('EMA'); if(!allowSTypes.length) allowSTypes.push('Percent');
     const st=allowSTypes[(Math.random()*allowSTypes.length)|0];
     if(st==='Fib'){
@@ -4457,33 +4510,74 @@ function sampleTPList(tpCfg){
     if(m==='percent'){ const p = 0.1 + Math.random()*(100.0-0.1); return { mode:'percent', pct:+p.toFixed(3) }; }
     return null;
   }
-  for(let i=0;i<n;i++){
-    const t=types[(Math.random()*types.length)|0];
-    let entry=null; let key='';
-    if(t==='Fib'){
-      const r=pickFibUnique();
-      entry={ type:'Fib', fib:r, value:r, qty: ws[i] };
-    } else if(t==='Percent'){
-      const p = pickPctUnique(pctMin, pctMax);
-      entry={ type:'Percent', pct:p, value:p, qty: ws[i] };
-    } else {
-      const len = pickEmaUnique();
-      entry={ type:'EMA', emaLen: len, qty: ws[i] };
+    for(let i=0;i<n;i++){
+      const t=types[(Math.random()*types.length)|0];
+      let entry=null; let key='';
+      if(t==='Fib'){
+        const r=pickFibUnique();
+        entry={ type:'Fib', fib:r, value:r, qty: ws[i] };
+      } else if(t==='Percent'){
+        const p = pickPctUnique(pctMin, pctMax);
+        entry={ type:'Percent', pct:p, value:p, qty: ws[i] };
+      } else {
+        const len = pickEmaUnique();
+        entry={ type:'EMA', emaLen: len, qty: ws[i] };
+      }
+      key=keyOfTP(entry); usedKeys.add(key);
+      // BE par TP: proba dépend du profil ET de l'index (profil = TP à partir duquel on pose BE)
+      const beProb = beProbForIndex(i);
+      entry.beOn = Math.random() < beProb;
+      const tr = sampleTrailTP(); if(tr) entry.trail = tr;
+      const atSL = sampleAttachedSL(); if(atSL){ entry.sl = atSL; const st=sampleTrailSL(); if(st){ entry.sl.trail = st; } }
+      list.push(entry);
     }
-    key=keyOfTP(entry); usedKeys.add(key);
-    entry.beOn = Math.random() < 0.4;
-    const tr = sampleTrailTP(); if(tr) entry.trail = tr;
-    const atSL = sampleAttachedSL(); if(atSL){ entry.sl = atSL; const st=sampleTrailSL(); if(st){ entry.sl.trail = st; } }
-    list.push(entry);
-  }
-  return list;
+    // Invariant: au moins un TP doit poser le BE pour protéger le capital
+    if(list.length && !list.some(t=> t && t.beOn)){
+      list[list.length-1].beOn = true;
+    }
+    return list;
 }
-function mutateTP(list,tpCfg){ if(!Array.isArray(list)||!list.length) return list; const out=list.map(x=> ({...x})); const i=(Math.random()*out.length)|0; const t=out[i]; const r=Math.random(); const used=new Set(out.map(keyOfTP)); if(t.type==='Fib' && (r<0.5)){ const fibs=tpCfg.fibs; let tries=0; while(tries++<20){ const v=fibs[(Math.random()*fibs.length)|0]; const key=`F:${v}`; if(!used.has(key)){ out[i].fib=v; out[i].value=v; used.add(key); break; } } } else if(t.type==='Percent' && (r<0.5)){ let tries=0; while(tries++<20){ const p = tpCfg.pctMin + Math.random()*(Math.max(0,tpCfg.pctMax-tpCfg.pctMin)); const val=+p.toFixed(3); const key=`P:${val}`; if(!used.has(key)){ out[i].pct=val; out[i].value=val; used.add(key); break; } } } else if(t.type==='EMA' && (r<0.5)){ let tries=0; while(tries++<20){ const len = rEMALen[(Math.random()*rEMALen.length)|0]; const key=`E:${len}`; if(!used.has(key)){ out[i].emaLen=len; used.add(key); break; } } } else { // change type
-    const types=[]; if(tpCfg.allowFib) types.push('Fib'); if(tpCfg.allowPct) types.push('Percent'); if(tpCfg.allowEMA) types.push('EMA'); if(types.length){ const nt=types[(Math.random()*types.length)|0]; const baseQty = t.qty||null; if(nt==='Fib'){ const fibs=tpCfg.fibs; let v=fibs[(Math.random()*fibs.length)|0]; out[i]={ type:'Fib', fib:v, qty: baseQty }; } else if(nt==='Percent'){ const p=tpCfg.pctMin + Math.random()*(Math.max(0,tpCfg.pctMax-tpCfg.pctMin)); const val=+p.toFixed(3); out[i]={ type:'Percent', pct:val, qty: baseQty }; } else { const len = rEMALen[(Math.random()*rEMALen.length)|0]; out[i]={ type:'EMA', emaLen: len, qty: baseQty }; } }
+function mutateTP(list,tpCfg){
+  if(!Array.isArray(list)||!list.length) return list;
+  const out=list.map(x=> ({...x}));
+  const n=out.length;
+  const i=(Math.random()*n)|0;
+  const t=out[i];
+  const r=Math.random();
+  const used=new Set(out.map(keyOfTP));
+  const tune = labProfileTuning();
+  const beBase = (tune && typeof tune.beBaseProb==='number') ? Math.max(0, Math.min(1, tune.beBaseProb)) : 0.8;
+  const beStartFrac = (tune && typeof tune.beStartFrac==='number') ? Math.max(0, Math.min(1, tune.beStartFrac)) : 0.2;
+  const beMutBase = 0.2;
+  const beMutRate = Math.max(0.01, Math.min(0.8, beMutBase * (tune && typeof tune.beMutMul==='number' ? tune.beMutMul : 1.0)));
+  function beProbForIndex(idx){
+    const pos = (idx + 0.5) / Math.max(1,n);
+    let p;
+    if(pos < beStartFrac){
+      const rel = pos / Math.max(1e-6, beStartFrac);
+      p = beBase * (0.2 + 0.8 * rel);
+    } else {
+      const rel = (pos - beStartFrac) / Math.max(1e-6, 1 - beStartFrac);
+      p = beBase * (0.7 + 0.3 * Math.min(1, Math.max(0, rel)));
+    }
+    return Math.max(0, Math.min(1, p));
   }
-  if(Math.random()<0.2){ out[i].beOn = !out[i].beOn; }
+  if(t.type==='Fib' && (r<0.5)){
+    const fibs=tpCfg.fibs; let tries=0; while(tries++<20){ const v=fibs[(Math.random()*fibs.length)|0]; const key=`F:${v}`; if(!used.has(key)){ out[i].fib=v; out[i].value=v; used.add(key); break; } }
+  } else if(t.type==='Percent' && (r<0.5)){
+    let tries=0; while(tries++<20){ const p = tpCfg.pctMin + Math.random()*(Math.max(0,tpCfg.pctMax-tpCfg.pctMin)); const val=+p.toFixed(3); const key=`P:${val}`; if(!used.has(key)){ out[i].pct=val; out[i].value=val; used.add(key); break; } }
+  } else if(t.type==='EMA' && (r<0.5)){
+    let tries=0; while(tries++<20){ const len = rEMALen[(Math.random()*rEMALen.length)|0]; const key=`E:${len}`; if(!used.has(key)){ out[i].emaLen=len; used.add(key); break; } }
+  } else { // change type
+    const types=[]; if(tpCfg.allowFib) types.push('Fib'); if(tpCfg.allowPct) types.push('Percent'); if(tpCfg.allowEMA) types.push('EMA'); if(types.length){ const nt=types[(Math.random()*types.length)|0]; const baseQty = t.qty||null; if(nt==='Fib'){ const fibs=tpCfg.fibs; return { type:'Fib', fib:fibs[(Math.random()*fibs.length)|0], qty: baseQty }; } else if(nt==='Percent'){ const p=tpCfg.pctMin + Math.random()*(Math.max(0,tpCfg.pctMax-tpCfg.pctMin)); const val=+p.toFixed(3); return { type:'Percent', pct:val, qty: baseQty }; } else { const len = rEMALen[(Math.random()*rEMALen.length)|0]; return { type:'EMA', emaLen: len, qty: baseQty }; } }
+  }
+  // Mutation BE: resample en fonction du profil ET de l'index (décaler le TP de départ du BE)
+  if(Math.random() < beMutRate){
+    const prob = beProbForIndex(i);
+    out[i].beOn = (Math.random() < prob);
+  }
   if(Math.random()<0.3){ const modes=['none','be','prev','ema','percent']; const m=modes[(Math.random()*modes.length)|0]; if(m==='none'){ delete out[i].trail; } else if(m==='ema'){ out[i].trail={ mode:'ema', emaLen: rEMALen[(Math.random()*rEMALen.length)|0] }; } else if(m==='percent'){ const p = 0.1 + Math.random()*(100.0-0.1); out[i].trail={ mode:'percent', pct:+p.toFixed(3) }; } else { out[i].trail={ mode:m }; } }
-  function mutAttachedSL(s){ const slCfg=readSLOpt(); const u={ ...(s||{}) }; const rr=Math.random(); if((u.type||'Percent')==='Fib' && rr<0.5){ const fibs=slCfg.fibs; u.fib = fibs[(Math.random()*fibs.length)|0]; u.value=u.fib; } else if((u.type||'Percent')==='Percent' && rr<0.5){ const p=slCfg.pctMin + Math.random()*(Math.max(0,slCfg.pctMax-slCfg.pctMin)); u.pct=+p.toFixed(3); u.value=u.pct; } else if((u.type||'Percent')==='EMA' && rr<0.5){ u.emaLen = rEMALen[(Math.random()*rEMALen.length)|0]; } else { const types=[]; if(slCfg.allowFib) types.push('Fib'); if(slCfg.allowPct) types.push('Percent'); if(slCfg.allowEMA) types.push('EMA'); if(types.length){ const nt=types[(Math.random()*types.length)|0]; if(nt==='Fib'){ const fibs=slCfg.fibs; return { type:'Fib', fib:fibs[(Math.random()*fibs.length)|0] }; } else if(nt==='Percent'){ const p=slCfg.pctMin + Math.random()*(Math.max(0,slCfg.pctMax-slCfg.pctMin)); return { type:'Percent', pct:+p.toFixed(3) }; } else { return { type:'EMA', emaLen: rEMALen[(Math.random()*rEMALen.length)|0] }; } } }
+  function mutAttachedSL(s){ const slCfg=readSLOpt(); const u={ ...(s||{}) }; const rr=Math.random(); if((u.type||'Percent')==='Fib' && rr<0.5){ const fibs=slCfg.fibs; u.fib = fibs[(Math.random()*fibs.length)|0]; u.value=u.fib; } else if((u.type||'Percent')==='Percent' && rr<0.5){ const p = slCfg.pctMin + Math.random()*(Math.max(0,slCfg.pctMax-slCfg.pctMin)); u.pct=+p.toFixed(3); u.value=u.pct; } else if((u.type||'Percent')==='EMA' && rr<0.5){ u.emaLen = rEMALen[(Math.random()*rEMALen.length)|0]; } else { const types=[]; if(slCfg.allowFib) types.push('Fib'); if(slCfg.allowPct) types.push('Percent'); if(slCfg.allowEMA) types.push('EMA'); if(types.length){ const nt=types[(Math.random()*types.length)|0]; if(nt==='Fib'){ const fibs=slCfg.fibs; return { type:'Fib', fib:fibs[(Math.random()*fibs.length)|0] }; } else if(nt==='Percent'){ const p=slCfg.pctMin + Math.random()*(Math.max(0,slCfg.pctMax-slCfg.pctMin)); return { type:'Percent', pct:+p.toFixed(3) }; } else { return { type:'EMA', emaLen: rEMALen[(Math.random()*rEMALen.length)|0] }; } } }
     return u; }
   if(Math.random()<0.3){ out[i].sl = mutAttachedSL(out[i].sl); }
   if(Math.random()<0.3){ const modes=['none','ema','percent']; const m=modes[(Math.random()*modes.length)|0]; if(!out[i].sl) out[i].sl={ type:'Percent', pct:1.0 }; if(m==='none'){ if(out[i].sl) delete out[i].sl.trail; } else if(m==='ema'){ out[i].sl.trail={ mode:'ema', emaLen: rEMALen[(Math.random()*rEMALen.length)|0] }; } else { const p=0.1 + Math.random()*(100.0-0.1); out[i].sl.trail={ mode:'percent', pct:+p.toFixed(3) }; } }
@@ -4495,6 +4589,10 @@ function mutateTP(list,tpCfg){ if(!Array.isArray(list)||!list.length) return lis
       else { while(tries++<20){ const len=rEMALen[(Math.random()*rEMALen.length)|0]; const kk=`E:${len}`; if(!seen.has(kk)){ out[k].emaLen=len; break; } } }
     }
     seen.add(keyOfTP(out[k])); }
+  // Invariant: au moins un TP doit garder un BE pour la protection du capital
+  if(out.length && !out.some(t=> t && t.beOn)){
+    out[out.length-1].beOn = true;
+  }
   return out; }
 
   function readSLOpt(){
@@ -4927,9 +5025,9 @@ function loadPresetByName(name){ try{ const s=localStorage.getItem('lbcPreset:'+
 function deletePreset(name){ try{ localStorage.removeItem('lbcPreset:'+name); const names=loadPresetList().filter(n=>n!==name); savePresetList(names); loadPresetList(); }catch(_){} }
 loadPresetList();
 if(lbcPresetSave){ lbcPresetSave.addEventListener('click', ()=>{ const name=(lbcPresetName&&lbcPresetName.value||'').trim(); if(!name){ setStatus('Nom du preset requis'); return; } savePreset(name); setStatus('Preset sauvegardé'); }); }
-if(lbcPresetLoad){ lbcPresetLoad.addEventListener('click', ()=>{ const name=(lbcPresetSelect&&lbcPresetSelect.value)||''; if(!name){ setStatus('Aucun preset'); return; } if(loadPresetByName(name)){ setStatus('Preset chargé'); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } } }); }
+if(lbcPresetLoad){ lbcPresetLoad.addEventListener('click', ()=>{ const name=(lbcPresetSelect&&lbcPresetSelect.value)||''; if(!name){ setStatus('Aucun preset'); return; } if(loadPresetByName(name)){ try{ populateHeavenModal(); }catch(_){ } setStatus('Preset chargé'); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } } }); }
 if(lbcPresetDelete){ lbcPresetDelete.addEventListener('click', ()=>{ const name=(lbcPresetSelect&&lbcPresetSelect.value)||''; if(!name) return; if(confirm(`Supprimer le preset \"${name}\" ?`)){ deletePreset(name); setStatus('Preset supprimé'); } }); }
-if(lbcResetBtn){ lbcResetBtn.addEventListener('click', ()=>{ lbcOpts = { ...defaultLBC }; saveLBCOpts(); renderLBC(); setStatus('Paramètres réinitialisés'); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
+if(lbcResetBtn){ lbcResetBtn.addEventListener('click', ()=>{ lbcOpts = { ...defaultLBC }; saveLBCOpts(); renderLBC(); try{ populateHeavenModal(); }catch(_){ } setStatus('Paramètres réinitialisés'); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
 
 // Supabase-backed Heaven strategies
 const lbcSupaName=document.getElementById('lbcSupaName');
