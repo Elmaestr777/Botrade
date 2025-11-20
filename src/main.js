@@ -2641,6 +2641,89 @@ let __detailLastMain = null;
 let __detailCompareCfg = null; // { mode:'heaven' } ou { mode:'palmares', params, label }
 let __detailCompPalmaresList = [];
 let __detailLastCmp = null; // dernier résultat de stratégie comparée (Heaven/Palmarès)
+let __detailBestBySymbol = {}; // cache: meilleure stratégie de comparaison par paire
+
+async function computeDefaultDetailCompareCfgForSymbol(sym){
+  try{
+    sym = sym || currentSymbol;
+  }catch(_){ }
+  if(!sym) return { mode:'heaven' };
+  try{
+    if(__detailBestBySymbol && __detailBestBySymbol[sym]){
+      return __detailBestBySymbol[sym];
+    }
+  }catch(_){ }
+  let best = null;
+  // Liste de TF utilisée dans le Lab
+  let tfs = [];
+  try{
+    const sel = labTFSelect || document.getElementById('labTFSelect');
+    if(sel && sel.options && sel.options.length){
+      for(let i=0;i<sel.options.length;i++){
+        const v = sel.options[i].value;
+        if(v) tfs.push(v);
+      }
+    }
+  }catch(_){ }
+  if(!tfs.length){
+    tfs = ['1m','5m','15m','1h','4h','1d'];
+  }
+  const hasSupa = !!(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchPalmares==='function');
+  if(hasSupa){
+    const profiles = ['sure','balancee','agressive'];
+    const wCache = {};
+    const wFor = (prof)=>{ if(!wCache[prof]) wCache[prof] = getWeights(prof); return wCache[prof]; };
+    for(const tf of tfs){
+      for(const prof of profiles){
+        let arr = [];
+        try{ arr = await SUPA.fetchPalmares(sym, tf, 50, prof); }catch(_){ arr = []; }
+        if(!Array.isArray(arr) || !arr.length) continue;
+        const w = wFor(prof);
+        for(const it of arr){
+          if(!it || !it.params) continue;
+          const st = it.res || {};
+          let sc = Number.isFinite(it.score) ? Number(it.score) : scoreResult(st, w);
+          if(!Number.isFinite(sc)) continue;
+          if(!best || sc > best.score){
+            const labelBase = it.name || `Palmarès ${symbolToDisplay(sym)} • ${tf}`;
+            const label = `${labelBase} • ${prof}`;
+            best = { score: sc, params: it.params, label };
+          }
+        }
+      }
+    }
+  } else {
+    let prof = 'balancee';
+    try{ prof = localStorage.getItem('labWeightsProfile') || 'balancee'; }catch(_){ }
+    const w = getWeights(prof);
+    for(const tf of tfs){
+      let arr = [];
+      try{ arr = readPalmares(sym, tf) || []; }catch(_){ arr = []; }
+      if(!Array.isArray(arr) || !arr.length) continue;
+      for(const it of arr){
+        if(!it || !it.params) continue;
+        const st = it.res || {};
+        let sc = Number.isFinite(it.score) ? Number(it.score) : scoreResult(st, w);
+        if(!Number.isFinite(sc)) continue;
+        if(!best || sc > best.score){
+          const label = it.name || `Palmarès ${symbolToDisplay(sym)} • ${tf}`;
+          best = { score: sc, params: it.params, label };
+        }
+      }
+    }
+  }
+  let cfg;
+  if(best && best.params){
+    cfg = { mode:'palmares', params: best.params, label: best.label };
+  } else {
+    cfg = { mode:'heaven' };
+  }
+  try{
+    if(!__detailBestBySymbol) __detailBestBySymbol = {};
+    __detailBestBySymbol[sym] = cfg;
+  }catch(_){ }
+  return cfg;
+}
 
 function setupDetailConfigUI(){
   try{
@@ -2772,7 +2855,9 @@ async function openLabStrategyDetail(item, ctx){ try{
     try{ ensureFloatingModal(detailModalEl, 'detail', { left: 60, top: 60, width: 1000, height: 660, zIndex: bumpZ() }); }catch(_){ }
     const ctxFull = { symbol: sym, tf, name: (item && item.name) || 'Stratégie', conf, bars, sIdx, eIdx, params: p, gen: (item && item.gen) ? item.gen : 1 };
     __detailLastMain = { item, ctx: ctxFull, res };
-    if(!__detailCompareCfg){ __detailCompareCfg = { mode:'heaven' }; }
+    if(!__detailCompareCfg){
+      __detailCompareCfg = await computeDefaultDetailCompareCfgForSymbol(sym);
+    }
     renderStrategyDetailIntoModal(res, ctxFull, __detailCompareCfg);
     try{ setupDetailConfigUI(); }catch(_){ }
     try{ setupDetailCompareUI(); }catch(_){ }
@@ -2821,6 +2906,20 @@ async function populateDetailCompPalmares(){
       idx++;
     }
     listSel.innerHTML = opts.join('');
+    // Sélectionner automatiquement la stratégie utilisée comme comparaison par défaut, si possible
+    try{
+      if(__detailCompareCfg && __detailCompareCfg.mode==='palmares' && __detailCompareCfg.params){
+        const targetKey = paramsKey(__detailCompareCfg.params);
+        for(let i=0;i<__detailCompPalmaresList.length;i++){
+          const it = __detailCompPalmaresList[i];
+          if(!it || !it.params) continue;
+          if(paramsKey(it.params) === targetKey){
+            listSel.value = String(i);
+            break;
+          }
+        }
+      }
+    }catch(_){ }
   }catch(_){ }
 }
 
