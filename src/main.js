@@ -2636,16 +2636,21 @@ function setupDetailConfigUI(){
     const feeEl=document.getElementById('detailFee');
     const levEl=document.getElementById('detailLev');
     const applyEl=document.getElementById('detailConfApply');
-    if(!capEl || (capEl.dataset && capEl.dataset.wired==='1')) return;
+    if(!capEl || !feeEl || !levEl) return;
     const ctxMain = __detailLastMain && __detailLastMain.ctx;
     const conf = (ctxMain && ctxMain.conf) || {};
     const labCapEl=document.getElementById('labStartCap');
     const labFeeEl=document.getElementById('labFee');
     const labLevEl=document.getElementById('labLev');
-    if(capEl && !capEl.value){ capEl.value = String(conf.startCap!=null? conf.startCap : (labCapEl && labCapEl.value) || 10000); }
-    if(feeEl && !feeEl.value){ feeEl.value = String(conf.fee!=null? conf.fee : (labFeeEl && labFeeEl.value) || 0.1); }
-    if(levEl && !levEl.value){ levEl.value = String(conf.lev!=null? conf.lev : (labLevEl && labLevEl.value) || 1); }
-    if(applyEl){
+    // Toujours rafraîchir les valeurs à partir du contexte courant
+    const startCapVal = (conf.startCap!=null? conf.startCap : (labCapEl && labCapEl.value) || 10000);
+    const feeVal = (conf.fee!=null? conf.fee : (labFeeEl && labFeeEl.value) || 0.1);
+    const levVal = (conf.lev!=null? conf.lev : (labLevEl && labLevEl.value) || 1);
+    capEl.value = String(startCapVal);
+    feeEl.value = String(feeVal);
+    levEl.value = String(levVal);
+    // Ne câbler le bouton qu'une seule fois, mais réutiliser __detailLastMain à chaque clic
+    if(applyEl && (!applyEl.dataset || applyEl.dataset.wired!=='1')){
       applyEl.addEventListener('click', ()=>{
         try{
           if(!__detailLastMain || !__detailLastMain.ctx) return;
@@ -2655,8 +2660,8 @@ function setupDetailConfigUI(){
           if(!bars.length) return;
           const sIdx = ctx.sIdx|0, eIdx = ctx.eIdx|0;
           const p = ctx.params || (item && (item.params||item.p)) || {};
-          const startCap = Math.max(0, parseFloat(capEl.value||'0')||0);
-          const fee = Math.max(0, parseFloat(feeEl.value||'0')||0);
+          const startCap = Math.max(0, parseFloat(capEl.value||'0'));
+          const fee = Math.max(0, parseFloat(feeEl.value||'0'));
           const lev = Math.max(1, parseFloat(levEl.value||'1')||1);
           const confNew = { ...(ctx.conf||{}), startCap, fee, lev, maxPct: (ctx.conf&&ctx.conf.maxPct!=null? ctx.conf.maxPct:100), base:(ctx.conf&&ctx.conf.base)||'initial' };
           ctx.conf = confNew;
@@ -2670,9 +2675,9 @@ function setupDetailConfigUI(){
           renderStrategyDetailIntoModal(resNew, ctx, __detailCompareCfg||{mode:'heaven'});
         }catch(_){ }
       });
+      if(!applyEl.dataset) applyEl.dataset={};
+      applyEl.dataset.wired='1';
     }
-    if(!capEl.dataset) capEl.dataset={};
-    capEl.dataset.wired='1';
   }catch(_){ }
 }
 
@@ -2817,12 +2822,13 @@ function setupDetailCompareUI(){
     const profSel=document.getElementById('detailCompProfile');
     const listSel=document.getElementById('detailCompPalmares');
     const applyBtn=document.getElementById('detailCompApply');
-    if(!srcSel || srcSel.dataset && srcSel.dataset.wired==='1') return;
-    // Restaurer la source à partir de la config courante (Heaven / Palmarès)
+    if(!srcSel) return;
+    const alreadyWired = !!(srcSel.dataset && srcSel.dataset.wired==='1');
+    // Restaurer/mettre à jour la source à partir de la config courante (Heaven / Palmarès)
     try{
       if(__detailCompareCfg && __detailCompareCfg.mode){ srcSel.value = __detailCompareCfg.mode; }
     }catch(_){ }
-    // Peupler les paires à partir de la liste principale du chart
+    // Peupler les paires à partir de la liste principale du chart (toujours rafraîchi selon le contexte courant)
     try{
       if(symSel && symbolSelect && symbolSelect.innerHTML){
         symSel.innerHTML = symbolSelect.innerHTML;
@@ -2847,43 +2853,46 @@ function setupDetailCompareUI(){
       if(tfSel) tfSel.disabled = disabled;
       if(profSel) profSel.disabled = disabled;
     };
-    srcSel.addEventListener('change', ()=>{
-      syncVisibility();
-      // Quand on passe en mode Palmarès, charger immédiatement la liste
-      if(srcSel.value==='palmares'){ populateDetailCompPalmares(); }
-    });
-    syncVisibility();
-    // Rafraîchir la liste Palmarès quand pair/TF/profil changent
-    const triggerPalmares = ()=>{ populateDetailCompPalmares(); };
-    if(symSel) symSel.addEventListener('change', triggerPalmares);
-    if(tfSel) tfSel.addEventListener('change', triggerPalmares);
-    if(profSel) profSel.addEventListener('change', triggerPalmares);
-    // Bouton Appliquer
-    if(applyBtn){
-      applyBtn.addEventListener('click', ()=>{
-        try{
-          const mode = srcSel.value||'heaven';
-          if(mode==='heaven'){
-            __detailCompareCfg = { mode:'heaven' };
-            refreshStrategyDetailComparator();
-            return;
-          }
-          // mode palmarès: utiliser la stratégie sélectionnée mais la rejouer sur les mêmes données que la stratégie analysée
-          if(!listSel) return;
-          const idxStr = listSel.value||'';
-          if(!idxStr) return;
-          const idx = parseInt(idxStr,10);
-          const it = Array.isArray(__detailCompPalmaresList)? __detailCompPalmaresList[idx] : null;
-          if(!it || !it.params){ return; }
-          const label = it.name || `Palmarès #${idx+1}`;
-          __detailCompareCfg = { mode:'palmares', params: it.params, label };
-          refreshStrategyDetailComparator();
-        }catch(_){ }
+    if(!alreadyWired){
+      srcSel.addEventListener('change', ()=>{
+        syncVisibility();
+        // Quand on passe en mode Palmarès, charger immédiatement la liste
+        if(srcSel.value==='palmares'){ populateDetailCompPalmares(); }
       });
+      // Rafraîchir la liste Palmarès quand pair/TF/profil changent
+      const triggerPalmares = ()=>{ populateDetailCompPalmares(); };
+      if(symSel) symSel.addEventListener('change', triggerPalmares);
+      if(tfSel) tfSel.addEventListener('change', triggerPalmares);
+      if(profSel) profSel.addEventListener('change', triggerPalmares);
+      // Bouton Appliquer
+      if(applyBtn){
+        applyBtn.addEventListener('click', ()=>{
+          try{
+            const mode = srcSel.value||'heaven';
+            if(mode==='heaven'){
+              __detailCompareCfg = { mode:'heaven' };
+              refreshStrategyDetailComparator();
+              return;
+            }
+            // mode palmarès: utiliser la stratégie sélectionnée mais la rejouer sur les mêmes données que la stratégie analysée
+            if(!listSel) return;
+            const idxStr = listSel.value||'';
+            if(!idxStr) return;
+            const idx = parseInt(idxStr,10);
+            const it = Array.isArray(__detailCompPalmaresList)? __detailCompPalmaresList[idx] : null;
+            if(!it || !it.params){ return; }
+            const label = it.name || `Palmarès #${idx+1}`;
+            __detailCompareCfg = { mode:'palmares', params: it.params, label };
+            refreshStrategyDetailComparator();
+          }catch(_){ }
+        });
+      }
+      if(!srcSel.dataset) srcSel.dataset={};
+      srcSel.dataset.wired='1';
     }
-    // Charger une première liste Palmarès si besoin
-    populateDetailCompPalmares();
-    srcSel.dataset.wired='1';
+    // Appliquer visibilité & rafraîchir Palmarès pour le contexte courant si besoin
+    syncVisibility();
+    if(srcSel.value==='palmares'){ populateDetailCompPalmares(); }
   }catch(_){ }
 }
 
