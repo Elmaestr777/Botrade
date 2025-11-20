@@ -404,23 +404,20 @@ async function fetchKnownCanonicalKeys(symbol, tf, profileName){
 async function fetchPalmares(symbol, tf, limit=25, profileName){
     const c=ensureClient(); if(!c) return [];
     const profileId = await getProfileIdByName(profileName || currentProfileName());
-    function mapRows(rows){ const out=[]; let idx=1; for(const row of rows||[]){ const paramsUI=uiParamsFromCanonical(row.params||{}); const metrics=row.metrics||{}; const score=(typeof row.score==='number')? row.score:0; const name=row.name||null; out.push({ id:'db_'+(idx++), name, gen:1, params:paramsUI, res:metrics, score, ts:Date.now() }); } return out; }
+    function mapRows(rows){
+      const out=[]; let idx=1;
+      for(const row of rows||[]){
+        const paramsUI=uiParamsFromCanonical(row.params||{});
+        const metrics=row.metrics||{};
+        const score=(typeof row.score==='number')? row.score:0;
+        const name=row.name||null;
+        const gen = (typeof row.generation==='number' && Number.isFinite(row.generation)) ? row.generation : 1;
+        out.push({ id:'db_'+(idx++), name, gen, params:paramsUI, res:metrics, score, ts:Date.now() });
+      }
+      return out;
+    }
     try{
-      // Primary: global best by pair/TF (selected=true), ordered by score desc
-      let q = c
-        .from('strategy_evaluations')
-        .select('params,metrics,score')
-        .eq('symbol', symbol)
-        .eq('tf', tf)
-        .eq('selected', true)
-        .order('score', { ascending: false })
-        .order('created_at', { ascending: false })
-        .limit(Math.max(1, limit));
-      if(profileId!=null) q = q.eq('profile_id', profileId); else q = q.is('profile_id', null);
-      let { data, error } = await q;
-      if(!error && Array.isArray(data) && data.length){ return mapRows(data); }
-
-      // Fallback: latest palmarès set entries (includes names)
+      // Priorité: dernier palmarès_set (avec noms + génération)
       let qs = c
         .from('palmares_sets')
         .select('id, created_at')
@@ -435,7 +432,7 @@ async function fetchPalmares(symbol, tf, limit=25, profileName){
         if(setId){
           const qe = c
             .from('palmares_entries')
-            .select('params,metrics,score,rank,name')
+            .select('params,metrics,score,rank,name,generation')
             .eq('set_id', setId)
             .order('rank', { ascending:true })
             .limit(Math.max(1, limit));
@@ -443,6 +440,21 @@ async function fetchPalmares(symbol, tf, limit=25, profileName){
           if(!err3 && Array.isArray(entries) && entries.length){ return mapRows(entries); }
         }
       }
+
+      // Fallback: global best by pair/TF (selected=true) si aucun palmarès_set n'est disponible
+      let q = c
+        .from('strategy_evaluations')
+        .select('params,metrics,score')
+        .eq('symbol', symbol)
+        .eq('tf', tf)
+        .eq('selected', true)
+        .order('score', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(Math.max(1, limit));
+      if(profileId!=null) q = q.eq('profile_id', profileId); else q = q.is('profile_id', null);
+      let { data, error } = await q;
+      if(!error && Array.isArray(data) && data.length){ return mapRows(data.map(r=>({ ...r, generation:1 }))); }
+
       return [];
     }catch(_){ return []; }
   }

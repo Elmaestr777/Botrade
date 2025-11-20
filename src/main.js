@@ -4693,6 +4693,8 @@ try{ const pfStr = (res.profitFactor===Infinity?'∞':(Number(res.profitFactor||
 __labSimTotal += init.length; updateGlobalProgressUI();
 try{ addBtLog && addBtLog(`EA:init — scheduling ${init.length} évals`); }catch(_){ }
     let cur = await evalParamsList(init, 'EA:init');
+    // Taguer les évaluations initiales comme génération 1 si non défini
+    try{ cur.forEach(r=>{ if(r && r.gen==null) r.gen = 1; }); }catch(_){ }
     cur.sort((a,b)=> b.score-a.score);
 try{ const top=cur[0]; if(top){ addBtLog(`EA init — best score ${top.score.toFixed(2)} • PF ${(top.res.profitFactor===Infinity?'∞':(top.res.profitFactor||0).toFixed(2))} • Trades ${top.res.tradesCount} • Win ${(top.res.winrate||0).toFixed(1)}%`); } }catch(_){ }
     bestGlobal = Math.max(bestGlobal, (cur[0]?.score ?? -Infinity));
@@ -4719,6 +4721,8 @@ const t0g=performance.now();
       const evald = await evalParamsList(children, 'EA'); if(!Array.isArray(evald)||!evald.length){ if(!elites.length){ // nothing to build upon
           break; }
         }
+      // Taguer cette génération EA
+      try{ evald.forEach(r=>{ if(r && r.gen==null) r.gen = g; }); }catch(_){ }
       const dtg=performance.now()-t0g;
       cur = elites.concat(evald).sort((x,y)=> y.score-x.score).slice(0,pop);
 try{ const top=cur[0]; if(top){ addBtLog(`EA g ${g-1}→${g-1} done — ${children.length} évals en ${Math.round(dtg)} ms (${Math.round(dtg/Math.max(1,children.length))} ms/éval) — best ${top.score.toFixed(2)} PF ${(top.res.profitFactor===Infinity?'∞':(top.res.profitFactor||0).toFixed(2))} Trades ${top.res.tradesCount}`); } }catch(_){ }
@@ -4744,6 +4748,8 @@ try{ const top=cur[0]; if(top){ addBtLog(`EA g ${g-1}→${g-1} done — ${childr
 __labSimTotal += start.length; updateGlobalProgressUI();
 try{ addBtLog && addBtLog(`Bayes:init — scheduling ${start.length} évals`); }catch(_){ }
     let cur = (await evalParamsList(start, 'Bayes:init')).sort((a,b)=> b.score - a.score);
+    // Génération Bayes init = 1 si non défini
+    try{ cur.forEach(r=>{ if(r && r.gen==null) r.gen = 1; }); }catch(_){ }
 try{ const top=cur[0]; if(top){ addBtLog(`Bayes init — best ${top.score.toFixed(2)} PF ${(top.res.profitFactor===Infinity?'∞':(top.res.profitFactor||0).toFixed(2))}`); } }catch(_){ }
     bestGlobal = Math.max(bestGlobal, (cur[0]?.score ?? -Infinity));
     updateProgress(`Bayes 0/${iters}`, 0);
@@ -4772,6 +4778,8 @@ const vars = readLabVarToggles();
       const t0=performance.now();
       __labSimTotal += batch.length; updateGlobalProgressUI();
       const evald = await evalParamsList(batch, `Bayes`);
+      // Génération Bayes = it+1 pour les nouveaux échantillons (init = 1)
+      try{ evald.forEach(r=>{ if(r && r.gen==null) r.gen = (it+1); }); }catch(_){ }
       const dt=performance.now()-t0;
       cur = cur.concat(evald).sort((a,b)=> b.score-a.score).slice(0, Math.max(50, initN));
 try{ const top=cur[0]; if(top && (it===1 || it%5===0 || it===iters)){ addBtLog(`Bayes it ${it}/${iters} — batch ${batch.length} évals en ${Math.round(dt)} ms — best ${top.score.toFixed(2)} PF ${(top.res.profitFactor===Infinity?'∞':(top.res.profitFactor||0).toFixed(2))}`); } }catch(_){ }
@@ -4809,7 +4817,14 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
   }
 
   if(goal==='new'){
-    let bestOut = finalResults.slice(0, Math.min(10, finalResults.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen:1, name: x.name||null }));
+    const MAX_BEST = 10;
+    let bestOut = finalResults.slice(0, Math.min(MAX_BEST, finalResults.length)).map(x=>({
+      params:x.p,
+      metrics:x.res,
+      score:x.score,
+      gen:(x.gen!=null? x.gen : ((x.owner&&x.owner.gen)||1)),
+      name: x.name || (x.owner && x.owner.name) || null,
+    }));
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.persistLabResults==='function'){
       // Tout passe par Supabase (naming + persistance gérés côté SUPA)
       try{ await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut, profileName: (localStorage.getItem('labWeightsProfile')||'balancee') }); }catch(_){ }
@@ -4852,7 +4867,43 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
     setStatus(t('status.palmaresUpdated')); try{ __labSimDone = Math.max(__labSimDone, __labSimPlanned||__labSimDone); updateGlobalProgressUI(); }catch(_){ } closeBtProgress();
     maybeScheduleLabAutoLoop();
   } else {
-    const bestOut = finalResults.slice(0, Math.min(10, finalResults.length)).map(x=>({ params:x.p, metrics:x.res, score:x.score, gen: (x.gen||1), name: x.name||null }));
+    const MAX_BEST = 10;
+    // Construire un "nouveau" top à partir du run courant
+    const bestNew = finalResults.slice(0, Math.min(MAX_BEST, finalResults.length)).map(x=>({
+      params:x.p,
+      metrics:x.res,
+      score:x.score,
+      gen:(x.gen!=null? x.gen : ((x.owner&&x.owner.gen)||1)),
+      name: x.name || (x.owner && x.owner.name) || null,
+    }));
+    // Récupérer l'ancien palmarès pour ce profil/symbole/TF et fusionner sans dégrader
+    let mergedMap = new Map();
+    const pushOrUpdate = (item)=>{
+      if(!item || !item.params) return;
+      try{
+        const key = paramsKey(item.params||{});
+        const sc = Number(item.score)||0;
+        const prev = mergedMap.get(key);
+        if(!prev || sc > (Number(prev.score)||0)){
+          mergedMap.set(key, item);
+        }
+      }catch(_){ }
+    };
+    try{
+      if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchPalmares==='function'){
+        const profName = (localStorage.getItem('labWeightsProfile')||'balancee');
+        const oldPal = await SUPA.fetchPalmares(sym, tfSel, MAX_BEST*2, profName);
+        if(Array.isArray(oldPal)){
+          for(const it of oldPal){
+            pushOrUpdate({ params:it.params, metrics:it.res, score:it.score, gen:(it.gen||1), name:it.name||null });
+          }
+        }
+      }
+    }catch(_){ }
+    bestNew.forEach(pushOrUpdate);
+    let merged = Array.from(mergedMap.values());
+    try{ merged.sort((a,b)=> (Number(b.score)||0) - (Number(a.score)||0)); }catch(_){ }
+    const bestOut = merged.slice(0, Math.min(MAX_BEST, merged.length));
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.persistLabResults==='function'){
       try{ await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut, profileName: (localStorage.getItem('labWeightsProfile')||'balancee') }); }catch(_){ }
       try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
