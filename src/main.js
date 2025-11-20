@@ -166,6 +166,9 @@ const I18N = {
   'status.applyOk':      { fr:'Paramètres appliqués à Heaven', en:'Parameters applied to Heaven', es:'Parámetros aplicados a Heaven' },
   'status.applyError':   { fr:'Erreur application',             en:'Apply error',                  es:'Error al aplicar' },
   'status.weightsSaved': { fr:'Pondérations enregistrées',       en:'Weights saved',              es:'Ponderaciones guardadas' },
+  'status.weightsSaveError': { fr:"Erreur Supabase lors de l'enregistrement des pondérations (profil local uniquement).",
+                               en:'Supabase error while saving weights (local profile only).',
+                               es:'Error de Supabase al guardar las ponderaciones (sólo perfil local).' },
 
   'supa.urlAnonRequired': { fr:'URL et ANON requis', en:'URL and ANON are required', es:'Se requieren URL y ANON' },
   'supa.testing':         { fr:'Test de connexion...', en:'Testing connection...', es:'Probando conexión...' },
@@ -3835,15 +3838,32 @@ if(labWeightsBtn){ labWeightsBtn.addEventListener('click', async ()=>{ try{ cons
 }catch(_){ } }); }
 if(weightsProfile){ weightsProfile.addEventListener('change', ()=>{ try{ buildWeightsUI(); updateWeightsTotalInfo(); }catch(_){ } }); }
 if(weightsClose){ weightsClose.addEventListener('click', ()=> closeModalEl(weightsModalEl)); }
-if(weightsSave){ weightsSave.addEventListener('click', async ()=>{ try{ const prof = (weightsProfile&&weightsProfile.value)||'balancee'; const w = readWeightsFromUI(); saveWeights(prof, w); localStorage.setItem('labWeightsProfile', prof);
+if(weightsSave){ weightsSave.addEventListener('click', async ()=>{ try{
+  const prof = (weightsProfile&&weightsProfile.value)||'balancee';
+  const w = readWeightsFromUI();
+  // Toujours sauvegarder en local comme filet de sécurité
+  saveWeights(prof, w);
+  localStorage.setItem('labWeightsProfile', prof);
+  let supaOk = true;
   // Persistance Supabase best-effort (si configuré + connecté)
   try{
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.upsertLabProfileWeights==='function'){
-      await SUPA.upsertLabProfileWeights(prof, w);
+      const ok = await SUPA.upsertLabProfileWeights(prof, w);
+      if(!ok){
+        supaOk = false;
+      } else if(typeof SUPA.fetchLabProfileWeights==='function'){
+        // Round‑trip de vérification: recharger ce que Supabase renvoie comme source de vérité
+        try{
+          const row2 = await SUPA.fetchLabProfileWeights(prof);
+          if(row2 && row2.weights && typeof row2.weights==='object'){
+            saveWeights(prof, row2.weights);
+          }
+        }catch(_){ }
+      }
     }
-  }catch(_){ }
+  }catch(_){ supaOk = false; }
   closeModalEl(weightsModalEl);
-  setStatus(t('status.weightsSaved'));
+  setStatus(t(supaOk ? 'status.weightsSaved' : 'status.weightsSaveError'));
   try{ renderLabFromStorage(); computeLabBenchmarkAndUpdate(); }catch(_){ }
 }catch(_){ } }); }
 
@@ -3917,7 +3937,22 @@ const conf=readLabRiskConf();
   const idxFromTimeLocal=(bars,from,to)=>{ let s=0,e=bars.length-1; if(from!=null){ for(let i=0;i<bars.length;i++){ if(bars[i].time>=from){ s=i; break; } } } if(to!=null){ for(let j=bars.length-1;j>=0;j--){ if(bars[j].time<=to){ e=j; break; } } } return [s,e]; };
   const [sIdx,eIdx]=idxFromTimeLocal(bars,from,to);
   try{ const span = (from!=null||to!=null)? `${new Date((from||bars[sIdx]?.time||0)*1000).toLocaleString()} → ${new Date((to||bars[eIdx]?.time||0)*1000).toLocaleString()}` : `${new Date((bars[sIdx]?.time||0)*1000).toLocaleString()} → ${new Date((bars[eIdx]?.time||0)*1000).toLocaleString()}`; addBtLog(`Période: idx ${sIdx}-${eIdx} (${Math.max(0,eIdx-sIdx+1)} barres) • ${span}`); }catch(_){ }
-const weights=getWeights(profSel);
+  // Rafraîchir les pondérations depuis Supabase (source de vérité) juste avant l'entraînement
+  try{
+    if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchLabProfileWeights==='function'){
+      const rowW = await SUPA.fetchLabProfileWeights(profSel);
+      if(rowW && rowW.weights && typeof rowW.weights==='object'){
+        saveWeights(profSel, rowW.weights);
+      }
+    }
+  }catch(_){ }
+  const weights=getWeights(profSel);
+  try{
+    if(typeof addBtLog==='function'){
+      const tot=(weights.pf+weights.wr+weights.rr+weights.pnl+weights.eq+weights.trades+weights.dd+weights.sharpe+weights.recov+weights.slope+weights.cons+weights.exp+weights.ret)||0;
+      addBtLog(`Pondérations actives (profil ${profSel}): PF=${weights.pf} WR=${weights.wr} RR=${weights.rr} PNL=${weights.pnl} EQ=${weights.eq} TR=${weights.trades} DD=${weights.dd} Sharpe=${weights.sharpe} Recov=${weights.recov} Slope=${weights.slope} Cons=${weights.cons} Exp=${weights.exp} Ret=${weights.ret} • Total=${tot.toFixed(1)} pts`);
+    }
+  }catch(_){ }
   const allTested=[]; // accumulate every evaluated strategy for Supabase persistence
   // Global simulation progress (for ETA)
   let __labSimTotal=0, __labSimDone=0, __labSimDtSum=0, __labSimDtCnt=0, __labConc=1, __labSimPlanned=0;
