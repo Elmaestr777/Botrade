@@ -2665,11 +2665,6 @@ function setupDetailConfigUI(){
           const lev = Math.max(1, parseFloat(levEl.value||'1')||1);
           const confNew = { ...(ctx.conf||{}), startCap, fee, lev, maxPct: (ctx.conf&&ctx.conf.maxPct!=null? ctx.conf.maxPct:100), base:(ctx.conf&&ctx.conf.base)||'initial' };
           ctx.conf = confNew;
-          try{
-            if(labCapEl) labCapEl.value = String(startCap);
-            if(labFeeEl) labFeeEl.value = String(fee);
-            if(labLevEl) labLevEl.value = String(lev);
-          }catch(_){ }
           const resNew = runBacktestSliceFor(bars, sIdx, eIdx, confNew, p, true);
           __detailLastMain = { item, ctx, res: resNew };
           renderStrategyDetailIntoModal(resNew, ctx, __detailCompareCfg||{mode:'heaven'});
