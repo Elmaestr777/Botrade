@@ -5003,8 +5003,16 @@ async function evalParamsList(list, phase='Eval'){
     function fmtTP(tp){ try{ if(!Array.isArray(tp)||!tp.length) return '—'; return tp.map(t=>{ const typ=(t.type||'Fib'); if(typ==='Fib'){ return `F:${t.fib}`; } if(typ==='Percent'){ return `P:${t.pct}%`; } if(typ==='EMA'){ return `E:${t.emaLen}`; } return typ; }).slice(0,10).join(';'); }catch(_){ return '—'; } }
     function fmtParams(p){ try{ return `nol=${p.nol} prd=${p.prd} sl=${p.slInitPct}% be=${p.beAfterBars}/${p.beLockPct}% ema=${p.emaLen} entry=${p.entryMode||'Both'} fibRet=${p.useFibRet?1:0} confirm=${p.confirmMode||'Bounce'} ent=[${p.ent382?'382':''}${p.ent500? (p.ent382?',500':'500'):''}${p.ent618? (p.ent382||p.ent500?',618':'618'):''}${p.ent786? ((p.ent382||p.ent500||p.ent618)?',786':'786'):''}] tp=${fmtTP(p.tp)}`; }catch(_){ return ''; } }
 
-    // Worker pool for parallel evals
-    const CONC = Math.max(1, Math.min( Math.floor((navigator && navigator.hardwareConcurrency) || 2), 6)); __labConc = CONC;
+    // Worker pool for parallel evals — auto‑scaled on machine cores (capped)
+    let hw = 2;
+    try{
+      if(typeof navigator!=='undefined' && navigator.hardwareConcurrency){
+        const n = navigator.hardwareConcurrency|0;
+        if(n && n>0) hw = n;
+      }
+    }catch(_){ }
+    const CONC = Math.max(1, Math.min(hw, 12));
+    __labConc = CONC;
     function makePool(conc){
       const workers=[]; const idle=[]; let closed=false; let failed=false;
       function spawn(){
