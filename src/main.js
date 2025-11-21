@@ -783,6 +783,179 @@ function handleLabApplyClick(ev){
   }catch(e){ setStatus(t('status.applyError')); }
 }
 
+// --- Global palmarès (tous symboles / TF) ---
+const globalPalBtn = document.getElementById('globalPalmaresBtn');
+const globalPalModalEl = document.getElementById('globalPalmaresModal');
+const globalPalCloseBtn = document.getElementById('globalPalmaresClose');
+const globalPalSortEl = document.getElementById('globalPalSortMode');
+const globalPalSummaryEl = document.getElementById('globalPalSummary');
+const globalPalTBody = document.getElementById('globalPalTBody');
+let __globalPalmaresData = [];
+
+async function loadGlobalPalmares(){
+  let prof = 'balancee';
+  try{
+    if(typeof currentProfileName==='function') prof = currentProfileName();
+    else prof = localStorage.getItem('labWeightsProfile') || 'balancee';
+  }catch(_){ prof = 'balancee'; }
+  const weights = getWeights(prof);
+  let items = [];
+  if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchGlobalPalmares==='function'){
+    try{
+      const rows = await SUPA.fetchGlobalPalmares(200);
+      items = Array.isArray(rows)? rows.map((row)=>{
+        const st = row.res || {};
+        const raw = scoreResult(st, weights);
+        const robust = Number.isFinite(row.score)? Number(row.score) : raw;
+        const pnl = Number(st.totalPnl||0);
+        const eq1 = Number(st.equityFinal||0);
+        const cnt = Number(st.tradesCount||0);
+        const wr = Number(st.winrate||0);
+        const rr = Number(st.avgRR||0);
+        const mdd = Number(st.maxDDAbs||0);
+        return {
+          symbol: row.symbol,
+          tf: row.tf,
+          profile: '',
+          name: row.name || null,
+          gen: row.gen != null ? row.gen : 1,
+          scoreRaw: raw,
+          scoreRobust: robust,
+          score: robust,
+          pnl, eq1, cnt, wr, rr, mdd,
+          params: row.params || {},
+          res: st,
+        };
+      }) : [];
+    }catch(_){ items = []; }
+  } else {
+    const syms = [];
+    try{
+      if(symbolSelect && symbolSelect.options && symbolSelect.options.length){
+        for(let i=0;i<symbolSelect.options.length;i++){ const v=symbolSelect.options[i].value; if(v) syms.push(v); }
+      }
+    }catch(_){ }
+    if(!syms.length){ try{ if(currentSymbol) syms.push(currentSymbol); }catch(_){ } }
+    let tfs = [];
+    try{
+      const sel = labTFSelect || document.getElementById('labTFSelect');
+      if(sel && sel.options && sel.options.length){
+        for(let i=0;i<sel.options.length;i++){ const v=sel.options[i].value; if(v) tfs.push(v); }
+      }
+    }catch(_){ }
+    if(!tfs.length){ tfs = ['1m','5m','15m','1h','4h','1d']; }
+    const rows=[];
+    for(const sym of syms){
+      for(const tf of tfs){
+        let arr=[];
+        try{ arr = readPalmares(sym, tf) || []; }catch(_){ arr=[]; }
+        if(!Array.isArray(arr) || !arr.length) continue;
+        for(const r of arr){
+          const st = r.res || {};
+          const raw = scoreResult(st, weights);
+          const robust = Number.isFinite(r.score)? Number(r.score) : raw;
+          const pnl = Number(st.totalPnl||0);
+          const eq1 = Number(st.equityFinal||0);
+          const cnt = Number(st.tradesCount||0);
+          const wr = Number(st.winrate||0);
+          const rr = Number(st.avgRR||0);
+          const mdd = Number(st.maxDDAbs||0);
+          rows.push({
+            symbol: sym,
+            tf,
+            profile: prof,
+            name: r.name || null,
+            gen: r.gen != null ? r.gen : 1,
+            scoreRaw: raw,
+            scoreRobust: robust,
+            score: robust,
+            pnl, eq1, cnt, wr, rr, mdd,
+            params: r.params || {},
+            res: st,
+          });
+        }
+      }
+    }
+    items = rows;
+  }
+  __globalPalmaresData = Array.isArray(items)? items : [];
+  renderGlobalPalmares();
+}
+
+function renderGlobalPalmares(){
+  if(!globalPalTBody) return;
+  const arr = Array.isArray(__globalPalmaresData)? __globalPalmaresData : [];
+  let sortMode = 'score';
+  try{
+    sortMode = (globalPalSortEl && globalPalSortEl.value) || localStorage.getItem('globalPal:sortMode') || 'score';
+  }catch(_){ sortMode='score'; }
+  try{
+    if(globalPalSortEl){
+      if(!globalPalSortEl.value) globalPalSortEl.value = sortMode;
+      if(globalPalSortEl.value !== sortMode){ globalPalSortEl.value = sortMode; }
+    }
+    localStorage.setItem('globalPal:sortMode', sortMode);
+  }catch(_){ }
+  if(!arr.length){
+    globalPalTBody.innerHTML = `<tr><td colspan=\"14\">${t('lab.table.noData')}</td></tr>`;
+    if(globalPalSummaryEl) globalPalSummaryEl.textContent = t('lab.palmares.empty');
+    return;
+  }
+  const sorted = arr.slice().sort((a,b)=>{
+    if(sortMode==='pnl'){
+      const pa = Number(a.pnl||0), pb = Number(b.pnl||0);
+      if(pb!==pa) return pb-pa;
+    } else if(sortMode==='raw'){
+      const ra = Number(a.scoreRaw||0), rb = Number(b.scoreRaw||0);
+      if(rb!==ra) return rb-ra;
+    }
+    const sa = Number(a.scoreRobust||0), sb = Number(b.scoreRobust||0);
+    return sb-sa;
+  });
+  const rows=[]; let idx=1;
+  for(const it of sorted){
+    const pair = symbolToDisplay(it.symbol||'');
+    const tfDisp = it.tf || '';
+    const prof = it.profile || '';
+    rows.push(`
+<tr>
+  <td>${idx}</td>
+  <td>${pair}</td>
+  <td>${tfDisp}</td>
+  <td>${prof}</td>
+  <td style=\"text-align:left\">${(it.name||'—')}</td>
+  <td>${it.gen!=null? it.gen:1}</td>
+  <td>${Number(it.scoreRaw||0).toFixed(2)}</td>
+  <td>${Number(it.scoreRobust||0).toFixed(2)}</td>
+  <td>${Number(it.pnl||0).toFixed(0)}</td>
+  <td>${Number(it.eq1||0).toFixed(0)}</td>
+  <td>${Number(it.cnt||0)}</td>
+  <td>${Number(it.wr||0).toFixed(1)}</td>
+  <td>${Number.isFinite(it.rr)? Number(it.rr).toFixed(2): '—'}</td>
+  <td>${Number(it.mdd||0).toFixed(0)}</td>
+</tr>`);
+    if(idx>=200) break;
+    idx++;
+  }
+  globalPalTBody.innerHTML = rows.join('');
+  if(globalPalSummaryEl){
+    const sortSuffix = sortMode==='pnl' ? ' • tri: P&L' : (sortMode==='raw'? ' • tri: Score brut' : ' • tri: Score');
+    globalPalSummaryEl.textContent = `${t('lab.palmares.prefix')} ${arr.length} ${t('lab.palmares.strats')} — global${sortSuffix}`;
+  }
+}
+
+if(globalPalBtn && (!globalPalBtn.dataset || globalPalBtn.dataset.wired!=="1")){
+  globalPalBtn.addEventListener('click', async ()=>{ try{ openModalEl(globalPalModalEl); await loadGlobalPalmares(); }catch(_){ } });
+  if(!globalPalBtn.dataset) globalPalBtn.dataset={};
+  globalPalBtn.dataset.wired='1';
+}
+if(globalPalCloseBtn){ globalPalCloseBtn.addEventListener('click', ()=> closeModalEl(globalPalModalEl)); }
+if(globalPalSortEl && (!globalPalSortEl.dataset || globalPalSortEl.dataset.wired!=="1")){
+  globalPalSortEl.addEventListener('change', ()=>{ try{ renderGlobalPalmares(); }catch(_){ } });
+  if(!globalPalSortEl.dataset) globalPalSortEl.dataset={};
+  globalPalSortEl.dataset.wired='1';
+}
+
 
 /* Chart BTC/USDC avec Lightweight Charts + données Binance + UI Heaven/Lab/Backtest/EMA (restauré) */
 

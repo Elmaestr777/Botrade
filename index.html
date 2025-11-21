@@ -70,6 +70,7 @@
         </label>
         <button id="btRunVisible" class="btn" data-i18n="header.btRun">Backtest</button>
         <button id="labOpen" class="btn" title="Recherche/Apprentissage par TF" data-i18n="header.lab" data-i18n-title="header.labTitle">Lab</button>
+        <button id="globalPalmaresBtn" class="btn" title="Palmarès global (tous symboles &amp; TF)">Palmarès global</button>
         <button id="liveOpen" class="btn" title="Paper/Live trading" data-i18n="header.live" data-i18n-title="header.liveTitle">Live</button>
         <button id="supaCfgBtn" class="btn" title="Configurer Supabase" data-i18n="header.supaBtn" data-i18n-title="header.supaTitle">Supabase</button>
         <button id="themeToggle" class="btn" title="Basculer thème (Auto → Sombre → Clair)">Thème: Auto</button>
@@ -1602,6 +1603,43 @@
                 </tr>
               </thead>
               <tbody id="evalsTBody"><tr><td colspan="8">—</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Global palmarès modal -->
+    <div id="globalPalmaresModal" class="modal hidden" aria-hidden="true" role="dialog">
+      <div class="modal-backdrop" data-close="1"></div>
+      <div class="modal-content" style="max-width:1040px;">
+        <div class="modal-header">
+          <h2>Palmarès global</h2>
+          <button id="globalPalmaresClose" class="icon-btn" aria-label="Fermer">×</button>
+        </div>
+        <div class="modal-body">
+          <div id="globalPalSummary" style="margin-bottom:4px; color:var(--muted);"></div>
+          <div class="lab-sort-controls" style="margin-bottom:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <label for="globalPalSortMode" style="display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--muted);">
+              <span>Classement</span>
+              <select id="globalPalSortMode" style="padding:2px 4px; font-size:13px;">
+                <option value="score">Score robuste</option>
+                <option value="raw">Score brut</option>
+                <option value="pnl">P&amp;L net</option>
+              </select>
+            </label>
+          </div>
+          <div style="overflow:auto; max-height:60vh; margin-top:4px;">
+            <table class="lbc-table" style="width:100%">
+              <thead>
+                <tr>
+                  <th>#</th><th>Pair</th><th>TF</th><th>Profil</th><th>Nom</th><th>Gen</th>
+                  <th title="Score brut = score direct (pondérations)">Score brut</th>
+                  <th title="Score robuste = moyenne de variantes (brut, jitter, splits) − pénalité de variance (≤ 5 pts)">Score robuste</th>
+                  <th>P&amp;L</th><th>Cap. final</th><th>Trades</th><th>Win%</th><th>Avg RR</th><th>Max DD</th>
+                </tr>
+              </thead>
+              <tbody id="globalPalTBody"><tr><td colspan="14">Aucune donnée</td></tr></tbody>
             </table>
           </div>
         </div>

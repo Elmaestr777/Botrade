@@ -459,6 +459,39 @@ async function fetchPalmares(symbol, tf, limit=25, profileName){
     }catch(_){ return []; }
   }
 
+  async function fetchGlobalPalmares(limit=200){
+    const c=ensureClient(); if(!c) return [];
+    function mapRows(rows){
+      const out=[]; let idx=1;
+      for(const row of rows||[]){
+        const paramsUI=uiParamsFromCanonical(row.params||{});
+        const metrics=row.metrics||{};
+        const score=(typeof row.score==='number')? row.score:0;
+        out.push({
+          id:'glob_'+(idx++),
+          symbol: row.symbol,
+          tf: row.tf,
+          profile_id: row.profile_id || null,
+          params: paramsUI,
+          res: metrics,
+          score,
+          ts: Date.now(),
+        });
+      }
+      return out;
+    }
+    try{
+      const { data, error } = await c
+        .from('v_palmares_best')
+        .select('symbol,tf,profile_id,params,metrics,score,created_at')
+        .order('score', { ascending:false })
+        .order('created_at', { ascending:false })
+        .limit(Math.max(1, limit));
+      if(error){ slog('Supabase: fetchGlobalPalmares KO — '+(error.message||error)); return []; }
+      return mapRows(data||[]);
+    }catch(_){ return []; }
+  }
+
   // Heaven strategies API (Supabase)
   async function persistHeavenStrategy(ctx){
     try{
@@ -637,6 +670,7 @@ async function fetchHeadlessSessionByName(name){
     getUserId,
     fetchKnownKeys: fetchKnownCanonicalKeys,
     fetchPalmares,
+    fetchGlobalPalmares,
     getProfileIdByName,
     fetchLabProfileWeights,
     upsertLabProfileWeights,
