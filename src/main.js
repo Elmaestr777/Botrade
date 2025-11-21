@@ -4989,7 +4989,22 @@ async function evalParamsList(list, phase='Eval'){
     function fmtParams(p){ try{ return `nol=${p.nol} prd=${p.prd} sl=${p.slInitPct}% be=${p.beAfterBars}/${p.beLockPct}% ema=${p.emaLen} entry=${p.entryMode||'Both'} fibRet=${p.useFibRet?1:0} confirm=${p.confirmMode||'Bounce'} ent=[${p.ent382?'382':''}${p.ent500? (p.ent382?',500':'500'):''}${p.ent618? (p.ent382||p.ent500?',618':'618'):''}${p.ent786? ((p.ent382||p.ent500||p.ent618)?',786':'786'):''}] tp=${fmtTP(p.tp)}`; }catch(_){ return ''; } }
 
     // Worker pool for parallel evals
-    const CONC = Math.max(1, Math.min( Math.floor((navigator && navigator.hardwareConcurrency) || 2), 6)); __labConc = CONC;
+    // Objectif : adapter le parallélisme à la machine en gardant ~30% de CPU libre
+    let hw = 2;
+    try{
+      if(typeof navigator!=='undefined' && navigator.hardwareConcurrency){
+        const n = navigator.hardwareConcurrency|0;
+        if(n && n>0) hw = n;
+      }
+    }catch(_){ }
+    // Cible ≈ 70% des cœurs logiques, mais sans jamais tous les prendre
+    let safeConc = Math.floor(hw * 0.7);
+    if(!Number.isFinite(safeConc) || safeConc < 1) safeConc = 1;
+    // Toujours garder au moins 1 cœur libre
+    if(hw > 1) safeConc = Math.min(safeConc, hw - 1);
+    // Plafond global pour éviter de surcharger le navigateur sur les très grosses machines
+    const CONC = Math.max(1, Math.min(safeConc, 16));
+    __labConc = CONC;
     function makePool(conc){
       const workers=[]; const idle=[]; let closed=false; let failed=false;
       function spawn(){
