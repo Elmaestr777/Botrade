@@ -1619,6 +1619,23 @@
         </div>
         <div class="modal-body">
           <div id="globalPalSummary" style="margin-bottom:4px; color:var(--muted);"></div>
+          <div class="lab-sort-controls" style="margin-bottom:6px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <label style="display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--muted);">
+              <span>Filtres</span>
+            </label>
+            <label style="display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--muted);">
+              <span>Pair</span>
+              <select id="globalPalSymbolFilter" style="padding:2px 4px; font-size:13px; min-width:9rem;"></select>
+            </label>
+            <label style="display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--muted);">
+              <span>TF</span>
+              <select id="globalPalTFFilter" style="padding:2px 4px; font-size:13px; min-width:6rem;"></select>
+            </label>
+            <label style="display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--muted);">
+              <span>Profil</span>
+              <select id="globalPalProfileFilter" style="padding:2px 4px; font-size:13px; min-width:10rem;"></select>
+            </label>
+          </div>
           <div class="lab-sort-controls" style="margin-bottom:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
             <label for="globalPalSortMode" style="display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--muted);">
               <span>Classement</span>
@@ -1636,10 +1653,10 @@
                   <th>#</th><th>Pair</th><th>TF</th><th>Profil</th><th>Nom</th><th>Gen</th>
                   <th title="Score brut = score direct (pondérations)">Score brut</th>
                   <th title="Score robuste = moyenne de variantes (brut, jitter, splits) − pénalité de variance (≤ 5 pts)">Score robuste</th>
-                  <th>P&amp;L</th><th>Cap. final</th><th>Trades</th><th>Win%</th><th>Avg RR</th><th>Max DD</th>
+                  <th>P&amp;L</th><th>Cap. final</th><th>Trades</th><th>Win%</th><th>Avg RR</th><th>Max DD</th><th>Actions</th>
                 </tr>
               </thead>
-              <tbody id="globalPalTBody"><tr><td colspan="14">Aucune donnée</td></tr></tbody>
+              <tbody id="globalPalTBody"><tr><td colspan="15">Aucune donnée</td></tr></tbody>
             </table>
           </div>
         </div>

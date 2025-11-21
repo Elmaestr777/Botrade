@@ -746,14 +746,32 @@ function handleLabDetailClick(ev){
   const idx = Math.max(0, parseInt(idxStr||'0',10));
   __labDetailLog('detail button found; idx='+idx);
   try{
-    const tfNow = labTFSelect? labTFSelect.value : (intervalSelect? intervalSelect.value:'');
-    const symSel=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol;
-    let item=null;
+    // Déterminer si le clic vient du palmarès global ou du Lab
+    let isGlobal = false;
     try{
-      const arr = (window.labPalmaresSorted && Array.isArray(window.labPalmaresSorted))? window.labPalmaresSorted : (Array.isArray(window.labPalmaresCache)? (function(){ const w=getWeights(localStorage.getItem('labWeightsProfile')||'balancee'); return window.labPalmaresCache.slice().sort((a,b)=> (b.score||scoreResult(b.res||{},w)) - (a.score||scoreResult(a.res||{},w))); })() : []);
-      item = arr[idx] || null;
-    }catch(_){ item=null; }
+      const gBody = document.getElementById('globalPalTBody');
+      if(gBody && gBody.contains(btn)) isGlobal = true;
+    }catch(_){ isGlobal = false; }
+
+    let arr = [];
+    try{
+      if(isGlobal && window.globalPalmaresSorted && Array.isArray(window.globalPalmaresSorted)){
+        arr = window.globalPalmaresSorted;
+      } else if(window.labPalmaresSorted && Array.isArray(window.labPalmaresSorted)){
+        arr = window.labPalmaresSorted;
+      } else if(Array.isArray(window.labPalmaresCache)){
+        const w=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
+        arr = window.labPalmaresCache.slice().sort((a,b)=> (b.score||scoreResult(b.res||{},w)) - (a.score||scoreResult(a.res||{},w)));
+      }
+    }catch(_){ arr = []; }
+
+    const item = arr[idx] || null;
     if(!item){ __labDetailLog('no item for idx'); return; }
+
+    // Symbol/TF: si disponibles sur l'item (palmarès global), sinon on retombe sur les sélecteurs Lab
+    const tfNow = (item && item.tf) || (labTFSelect? labTFSelect.value : (intervalSelect? intervalSelect.value:''));
+    const symSel = (item && item.symbol) || (labSymbolSelect&&labSymbolSelect.value) || currentSymbol;
+
     __labDetailLog('running backtest (full period) for '+(item.name||'strat'));
     // Lance l'analyse détaillée (période complète)
     openLabStrategyDetail(item, { symbol: symSel, tf: tfNow, full: true });
@@ -769,11 +787,26 @@ function handleLabApplyClick(ev){
   const idxStr = (btn && btn.getAttribute && btn.getAttribute('data-idx')) || (btn && btn.dataset && btn.dataset.idx);
   const idx = Math.max(0, parseInt(idxStr||'0',10));
   try{
-    let item=null;
+    // Même logique que pour le détail: choisir la bonne source (Lab ou global)
+    let isGlobal = false;
     try{
-      const arr = (window.labPalmaresSorted && Array.isArray(window.labPalmaresSorted))? window.labPalmaresSorted : (Array.isArray(window.labPalmaresCache)? (function(){ const w=getWeights(localStorage.getItem('labWeightsProfile')||'balancee'); return window.labPalmaresCache.slice().sort((a,b)=> (b.score||scoreResult(b.res||{},w)) - (a.score||scoreResult(a.res||{},w))); })() : []);
-      item = arr[idx] || null;
-    }catch(_){ item=null; }
+      const gBody = document.getElementById('globalPalTBody');
+      if(gBody && gBody.contains(btn)) isGlobal = true;
+    }catch(_){ isGlobal = false; }
+
+    let arr = [];
+    try{
+      if(isGlobal && window.globalPalmaresSorted && Array.isArray(window.globalPalmaresSorted)){
+        arr = window.globalPalmaresSorted;
+      } else if(window.labPalmaresSorted && Array.isArray(window.labPalmaresSorted)){
+        arr = window.labPalmaresSorted;
+      } else if(Array.isArray(window.labPalmaresCache)){
+        const w=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
+        arr = window.labPalmaresCache.slice().sort((a,b)=> (b.score||scoreResult(b.res||{},w)) - (a.score||scoreResult(a.res||{},w)));
+      }
+    }catch(_){ arr = []; }
+
+    const item = arr[idx] || null;
     if(!item || !item.params){ setStatus(t('status.noStrategy')); return; }
     applyHeavenParams(item.params);
     try{ populateHeavenModal(); }catch(_){ }
@@ -784,12 +817,26 @@ function handleLabApplyClick(ev){
 }
 
 // --- Global palmarès (tous symboles / TF) ---
+function profileDisplayName(code){
+  try{
+    if(!code) return '—';
+    let key = null;
+    const c = String(code).toLowerCase();
+    if(c==='sure' || c==='safe') key = 'lab.weights.profile.safe';
+    else if(c==='balancee' || c==='balanced') key = 'lab.weights.profile.bal';
+    else if(c==='agressive' || c==='aggressive') key = 'lab.weights.profile.agg';
+    return key ? t(key) : code;
+  }catch(_){ return code || '—'; }
+}
 const globalPalBtn = document.getElementById('globalPalmaresBtn');
 const globalPalModalEl = document.getElementById('globalPalmaresModal');
 const globalPalCloseBtn = document.getElementById('globalPalmaresClose');
 const globalPalSortEl = document.getElementById('globalPalSortMode');
 const globalPalSummaryEl = document.getElementById('globalPalSummary');
 const globalPalTBody = document.getElementById('globalPalTBody');
+const globalPalSymbolFilterEl = document.getElementById('globalPalSymbolFilter');
+const globalPalTFFilterEl = document.getElementById('globalPalTFFilter');
+const globalPalProfileFilterEl = document.getElementById('globalPalProfileFilter');
 let __globalPalmaresData = [];
 
 async function loadGlobalPalmares(){
@@ -879,12 +926,80 @@ async function loadGlobalPalmares(){
     items = rows;
   }
   __globalPalmaresData = Array.isArray(items)? items : [];
+  populateGlobalPalmaresFilters();
   renderGlobalPalmares();
+}
+
+function populateGlobalPalmaresFilters(){
+  try{
+    const ALL = '__all__';
+    const arr = Array.isArray(__globalPalmaresData)? __globalPalmaresData : [];
+    const syms = new Set();
+    const tfs = new Set();
+    const profs = new Set();
+    for(const it of arr){
+      if(it && it.symbol) syms.add(it.symbol);
+      if(it && it.tf) tfs.add(it.tf);
+      if(it && it.profile) profs.add(it.profile);
+    }
+    let selSym = ALL, selTF = ALL, selProf = ALL;
+    try{
+      selSym = localStorage.getItem('globalPal:filter:symbol') || ALL;
+      selTF = localStorage.getItem('globalPal:filter:tf') || ALL;
+      selProf = localStorage.getItem('globalPal:filter:profile') || ALL;
+    }catch(_){ selSym = selTF = selProf = ALL; }
+
+    if(globalPalSymbolFilterEl){
+      const opts = [`<option value="${ALL}">Toutes les paires</option>`];
+      Array.from(syms).sort().forEach(sym=>{
+        const disp = symbolToDisplay(sym);
+        opts.push(`<option value="${sym}">${disp}</option>`);
+      });
+      globalPalSymbolFilterEl.innerHTML = opts.join('');
+      try{ if(selSym && selSym!==ALL) globalPalSymbolFilterEl.value = selSym; }catch(_){ }
+    }
+
+    if(globalPalTFFilterEl){
+      const opts = [`<option value="${ALL}">Tous les TF</option>`];
+      Array.from(tfs).sort().forEach(tf=>{
+        opts.push(`<option value="${tf}">${tf}</option>`);
+      });
+      globalPalTFFilterEl.innerHTML = opts.join('');
+      try{ if(selTF && selTF!==ALL) globalPalTFFilterEl.value = selTF; }catch(_){ }
+    }
+
+    if(globalPalProfileFilterEl){
+      const opts = [`<option value="${ALL}">Tous les profils</option>`];
+      Array.from(profs).sort().forEach(code=>{
+        const disp = profileDisplayName(code);
+        opts.push(`<option value="${code}">${disp}</option>`);
+      });
+      globalPalProfileFilterEl.innerHTML = opts.join('');
+      try{ if(selProf && selProf!==ALL) globalPalProfileFilterEl.value = selProf; }catch(_){ }
+    }
+  }catch(_){ }
 }
 
 function renderGlobalPalmares(){
   if(!globalPalTBody) return;
-  const arr = Array.isArray(__globalPalmaresData)? __globalPalmaresData : [];
+  const ALL = '__all__';
+  let arr = Array.isArray(__globalPalmaresData)? __globalPalmaresData : [];
+
+  // Appliquer les filtres (pair / TF / profil)
+  try{
+    let selSym = ALL, selTF = ALL, selProf = ALL;
+    if(globalPalSymbolFilterEl) selSym = globalPalSymbolFilterEl.value || ALL;
+    if(globalPalTFFilterEl) selTF = globalPalTFFilterEl.value || ALL;
+    if(globalPalProfileFilterEl) selProf = globalPalProfileFilterEl.value || ALL;
+    arr = arr.filter(it=>{
+      if(!it) return false;
+      if(selSym!==ALL && it.symbol && it.symbol!==selSym) return false;
+      if(selTF!==ALL && it.tf && it.tf!==selTF) return false;
+      if(selProf!==ALL && it.profile && it.profile!==selProf) return false;
+      return true;
+    });
+  }catch(_){ }
+
   let sortMode = 'score';
   try{
     sortMode = (globalPalSortEl && globalPalSortEl.value) || localStorage.getItem('globalPal:sortMode') || 'score';
@@ -897,7 +1012,7 @@ function renderGlobalPalmares(){
     localStorage.setItem('globalPal:sortMode', sortMode);
   }catch(_){ }
   if(!arr.length){
-    globalPalTBody.innerHTML = `<tr><td colspan=\"14\">${t('lab.table.noData')}</td></tr>`;
+    globalPalTBody.innerHTML = `<tr><td colspan=\"15\">${t('lab.table.noData')}</td></tr>`;
     if(globalPalSummaryEl) globalPalSummaryEl.textContent = t('lab.palmares.empty');
     return;
   }
@@ -912,11 +1027,15 @@ function renderGlobalPalmares(){
     const sa = Number(a.scoreRobust||0), sb = Number(b.scoreRobust||0);
     return sb-sa;
   });
+  try{ window.globalPalmaresSorted = sorted.slice(); }catch(_){ }
   const rows=[]; let idx=1;
+  const detailLabel = t('lab.table.detailBtn');
+  const applyLabel = t('lab.table.applyBtn');
+  const applyTitle = t('lab.table.applyTitle');
   for(const it of sorted){
     const pair = symbolToDisplay(it.symbol||'');
     const tfDisp = it.tf || '';
-    const prof = it.profile || '';
+    const prof = profileDisplayName(it.profile || '');
     rows.push(`
 <tr>
   <td>${idx}</td>
@@ -933,6 +1052,7 @@ function renderGlobalPalmares(){
   <td>${Number(it.wr||0).toFixed(1)}</td>
   <td>${Number.isFinite(it.rr)? Number(it.rr).toFixed(2): '—'}</td>
   <td>${Number(it.mdd||0).toFixed(0)}</td>
+  <td style=\"white-space:nowrap;\"><button class=\"btn\" data-action=\"detail\" data-idx=\"${idx-1}\">${detailLabel}</button> <button class=\"btn\" data-action=\"apply\" data-idx=\"${idx-1}\" title=\"${applyTitle}\">${applyLabel}</button></td>
 </tr>`);
     if(idx>=200) break;
     idx++;
@@ -954,6 +1074,54 @@ if(globalPalSortEl && (!globalPalSortEl.dataset || globalPalSortEl.dataset.wired
   globalPalSortEl.addEventListener('change', ()=>{ try{ renderGlobalPalmares(); }catch(_){ } });
   if(!globalPalSortEl.dataset) globalPalSortEl.dataset={};
   globalPalSortEl.dataset.wired='1';
+}
+if(globalPalSymbolFilterEl && (!globalPalSymbolFilterEl.dataset || globalPalSymbolFilterEl.dataset.wired!=="1")){
+  globalPalSymbolFilterEl.addEventListener('change', ()=>{
+    try{
+      const v = globalPalSymbolFilterEl.value || '__all__';
+      localStorage.setItem('globalPal:filter:symbol', v);
+      renderGlobalPalmares();
+    }catch(_){ }
+  });
+  if(!globalPalSymbolFilterEl.dataset) globalPalSymbolFilterEl.dataset={};
+  globalPalSymbolFilterEl.dataset.wired='1';
+}
+if(globalPalTFFilterEl && (!globalPalTFFilterEl.dataset || globalPalTFFilterEl.dataset.wired!=="1")){
+  globalPalTFFilterEl.addEventListener('change', ()=>{
+    try{
+      const v = globalPalTFFilterEl.value || '__all__';
+      localStorage.setItem('globalPal:filter:tf', v);
+      renderGlobalPalmares();
+    }catch(_){ }
+  });
+  if(!globalPalTFFilterEl.dataset) globalPalTFFilterEl.dataset={};
+  globalPalTFFilterEl.dataset.wired='1';
+}
+if(globalPalProfileFilterEl && (!globalPalProfileFilterEl.dataset || globalPalProfileFilterEl.dataset.wired!=="1")){
+  globalPalProfileFilterEl.addEventListener('change', ()=>{
+    try{
+      const v = globalPalProfileFilterEl.value || '__all__';
+      localStorage.setItem('globalPal:filter:profile', v);
+      renderGlobalPalmares();
+    }catch(_){ }
+  });
+  if(!globalPalProfileFilterEl.dataset) globalPalProfileFilterEl.dataset={};
+  globalPalProfileFilterEl.dataset.wired='1';
+}
+// Délégation des clics Détail / Appliquer sur le palmarès global en réutilisant les handlers du Lab
+if(globalPalTBody && (!globalPalTBody.dataset || globalPalTBody.dataset.wiredDetail!=="1")){
+  globalPalTBody.addEventListener('click', (ev)=>{
+    try{
+      const t=ev && ev.target;
+      const btn = t && t.closest && t.closest('button[data-action]');
+      if(!btn) return;
+      const act=(btn.getAttribute('data-action')||'').toLowerCase();
+      if(act==='detail') handleLabDetailClick(ev);
+      else if(act==='apply') handleLabApplyClick(ev);
+    }catch(_){ }
+  });
+  if(!globalPalTBody.dataset) globalPalTBody.dataset={};
+  globalPalTBody.dataset.wiredDetail='1';
 }
 
 
