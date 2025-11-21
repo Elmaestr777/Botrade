@@ -3851,7 +3851,7 @@ const labExportBtn=document.getElementById('labExport'); const labWeightsBtn=doc
 const weightsModalEl=document.getElementById('weightsModal'); const weightsClose=document.getElementById('weightsClose'); const weightsSave=document.getElementById('weightsSave'); const weightsProfile=document.getElementById('weightsProfile'); const weightsBody=document.getElementById('weightsBody');
 if(labTFSelect){ labTFSelect.addEventListener('change', async ()=>{ try{ localStorage.setItem('lab:tf', labTFSelect.value); await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
 if(labSymbolSelect){ labSymbolSelect.addEventListener('change', async ()=>{ try{ localStorage.setItem('lab:sym', labSymbolSelect.value); await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
-if(labProfileEl){ labProfileEl.addEventListener('change', ()=>{ try{
+if(labProfileEl){ labProfileEl.addEventListener('change', async ()=>{ try{
   // Quand l'utilisateur change de profil dans le Lab, on le considère comme profil actif global
   const prof = (labProfileEl && labProfileEl.value) || 'balancee';
   try{ localStorage.setItem('labWeightsProfile', prof); }catch(_){ }
@@ -3860,17 +3860,18 @@ if(labProfileEl){ labProfileEl.addEventListener('change', ()=>{ try{
   // Optionnel: mettre à jour les pondérations locales depuis Supabase pour ce profil
   try{
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchLabProfileWeights==='function'){
-      (async()=>{
-        try{
-          const row = await SUPA.fetchLabProfileWeights(prof);
-          if(row && row.weights && typeof row.weights==='object'){
-            saveWeights(prof, row.weights);
-          }
-        }catch(_){ }
-      })();
+      try{
+        const row = await SUPA.fetchLabProfileWeights(prof);
+        if(row && row.weights && typeof row.weights==='object'){
+          saveWeights(prof, row.weights);
+        }
+      }catch(_){ }
     }
   }catch(_){ }
   updateLabAlgoPlaceholders();
+  // Rafraîchir immédiatement le palmarès + les KPIs pour le nouveau profil
+  try{ await renderLabFromStorage(); }catch(_){ }
+  try{ await computeLabBenchmarkAndUpdate(); }catch(_){ }
 }catch(_){ } }); }
 // Lab range controls: mode + date inputs trigger KPI recompute
 try{
