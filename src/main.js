@@ -595,6 +595,7 @@ const labTBody = document.getElementById('labTBody'); const labSummaryEl=documen
 // TF d'exécution du Lab: restitue la dernière valeur utilisée
 const labSymbolSelect=document.getElementById('labSymbolSelect');
 const labProfileEl=document.getElementById('labProfile');
+const labSortModeEl=document.getElementById('labSortMode');
 try{ const savedLabTf=localStorage.getItem('lab:tf'); if(savedLabTf && labTFSelect){ labTFSelect.value=savedLabTf; } }catch(_){ }
 try{ const savedLabSym=localStorage.getItem('lab:sym'); if(savedLabSym && labSymbolSelect){ labSymbolSelect.value=savedLabSym; } }catch(_){ }
 // Populate lab symbol list from chart symbol select
@@ -628,19 +629,43 @@ async function renderLabFromStorage(){
     arr = readPalmares(sym, tf) || []; source='local';
   }
   window.labPalmaresCache = Array.isArray(arr)? arr.slice() : [];
+  // Mode de tri: score (par défaut) ou P&L net
+  let sortMode='score';
+  try{
+    sortMode = (labSortModeEl && labSortModeEl.value) || localStorage.getItem('lab:sortMode') || 'score';
+  }catch(_){ sortMode='score'; }
+  try{
+    if(labSortModeEl){
+      if(!labSortModeEl.value) labSortModeEl.value = sortMode;
+      if(labSortModeEl.value !== sortMode){ labSortModeEl.value = sortMode; }
+    }
+    localStorage.setItem('lab:sortMode', sortMode);
+  }catch(_){ }
   const prefix = t('lab.palmares.prefix');
   const stratsWord = t('lab.palmares.strats');
   const symWord = t('lab.palmares.symbol');
   const tfWord = t('lab.palmares.tf');
   if(labSummaryEl){
+    const sortSuffix = sortMode==='pnl' ? ' • tri: P&L' : ' • tri: Score';
     labSummaryEl.textContent = arr.length
-      ? `${prefix} ${arr.length} ${stratsWord} (${symWord} ${symbolToDisplay(sym)} • ${tfWord} ${tf}) — ${source}`
+      ? `${prefix} ${arr.length} ${stratsWord} (${symWord} ${symbolToDisplay(sym)} • ${tfWord} ${tf}) — ${source}${sortSuffix}`
       : t('lab.palmares.empty');
   }
   if(!labTBody){ return; }
   if(!arr.length){ labTBody.innerHTML = `<tr><td colspan=\"16\">${t('lab.table.noData')}</td></tr>`; return; }
   const rows=[]; let idx=1; const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
-  const sorted=arr.slice().sort((a,b)=> (b.score||scoreResult(b.res||{},weights)) - (a.score||scoreResult(a.res||{},weights)));
+  const sorted=arr.slice().sort((a,b)=>{
+    const stB = b && b.res ? b.res : {};
+    const stA = a && a.res ? a.res : {};
+    if(sortMode==='pnl'){
+      const pnlB = Number(stB.totalPnl||0);
+      const pnlA = Number(stA.totalPnl||0);
+      if(pnlB!==pnlA) return pnlB-pnlA;
+    }
+    const sB = (Number.isFinite(b&&b.score)) ? Number(b.score) : scoreResult(stB, weights);
+    const sA = (Number.isFinite(a&&a.score)) ? Number(a.score) : scoreResult(stA, weights);
+    return sB - sA;
+  });
   try{ window.labPalmaresSorted = sorted.slice(); }catch(_){ }
   const detailLabel = t('lab.table.detailBtn');
   const applyLabel = t('lab.table.applyBtn');
@@ -3851,6 +3876,7 @@ const labExportBtn=document.getElementById('labExport'); const labWeightsBtn=doc
 const weightsModalEl=document.getElementById('weightsModal'); const weightsClose=document.getElementById('weightsClose'); const weightsSave=document.getElementById('weightsSave'); const weightsProfile=document.getElementById('weightsProfile'); const weightsBody=document.getElementById('weightsBody');
 if(labTFSelect){ labTFSelect.addEventListener('change', async ()=>{ try{ localStorage.setItem('lab:tf', labTFSelect.value); await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
 if(labSymbolSelect){ labSymbolSelect.addEventListener('change', async ()=>{ try{ localStorage.setItem('lab:sym', labSymbolSelect.value); await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
+if(labSortModeEl){ labSortModeEl.addEventListener('change', async ()=>{ try{ localStorage.setItem('lab:sortMode', labSortModeEl.value||'score'); await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
 if(labProfileEl){ labProfileEl.addEventListener('change', async ()=>{ try{
   // Quand l'utilisateur change de profil dans le Lab, on le considère comme profil actif global
   const prof = (labProfileEl && labProfileEl.value) || 'balancee';

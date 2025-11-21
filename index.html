@@ -1828,7 +1828,16 @@
               <label><input type="checkbox" data-r="1.618" />1.618</label>
             </div>
           </div>
-          <div id="labSummary" style="margin-bottom:10px; color:var(--muted);"></div>
+          <div id="labSummary" style="margin-bottom:4px; color:var(--muted);"></div>
+          <div class="lab-sort-controls" style="margin-bottom:10px; display:flex; gap:8px; align-items:center;">
+            <label for="labSortMode" style="display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--muted);">
+              <span>Classement</span>
+              <select id="labSortMode" style="padding:2px 4px; font-size:13px;">
+                <option value="score">Meilleurs scores</option>
+                <option value="pnl">Meilleurs P&amp;L</option>
+              </select>
+            </label>
+          </div>
           <div class="lab-fixed-actions" style="display:flex; gap:8px; justify-content:space-between; align-items:center;">
             <label id="labAutoLoopLabel" for="labAutoLoop" class="btn" title="Relancer automatiquement l'entraînement" style="display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
               <input id="labAutoLoop" type="checkbox" style="width:auto; height:auto; margin:0; cursor:pointer;" />
