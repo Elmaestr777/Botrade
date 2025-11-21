@@ -5003,7 +5003,7 @@ async function evalParamsList(list, phase='Eval'){
     function fmtTP(tp){ try{ if(!Array.isArray(tp)||!tp.length) return '—'; return tp.map(t=>{ const typ=(t.type||'Fib'); if(typ==='Fib'){ return `F:${t.fib}`; } if(typ==='Percent'){ return `P:${t.pct}%`; } if(typ==='EMA'){ return `E:${t.emaLen}`; } return typ; }).slice(0,10).join(';'); }catch(_){ return '—'; } }
     function fmtParams(p){ try{ return `nol=${p.nol} prd=${p.prd} sl=${p.slInitPct}% be=${p.beAfterBars}/${p.beLockPct}% ema=${p.emaLen} entry=${p.entryMode||'Both'} fibRet=${p.useFibRet?1:0} confirm=${p.confirmMode||'Bounce'} ent=[${p.ent382?'382':''}${p.ent500? (p.ent382?',500':'500'):''}${p.ent618? (p.ent382||p.ent500?',618':'618'):''}${p.ent786? ((p.ent382||p.ent500||p.ent618)?',786':'786'):''}] tp=${fmtTP(p.tp)}`; }catch(_){ return ''; } }
 
-    // Worker pool for parallel evals — auto‑scaled on machine cores (capped)
+    // Worker pool for parallel evals — auto‑scaled with safety margin
     let hw = 2;
     try{
       if(typeof navigator!=='undefined' && navigator.hardwareConcurrency){
@@ -5011,7 +5011,18 @@ async function evalParamsList(list, phase='Eval'){
         if(n && n>0) hw = n;
       }
     }catch(_){ }
-    const CONC = Math.max(1, Math.min(hw, 12));
+    // Marge de sécurité : ne jamais utiliser tous les cœurs, et plafonner à un niveau raisonnable
+    let safeConc;
+    if(hw <= 2){
+      safeConc = 1; // machines très modestes → 1 worker
+    } else if(hw <= 4){
+      safeConc = hw - 1; // garder au moins 1 cœur libre
+    } else if(hw <= 8){
+      safeConc = Math.max(2, Math.round(hw * 0.5)); // ≈ moitié des cœurs
+    } else {
+      safeConc = Math.max(3, Math.round(hw * 0.4)); // gros CPUs → ~40%
+    }
+    const CONC = Math.max(1, Math.min(safeConc, 8)); // hard cap à 8 pour ne pas saturer le navigateur
     __labConc = CONC;
     function makePool(conc){
       const workers=[]; const idle=[]; let closed=false; let failed=false;
