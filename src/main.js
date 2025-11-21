@@ -4224,9 +4224,24 @@ const conf=readLabRiskConf();
   try{ if(btProgText) btProgText.textContent=t('bt.progress.trainingShort'); if(btProgNote) btProgNote.textContent=''; }catch(_){ }
   try{ const tl=(timeLimitSec>0? `${timeLimitSec}s`:'∞'); const mq=(maxEvals>0? `${maxEvals}`:'∞'); addBtLog(`Limites: temps ${tl}, max évals ${mq}`); }catch(_){ }
   let bars=null;
+  const rangeMode=(document.getElementById('labRangeMode')&&document.getElementById('labRangeMode').value)||'visible';
   if(sym===currentSymbol && tfSel===currentInterval){
-    bars = __baseAfterCutoff();
-    try{ addBtLog(`Données chargées: ${bars.length} bougies`); }catch(_){ }
+    if(rangeMode==='all'){
+      // Plage = "Tout l'historique" pour le symbole/TF courant → charger l'historique complet disponible
+      try{
+        bars = await fetchAllKlines(sym, tfSel, REMOTE_MAX_BARS);
+        try{ saveMemSeries(sym, tfSel, bars, bars.length); }catch(_){ }
+        try{ addBtLog(`Chargement des données (tout l'historique): ${sym} @ ${tfSel} — ${bars.length} bougies`); }catch(_){ }
+      }catch(_){
+        // Fallback : on se rabat sur la fenêtre actuellement en mémoire (éventuellement coupée par le Live)
+        bars = __baseAfterCutoff();
+        try{ addBtLog(`Données (fallback, fenêtre active): ${bars.length} bougies`); }catch(__){}
+      }
+    } else {
+      // Modes "Visible" ou "Dates" : on part de la base affichée (après éventuel cutoff Live)
+      bars = __baseAfterCutoff();
+      try{ addBtLog(`Données chargées: ${bars.length} bougies`); }catch(_){ }
+    }
   } else {
     const mem = loadMemSeries(sym, tfSel);
     if(mem && Array.isArray(mem.bars) && mem.bars.length){
@@ -4244,7 +4259,7 @@ const conf=readLabRiskConf();
     }
   }
   if(!bars || !bars.length){ bars = __baseAfterCutoff(); }
-  let from=null,to=null; const rangeMode=(document.getElementById('labRangeMode')&&document.getElementById('labRangeMode').value)||'visible';
+  let from=null,to=null;
   if(rangeMode==='dates'){ const f=(document.getElementById('labFrom')&&document.getElementById('labFrom').value)||''; const t=(document.getElementById('labTo')&&document.getElementById('labTo').value)||''; from = f? Math.floor(new Date(f).getTime()/1000): null; to = t? Math.floor(new Date(t).getTime()/1000): null; }
   else if(rangeMode==='visible'){ const r=getVisibleRange(); if(r){ from=r.from; to=r.to; } }
   else { from=null; to=null; }
