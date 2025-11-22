@@ -1889,7 +1889,7 @@ if(heavenCfgBtn&&lbcModalEl) heavenCfgBtn.addEventListener('click', ()=>{ try{ p
 
 // --- Heaven overlay (Line Break + ZigZag + options) ---
 const emaToggleEl = document.getElementById('emaToggle'); const nolEl=document.getElementById('nolInput'); const toggleLBCEl=document.getElementById('toggleLBC');
-const defaultLBC={ enabled:true, nol:3, prd:15, showTrend:true, trendUpColor:'#00ff00', trendDnColor:'#ff0000', showClose:true, showArrows:true, arrowOffsetPx:50, arrowSizePx:12, useZZDraw:true, zzUp:'#00ff00', zzDn:'#ff0000', useFibDraw:true, useFibRet:false, entryMode:'Both', confirmMode:'Bounce', ent382:true, ent500:true, ent618:true, ent786:false, slInitPct:2.0, slEnable:false, sl:[], tp1R:1.0, tpCompound:true, tpCloseAllLast:true, beEnable:false, beAfterBars:5, beLockPct:5.0, emaLen:55, tpEnable:true, tp:[] };
+const defaultLBC={ enabled:true, nol:3, prd:15, showTrend:true, trendUpColor:'#00ff00', trendDnColor:'#ff0000', showClose:true, showArrows:true, arrowOffsetPx:50, arrowSizePx:12, useZZDraw:true, zzUp:'#00ff00', zzDn:'#ff0000', useFibDraw:true, useFibDrawTPSL:false, useFibRet:false, entryMode:'Both', confirmMode:'Bounce', ent382:true, ent500:true, ent618:true, ent786:false, slInitPct:2.0, slEnable:false, sl:[], tp1R:1.0, tpCompound:true, tpCloseAllLast:true, beEnable:false, beAfterBars:5, beLockPct:5.0, emaLen:55, tpEnable:true, tp:[] };
 let lbcOpts = (()=>{ try{ const s=localStorage.getItem('lbcOptions'); return s? { ...defaultLBC, ...JSON.parse(s) } : { ...defaultLBC }; }catch(_){ return { ...defaultLBC }; } })();
 // Migration guard: remove legacy tpAfterHit and ensure sane defaults
 try{
@@ -1915,6 +1915,7 @@ function populateHeavenModal(){ try{
   if(typeof optShowClose!=='undefined' && optShowClose) optShowClose.checked=!!lbcOpts.showClose;
   const optShowArrows=document.getElementById('optShowArrows'); if(optShowArrows) optShowArrows.checked=!!lbcOpts.showArrows;
   const optUseFibDraw=document.getElementById('optUseFibDraw'); if(optUseFibDraw) optUseFibDraw.checked=!!lbcOpts.useFibDraw;
+  const optUseFibDrawTPSL=document.getElementById('optUseFibDrawTPSL'); if(optUseFibDrawTPSL) optUseFibDrawTPSL.checked=!!lbcOpts.useFibDrawTPSL;
   const optUseFibRet=document.getElementById('optUseFibRet'); if(optUseFibRet) optUseFibRet.checked=!!lbcOpts.useFibRet;
   const optConfirmMode=document.getElementById('optConfirmMode'); if(optConfirmMode) optConfirmMode.value=lbcOpts.confirmMode||'Bounce';
   const optEntryModeEl=document.getElementById('optEntryMode'); if(optEntryModeEl) optEntryModeEl.value=lbcOpts.entryMode||'Both';
@@ -2183,8 +2184,28 @@ function clearTPPriceLines(){ for(const pl of heavenTPPriceLines){ try{ candleSe
 function createTPLine(price, title, color){ try{ const pl=candleSeries.createPriceLine({ price, color: color||'#7c3aed', lineStyle: LightweightCharts.LineStyle.Dotted, lineWidth:1, title }); heavenTPPriceLines.push(pl); }catch(_){ } }
 function updateFibAndTPLines(piv){ clearTPPriceLines(); if(!candles.length){ return; } const seg=getLastPivotSeg(piv); if(!seg){ return; }
   const A=seg.a.price, B=seg.b.price; const up = seg.dir==='up'; const move = Math.abs(B - A); const C = candles[candles.length-1].close;
-  // Basic Fib drawing
-  if(lbcOpts.useFibDraw){ const fibs=[0.382,0.5,0.618]; for(const r of fibs){ const target = up? (B + move*r) : (B - move*r); createTPLine(target, `Fib ${r}`, '#6b7280'); } }
+  // Fib price lines (basic + TP/SL-based)
+  const fibSet = new Set();
+  if(lbcOpts.useFibDraw){ [0.382,0.5,0.618].forEach(r=> fibSet.add(r)); }
+  if(lbcOpts.useFibDrawTPSL){
+    try{
+      if(Array.isArray(lbcOpts.tp)){
+        for(const t of lbcOpts.tp){
+          if(t && t.type==='Fib' && t.fib!=null){ const r=parseFloat(t.fib); if(isFinite(r)) fibSet.add(r); }
+          if(t && t.sl && t.sl.type==='Fib' && t.sl.fib!=null){ const r2=parseFloat(t.sl.fib); if(isFinite(r2)) fibSet.add(r2); }
+        }
+      }
+      if(Array.isArray(lbcOpts.sl)){
+        for(const s of lbcOpts.sl){
+          if(s && s.type==='Fib' && s.fib!=null){ const r=parseFloat(s.fib); if(isFinite(r)) fibSet.add(r); }
+        }
+      }
+    }catch(_){ }
+  }
+  if(fibSet.size){
+    const fibs = Array.from(fibSet).sort((a,b)=>a-b);
+    for(const r of fibs){ const target = up? (B + move*r) : (B - move*r); createTPLine(target, `Fib ${r}`, '#6b7280'); }
+  }
   // TP Ladder
   if(lbcOpts.tpEnable && Array.isArray(lbcOpts.tp) && lbcOpts.tp.length){ let n=1; for(const t of lbcOpts.tp){ if(n>10) break; const typ=(t.type||'Fib'); let price=null; if(typ==='Fib'){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)){ price = up? (B + move*r) : (B - move*r); } }
       else if(typ==='Percent'){ const p=parseFloat(t.pct!=null? t.pct : t.value); if(isFinite(p)){ price = up? (C * (1 + p/100)) : (C * (1 - p/100)); } }
@@ -2279,7 +2300,161 @@ const lbcSaveBtn = document.getElementById('lbcSave');
 const optEnabled=document.getElementById('optEnabled'); const optNol=document.getElementById('optNol'); const optShowTrend=document.getElementById('optShowTrend'); const optTrendUp=document.getElementById('optTrendUp'); const optTrendDn=document.getElementById('optTrendDn'); const optUseZZDraw=document.getElementById('optUseZZDraw'); const optPrd=document.getElementById('optPrd');
 const optSLInitPct=document.getElementById('optSLInitPct'); const optSLEnable=document.getElementById('optSLEnable'); const optBEEnable=document.getElementById('optBEEnable'); const optBEBars=document.getElementById('optBEBars'); const optBELockPct=document.getElementById('optBELockPct'); const optEMALen=document.getElementById('optEMALen'); const optShowClose=document.getElementById('optShowClose');
 const optEntryMode=document.getElementById('optEntryMode'); const optEnt382=document.getElementById('optEnt382'); const optEnt500=document.getElementById('optEnt500'); const optEnt618=document.getElementById('optEnt618'); const optEnt786=document.getElementById('optEnt786');
-if(lbcSaveBtn){ lbcSaveBtn.addEventListener('click', ()=>{ if(optEnabled) lbcOpts.enabled=!!optEnabled.checked; if(optNol) lbcOpts.nol = Math.max(1, parseInt(optNol.value||String(lbcOpts.nol))); if(optShowTrend) lbcOpts.showTrend = !!optShowTrend.checked; if(optTrendUp) lbcOpts.trendUpColor = optTrendUp.value||lbcOpts.trendUpColor; if(optTrendDn) lbcOpts.trendDnColor = optTrendDn.value||lbcOpts.trendDnColor; if(optUseZZDraw) lbcOpts.useZZDraw = !!optUseZZDraw.checked; if(optPrd) lbcOpts.prd = Math.max(2, parseInt(optPrd.value||String(lbcOpts.prd))); if(optSLInitPct) lbcOpts.slInitPct = Math.max(0, parseFloat(optSLInitPct.value||String(lbcOpts.slInitPct))); if(optSLEnable) lbcOpts.slEnable=!!optSLEnable.checked; if(optBEEnable) lbcOpts.beEnable=!!optBEEnable.checked; if(optBEBars) lbcOpts.beAfterBars=Math.max(1, parseInt(optBEBars.value||String(lbcOpts.beAfterBars))); if(optBELockPct) lbcOpts.beLockPct=Math.max(0, parseFloat(optBELockPct.value||String(lbcOpts.beLockPct))); if(optEMALen) lbcOpts.emaLen=Math.max(1, parseInt(optEMALen.value||String(lbcOpts.emaLen))); if(optShowClose) lbcOpts.showClose=!!optShowClose.checked; const optShowArrows=document.getElementById('optShowArrows'); if(optShowArrows) lbcOpts.showArrows=!!optShowArrows.checked; const optUseFibDraw=document.getElementById('optUseFibDraw'); const optUseFibRet=document.getElementById('optUseFibRet'); const optConfirmMode=document.getElementById('optConfirmMode'); const optZZUp=document.getElementById('optZZUp'); const optZZDn=document.getElementById('optZZDn'); const optTPEnable=document.getElementById('optTPEnable'); const optTPCompound=document.getElementById('optTPCompound'); const optTPAllLast=document.getElementById('optTPAllLast'); if(optUseFibDraw) lbcOpts.useFibDraw=!!optUseFibDraw.checked; if(optUseFibRet) lbcOpts.useFibRet=!!optUseFibRet.checked; if(optEntryMode) lbcOpts.entryMode=optEntryMode.value||lbcOpts.entryMode; if(optConfirmMode) lbcOpts.confirmMode=optConfirmMode.value||lbcOpts.confirmMode; if(optEnt382) lbcOpts.ent382=!!optEnt382.checked; if(optEnt500) lbcOpts.ent500=!!optEnt500.checked; if(optEnt618) lbcOpts.ent618=!!optEnt618.checked; if(optEnt786) lbcOpts.ent786=!!optEnt786.checked; if(optZZUp) lbcOpts.zzUp=optZZUp.value||lbcOpts.zzUp; if(optZZDn) lbcOpts.zzDn=optZZDn.value||lbcOpts.zzDn; if(optTPEnable) lbcOpts.tpEnable=!!optTPEnable.checked; if(optTPCompound) lbcOpts.tpCompound=!!optTPCompound.checked; if(optTPAllLast) lbcOpts.tpCloseAllLast=!!optTPAllLast.checked; const tpArr=[]; for(let i=1;i<=10;i++){ const tSel=document.getElementById(`optTP${i}Type`); if(!tSel) continue; const typ=tSel.value||'Fib'; const vNum=document.getElementById(`optTP${i}R`); const vFib=document.getElementById(`optTP${i}Fib`); const vEma=document.getElementById(`optTP${i}Ema`); const pPct=document.getElementById(`optTP${i}P`); const qPct=document.getElementById(`optTP${i}Qty`); const sSel=document.getElementById(`optTP${i}SLType`); const sNum=document.getElementById(`optTP${i}SLR`); const sFib=document.getElementById(`optTP${i}SLFib`); const sEma=document.getElementById(`optTP${i}SLEma`); const beOn=document.getElementById(`optTP${i}BEOn`); const trSel=document.getElementById(`optTP${i}TrailType`); const trEma=document.getElementById(`optTP${i}TrailEma`); const trPct=document.getElementById(`optTP${i}TrailPct`); const sTrSel=document.getElementById(`optTP${i}SLTrailType`); const sTrEma=document.getElementById(`optTP${i}SLTrailEma`); const sTrPct=document.getElementById(`optTP${i}SLTrailPct`); const entry={ type:typ }; if(typ==='Fib'){ const r=parseFloat(((vFib && vFib.value) || (vNum && vNum.value) || '')); if(isFinite(r)) { entry.fib=r; } else { continue; } } else if(typ==='Percent'){ const p=parseFloat(((vNum && vNum.value) || (vFib && vFib.value) || '')); if(isFinite(p)) { entry.pct=p; } else { continue; } } else if(typ==='EMA'){ const len=parseInt(((vEma && vEma.value) || (optEMALen && optEMALen.value) || ''),10); if(isFinite(len) && len>0){ entry.emaLen=len; } } if(qPct && qPct.value!==''){ const qv=parseFloat(qPct.value); if(isFinite(qv)) entry.qty=qv; } // attached SL per TP
+if(lbcSaveBtn){
+  lbcSaveBtn.addEventListener('click', ()=>{
+    if(optEnabled) lbcOpts.enabled = !!optEnabled.checked;
+    if(optNol) lbcOpts.nol = Math.max(1, parseInt(optNol.value||String(lbcOpts.nol)));
+    if(optShowTrend) lbcOpts.showTrend = !!optShowTrend.checked;
+    if(optTrendUp) lbcOpts.trendUpColor = optTrendUp.value||lbcOpts.trendUpColor;
+    if(optTrendDn) lbcOpts.trendDnColor = optTrendDn.value||lbcOpts.trendDnColor;
+    if(optUseZZDraw) lbcOpts.useZZDraw = !!optUseZZDraw.checked;
+    if(optPrd) lbcOpts.prd = Math.max(2, parseInt(optPrd.value||String(lbcOpts.prd)));
+    if(optSLInitPct) lbcOpts.slInitPct = Math.max(0, parseFloat(optSLInitPct.value||String(lbcOpts.slInitPct)));
+    if(optSLEnable) lbcOpts.slEnable = !!optSLEnable.checked;
+    if(optBEEnable) lbcOpts.beEnable = !!optBEEnable.checked;
+    if(optBEBars) lbcOpts.beAfterBars = Math.max(1, parseInt(optBEBars.value||String(lbcOpts.beAfterBars)));
+    if(optBELockPct) lbcOpts.beLockPct = Math.max(0, parseFloat(optBELockPct.value||String(lbcOpts.beLockPct)));
+    if(optEMALen) lbcOpts.emaLen = Math.max(1, parseInt(optEMALen.value||String(lbcOpts.emaLen)));
+    if(optShowClose) lbcOpts.showClose = !!optShowClose.checked;
+
+    const optShowArrows=document.getElementById('optShowArrows');
+    if(optShowArrows) lbcOpts.showArrows = !!optShowArrows.checked;
+    const optUseFibDraw=document.getElementById('optUseFibDraw');
+    const optUseFibDrawTPSL=document.getElementById('optUseFibDrawTPSL');
+    const optUseFibRet=document.getElementById('optUseFibRet');
+    const optConfirmMode=document.getElementById('optConfirmMode');
+    const optZZUp=document.getElementById('optZZUp');
+    const optZZDn=document.getElementById('optZZDn');
+    const optTPEnable=document.getElementById('optTPEnable');
+    const optTPCompound=document.getElementById('optTPCompound');
+    const optTPAllLast=document.getElementById('optTPAllLast');
+
+    if(optUseFibDraw) lbcOpts.useFibDraw = !!optUseFibDraw.checked;
+    if(optUseFibDrawTPSL) lbcOpts.useFibDrawTPSL = !!optUseFibDrawTPSL.checked;
+    if(optUseFibRet) lbcOpts.useFibRet = !!optUseFibRet.checked;
+    if(optEntryMode) lbcOpts.entryMode = optEntryMode.value||lbcOpts.entryMode;
+    if(optConfirmMode) lbcOpts.confirmMode = optConfirmMode.value||lbcOpts.confirmMode;
+    if(optEnt382) lbcOpts.ent382 = !!optEnt382.checked;
+    if(optEnt500) lbcOpts.ent500 = !!optEnt500.checked;
+    if(optEnt618) lbcOpts.ent618 = !!optEnt618.checked;
+    if(optEnt786) lbcOpts.ent786 = !!optEnt786.checked;
+    if(optZZUp) lbcOpts.zzUp = optZZUp.value||lbcOpts.zzUp;
+    if(optZZDn) lbcOpts.zzDn = optZZDn.value||lbcOpts.zzDn;
+    if(optTPEnable) lbcOpts.tpEnable = !!optTPEnable.checked;
+    if(optTPCompound) lbcOpts.tpCompound = !!optTPCompound.checked;
+    if(optTPAllLast) lbcOpts.tpCloseAllLast = !!optTPAllLast.checked;
+
+    const tpArr=[];
+    for(let i=1;i<=10;i++){
+      const tSel=document.getElementById(`optTP${i}Type`); if(!tSel) continue;
+      const typ=tSel.value||'Fib';
+      const vNum=document.getElementById(`optTP${i}R`);
+      const vFib=document.getElementById(`optTP${i}Fib`);
+      const vEma=document.getElementById(`optTP${i}Ema`);
+      const pPct=document.getElementById(`optTP${i}P`);
+      const qPct=document.getElementById(`optTP${i}Qty`);
+      const sSel=document.getElementById(`optTP${i}SLType`);
+      const sNum=document.getElementById(`optTP${i}SLR`);
+      const sFib=document.getElementById(`optTP${i}SLFib`);
+      const sEma=document.getElementById(`optTP${i}SLEma`);
+      const beOn=document.getElementById(`optTP${i}BEOn`);
+      const trSel=document.getElementById(`optTP${i}TrailType`);
+      const trEma=document.getElementById(`optTP${i}TrailEma`);
+      const trPct=document.getElementById(`optTP${i}TrailPct`);
+      const sTrSel=document.getElementById(`optTP${i}SLTrailType`);
+      const sTrEma=document.getElementById(`optTP${i}SLTrailEma`);
+      const sTrPct=document.getElementById(`optTP${i}SLTrailPct`);
+
+      const entry={ type:typ };
+      if(typ==='Fib'){
+        const r=parseFloat(((vFib && vFib.value) || (vNum && vNum.value) || ''));
+        if(isFinite(r)) { entry.fib=r; } else { continue; }
+      } else if(typ==='Percent'){
+        const p=parseFloat(((vNum && vNum.value) || (vFib && vFib.value) || ''));
+        if(isFinite(p)) { entry.pct=p; } else { continue; }
+      } else if(typ==='EMA'){
+        const len=parseInt(((vEma && vEma.value) || (optEMALen && optEMALen.value) || ''),10);
+        if(isFinite(len) && len>0){ entry.emaLen=len; }
+      }
+      if(qPct && qPct.value!==''){
+        const qv=parseFloat(qPct.value); if(isFinite(qv)) entry.qty=qv;
+      }
+      // attached SL per TP
+      if(sSel){
+        const styp=sSel.value||'Percent';
+        const slEntry={ type:styp };
+        if(styp==='Fib'){
+          const r2=parseFloat(((sFib && sFib.value) || (sNum && sNum.value) || ''));
+          if(isFinite(r2)) slEntry.fib=r2;
+        } else if(styp==='Percent'){
+          const p2=parseFloat(((sNum && sNum.value) || (sFib && sFib.value) || ''));
+          if(isFinite(p2)) slEntry.pct=p2;
+        } else if(styp==='EMA'){
+          const len2=parseInt(((sEma && sEma.value) || (optEMALen && optEMALen.value) || ''),10);
+          if(isFinite(len2) && len2>0) slEntry.emaLen=len2;
+        }
+        entry.sl = slEntry;
+        // SL trailing attached to TP
+        if(sTrSel){
+          const m2=sTrSel.value||'none';
+          if(m2 && m2!=='none'){
+            entry.sl.trail={ mode:m2 };
+            if(m2==='ema'){
+              const len4=parseInt((sTrEma&&sTrEma.value)||'',10);
+              if(isFinite(len4)&&len4>0) entry.sl.trail.emaLen=len4;
+            } else if(m2==='percent'){
+              const p4=parseFloat((sTrPct&&sTrPct.value)||'');
+              if(isFinite(p4)) entry.sl.trail.pct=p4;
+            }
+          }
+        }
+      }
+      if(beOn) entry.beOn = !!beOn.checked;
+      if(trSel){
+        const mode=trSel.value||'none';
+        if(mode && mode!=='none'){
+          entry.trail={ mode };
+          if(mode==='ema'){
+            const len3=parseInt((trEma&&trEma.value)||'',10);
+            if(isFinite(len3)&&len3>0) entry.trail.emaLen=len3;
+          } else if(mode==='percent'){
+            const p3=parseFloat((trPct&&trPct.value)||'');
+            if(isFinite(p3)) entry.trail.pct=p3;
+          }
+        }
+      }
+      tpArr.push(entry);
+    }
+    lbcOpts.tp = tpArr;
+
+    const slArr=[];
+    for(let i=1;i<=10;i++){
+      const tSel=document.getElementById(`optSL${i}Type`); if(!tSel) continue;
+      const typ=tSel.value||'Percent';
+      const vNum=document.getElementById(`optSL${i}R`);
+      const vFib=document.getElementById(`optSL${i}Fib`);
+      const vEma=document.getElementById(`optSL${i}Ema`);
+      const slEntry={ type:typ };
+      if(typ==='Fib'){
+        const r=parseFloat(((vFib && vFib.value) || (vNum && vNum.value) || ''));
+        if(isFinite(r)) { slEntry.fib=r; } else { continue; }
+      } else if(typ==='Percent'){
+        const p=parseFloat(((vNum && vNum.value) || (vFib && vFib.value) || ''));
+        if(isFinite(p)) { slEntry.pct=p; } else { continue; }
+      } else if(typ==='EMA'){
+        const len=parseInt(((vEma && vEma.value) || (optEMALen && optEMALen.value) || ''),10);
+        if(isFinite(len) && len>0){ slEntry.emaLen=len; }
+      }
+      slArr.push(slEntry);
+    }
+    lbcOpts.sl = slArr;
+
+    saveLBCOpts();
+    renderLBC();
+    closeModalEl(lbcModalEl);
+    try{ computeLabBenchmarkAndUpdate(); }catch(_){ }
+  });
+}
     if(sSel){ const styp=sSel.value||'Percent'; const slEntry={ type:styp }; if(styp==='Fib'){ const r2=parseFloat(((sFib && sFib.value) || (sNum && sNum.value) || '')); if(isFinite(r2)) slEntry.fib=r2; } else if(styp==='Percent'){ const p2=parseFloat(((sNum && sNum.value) || (sFib && sFib.value) || '')); if(isFinite(p2)) slEntry.pct=p2; } else if(styp==='EMA'){ const len2=parseInt(((sEma && sEma.value) || (optEMALen && optEMALen.value) || ''),10); if(isFinite(len2) && len2>0) slEntry.emaLen=len2; } entry.sl = slEntry; // SL trailing attached to TP
       if(sTrSel){ const m2=sTrSel.value||'none'; if(m2 && m2!=='none'){ entry.sl.trail={ mode:m2 }; if(m2==='ema'){ const len4=parseInt((sTrEma&&sTrEma.value)||'',10); if(isFinite(len4)&&len4>0) entry.sl.trail.emaLen=len4; } else if(m2==='percent'){ const p4=parseFloat((sTrPct&&sTrPct.value)||''); if(isFinite(p4)) entry.sl.trail.pct=p4; } } }
     }
