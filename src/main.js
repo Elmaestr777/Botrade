@@ -1161,16 +1161,28 @@ const barsInfoEl = document.getElementById('barsInfo');
 function updateBarsInfo(){
   try{
     if(!barsInfoEl) return;
-    const visLimit = DISPLAY_MAX_BARS;
-    const loaded = Array.isArray(candlesAll)? candlesAll.length : 0;
-    const maxApi = __currentBarsMaxApi>0 ? __currentBarsMaxApi : loaded;
+    // Base complète (après éventuel cutoff live), utilisée aussi par le Lab/BT
+    const base = __baseAfterCutoff();
+    const loaded = Array.isArray(base)? base.length : 0;
     const fmt=(n)=>{
       if(n>=1000000) return (n/1000000).toFixed(1).replace(/\.0$/,'')+'m';
       if(n>=1000) return (n/1000).toFixed(0)+'k';
       return String(n);
     };
-    // 5k (display limit) / loaded candles / estimated max via API
-    barsInfoEl.textContent = `${t('chart.bars.prefix')} ${fmt(visLimit)} / ${fmt(loaded)} / ${fmt(maxApi)}`;
+    if(!loaded){
+      barsInfoEl.textContent = `${t('chart.bars.prefix')} 0`;
+      return;
+    }
+    const oldest = base[0];
+    let since='';
+    try{
+      const d=new Date((oldest.time||0)*1000);
+      since = d.toLocaleDateString();
+    }catch(_){
+      since = String(oldest.time||'');
+    }
+    // Affiche uniquement le nombre total de bougies chargées + date de la plus ancienne
+    barsInfoEl.textContent = `${t('chart.bars.prefix')} ${fmt(loaded)} (${since})`;
   }catch(_){ }
 }
 // Supabase config UI
