@@ -53,8 +53,9 @@ def upsert_strategy_evaluations(rows: list[dict[str, Any]], api_key: str, batch:
     headers = _headers(api_key)
     headers["Prefer"] = "resolution=merge-duplicates,return=minimal"
     params = {
-        # Use partial unique index for public pooling (user_id IS NULL)
-        "on_conflict": "symbol,tf,profile_id,params",
+        # Use the table-level UNIQUE constraint on (user_id, symbol, tf, profile_id, params)
+        # so ON CONFLICT matches both public (user_id IS NULL) and private rows.
+        "on_conflict": "user_id,symbol,tf,profile_id,params",
     }
     for chunk in _chunked(rows, max(1, batch)):
         try:

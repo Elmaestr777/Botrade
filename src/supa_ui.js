@@ -169,12 +169,13 @@ function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfi
 
   async function upsertStrategyEvaluations(rows){
     const c = ensureClient(); if(!c || !rows || !rows.length) return;
-    // Upsert with on_conflict composite key
+    // Upsert with on_conflict composite key matching the table UNIQUE constraint
+    // NB: we include user_id to align with "unique (user_id, symbol, tf, profile_id, params)"
     for(const part of chunk(rows, 80)){
       try{
         const { error } = await c
           .from('strategy_evaluations')
-          .upsert(part, { onConflict: 'symbol,tf,profile_id,params', ignoreDuplicates: false, returning: 'minimal' });
+          .upsert(part, { onConflict: 'user_id,symbol,tf,profile_id,params', ignoreDuplicates: false, returning: 'minimal' });
         if(error) console.warn('supabase upsert strategy_evaluations', error);
       }catch(e){ console.warn('supabase upsert strategy_evaluations ex', e); }
     }
