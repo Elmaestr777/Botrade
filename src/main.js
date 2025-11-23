@@ -1901,15 +1901,42 @@ if(heavenCfgBtn&&lbcModalEl) heavenCfgBtn.addEventListener('click', ()=>{ try{ p
 
 // --- Heaven overlay (Line Break + ZigZag + options) ---
 const emaToggleEl = document.getElementById('emaToggle'); const nolEl=document.getElementById('nolInput'); const toggleLBCEl=document.getElementById('toggleLBC');
-const defaultLBC={ enabled:true, nol:3, prd:15, showTrend:true, trendUpColor:'#00ff00', trendDnColor:'#ff0000', showClose:true, showArrows:true, arrowOffsetPx:50, arrowSizePx:12, useZZDraw:true, zzUp:'#00ff00', zzDn:'#ff0000', useFibDraw:true, useFibDrawTPSL:false, useFibRet:false, entryMode:'Both', confirmMode:'Bounce', ent382:true, ent500:true, ent618:true, ent786:false, slInitPct:2.0, slEnable:false, sl:[], tp1R:1.0, tpCompound:true, tpCloseAllLast:true, beEnable:false, beAfterBars:5, beLockPct:5.0, emaLen:55, tpEnable:true, tp:[] };
+const defaultLBC={ enabled:true, nol:3, prd:15, showTrend:true, trendUpColor:'#00ff00', trendDnColor:'#ff0000', showClose:true, showArrows:true, arrowOffsetPx:50, arrowSizePx:12, useZZDraw:true, zzUp:'#00ff00', zzDn:'#ff0000', useFibDraw:true, useFibDrawTPSL:false, useFibRet:false, entryMode:'Both', confirmMode:'Bounce', ent382:true, ent500:true, ent618:true, ent786:false, slInitPct:2.0, slEnable:false, sl:[], tp1R:1.0, tpCompound:true, tpCloseAllLast:true, beEnable:false, beAfterBars:5.0, beLockPct:5.0, emaLen:55, tpEnable:true, tp:[], tpCount:10 };
 let lbcOpts = (()=>{ try{ const s=localStorage.getItem('lbcOptions'); return s? { ...defaultLBC, ...JSON.parse(s) } : { ...defaultLBC }; }catch(_){ return { ...defaultLBC }; } })();
-// Migration guard: remove legacy tpAfterHit and ensure sane defaults
-try{
-  if(lbcOpts && Object.prototype.hasOwnProperty.call(lbcOpts, 'tpAfterHit')){ try{ delete lbcOpts.tpAfterHit; }catch(_){ lbcOpts.tpAfterHit=undefined; } }
-  if(typeof lbcOpts.tpEnable==='undefined') lbcOpts.tpEnable=true;
-  if(!Array.isArray(lbcOpts.tp)) lbcOpts.tp=[];
-}catch(_){}
+// Migration guard + normalisation Heaven (TP/SL)
+function normalizeLBCOpts(){
+  try{
+    if(lbcOpts && Object.prototype.hasOwnProperty.call(lbcOpts, 'tpAfterHit')){
+      try{ delete lbcOpts.tpAfterHit; }catch(_){ lbcOpts.tpAfterHit=undefined; }
+    }
+    if(typeof lbcOpts.tpEnable==='undefined') lbcOpts.tpEnable=true;
+    if(!Array.isArray(lbcOpts.tp)) lbcOpts.tp=[];
+    if(typeof lbcOpts.tpCount!=='number' || !Number.isFinite(lbcOpts.tpCount)){
+      const n = Array.isArray(lbcOpts.tp) ? lbcOpts.tp.length : 0;
+      lbcOpts.tpCount = Math.max(1, Math.min(10, n || 3));
+    } else {
+      lbcOpts.tpCount = Math.max(1, Math.min(10, lbcOpts.tpCount|0));
+    }
+  }catch(_){ }
+}
+normalizeLBCOpts();
 function saveLBCOpts(){ try{ localStorage.setItem('lbcOptions', JSON.stringify(lbcOpts)); }catch(_){ } }
+function clampTPCount(n){ const v=parseInt(String(n||''),10); if(!Number.isFinite(v)) return 10; if(v<1) return 1; if(v>10) return 10; return v|0; }
+function applyHeavenTPCountToUI(){
+  try{
+    const grid=document.getElementById('heavenTPGrid');
+    const cntEl=document.getElementById('optTPCount');
+    if(!grid || !cntEl) return;
+    const n=clampTPCount(cntEl.value || lbcOpts.tpCount || 10);
+    const blocks=grid.children || [];
+    let idx=0;
+    for(const el of blocks){
+      if(!(el && el.tagName && el.tagName.toUpperCase()==='DIV')) continue;
+      el.style.display = (idx < n) ? '' : 'none';
+      idx++;
+    }
+  }catch(_){ }
+}
 function populateHeavenModal(){ try{
   if(typeof optEnabled!=='undefined' && optEnabled) optEnabled.checked=!!lbcOpts.enabled;
   if(typeof optNol!=='undefined' && optNol) optNol.value=String(lbcOpts.nol);
@@ -1937,6 +1964,7 @@ function populateHeavenModal(){ try{
   const optTPCompound=document.getElementById('optTPCompound'); if(optTPCompound) optTPCompound.checked=!!lbcOpts.tpCompound;
   const optTPAllLast=document.getElementById('optTPAllLast'); if(optTPAllLast) optTPAllLast.checked=!!lbcOpts.tpCloseAllLast;
   const optArrowOffsetPx=document.getElementById('optArrowOffsetPx'); if(optArrowOffsetPx) optArrowOffsetPx.value=String((lbcOpts.arrowOffsetPx|0)||0);
+  const optTPCountEl=document.getElementById('optTPCount'); if(optTPCountEl) optTPCountEl.value=String(clampTPCount(lbcOpts.tpCount));
 
   // Context for dynamic dropdown labels
   const pivAll=computePivots(candles, Math.max(2, lbcOpts.prd|0));
@@ -2042,11 +2070,18 @@ function updateTPRow(i, t){
     updateSLRow(i, t);
     if(tSel && (!tSel.dataset || tSel.dataset.wired!=='1')){ tSel.addEventListener('change', ()=> updateSLRow(i, arrSL[i-1]||{})); if(!tSel.dataset) tSel.dataset={}; tSel.dataset.wired='1'; }
   }
+  applyHeavenTPCountToUI();
 }catch(_){ } }
 if(toggleLBCEl) toggleLBCEl.checked = !!lbcOpts.enabled; if(nolEl) nolEl.value=String(lbcOpts.nol);
 if(toggleLBCEl) toggleLBCEl.addEventListener('change', ()=>{ lbcOpts.enabled=!!toggleLBCEl.checked; saveLBCOpts(); renderLBC(); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } });
 if(nolEl) nolEl.addEventListener('change', ()=>{ lbcOpts.nol=Math.max(1, parseInt(nolEl.value||'3')); saveLBCOpts(); renderLBC(); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } });
 const optArrowOffsetPx=document.getElementById('optArrowOffsetPx'); if(optArrowOffsetPx){ optArrowOffsetPx.addEventListener('change', ()=>{ lbcOpts.arrowOffsetPx=Math.max(0, parseInt(optArrowOffsetPx.value||'0')); saveLBCOpts(); renderLBC(); }); }
+const optTPCountEl=document.getElementById('optTPCount');
+if(optTPCountEl && (!optTPCountEl.dataset || optTPCountEl.dataset.wired!=='1')){
+  optTPCountEl.addEventListener('change', ()=>{ try{ applyHeavenTPCountToUI(); }catch(_){ } });
+  if(!optTPCountEl.dataset) optTPCountEl.dataset={};
+  optTPCountEl.dataset.wired='1';
+}
 
 function computeLineBreakState(bars, nol){ const n=bars.length; if(!n) return {trend:[], level:[], flips:[]}; const trend=new Array(n).fill(0); const level=new Array(n).fill(null); const flips=[]; let t=bars[0].close>=bars[0].open?1:-1; let opens=[bars[0].open]; let closes=[bars[0].close]; for(let i=0;i<n;i++){ const c=bars[i].close; if(t===1){ const cnt=Math.min(nol, opens.length); const minUp=Math.min(...opens.slice(0,cnt), ...closes.slice(0,cnt)); if(c<minUp) t=-1; if(c>closes[0]||t===-1){ const o=(t===-1? opens[0]:closes[0]); opens.unshift(o); closes.unshift(c); } } else { const cnt=Math.min(nol, opens.length); const maxDn=Math.max(...opens.slice(0,cnt), ...closes.slice(0,cnt)); if(c>maxDn) t=1; if(c<closes[0]||t===1){ const o=(t===1? opens[0]:closes[0]); opens.unshift(o); closes.unshift(c); } } trend[i]=t; const cnt2=Math.min(nol, opens.length); const minUp2=Math.min(...opens.slice(0,cnt2), ...closes.slice(0,cnt2)); const maxDn2=Math.max(...opens.slice(0,cnt2), ...closes.slice(0,cnt2)); level[i]=(t===1? minUp2: maxDn2); if(i>0 && trend[i]!==trend[i-1]) flips.push(i); } return {trend, level, flips}; }
 function computePivots(bars, prd){ const piv=[]; for(let i=prd;i<bars.length-prd;i++){ let isH=true, isL=true; for(let j=1;j<=prd;j++){ if(!(bars[i].high>bars[i-j].high && bars[i].high>bars[i+j].high)) isH=false; if(!(bars[i].low<bars[i-j].low && bars[i].low<bars[i+j].low)) isL=false; if(!isH&&!isL) break; } if(isH||isL) piv.push({ idx:i, time:bars[i].time, price: isH? bars[i].high : bars[i].low }); } return piv; }
@@ -2356,8 +2391,16 @@ if(lbcSaveBtn){
     if(optTPCompound) lbcOpts.tpCompound = !!optTPCompound.checked;
     if(optTPAllLast) lbcOpts.tpCloseAllLast = !!optTPAllLast.checked;
 
+    let tpCount = lbcOpts.tpCount || 10;
+    try{
+      const optTPCountEl=document.getElementById('optTPCount');
+      if(optTPCountEl){ tpCount = clampTPCount(optTPCountEl.value || tpCount); }
+      else { tpCount = clampTPCount(tpCount); }
+    }catch(_){ tpCount = clampTPCount(tpCount); }
+    lbcOpts.tpCount = tpCount;
+
     const tpArr=[];
-    for(let i=1;i<=10;i++){
+    for(let i=1;i<=tpCount;i++){
       const tSel=document.getElementById(`optTP${i}Type`); if(!tSel) continue;
       const typ=tSel.value||'Fib';
       const vNum=document.getElementById(`optTP${i}R`);
@@ -5879,13 +5922,13 @@ const lbcPresetName=document.getElementById('lbcPresetName'); const lbcPresetSav
 function loadPresetList(){ try{ const s=localStorage.getItem('lbcPresetList'); const names=s? JSON.parse(s): []; if(lbcPresetSelect){ lbcPresetSelect.innerHTML = names.map(n=>`<option value=\"${n}\">${n}</option>`).join(''); } return names; }catch(_){ return []; } }
 function savePresetList(names){ try{ localStorage.setItem('lbcPresetList', JSON.stringify(names)); }catch(_){ } }
 function savePreset(name){ const names=loadPresetList(); const idx=names.indexOf(name); if(idx===-1){ names.push(name); savePresetList(names); loadPresetList(); } try{ localStorage.setItem('lbcPreset:'+name, JSON.stringify(lbcOpts)); }catch(_){ } }
-function loadPresetByName(name){ try{ const s=localStorage.getItem('lbcPreset:'+name); if(!s) return false; lbcOpts = { ...defaultLBC, ...JSON.parse(s) }; saveLBCOpts(); renderLBC(); return true; }catch(_){ return false; } }
+function loadPresetByName(name){ try{ const s=localStorage.getItem('lbcPreset:'+name); if(!s) return false; lbcOpts = { ...defaultLBC, ...JSON.parse(s) }; normalizeLBCOpts(); saveLBCOpts(); renderLBC(); return true; }catch(_){ return false; } }
 function deletePreset(name){ try{ localStorage.removeItem('lbcPreset:'+name); const names=loadPresetList().filter(n=>n!==name); savePresetList(names); loadPresetList(); }catch(_){} }
 loadPresetList();
 if(lbcPresetSave){ lbcPresetSave.addEventListener('click', ()=>{ const name=(lbcPresetName&&lbcPresetName.value||'').trim(); if(!name){ setStatus('Nom du preset requis'); return; } savePreset(name); setStatus('Preset sauvegardé'); }); }
 if(lbcPresetLoad){ lbcPresetLoad.addEventListener('click', ()=>{ const name=(lbcPresetSelect&&lbcPresetSelect.value)||''; if(!name){ setStatus('Aucun preset'); return; } if(loadPresetByName(name)){ try{ populateHeavenModal(); }catch(_){ } setStatus('Preset chargé'); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } } }); }
 if(lbcPresetDelete){ lbcPresetDelete.addEventListener('click', ()=>{ const name=(lbcPresetSelect&&lbcPresetSelect.value)||''; if(!name) return; if(confirm(`Supprimer le preset \"${name}\" ?`)){ deletePreset(name); setStatus('Preset supprimé'); } }); }
-if(lbcResetBtn){ lbcResetBtn.addEventListener('click', ()=>{ lbcOpts = { ...defaultLBC }; saveLBCOpts(); renderLBC(); try{ populateHeavenModal(); }catch(_){ } setStatus('Paramètres réinitialisés'); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
+if(lbcResetBtn){ lbcResetBtn.addEventListener('click', ()=>{ lbcOpts = { ...defaultLBC }; normalizeLBCOpts(); saveLBCOpts(); renderLBC(); try{ populateHeavenModal(); }catch(_){ } setStatus('Paramètres réinitialisés'); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
 
 // Supabase-backed Heaven strategies
 const lbcSupaName=document.getElementById('lbcSupaName');
@@ -5928,6 +5971,7 @@ function applyHeavenParams(p){ try{
   if(p.tp1R!=null) lbcOpts.tp1R = +p.tp1R;
   if(p.tpCompound!=null) lbcOpts.tpCompound = !!p.tpCompound;
   if(p.tpCloseAllLast!=null) lbcOpts.tpCloseAllLast = !!p.tpCloseAllLast;
+  normalizeLBCOpts();
   saveLBCOpts(); renderLBC();
 }catch(_){ }}
 async function populateHeavenSupaList(){ try{
@@ -6116,7 +6160,7 @@ async function renderLiveDrawer(){ try{ ensureLiveDrawer(); const list=document.
   updateLiveDrawerTab();
 }catch(_){ } }
 async function setActiveLive(id){ try{ const s=liveSessions[id]; if(!s) return; activeLiveId=id; liveSession=s; // adopt TF/symbol/strategy
-  if(s.strategy){ lbcOpts = { ...defaultLBC, ...s.strategy }; saveLBCOpts(); }
+  if(s.strategy){ lbcOpts = { ...defaultLBC, ...s.strategy }; normalizeLBCOpts(); saveLBCOpts(); }
   const needSwitch = (s.symbol!==currentSymbol) || (s.tf!==currentInterval);
   if(needSwitch){ currentSymbol=s.symbol; currentInterval=s.tf; try{ if(symbolSelect) symbolSelect.value=currentSymbol; if(intervalSelect) intervalSelect.value=currentInterval; localStorage.setItem('chart:tf', currentInterval); updateTitle(currentSymbol); updateWatermark(); }catch(_){ }
     closeWs(); await load(currentSymbol, currentInterval); openWs(currentSymbol, currentInterval);

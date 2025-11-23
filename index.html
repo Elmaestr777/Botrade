@@ -141,7 +141,12 @@
             <fieldset>
               <legend>Cibles & Stops (TP + SL + BE) — par TP uniquement</legend>
               <p style="color:var(--muted); font-size:12px; margin:4px 0;">Info: Les stops sont définis uniquement par TP. Utilisez « SLi … » et « BE à ce TP » pour chaque cible.</p>
-              <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px;">
+              <div style="margin:4px 0 8px 0;">
+                <label>Nb TP max
+                  <input id="optTPCount" type="number" min="1" max="10" value="10" style="width:4.5rem" />
+                </label>
+              </div>
+              <div id="heavenTPGrid" class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px;">
                 <div>
                   <label>TP1 type
                     <select id="optTP1Type">
