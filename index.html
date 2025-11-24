@@ -1643,12 +1643,24 @@
             </label>
           </div>
           <div class="lab-sort-controls" style="margin-bottom:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <label for="globalPalScope" style="display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--muted);">
+              <span>Vue</span>
+              <select id="globalPalScope" style="padding:2px 4px; font-size:13px;">
+                <option value="grouped">Par paire/TF (toutes)</option>
+                <option value="top25">Top 25 global (toutes paires)</option>
+              </select>
+            </label>
             <label for="globalPalSortMode" style="display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--muted);">
               <span>Classement</span>
               <select id="globalPalSortMode" style="padding:2px 4px; font-size:13px;">
                 <option value="score">Score robuste</option>
                 <option value="raw">Score brut</option>
+                <option value="pf">Profit Factor</option>
                 <option value="pnl">P&amp;L net</option>
+                <option value="eq">Capital final</option>
+                <option value="win">Win%</option>
+                <option value="rr">Avg RR</option>
+                <option value="dd">Max DD</option>
               </select>
             </label>
           </div>

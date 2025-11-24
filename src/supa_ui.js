@@ -402,9 +402,10 @@ async function fetchKnownCanonicalKeys(symbol, tf, profileName){
     };
   }
 
-async function fetchPalmares(symbol, tf, limit=25, profileName){
+async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
     const c=ensureClient(); if(!c) return [];
     const profileId = await getProfileIdByName(profileName || currentProfileName());
+    const mode = (sortMode === 'pnl') ? 'pnl' : 'score';
     function mapRows(rows){
       const out=[]; let idx=1;
       for(const row of rows||[]){
@@ -418,50 +419,34 @@ async function fetchPalmares(symbol, tf, limit=25, profileName){
       return out;
     }
     try{
-      // Priorité: dernier palmarès_set (avec noms + génération)
-      let qs = c
-        .from('palmares_sets')
-        .select('id, created_at')
-        .eq('symbol', symbol)
-        .eq('tf', tf)
-        .order('created_at', { ascending:false })
-        .limit(1);
-      if(profileId!=null) qs = qs.eq('profile_id', profileId); else qs = qs.is('profile_id', null);
-      const { data:sets, error:err2 } = await qs;
-      if(!err2 && Array.isArray(sets) && sets.length){
-        const setId = sets[0]?.id;
-        if(setId){
-          const qe = c
-            .from('palmares_entries')
-            .select('params,metrics,score,rank,name,generation')
-            .eq('set_id', setId)
-            .order('rank', { ascending:true })
-            .limit(Math.max(1, limit));
-          const { data:entries, error:err3 } = await qe;
-          if(!err3 && Array.isArray(entries) && entries.length){ return mapRows(entries); }
-        }
-      }
-
-      // Fallback: global best by pair/TF (selected=true) si aucun palmarès_set n'est disponible
+      // Toujours lire les meilleures stratégies globales (public pool, selected=true)
       let q = c
         .from('strategy_evaluations')
         .select('params,metrics,score')
         .eq('symbol', symbol)
         .eq('tf', tf)
-        .eq('selected', true)
-        .order('score', { ascending: false })
-        .order('created_at', { ascending: false })
-        .limit(Math.max(1, limit));
+        .eq('selected', true);
       if(profileId!=null) q = q.eq('profile_id', profileId); else q = q.is('profile_id', null);
-      let { data, error } = await q;
-      if(!error && Array.isArray(data) && data.length){ return mapRows(data.map(r=>({ ...r, generation:1 }))); }
-
+      // Ordre primaire selon le mode choisi: score ou P&L net
+      if(mode === 'pnl'){
+        // metrics->>totalPnl contient le P&L net en JSON; on le caste côté serveur via PostgREST
+        q = q.order('metrics->>totalPnl', { ascending:false });
+      } else {
+        q = q.order('score', { ascending:false });
+      }
+      // Tiebreak récenteté
+      q = q.order('created_at', { ascending:false });
+      const { data, error } = await q.limit(Math.max(1, limit));
+      if(!error && Array.isArray(data) && data.length){
+        return mapRows(data.map(r=>({ ...r, generation:1 })));
+      }
       return [];
     }catch(_){ return []; }
   }
 
-  async function fetchGlobalPalmares(limit=200){
+  async function fetchGlobalPalmares(limit=200, sortMode){
     const c=ensureClient(); if(!c) return [];
+    const mode = sortMode || 'score';
     function mapRows(rows){
       const out=[]; let idx=1;
       for(const row of rows||[]){
@@ -482,12 +467,41 @@ async function fetchPalmares(symbol, tf, limit=25, profileName){
       return out;
     }
     try{
-      const { data, error } = await c
+      let q = c
         .from('v_palmares_best')
-        .select('symbol,tf,profile_id,params,metrics,score,created_at')
-        .order('score', { ascending:false })
-        .order('created_at', { ascending:false })
-        .limit(Math.max(1, limit));
+        .select('symbol,tf,profile_id,params,metrics,score,created_at');
+      switch(mode){
+        case 'pnl':
+          q = q.order('metrics->>totalPnl', { ascending:false });
+          break;
+        case 'pf':
+          q = q.order('metrics->>profitFactor', { ascending:false });
+          break;
+        case 'eq':
+          q = q.order('metrics->>equityFinal', { ascending:false });
+          break;
+        case 'win':
+          q = q.order('metrics->>winrate', { ascending:false });
+          break;
+        case 'rr':
+          q = q.order('metrics->>avgRR', { ascending:false });
+          break;
+        case 'dd':
+          // DD plus faible = meilleur, donc tri croissant
+          q = q.order('metrics->>maxDDAbs', { ascending:true });
+          break;
+        case 'raw':
+          // "Score brut" côté DB: on réutilise le champ score comme approximation;
+          // la pondération exacte (scoreResult) est recalculée côté client.
+          q = q.order('score', { ascending:false });
+          break;
+        default: // 'score' (score robuste)
+          q = q.order('score', { ascending:false });
+          break;
+      }
+      // En cas d'égalité, privilégier les plus récents
+      q = q.order('created_at', { ascending:false });
+      const { data, error } = await q.limit(Math.max(1, limit));
       if(error){ slog('Supabase: fetchGlobalPalmares KO — '+(error.message||error)); return []; }
       return mapRows(data||[]);
     }catch(_){ return []; }

@@ -617,18 +617,6 @@ function uniqueNameFor(sym, tf, base){ const pal=readPalmares(sym, tf); const na
 async function renderLabFromStorage(){
   const tf = labTFSelect? labTFSelect.value: (intervalSelect? intervalSelect.value:''), sym=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol;
   const profSel = (document.getElementById('labProfile') && document.getElementById('labProfile').value) || (localStorage.getItem('labWeightsProfile')||'balancee');
-  let arr=[]; let source='local';
-  // Si Supabase est configuré, on lit UNIQUEMENT Supabase pour le palmarès
-  if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchPalmares==='function'){
-    try{
-      const supaArr = await SUPA.fetchPalmares(sym, tf, 25, profSel);
-      if(Array.isArray(supaArr)) { arr = supaArr; source='Supabase'; }
-    }catch(_){ /* en cas d'erreur Supabase, on laisse arr = [] */ }
-  } else {
-    // Fallback local uniquement si Supabase n'est pas configuré
-    arr = readPalmares(sym, tf) || []; source='local';
-  }
-  window.labPalmaresCache = Array.isArray(arr)? arr.slice() : [];
   // Mode de tri: score (par défaut) ou P&L net
   let sortMode='score';
   try{
@@ -641,6 +629,18 @@ async function renderLabFromStorage(){
     }
     localStorage.setItem('lab:sortMode', sortMode);
   }catch(_){ }
+  let arr=[]; let source='local';
+  // Si Supabase est configuré, on lit UNIQUEMENT Supabase pour le palmarès
+  if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchPalmares==='function'){
+    try{
+      const supaArr = await SUPA.fetchPalmares(sym, tf, 25, profSel, sortMode);
+      if(Array.isArray(supaArr)) { arr = supaArr; source='Supabase'; }
+    }catch(_){ /* en cas d'erreur Supabase, on laisse arr = [] */ }
+  } else {
+    // Fallback local uniquement si Supabase n'est pas configuré
+    arr = readPalmares(sym, tf) || []; source='local';
+  }
+  window.labPalmaresCache = Array.isArray(arr)? arr.slice() : [];
   const prefix = t('lab.palmares.prefix');
   const stratsWord = t('lab.palmares.strats');
   const symWord = t('lab.palmares.symbol');
@@ -831,6 +831,7 @@ function profileDisplayName(code){
 const globalPalBtn = document.getElementById('globalPalmaresBtn');
 const globalPalModalEl = document.getElementById('globalPalmaresModal');
 const globalPalCloseBtn = document.getElementById('globalPalmaresClose');
+const globalPalScopeEl = document.getElementById('globalPalScope');
 const globalPalSortEl = document.getElementById('globalPalSortMode');
 const globalPalSummaryEl = document.getElementById('globalPalSummary');
 const globalPalTBody = document.getElementById('globalPalTBody');
@@ -846,10 +847,36 @@ async function loadGlobalPalmares(){
     else prof = localStorage.getItem('labWeightsProfile') || 'balancee';
   }catch(_){ prof = 'balancee'; }
   const weights = getWeights(prof);
+  // Scope: vue groupée ou Top 25 global
+  let scope = 'grouped';
+  try{
+    scope = (globalPalScopeEl && globalPalScopeEl.value) || localStorage.getItem('globalPal:scope') || 'grouped';
+  }catch(_){ scope = 'grouped'; }
+  try{
+    if(globalPalScopeEl){
+      if(!globalPalScopeEl.value) globalPalScopeEl.value = scope;
+      if(globalPalScopeEl.value !== scope){ globalPalScopeEl.value = scope; }
+    }
+    localStorage.setItem('globalPal:scope', scope);
+  }catch(_){ }
+  // Mode de tri global
+  let sortMode = 'score';
+  try{
+    sortMode = (globalPalSortEl && globalPalSortEl.value) || localStorage.getItem('globalPal:sortMode') || 'score';
+  }catch(_){ sortMode = 'score'; }
+  try{
+    if(globalPalSortEl){
+      if(!globalPalSortEl.value) globalPalSortEl.value = sortMode;
+      if(globalPalSortEl.value !== sortMode){ globalPalSortEl.value = sortMode; }
+    }
+    localStorage.setItem('globalPal:sortMode', sortMode);
+  }catch(_){ }
+  // Limite SQL: Top 25 global vs vue groupée plus large
+  const sqlLimit = (scope === 'top25') ? 25 : 200;
   let items = [];
   if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchGlobalPalmares==='function'){
     try{
-      const rows = await SUPA.fetchGlobalPalmares(200);
+      const rows = await SUPA.fetchGlobalPalmares(sqlLimit, sortMode);
       items = Array.isArray(rows)? rows.map((row)=>{
         const st = row.res || {};
         const raw = scoreResult(st, weights);
@@ -1000,6 +1027,19 @@ function renderGlobalPalmares(){
     });
   }catch(_){ }
 
+  // Scope: vue groupée (par paire/TF) ou Top 25 global toutes paires confondues
+  let scope = 'grouped';
+  try{
+    scope = (globalPalScopeEl && globalPalScopeEl.value) || localStorage.getItem('globalPal:scope') || 'grouped';
+  }catch(_){ scope = 'grouped'; }
+  try{
+    if(globalPalScopeEl){
+      if(!globalPalScopeEl.value) globalPalScopeEl.value = scope;
+      if(globalPalScopeEl.value !== scope){ globalPalScopeEl.value = scope; }
+    }
+    localStorage.setItem('globalPal:scope', scope);
+  }catch(_){ }
+
   let sortMode = 'score';
   try{
     sortMode = (globalPalSortEl && globalPalSortEl.value) || localStorage.getItem('globalPal:sortMode') || 'score';
@@ -1011,28 +1051,62 @@ function renderGlobalPalmares(){
     }
     localStorage.setItem('globalPal:sortMode', sortMode);
   }catch(_){ }
+
   if(!arr.length){
     globalPalTBody.innerHTML = `<tr><td colspan=\"15\">${t('lab.table.noData')}</td></tr>`;
     if(globalPalSummaryEl) globalPalSummaryEl.textContent = t('lab.palmares.empty');
     return;
   }
+
   const sorted = arr.slice().sort((a,b)=>{
-    if(sortMode==='pnl'){
-      const pa = Number(a.pnl||0), pb = Number(b.pnl||0);
-      if(pb!==pa) return pb-pa;
-    } else if(sortMode==='raw'){
-      const ra = Number(a.scoreRaw||0), rb = Number(b.scoreRaw||0);
-      if(rb!==ra) return rb-ra;
+    const aPF = Number(a.res && a.res.profitFactor != null ? a.res.profitFactor : a.pf || 0);
+    const bPF = Number(b.res && b.res.profitFactor != null ? b.res.profitFactor : b.pf || 0);
+    const aPnl = Number(a.pnl||0), bPnl = Number(b.pnl||0);
+    const aEq = Number(a.eq1||0), bEq = Number(b.eq1||0);
+    const aWr = Number(a.wr||0), bWr = Number(b.wr||0);
+    const aRR = Number(a.rr||0), bRR = Number(b.rr||0);
+    const aDD = Number(a.mdd||0), bDD = Number(b.mdd||0);
+    const aRaw = Number(a.scoreRaw||0), bRaw = Number(b.scoreRaw||0);
+    const aRob = Number(a.scoreRobust||0), bRob = Number(b.scoreRobust||0);
+
+    switch(sortMode){
+      case 'pnl':
+        if(bPnl !== aPnl) return bPnl - aPnl;
+        return bRob - aRob;
+      case 'raw':
+        if(bRaw !== aRaw) return bRaw - aRaw;
+        return bRob - aRob;
+      case 'pf':
+        if(bPF !== aPF) return bPF - aPF;
+        return bRob - aRob;
+      case 'eq':
+        if(bEq !== aEq) return bEq - aEq;
+        return bRob - aRob;
+      case 'win':
+        if(bWr !== aWr) return bWr - aWr;
+        return bRob - aRob;
+      case 'rr':
+        if(bRR !== aRR) return bRR - aRR;
+        return bRob - aRob;
+      case 'dd':
+        // Pour DD, "meilleur" = drawdown plus faible
+        if(aDD !== bDD) return aDD - bDD;
+        return bRob - aRob;
+      default: // score robuste
+        if(bRob !== aRob) return bRob - aRob;
+        return bRaw - aRaw;
     }
-    const sa = Number(a.scoreRobust||0), sb = Number(b.scoreRobust||0);
-    return sb-sa;
   });
-  try{ window.globalPalmaresSorted = sorted.slice(); }catch(_){ }
+
+  // Mode Top 25 global: ne garder que les 25 meilleures lignes
+  const view = (scope === 'top25') ? sorted.slice(0, 25) : sorted;
+
+  try{ window.globalPalmaresSorted = view.slice(); }catch(_){ }
   const rows=[]; let idx=1;
   const detailLabel = t('lab.table.detailBtn');
   const applyLabel = t('lab.table.applyBtn');
   const applyTitle = t('lab.table.applyTitle');
-  for(const it of sorted){
+  for(const it of view){
     const pair = symbolToDisplay(it.symbol||'');
     const tfDisp = it.tf || '';
     const prof = profileDisplayName(it.profile || '');
@@ -1054,13 +1128,24 @@ function renderGlobalPalmares(){
   <td>${Number(it.mdd||0).toFixed(0)}</td>
   <td style=\"white-space:nowrap;\"><button class=\"btn\" data-action=\"detail\" data-idx=\"${idx-1}\">${detailLabel}</button> <button class=\"btn\" data-action=\"apply\" data-idx=\"${idx-1}\" title=\"${applyTitle}\">${applyLabel}</button></td>
 </tr>`);
-    if(idx>=200) break;
+    if(scope !== 'top25' && idx>=200) break;
     idx++;
   }
   globalPalTBody.innerHTML = rows.join('');
   if(globalPalSummaryEl){
-    const sortSuffix = sortMode==='pnl' ? ' • tri: P&L' : (sortMode==='raw'? ' • tri: Score brut' : ' • tri: Score');
-    globalPalSummaryEl.textContent = `${t('lab.palmares.prefix')} ${arr.length} ${t('lab.palmares.strats')} — global${sortSuffix}`;
+    let sortSuffix = '';
+    switch(sortMode){
+      case 'raw': sortSuffix = ' • tri: Score brut'; break;
+      case 'pnl': sortSuffix = ' • tri: P&L'; break;
+      case 'pf': sortSuffix = ' • tri: PF'; break;
+      case 'eq': sortSuffix = ' • tri: Cap. finale'; break;
+      case 'win': sortSuffix = ' • tri: Win%'; break;
+      case 'rr': sortSuffix = ' • tri: Avg RR'; break;
+      case 'dd': sortSuffix = ' • tri: Max DD'; break;
+      default: sortSuffix = ' • tri: Score robuste'; break;
+    }
+    const scopeLabel = (scope === 'top25') ? 'Top 25 global' : 'global';
+    globalPalSummaryEl.textContent = `${t('lab.palmares.prefix')} ${arr.length} ${t('lab.palmares.strats')} — ${scopeLabel}${sortSuffix}`;
   }
 }
 
@@ -1071,7 +1156,17 @@ if(globalPalBtn && (!globalPalBtn.dataset || globalPalBtn.dataset.wired!=="1")){
 }
 if(globalPalCloseBtn){ globalPalCloseBtn.addEventListener('click', ()=> closeModalEl(globalPalModalEl)); }
 if(globalPalSortEl && (!globalPalSortEl.dataset || globalPalSortEl.dataset.wired!=="1")){
-  globalPalSortEl.addEventListener('change', ()=>{ try{ renderGlobalPalmares(); }catch(_){ } });
+  globalPalSortEl.addEventListener('change', ()=>{
+    try{
+      const v = globalPalSortEl.value || 'score';
+      try{ localStorage.setItem('globalPal:sortMode', v); }catch(_){ }
+      if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured()){
+        loadGlobalPalmares();
+      } else {
+        renderGlobalPalmares();
+      }
+    }catch(_){ }
+  });
   if(!globalPalSortEl.dataset) globalPalSortEl.dataset={};
   globalPalSortEl.dataset.wired='1';
 }
@@ -1107,6 +1202,21 @@ if(globalPalProfileFilterEl && (!globalPalProfileFilterEl.dataset || globalPalPr
   });
   if(!globalPalProfileFilterEl.dataset) globalPalProfileFilterEl.dataset={};
   globalPalProfileFilterEl.dataset.wired='1';
+}
+if(globalPalScopeEl && (!globalPalScopeEl.dataset || globalPalScopeEl.dataset.wired!=="1")){
+  globalPalScopeEl.addEventListener('change', ()=>{
+    try{
+      const v = globalPalScopeEl.value || 'grouped';
+      try{ localStorage.setItem('globalPal:scope', v); }catch(_){ }
+      if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured()){
+        loadGlobalPalmares();
+      } else {
+        renderGlobalPalmares();
+      }
+    }catch(_){ }
+  });
+  if(!globalPalScopeEl.dataset) globalPalScopeEl.dataset={};
+  globalPalScopeEl.dataset.wired='1';
 }
 // Délégation des clics Détail / Appliquer sur le palmarès global en réutilisant les handlers du Lab
 if(globalPalTBody && (!globalPalTBody.dataset || globalPalTBody.dataset.wiredDetail!=="1")){
