@@ -5117,7 +5117,16 @@ const canonKey=(p)=>{ try{
   function readTPOpt(){
     try{
       const en = !!document.getElementById('labTPOptEn')?.checked;
-      const count = Math.max(1, Math.min(10, parseInt(document.getElementById('labTPCount')?.value||'10',10)));
+      // Prefer the Heaven TP count unless the user explicitly overrides the Lab field.
+      const cntEl = document.getElementById('labTPCount');
+      let count;
+      if(cntEl && cntEl.dataset && cntEl.dataset.override==='1'){
+        count = clampTPCount(cntEl.value);
+      } else {
+        // fallback to Heaven's lbcOpts.tpCount, with UI value as a secondary fallback
+        const src = (lbcOpts && typeof lbcOpts.tpCount==='number') ? lbcOpts.tpCount : (cntEl && cntEl.value);
+        count = clampTPCount(src!=null? src : 10);
+      }
       const allowFib = !!document.getElementById('labTPAllowFib')?.checked;
       const allowPct = !!document.getElementById('labTPAllowPct')?.checked;
       const allowEMA = !!document.getElementById('labTPAllowEMA')?.checked;
@@ -5366,6 +5375,17 @@ function updateLabAdvVisibility(){
     const slAllowFib = !!document.getElementById('labSLAllowFib')?.checked;
     const tpFibWrap = document.getElementById('labTPFibWrap'); if(tpFibWrap) tpFibWrap.style.display = (showAdv && varTP && tpAllowFib)? 'flex':'none';
     const slFibWrap = document.getElementById('labSLFibWrap'); if(slFibWrap) slFibWrap.style.display = (showAdv && varSL && slAllowFib)? 'flex':'none';
+    // Keep Lab TP count synced once with Heaven when the block first becomes visible
+    try{
+      if(showAdv && varTP){
+        const labTPC=document.getElementById('labTPCount');
+        if(labTPC && (!labTPC.dataset || labTPC.dataset.heavenSync!=='1')){
+          labTPC.value = String(clampTPCount((lbcOpts && lbcOpts.tpCount)!=null? lbcOpts.tpCount : labTPC.value||10));
+          if(!labTPC.dataset) labTPC.dataset={};
+          labTPC.dataset.heavenSync='1';
+        }
+      }
+    }catch(_){ }
     // Individually show core ranges only when the corresponding toggle is ON
     function showLabelByInputId(inputId, show){ try{ const el=document.getElementById(inputId); if(!el) return; const lab = el.closest ? el.closest('label') : null; if(lab){ lab.style.display = show? 'inline-flex':'none'; } }catch(_){ } }
     const vN=!!document.getElementById('labVarNol')?.checked;
@@ -5421,6 +5441,18 @@ function setupLabAdvUI(){
   }catch(_){ }
   const ids=['labStrategy','labVarNol','labVarPrd','labVarSLInit','labVarBEBars','labVarBELock','labVarEMALen','labVarTP','labVarSL','labTPAllowFib','labSLAllowFib'];
   for(const id of ids){ const el=document.getElementById(id); if(el && (!el.dataset || el.dataset.wiredAdv!=='1')){ try{ el.addEventListener('change', ()=>{ try{ updateLabAdvVisibility(); }catch(_){ } }); }catch(_){ } if(!el.dataset) el.dataset={}; el.dataset.wiredAdv='1'; } }
+  // Sync Lab TP count once from Heaven, allow user override afterwards
+  try{
+    const labTPC=document.getElementById('labTPCount');
+    if(labTPC && (!labTPC.dataset || labTPC.dataset.heavenSync!=='1')){
+      labTPC.value = String(clampTPCount((lbcOpts && lbcOpts.tpCount)!=null? lbcOpts.tpCount : labTPC.value||10));
+      if(!labTPC.dataset) labTPC.dataset={};
+      labTPC.dataset.heavenSync='1';
+      // mark override on user change so subsequent reads honor the Lab-specific value
+      labTPC.addEventListener('change', ()=>{ try{ if(!labTPC.dataset) labTPC.dataset={}; labTPC.dataset.override='1'; labTPC.value = String(clampTPCount(labTPC.value)); }catch(_){ } });
+      labTPC.addEventListener('input', ()=>{ try{ if(!labTPC.dataset) labTPC.dataset={}; labTPC.dataset.override='1'; }catch(_){ } });
+    }
+  }catch(_){ }
   // Force refresh when toggling Strategy by any interaction (click/input/change)
   const stratSel=document.getElementById('labStrategy');
   function wireRefresh(el, key){ if(!el) return; if(el.dataset && el.dataset[key]==='1') return; ['change','input','click'].forEach(ev=>{ try{ el.addEventListener(ev, ()=>{ try{ updateLabAdvVisibility(); }catch(_){ } }); }catch(_){ } }); if(!el.dataset) el.dataset={}; el.dataset[key]='1'; }
