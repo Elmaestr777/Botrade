@@ -419,28 +419,29 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
       return out;
     }
     try{
-      // Toujours lire les meilleures stratégies globales (public pool, selected=true)
+      // Lire les stratégies marquées selected=true pour ce symbole/TF/profil
       let q = c
         .from('strategy_evaluations')
-        .select('params,metrics,score')
+        .select('params,metrics,score,created_at')
         .eq('symbol', symbol)
         .eq('tf', tf)
         .eq('selected', true);
       if(profileId!=null) q = q.eq('profile_id', profileId); else q = q.is('profile_id', null);
-      // Ordre primaire selon le mode choisi: score ou P&L net
-      if(mode === 'pnl'){
-        // metrics->>totalPnl contient le P&L net en JSON; on le caste côté serveur via PostgREST
-        q = q.order('metrics->>totalPnl', { ascending:false });
-      } else {
-        q = q.order('score', { ascending:false });
-      }
-      // Tiebreak récenteté
-      q = q.order('created_at', { ascending:false });
+      // Pour éviter tout tri lexicographique côté DB sur les champs JSON, on se contente d'un ordre récenteté/score
+      q = q.order('score', { ascending:false }).order('created_at', { ascending:false });
       const { data, error } = await q.limit(Math.max(1, limit));
-      if(!error && Array.isArray(data) && data.length){
-        return mapRows(data.map(r=>({ ...r, generation:1 })));
-      }
-      return [];
+      if(error || !Array.isArray(data)) return [];
+      const mapped = mapRows(data.map(r=>({ ...r, generation:1 })));
+      // Tri numérique côté client selon le mode demandé
+      const sorted = mapped.slice().sort((a,b)=>{
+        if(mode==='pnl'){
+          const pb = Number(b.res && b.res.totalPnl || 0);
+          const pa = Number(a.res && a.res.totalPnl || 0);
+          if(pb!==pa) return pb-pa;
+        }
+        return (Number(b.score||0) - Number(a.score||0));
+      });
+      return sorted.slice(0, Math.max(1, limit));
     }catch(_){ return []; }
   }
 
@@ -467,43 +468,31 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
       return out;
     }
     try{
+      // v_palmares_best: vue des meilleures stratégies (par score) —
+      // on évite tout tri DB sur JSON pour ne pas subir d'ordre lexicographique.
       let q = c
         .from('v_palmares_best')
-        .select('symbol,tf,profile_id,params,metrics,score,created_at');
-      switch(mode){
-        case 'pnl':
-          q = q.order('metrics->>totalPnl', { ascending:false });
-          break;
-        case 'pf':
-          q = q.order('metrics->>profitFactor', { ascending:false });
-          break;
-        case 'eq':
-          q = q.order('metrics->>equityFinal', { ascending:false });
-          break;
-        case 'win':
-          q = q.order('metrics->>winrate', { ascending:false });
-          break;
-        case 'rr':
-          q = q.order('metrics->>avgRR', { ascending:false });
-          break;
-        case 'dd':
-          // DD plus faible = meilleur, donc tri croissant
-          q = q.order('metrics->>maxDDAbs', { ascending:true });
-          break;
-        case 'raw':
-          // "Score brut" côté DB: on réutilise le champ score comme approximation;
-          // la pondération exacte (scoreResult) est recalculée côté client.
-          q = q.order('score', { ascending:false });
-          break;
-        default: // 'score' (score robuste)
-          q = q.order('score', { ascending:false });
-          break;
-      }
-      // En cas d'égalité, privilégier les plus récents
-      q = q.order('created_at', { ascending:false });
+        .select('symbol,tf,profile_id,params,metrics,score,created_at')
+        .order('score', { ascending:false })
+        .order('created_at', { ascending:false });
       const { data, error } = await q.limit(Math.max(1, limit));
       if(error){ slog('Supabase: fetchGlobalPalmares KO — '+(error.message||error)); return []; }
-      return mapRows(data||[]);
+      const mapped = mapRows(data||[]);
+      // Tri numérique côté client selon le mode demandé
+      const sorted = mapped.slice().sort((a,b)=>{
+        const A=a.res||{}, B=b.res||{};
+        switch(mode){
+          case 'pnl': return Number(B.totalPnl||0) - Number(A.totalPnl||0);
+          case 'pf':  return Number(B.profitFactor||0) - Number(A.profitFactor||0);
+          case 'eq':  return Number(B.equityFinal||0) - Number(A.equityFinal||0);
+          case 'win': return Number(B.winrate||0) - Number(A.winrate||0);
+          case 'rr':  return Number(B.avgRR||0) - Number(A.avgRR||0);
+          case 'dd':  return Number(A.maxDDAbs||0) - Number(B.maxDDAbs||0); // plus petit meilleur
+          case 'raw': // pas de calcul local ici; utiliser le champ score comme approximation
+          default:    return Number(b.score||0) - Number(a.score||0);
+        }
+      });
+      return sorted.slice(0, Math.max(1, limit));
     }catch(_){ return []; }
   }
 

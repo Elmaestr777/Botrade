@@ -5077,13 +5077,6 @@ const canonKey=(p)=>{ try{
       const tp_types = new Array(10).fill('Fib');
       const tp_r = new Array(10).fill(0.0);
       const tp_p = new Array(10).fill(0.0);
-      const tp_be = new Array(10).fill(0);
-      const tp_trail_m = new Array(10).fill(0); // 0 none,1 be,2 prev,3 ema,4 percent
-      const tp_trail_v = new Array(10).fill(0); // emaLen or pct
-      const tp_sl_type = new Array(10).fill(0); // 0 Fib,1 Percent,2 EMA
-      const tp_sl_r = new Array(10).fill(0);
-      const tp_sl_trail_m = new Array(10).fill(0); // 0 none,1 ema,2 percent
-      const tp_sl_trail_v = new Array(10).fill(0);
       let sumW = 0;
       for(let i=0;i<tp.length && i<10;i++){
         const t = tp[i] || {};
@@ -5093,20 +5086,19 @@ const canonKey=(p)=>{ try{
           tp_r[i] = Number(t.pct != null ? t.pct : t.value) || 0;
         } else if(typ === 'EMA'){
           tp_types[i] = 'EMA';
-          tp_r[i] = 0;
+          tp_r[i] = 0; // EMA target is handled by ema_len elsewhere
         } else {
           tp_types[i] = 'Fib';
           tp_r[i] = Number(t.fib != null ? t.fib : t.value) || 0;
         }
-        let w = t.qty; if(w != null) w = (w > 1 ? Number(w) : Number(w) * 100); tp_p[i] = Number.isFinite(w) ? Math.max(0, w) : 0; sumW += tp_p[i];
-        // be
-        tp_be[i] = t.beOn? 1:0;
-        // trail per TP
-        const tr = t.trail || null; if(tr){ tp_trail_m[i] = (tr.mode==='be')?1 : (tr.mode==='prev')?2 : (tr.mode==='ema')?3 : (tr.mode==='percent')?4 : 0; tp_trail_v[i] = (tr.mode==='ema')? (parseInt(tr.emaLen)||0) : (tr.mode==='percent'? (+tr.pct||0): 0); }
-        // attached SL + trail
-        const s = t.sl || null; if(s){ const st = String(s.type||'Percent'); tp_sl_type[i] = (st==='Fib')?0 : (st==='Percent')?1 : 2; tp_sl_r[i] = (st==='Fib')? (+s.fib||0) : (st==='Percent'? (+s.pct||0): 0); const str = s.trail||null; if(str){ tp_sl_trail_m[i] = (str.mode==='ema')?1 : (str.mode==='percent')?2 : 0; tp_sl_trail_v[i] = (str.mode==='ema')? (parseInt(str.emaLen)||0) : (str.mode==='percent'? (+str.pct||0): 0); } }
+        let w = t.qty;
+        if(w != null) w = (w > 1 ? Number(w) : Number(w) * 100);
+        tp_p[i] = Number.isFinite(w) ? Math.max(0, w) : 0;
+        sumW += tp_p[i];
       }
-      if(sumW > 0){ for(let i=0;i<10;i++) tp_p[i] = +(tp_p[i] / sumW * 100).toFixed(6); }
+      if(sumW > 0){
+        for(let i=0;i<10;i++) tp_p[i] = +(tp_p[i] / sumW * 100).toFixed(6);
+      }
       const obj = {
         nol: p.nol|0,
         prd: p.prd|0,
@@ -5117,9 +5109,7 @@ const canonKey=(p)=>{ try{
         entry_mode: String(p.entryMode||'Both').replace('Fib Retracement','Fib'),
         use_fib_ret: !!p.useFibRet,
         confirm_mode: String(p.confirmMode||'Bounce'),
-        tp_compound: !!p.tpCompound,
-        tp_close_all_last: !!p.tpCloseAllLast,
-        tp_types, tp_r, tp_p, tp_be, tp_trail_m, tp_trail_v, tp_sl_type, tp_sl_r, tp_sl_trail_m, tp_sl_trail_v,
+        tp_types, tp_r, tp_p,
       };
       return JSON.stringify(obj, Object.keys(obj).sort());
     }catch(_){ return ''; } };
