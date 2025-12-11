@@ -72,8 +72,23 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params){
   let equity=conf.startCap; let peak=equity; let maxDDAbs=0; let grossProfit=0, grossLoss=0; let wins=0, losses=0; let rrSum=0; let tradesCount=0;
   let positions=[]; let pendingFib=null;
   const returns=[]; const eqSeries=[];
-  const feePct=conf.fee/100; const maxPct=conf.maxPct/100; const lev=conf.lev; const baseMode=conf.base;
-  function __computeQty(entry, sl){ if(!(isFinite(entry)&&isFinite(sl))) return 0; if(equity<=0) return 0; const capBase=(baseMode==='equity')?equity:conf.startCap; const budget=Math.max(0, Math.min(capBase*maxPct, equity)); const notional=budget*lev; const qty0=notional/Math.max(1e-12, entry); const riskAbs=Math.abs(entry-sl); const perUnitWorstLoss = riskAbs + ((Math.abs(entry)+Math.abs(sl)) * feePct); const qtyRisk = perUnitWorstLoss>0? (equity / perUnitWorstLoss) : 0; const q=Math.max(0, Math.min(qty0, qtyRisk)); return q; }
+  const feePct=conf.fee/100; const lev=conf.lev; const baseMode=conf.base;
+  function __computeQty(entry, sl){
+    if(!(isFinite(entry)&&isFinite(sl))) return 0;
+    if(equity<=0) return 0;
+    // Plafond de capital par trade : params.maxPct (stratégie) > conf.maxPct (run) > 100
+    const pctLocal = (params && params.maxPct != null) ? Number(params.maxPct) : (conf.maxPct != null ? Number(conf.maxPct) : 100);
+    const maxPct = Math.max(0, pctLocal)/100;
+    const capBase=(baseMode==='equity')?equity:conf.startCap;
+    const budget=Math.max(0, Math.min(capBase*maxPct, equity));
+    const notional=budget*lev;
+    const qty0=notional/Math.max(1e-12, entry);
+    const riskAbs=Math.abs(entry-sl);
+    const perUnitWorstLoss = riskAbs + ((Math.abs(entry)+Math.abs(sl)) * feePct);
+    const qtyRisk = perUnitWorstLoss>0? (equity / perUnitWorstLoss) : 0;
+    const q=Math.max(0, Math.min(qty0, qtyRisk));
+    return q;
+  }
   function tryOpen(dir, entry, i){ let sl=computeSLFromLadder(dir, entry, i); if(sl==null){ const riskPx=entry*(params.slInitPct/100); sl=dir==='long'?(entry-riskPx):(entry+riskPx); } else { if(dir==='long' && sl>entry) sl=entry; if(dir==='short' && sl<entry) sl=entry; } const initQty=__computeQty(entry, sl); if(initQty>1e-12 && isFinite(initQty)){ const targets=buildTargets(dir, entry, Math.abs(entry-sl), i); positions.push({ dir, entry, sl, initSL:sl, qty:initQty, initQty, entryIdx:i, beActive:false, anyTP:false, tpIdx:0, targets, risk: Math.abs(entry-sl)*initQty, hiSince: bars[i].high, loSince: bars[i].low, lastTpIdx: 0, tpTrailCfg: null, slTrailCfg: null }); } }
   for(let i=Math.max(1,sIdx); i<=eIdx; i++){
     if(equity<=0) break;

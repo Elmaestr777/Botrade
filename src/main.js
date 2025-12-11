@@ -1840,12 +1840,33 @@ function addLabLog(msg){ try{ if(!labLogEl) return; const t=new Date(); const hh
 function updateLabKpis(best){ try{ if(!best||!best.length){ if(kpiScoreEl) kpiScoreEl.textContent='—'; if(kpiPFEl) kpiPFEl.textContent='—'; if(kpiWinEl) kpiWinEl.textContent='—'; if(kpiDDEl) kpiDDEl.textContent='—'; return; } const top=best[0]; const st=top.res||{}; if(kpiScoreEl) kpiScoreEl.textContent = Number(top.score||0).toFixed(2); if(kpiPFEl) kpiPFEl.textContent = (st.profitFactor===Infinity? '∞' : Number(st.profitFactor||0).toFixed(2)); if(kpiWinEl) kpiWinEl.textContent = Number(st.winrate||0).toFixed(1)+'%'; if(kpiDDEl) kpiDDEl.textContent = Number(st.maxDDAbs||0).toFixed(0); }catch(_){ } }
 function updateLabKpiFrom(score, res){ try{ if(kpiScoreEl) kpiScoreEl.textContent = Number(score||0).toFixed(2); if(kpiPFEl) kpiPFEl.textContent = (res.profitFactor===Infinity? '∞' : Number(res.profitFactor||0).toFixed(2)); if(kpiWinEl) kpiWinEl.textContent = Number(res.winrate||0).toFixed(1)+'%'; if(kpiDDEl) kpiDDEl.textContent = Number(res.maxDDAbs||0).toFixed(0); }catch(_){ } }
 
+function labProfileRiskPct(){
+  try{
+    const el = (typeof labProfileEl!=='undefined' && labProfileEl) ? labProfileEl : document.getElementById('labProfile');
+    const prof = (el && el.value) || (localStorage.getItem('labWeightsProfile')||'balancee');
+    const p = String(prof||'').toLowerCase();
+    if(p==='sure') return 8;        // profil Sûre: centre autour de 6–8%
+    if(p==='agressive') return 30;  // profil Agressive: centre autour de 25–30%
+    return 16;                      // profil Balancée (défaut ~15–20%)
+  }catch(_){ return 16; }
+}
+function labProfileRiskRange(){
+  try{
+    const el = (typeof labProfileEl!=='undefined' && labProfileEl) ? labProfileEl : document.getElementById('labProfile');
+    const prof = (el && el.value) || (localStorage.getItem('labWeightsProfile')||'balancee');
+    const p = String(prof||'').toLowerCase();
+    if(p==='sure')      return { min: 2,  max: 12 };
+    if(p==='agressive') return { min: 10, max: 45 };
+    return { min: 5, max: 25 };
+  }catch(_){ return { min: 5, max: 25 }; }
+}
 function readLabRiskConf(){
   try{
     const startCap = Math.max(0, parseFloat((document.getElementById('labStartCap')&&document.getElementById('labStartCap').value)||'10000'));
     const fee = Math.max(0, parseFloat((document.getElementById('labFee')&&document.getElementById('labFee').value)||'0.1'));
     const lev = Math.max(1, parseFloat((document.getElementById('labLev')&&document.getElementById('labLev').value)||'1'));
-    let maxPct = 100;
+    // Par défaut en mode simple (auto), on adapte Max % par trade au profil Lab
+    let maxPct = labProfileRiskPct();
     try{
       const modeEl=document.getElementById('labMaxPctMode');
       const valEl=document.getElementById('labMaxPct');
@@ -1860,7 +1881,7 @@ function readLabRiskConf(){
     }catch(_){ }
     return { startCap, fee, lev, maxPct, base:'initial' };
   }catch(_){
-    return { startCap:10000, fee:0.1, lev:1, maxPct:100, base:'initial' };
+    return { startCap:10000, fee:0.1, lev:1, maxPct:labProfileRiskPct(), base:'initial' };
   }
 }
 
@@ -2672,8 +2693,22 @@ function runBacktestSlice(sIdx, eIdx, conf){
   }
   let equity=conf.startCap; let peak=equity; let maxDDAbs=0; let grossProfit=0, grossLoss=0; let wins=0, losses=0; let rrSum=0; let tradesCount=0;
   let pos=null; let pendingFib=null;
-  const feePct=conf.fee/100; const maxPct=conf.maxPct/100; const lev=conf.lev; const baseMode=conf.base;
-  function __computeQty(entry, sl){ if(!(isFinite(entry)&&isFinite(sl))) return 0; if(equity<=0) return 0; const capBase=(baseMode==='equity')?equity:conf.startCap; const budget=Math.max(0, Math.min(capBase*maxPct, equity)); const notional=budget*lev; const qty0=notional/Math.max(1e-12, entry); const riskAbs=Math.abs(entry-sl); const perUnitWorstLoss = riskAbs + ((Math.abs(entry)+Math.abs(sl)) * feePct); const qtyRisk = perUnitWorstLoss>0? (equity / perUnitWorstLoss) : 0; const q=Math.max(0, Math.min(qty0, qtyRisk)); return q; }
+  const feePct=conf.fee/100; const lev=conf.lev; const baseMode=conf.base;
+  function __computeQty(entry, sl){
+    if(!(isFinite(entry)&&isFinite(sl))) return 0;
+    if(equity<=0) return 0;
+    const pctLocal = (lbcOpts && lbcOpts.maxPct != null) ? Number(lbcOpts.maxPct) : (conf.maxPct != null ? Number(conf.maxPct) : 100);
+    const maxPct = Math.max(0, pctLocal)/100;
+    const capBase=(baseMode==='equity')?equity:conf.startCap;
+    const budget=Math.max(0, Math.min(capBase*maxPct, equity));
+    const notional=budget*lev;
+    const qty0=notional/Math.max(1e-12, entry);
+    const riskAbs=Math.abs(entry-sl);
+    const perUnitWorstLoss = riskAbs + ((Math.abs(entry)+Math.abs(sl)) * feePct);
+    const qtyRisk = perUnitWorstLoss>0? (equity / perUnitWorstLoss) : 0;
+    const q=Math.max(0, Math.min(qty0, qtyRisk));
+    return q;
+  }
   for(let i=Math.max(1,sIdx); i<=eIdx; i++){
     if(btAbort) break; if(equity<=0) break;
     const bar=candles[i]; const trendNow=lb.trend[i]; const trendPrev=lb.trend[i-1];
@@ -2825,8 +2860,22 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
   }
   let equity=conf.startCap; let peak=equity; let maxDDAbs=0; let grossProfit=0, grossLoss=0; let wins=0, losses=0; let rrSum=0; let tradesCount=0;
   let positions=[]; let pendingFib=null; const trades = collect? []: null; const eqPts = collect? []: null;
-  const feePct=conf.fee/100; const maxPct=conf.maxPct/100; const lev=conf.lev; const baseMode=conf.base;
-  function __computeQty(entry, sl){ if(!(isFinite(entry)&&isFinite(sl))) return 0; if(equity<=0) return 0; const capBase=(baseMode==='equity')?equity:conf.startCap; const budget=Math.max(0, Math.min(capBase*maxPct, equity)); const notional=budget*lev; const qty0=notional/Math.max(1e-12, entry); const riskAbs=Math.abs(entry-sl); const perUnitWorstLoss = riskAbs + ((Math.abs(entry)+Math.abs(sl)) * feePct); const qtyRisk = perUnitWorstLoss>0? (equity / perUnitWorstLoss) : 0; const q=Math.max(0, Math.min(qty0, qtyRisk)); return q; }
+  const feePct=conf.fee/100; const lev=conf.lev; const baseMode=conf.base;
+  function __computeQty(entry, sl){
+    if(!(isFinite(entry)&&isFinite(sl))) return 0;
+    if(equity<=0) return 0;
+    const pctLocal = (params && params.maxPct != null) ? Number(params.maxPct) : (conf.maxPct != null ? Number(conf.maxPct) : 100);
+    const maxPct = Math.max(0, pctLocal)/100;
+    const capBase=(baseMode==='equity')?equity:conf.startCap;
+    const budget=Math.max(0, Math.min(capBase*maxPct, equity));
+    const notional=budget*lev;
+    const qty0=notional/Math.max(1e-12, entry);
+    const riskAbs=Math.abs(entry-sl);
+    const perUnitWorstLoss = riskAbs + ((Math.abs(entry)+Math.abs(sl)) * feePct);
+    const qtyRisk = perUnitWorstLoss>0? (equity / perUnitWorstLoss) : 0;
+    const q=Math.max(0, Math.min(qty0, qtyRisk));
+    return q;
+  }
   function tryOpen(dir, entry, i){ let sl=computeSLFromLadder(dir, entry, i); if(sl==null){ const riskPx=entry*(params.slInitPct/100); sl=dir==='long'?(entry-riskPx):(entry+riskPx); } else { if(dir==='long' && sl>entry) sl=entry; if(dir==='short' && sl<entry) sl=entry; } const initQty=__computeQty(entry, sl); if(initQty>1e-12 && isFinite(initQty)){ const targets=buildTargets(dir, entry, Math.abs(entry-sl), i); positions.push({ dir, entry, sl, initSL:sl, qty:initQty, initQty, entryIdx:i, beActive:false, anyTP:false, tpIdx:0, targets, risk: Math.abs(entry-sl)*initQty, hiSince: bars[i].high, loSince: bars[i].low, lastTpIdx: 0, tpTrailCfg: null, slTrailCfg: null }); } }
   for(let i=Math.max(1,sIdx); i<=eIdx; i++){
     if(btAbort) break; if(equity<=0) break;
@@ -4912,7 +4961,10 @@ const conf=readLabRiskConf();
       if(mode==='fixed'){
         addBtLog(`Max % par trade: ${mpStr}% (fixe)`);
       } else {
-        addBtLog('Max % par trade: Auto (algo, plafond 100% du capital de référence)');
+        // Auto: borne dérivée du profil (Sûre/Balancée/Agressive)
+        let prof='balancee';
+        try{ prof = (labProfileEl && labProfileEl.value) || localStorage.getItem('labWeightsProfile') || 'balancee'; }catch(_){ }
+        addBtLog(`Max % par trade: Auto (profil ${prof}, plafond ≈ ${mpStr}% du capital de référence)`);
       }
     }
   }catch(_){ }
@@ -5029,6 +5081,9 @@ function updateGlobalProgressUI(){ try{ const plannedDen = (__labSimPlanned>0)? 
   let rNol=[2,3,4,5]; let rPrd=[]; for(let v=8; v<=34; v+=2){ rPrd.push(v); }
   let rSL=[0.5,1,1.5,2,2.5,3]; let rBEb=[3,4,5,6,7,8]; let rBEL=[3,4,5,6,7,8,9,10];
   let rEMALen=[]; for(let v=21; v<=89; v+=4){ rEMALen.push(v); }
+  // Plage de Max % par trade en fonction du profil Lab (simple mode)
+  const riskRange = labProfileRiskRange();
+  let rMaxPct=[]; for(let v=riskRange.min; v<=riskRange.max+1e-9; v+=1){ rMaxPct.push(+v.toFixed(1)); }
   if(isLabAdvMode()){
     const get=(id,def)=>{ const el=document.getElementById(id); const x=parseFloat(el?.value||''); return Number.isFinite(x)? x : def; };
     const makeRange=(min,max,step,prec=6)=>{ const out=[]; const s=Math.max(+(step||1),1e-9); for(let v=+min; v<=+max+1e-9; v+=s){ out.push(+v.toFixed(prec)); } return out; };
@@ -5744,13 +5799,13 @@ function randomParams(){ const vars=readLabVarToggles(); const tpCfg=readTPOpt()
     }
     return p; }
   function neighbor(arr, v){ const i=arr.indexOf(v); const out=[]; if(i>0) out.push(arr[i-1]); out.push(v); if(i>=0 && i<arr.length-1) out.push(arr[i+1]); return pick(out.length?out:arr); }
-function mutate(p, rate){ const vars=readLabVarToggles(); const tpCfg=readTPOpt(); const slCfg=readSLOpt(); const q={...p}; if(vars.varNol && Math.random()<rate) q.nol = neighbor(rNol, q.nol); if(vars.varPrd && Math.random()<rate) q.prd = neighbor(rPrd, q.prd); if(vars.varSLInit && Math.random()<rate) q.slInitPct = neighbor(rSL, q.slInitPct); if(vars.varBEBars && Math.random()<rate) q.beAfterBars = neighbor(rBEb, q.beAfterBars); if(vars.varBELock && Math.random()<rate) q.beLockPct = neighbor(rBEL, q.beLockPct); if(vars.varEMALen && Math.random()<rate) q.emaLen = neighbor(rEMALen, q.emaLen); if(vars.varEntries && Math.random()<rate){ const e=__sampleEntries(q); Object.assign(q, e); }
+function mutate(p, rate){ const vars=readLabVarToggles(); const tpCfg=readTPOpt(); const slCfg=readSLOpt(); const q={...p}; if(vars.varNol && Math.random()<rate) q.nol = neighbor(rNol, q.nol); if(vars.varPrd && Math.random()<rate) q.prd = neighbor(rPrd, q.prd); if(vars.varSLInit && Math.random()<rate) q.slInitPct = neighbor(rSL, q.slInitPct); if(vars.varBEBars && Math.random()<rate) q.beAfterBars = neighbor(rBEb, q.beAfterBars); if(vars.varBELock && Math.random()<rate) q.beLockPct = neighbor(rBEL, q.beLockPct); if(vars.varEMALen && Math.random()<rate) q.emaLen = neighbor(rEMALen, q.emaLen); if(Math.random()<rate){ q.maxPct = neighbor(rMaxPct, (q.maxPct!=null? q.maxPct : labProfileRiskPct())); } if(vars.varEntries && Math.random()<rate){ const e=__sampleEntries(q); Object.assign(q, e); }
   if(vars.varTP && Math.random()<rate){ q.tp = mutateTP(Array.isArray(q.tp)? q.tp: [], tpCfg).slice(0,10); q.tpEnable=true; }
   if(vars.varSL && Math.random()<rate){ q.sl = mutateSL(Array.isArray(q.sl)? q.sl: [], slCfg).slice(0,10); q.slEnable=true; }
   if(Math.random()<rate){ q.tpCompound = !q.tpCompound; }
   if(Math.random()<rate){ q.tpCloseAllLast = !q.tpCloseAllLast; }
   return q; }
-function crossover(a,b){ const tpCfg=readTPOpt(); const slCfg=readSLOpt(); return { nol: Math.random()<0.5?a.nol:b.nol, prd: Math.random()<0.5?a.prd:b.prd, slInitPct: Math.random()<0.5?a.slInitPct:b.slInitPct, beAfterBars: Math.random()<0.5?a.beAfterBars:b.beAfterBars, beLockPct: Math.random()<0.5?a.beLockPct:b.beLockPct, emaLen: Math.random()<0.5?a.emaLen:b.emaLen, entryMode: a.entryMode, useFibRet: a.useFibRet, confirmMode: a.confirmMode, ent382:a.ent382, ent500:a.ent500, ent618:a.ent618, ent786:a.ent786, tpEnable:true, tpCompound: (Math.random()<0.5? a.tpCompound : b.tpCompound), tpCloseAllLast: (Math.random()<0.5? a.tpCloseAllLast : b.tpCloseAllLast), tp: crossoverTP(a.tp||[], b.tp||[], tpCfg).slice(0,10), slEnable:true, sl: crossoverSL(a.sl||[], b.sl||[], slCfg).slice(0,10) }; }
+function crossover(a,b){ const tpCfg=readTPOpt(); const slCfg=readSLOpt(); return { nol: Math.random()<0.5?a.nol:b.nol, prd: Math.random()<0.5?a.prd:b.prd, slInitPct: Math.random()<0.5?a.slInitPct:b.slInitPct, beAfterBars: Math.random()<0.5?a.beAfterBars:b.beAfterBars, beLockPct: Math.random()<0.5?a.beLockPct:b.beLockPct, emaLen: Math.random()<0.5?a.emaLen:b.emaLen, maxPct: (Math.random()<0.5? (a.maxPct!=null?a.maxPct:b.maxPct) : (b.maxPct!=null?b.maxPct:a.maxPct)), entryMode: a.entryMode, useFibRet: a.useFibRet, confirmMode: a.confirmMode, ent382:a.ent382, ent500:a.ent500, ent618:a.ent618, ent786:a.ent786, tpEnable:true, tpCompound: (Math.random()<0.5? a.tpCompound : b.tpCompound), tpCloseAllLast: (Math.random()<0.5? a.tpCloseAllLast : b.tpCloseAllLast), tp: crossoverTP(a.tp||[], b.tp||[], tpCfg).slice(0,10), slEnable:true, sl: crossoverSL(a.sl||[], b.sl||[], slCfg).slice(0,10) }; }
 async function evalParamsList(list, phase='Eval'){
     const out=[]; let idx=0; const N=list.length||0;
     function fmtTP(tp){ try{ if(!Array.isArray(tp)||!tp.length) return '—'; return tp.map(t=>{ const typ=(t.type||'Fib'); if(typ==='Fib'){ return `F:${t.fib}`; } if(typ==='Percent'){ return `P:${t.pct}%`; } if(typ==='EMA'){ return `E:${t.emaLen}`; } return typ; }).slice(0,10).join(';'); }catch(_){ return '—'; } }
@@ -5912,7 +5967,15 @@ try{ const top=cur[0]; if(top){ addBtLog(`Bayes init — best ${top.score.toFixe
       const elite = cur.slice(0, eliteN);
       // build categorical distributions (frequency)
       function distFrom(el){ const freq=(arr,sel)=>{ const m=new Map(); for(const e of el){ const v=sel(e.p); m.set(v,(m.get(v)||0)+1); } return Array.from(arr).map(v=>({v, w:(m.get(v)||0)+1})); };
-        return { nol:freq(rNol,x=>x.nol), prd:freq(rPrd,x=>x.prd), sl:freq(rSL,x=>x.slInitPct), beb:freq(rBEb,x=>x.beAfterBars), bel:freq(rBEL,x=>x.beLockPct), ema:freq(rEMALen,x=>x.emaLen) };
+        return {
+          nol: freq(rNol,x=>x.nol),
+          prd: freq(rPrd,x=>x.prd),
+          sl:  freq(rSL, x=>x.slInitPct),
+          beb: freq(rBEb,x=>x.beAfterBars),
+          bel: freq(rBEL,x=>x.beLockPct),
+          ema: freq(rEMALen,x=>x.emaLen),
+          risk: freq(rMaxPct, x=> (x.maxPct!=null? x.maxPct : labProfileRiskPct())),
+        };
       }
       const D=distFrom(elite);
       function sampleFrom(list){ const tot=list.reduce((s,a)=>s+a.w,0); let r=Math.random()*tot; for(const it of list){ r-=it.w; if(r<=0) return it.v; } return list[list.length-1].v; }
@@ -5922,7 +5985,7 @@ const vars = readLabVarToggles();
       const baseP0 = (cur && cur[0] && cur[0].p) ? cur[0].p : baseFromLbc();
       const bf = varIntensityFactor(); const targetBatch = Math.max(10, Math.round(cur.length * (bf>1? 1.25 : (bf<1? 0.85 : 1.0))));
       const batch=[]; while(batch.length<targetBatch){
-        const p={ nol: vars.varNol? sampleFrom(D.nol) : (baseP0.nol|0), prd: vars.varPrd? sampleFrom(D.prd) : (baseP0.prd|0), slInitPct: vars.varSLInit? sampleFrom(D.sl) : (+baseP0.slInitPct||0), beAfterBars: vars.varBEBars? sampleFrom(D.beb) : (baseP0.beAfterBars|0), beLockPct: vars.varBELock? sampleFrom(D.bel) : (+baseP0.beLockPct||0), emaLen: vars.varEMALen? sampleFrom(D.ema) : (baseP0.emaLen|0), entryMode: baseP0.entryMode||'Both', useFibRet: !!baseP0.useFibRet, confirmMode: baseP0.confirmMode||'Bounce', ent382: !!baseP0.ent382, ent500: !!baseP0.ent500, ent618: !!baseP0.ent618, ent786: !!baseP0.ent786, tpEnable: true, tp: [], slEnable: true, sl: [] };
+        const p={ nol: vars.varNol? sampleFrom(D.nol) : (baseP0.nol|0), prd: vars.varPrd? sampleFrom(D.prd) : (baseP0.prd|0), slInitPct: vars.varSLInit? sampleFrom(D.sl) : (+baseP0.slInitPct||0), beAfterBars: vars.varBEBars? sampleFrom(D.beb) : (baseP0.beAfterBars|0), beLockPct: vars.varBELock? sampleFrom(D.bel) : (+baseP0.beLockPct||0), emaLen: vars.varEMALen? sampleFrom(D.ema) : (baseP0.emaLen|0), maxPct: sampleFrom(D.risk), entryMode: baseP0.entryMode||'Both', useFibRet: !!baseP0.useFibRet, confirmMode: baseP0.confirmMode||'Bounce', ent382: !!baseP0.ent382, ent500: !!baseP0.ent500, ent618: !!baseP0.ent618, ent786: !!baseP0.ent786, tpEnable: true, tp: [], slEnable: true, sl: [] };
         if(vars.varTP && tpCfg.en){ p.tp = sampleTPList(tpCfg).slice(0,10); } else { p.tp = Array.isArray(baseP0.tp)? baseP0.tp.slice(0,10):[]; p.tpEnable=!!p.tp.length; }
         if(vars.varSL && slCfg.en){ p.sl = sampleSLList(slCfg).slice(0,10); } else { p.sl = Array.isArray(baseP0.sl)? baseP0.sl.slice(0,10):[]; p.slEnable=!!p.sl.length; }
         if(isDup(p)) continue; pushSeen(p); batch.push({ p }); }
