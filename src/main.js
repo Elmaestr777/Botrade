@@ -3359,7 +3359,7 @@ function generateStrategySummary(res, ctx, d){ try{
   // Synthèse courte
   lines.push(`• Profit Factor: ${pf===Infinity?'∞':pf.toFixed(2)}  • Win%: ${wr.toFixed(1)}%  • Avg R:R: ${Number.isFinite(rr)? rr.toFixed(2):'—'}`);
   if(Number.isFinite(ddPct)) lines.push(`• Max DD: ${dd.toFixed(0)} (${ddPct.toFixed(1)}% du capital initial)`);
-lines.push(`• Exposition: ${tim.toFixed(1)}%  • Trades/jour: ${freq.toFixed(2)}`);
+  lines.push(`• Exposition: ${tim.toFixed(1)}%  • Trades/jour: ${freq.toFixed(2)}`);
   if(d && typeof d.expectancy==='number') lines.push(`• Expectancy/trade: ${d.expectancy.toFixed(2)} (USD)`);
   if(d && typeof d.avgDurMin==='number') lines.push(`• Durée moyenne/trade: ${d.avgDurMin.toFixed(1)} min`);
   if(d && typeof d.bestNet==='number' && typeof d.worstNet==='number') lines.push(`• Meilleur trade: ${d.bestNet.toFixed(2)}  • Pire trade: ${d.worstNet.toFixed(2)}`);
@@ -3385,6 +3385,110 @@ lines.push(`• Exposition: ${tim.toFixed(1)}%  • Trades/jour: ${freq.toFixed(
     lines.push("\nPoints d'amélioration (génération ≥ 2):\n- " + imp.join("\n- "));
   }
   return lines.join("\n");
+}catch(_){ return '—'; }}
+
+// Description détaillée des paramètres de stratégie (structure, entrées, TP/SL, capital)
+function describeStrategyParams(p, conf){ try{
+  p = p || {}; conf = conf || {};
+  const parts = [];
+  const nol = (p.nol!=null? p.nol : '—');
+  const prd = (p.prd!=null? p.prd : '—');
+  const slInit = (p.slInitPct!=null? p.slInitPct : (window.lbcOpts && lbcOpts.slInitPct!=null? lbcOpts.slInitPct : '—'));
+  const beBars = (p.beAfterBars!=null? p.beAfterBars : (window.lbcOpts && lbcOpts.beAfterBars!=null? lbcOpts.beAfterBars : '—'));
+  const beLock = (p.beLockPct!=null? p.beLockPct : (window.lbcOpts && lbcOpts.beLockPct!=null? lbcOpts.beLockPct : '—'));
+  const emaLen = (p.emaLen!=null? p.emaLen : (window.lbcOpts && lbcOpts.emaLen!=null? lbcOpts.emaLen : '—'));
+  parts.push(`Structure: nol=${nol} • prd=${prd} • SL init=${slInit}% • BE=${beBars}/${beLock}% • EMA=${emaLen}`);
+
+  const mode = p.entryMode || (window.lbcOpts && lbcOpts.entryMode) || 'Both';
+  const fibRet = p.useFibRet ? 'Oui' : 'Non';
+  const confirm = p.confirmMode || (window.lbcOpts && lbcOpts.confirmMode) || '—';
+  const ents = [];
+  if(p.ent382 || (window.lbcOpts && lbcOpts.ent382)) ents.push('382');
+  if(p.ent500 || (window.lbcOpts && lbcOpts.ent500)) ents.push('500');
+  if(p.ent618 || (window.lbcOpts && lbcOpts.ent618)) ents.push('618');
+  if(p.ent786 || (window.lbcOpts && lbcOpts.ent786)) ents.push('786');
+  const entStr = ents.length? ents.join('/') : '—';
+  parts.push(`Entrée: mode=${mode} • FibRet=${fibRet} • Confirm=${confirm} • Ent=${entStr}`);
+
+  const tpArr = Array.isArray(p.tp)? p.tp : [];
+  const tpEnable = (typeof p.tpEnable==='boolean')? p.tpEnable : !!(window.lbcOpts && lbcOpts.tpEnable);
+  const tpCompound = (typeof p.tpCompound==='boolean')? p.tpCompound : !!(window.lbcOpts && lbcOpts.tpCompound);
+  const tpCloseAllLast = (typeof p.tpCloseAllLast==='boolean')? p.tpCloseAllLast : !!(window.lbcOpts && lbcOpts.tpCloseAllLast);
+  if(tpEnable && tpArr.length){
+    const lines=[];
+    const caps=[];
+    for(let i=0;i<tpArr.length;i++){
+      const tp = tpArr[i]||{}; const n=i+1;
+      let lvl='?';
+      const typ = tp.type || 'Fib';
+      if(typ==='Fib'){
+        const r = (tp.fib!=null? tp.fib : tp.value);
+        lvl = `F:${r}`;
+      } else if(typ==='Percent'){
+        const v = (tp.pct!=null? tp.pct : tp.value);
+        lvl = `P:${v}%`;
+      } else if(typ==='EMA'){
+        const len = tp.emaLen!=null? tp.emaLen : emaLen;
+        lvl = `EMA${len}`;
+      }
+      const inner=[];
+      if(tp.beOn) inner.push('BE');
+      if(tp.trail && tp.trail.mode){
+        const m = tp.trail.mode;
+        if(m==='be') inner.push('Trail:BE');
+        else if(m==='prev') inner.push('Trail:Prev');
+        else if(m==='ema') inner.push(`Trail:EMA${tp.trail.emaLen!=null? tp.trail.emaLen : emaLen}`);
+        else if(m==='percent') inner.push(`Trail:${tp.trail.pct!=null? tp.trail.pct:0}%`);
+      }
+      if(tp.sl){
+        let slDesc=null;
+        const s=tp.sl;
+        if(s.type==='Fib') slDesc = `F${s.fib!=null? s.fib:s.value}`;
+        else if(s.type==='Percent') slDesc = `${s.pct!=null? s.pct:s.value}%`;
+        else if(s.type==='EMA') slDesc = `EMA${s.emaLen!=null? s.emaLen:emaLen}`;
+        if(s.trail && s.trail.mode){
+          const m2=s.trail.mode;
+          let tStr=m2;
+          if(m2==='ema') tStr = `EMA${s.trail.emaLen!=null? s.trail.emaLen:emaLen}`;
+          else if(m2==='percent') tStr = `${s.trail.pct!=null? s.trail.pct:0}%`;
+          slDesc = slDesc? `${slDesc}, SLTr:${tStr}` : `SLTr:${tStr}`;
+        }
+        if(slDesc) inner.push(`SL:${slDesc}`);
+      }
+      let alloc=null;
+      if(tp.qty!=null){ const a = (tp.qty>1? tp.qty : tp.qty*100); alloc = `${a.toFixed(a>=1?0:1)}%`; }
+      if(alloc) caps.push(alloc);
+      const seg = [`TP${n}=${lvl}`];
+      if(inner.length) seg.push(`(${inner.join(', ')})`);
+      if(alloc) seg.push(`{${alloc}}`);
+      lines.push(seg.join(' '));
+    }
+    parts.push('TP ladder: '+lines.join(' ; '));
+    if(caps.length) parts.push('Cap/TP: '+caps.join(' / '));
+  } else {
+    parts.push('TP: standard 1R (aucune ladder avancée définie)');
+  }
+
+  const slArr = Array.isArray(p.sl)? p.sl : [];
+  const slEnable = (typeof p.slEnable==='boolean')? p.slEnable : !!(window.lbcOpts && lbcOpts.slEnable);
+  if(slEnable && slArr.length){
+    const descList=[];
+    for(const s of slArr){
+      if(!s) continue;
+      if(s.type==='Fib') descList.push(`F:${s.fib!=null? s.fib:s.value}`);
+      else if(s.type==='Percent') descList.push(`${s.pct!=null? s.pct:s.value}%`);
+      else if(s.type==='EMA') descList.push(`EMA${s.emaLen!=null? s.emaLen:emaLen}`);
+    }
+    if(descList.length) parts.push('SL ladder: '+descList.join(' • '));
+  }
+
+  const maxPct = (p.maxPct!=null? p.maxPct : (conf.maxPct!=null? conf.maxPct : null));
+  if(maxPct!=null){
+    parts.push(`Risque: Max ≈ ${Number(maxPct).toFixed(2)}% du capital par trade`);
+  }
+
+  parts.push(`Options: Compound=${tpCompound?'On':'Off'} • CloseAllLast=${tpCloseAllLast?'On':'Off'}`);
+  return parts.join("\n");
 }catch(_){ return '—'; }}
 
 // Lab detail: dernier contexte principal (stratégie cliquée) et configuration de comparaison
@@ -3833,6 +3937,13 @@ function setupDetailTradesUI(){
 
 function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
   const sym = ctx.symbol, tf = ctx.tf; const name = ctx.name||'Stratégie'; const conf = ctx.conf; const bars = ctx.bars; const sIdx = ctx.sIdx, eIdx=ctx.eIdx;
+  // Description textuelle de la stratégie (params)
+  try{
+    if(detailSummaryEl){
+      const txt = describeStrategyParams(ctx.params||{}, conf||{});
+      detailSummaryEl.textContent = txt;
+    }
+  }catch(_){ }
   const eq = (res.eqSeries||[]).map(x=>({ time:x.time, equity:x.equity }));
   const setNote = (id, txt)=>{ try{ const el=document.getElementById(id); if(el) el.textContent = String(txt||''); }catch(_){ } };
   const chartReg = {}; function registerChart(id, spec){ chartReg[id]=spec; }
