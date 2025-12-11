@@ -5114,9 +5114,13 @@ const canonKey=(p)=>{ try{
       return JSON.stringify(obj, Object.keys(obj).sort());
     }catch(_){ return ''; } };
 
-  function readTPOpt(){
+function readTPOpt(){
     try{
-      const en = !!document.getElementById('labTPOptEn')?.checked;
+      const adv = (typeof isLabAdvMode==='function') ? isLabAdvMode() : false;
+      const enRaw = !!document.getElementById('labTPOptEn')?.checked;
+      // En mode simple (non avancé), on considère toujours que l'optimisation TP est active
+      // afin de rester fidèle à l'essence du Lab (optimiser les sorties Heaven).
+      const en = adv ? enRaw : true;
       // Prefer the Heaven TP count unless the user explicitly overrides the Lab field.
       const cntEl = document.getElementById('labTPCount');
       let count;
@@ -5630,7 +5634,11 @@ function mutateTP(list,tpCfg){
 
   function readSLOpt(){
     try{
-      const en = !!document.getElementById('labSLOptEn')?.checked;
+      const adv = (typeof isLabAdvMode==='function') ? isLabAdvMode() : false;
+      const enRaw = !!document.getElementById('labSLOptEn')?.checked;
+      // En mode simple, on active toujours l'optimisation SL pour explorer des ladders de sortie
+      // même si la case dédiée n'est pas cochée, tout en respectant le réglage explicite en mode avancé.
+      const en = adv ? enRaw : true;
       const allowFib = !!document.getElementById('labSLAllowFib')?.checked;
       const allowPct = !!document.getElementById('labSLAllowPct')?.checked;
       const allowEMA = !!document.getElementById('labSLAllowEMA')?.checked;
@@ -5712,8 +5720,28 @@ function randomParams(){ const vars=readLabVarToggles(); const tpCfg=readTPOpt()
     if(!vars.varBELock) p.beLockPct = +lbcOpts.beLockPct;
     if(!vars.varEMALen) p.emaLen = lbcOpts.emaLen|0;
     if(vars.varEntries){ const e=__sampleEntries(p); Object.assign(p, e); }
-    if(vars.varTP && tpCfg.en){ p.tp = sampleTPList(tpCfg).slice(0,10); p.tpEnable=true; } else { p.tp = Array.isArray(lbcOpts.tp)? lbcOpts.tp.slice(0,10):[]; p.tpEnable=!!p.tp.length; }
-    if(vars.varSL && slCfg.en){ p.sl = sampleSLList(slCfg).slice(0,10); p.slEnable=true; } else { p.sl = Array.isArray(lbcOpts.sl)? lbcOpts.sl.slice(0,10):[]; p.slEnable=!!p.sl.length; }
+    if(vars.varTP && tpCfg.en){
+      // Cas normal: on échantillonne une nouvelle ladder TP selon la config Lab
+      p.tp = sampleTPList(tpCfg).slice(0,10);
+      p.tpEnable=true;
+    } else {
+      // Fallback: on reprend la ladder Heaven existante, sinon on en génère une par défaut
+      p.tp = Array.isArray(lbcOpts.tp)? lbcOpts.tp.slice(0,10):[];
+      if(!p.tp.length && tpCfg && tpCfg.en){
+        p.tp = sampleTPList(tpCfg).slice(0,10);
+      }
+      p.tpEnable=!!p.tp.length;
+    }
+    if(vars.varSL && slCfg.en){
+      p.sl = sampleSLList(slCfg).slice(0,10);
+      p.slEnable=true;
+    } else {
+      p.sl = Array.isArray(lbcOpts.sl)? lbcOpts.sl.slice(0,10):[];
+      if(!p.sl.length && slCfg && slCfg.en){
+        p.sl = sampleSLList(slCfg).slice(0,10);
+      }
+      p.slEnable=!!p.sl.length;
+    }
     return p; }
   function neighbor(arr, v){ const i=arr.indexOf(v); const out=[]; if(i>0) out.push(arr[i-1]); out.push(v); if(i>=0 && i<arr.length-1) out.push(arr[i+1]); return pick(out.length?out:arr); }
 function mutate(p, rate){ const vars=readLabVarToggles(); const tpCfg=readTPOpt(); const slCfg=readSLOpt(); const q={...p}; if(vars.varNol && Math.random()<rate) q.nol = neighbor(rNol, q.nol); if(vars.varPrd && Math.random()<rate) q.prd = neighbor(rPrd, q.prd); if(vars.varSLInit && Math.random()<rate) q.slInitPct = neighbor(rSL, q.slInitPct); if(vars.varBEBars && Math.random()<rate) q.beAfterBars = neighbor(rBEb, q.beAfterBars); if(vars.varBELock && Math.random()<rate) q.beLockPct = neighbor(rBEL, q.beLockPct); if(vars.varEMALen && Math.random()<rate) q.emaLen = neighbor(rEMALen, q.emaLen); if(vars.varEntries && Math.random()<rate){ const e=__sampleEntries(q); Object.assign(q, e); }
