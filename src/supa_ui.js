@@ -430,19 +430,18 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
       return out;
     }
     try{
-      // Lire les stratégies marquées selected=true pour ce symbole/TF/profil
+      // Lire les entrées de palmarès (palmares_entries) reliées aux sets pour ce symbole/TF/profil
+      // On joint palmares_sets pour filtrer par (symbol, tf, profile_id)
       let q = c
-        .from('strategy_evaluations')
-        .select('params,metrics,score,created_at')
-        .eq('symbol', symbol)
-        .eq('tf', tf)
-        .eq('selected', true);
-      if(profileId!=null) q = q.eq('profile_id', profileId); else q = q.is('profile_id', null);
-      // Pour éviter tout tri lexicographique côté DB sur les champs JSON, on se contente d'un ordre récenteté/score
+        .from('palmares_entries')
+        .select('name,generation,params,metrics,score,created_at,palmares_sets!inner(symbol,tf,profile_id)')
+        .eq('palmares_sets.symbol', symbol)
+        .eq('palmares_sets.tf', tf);
+      if(profileId!=null) q = q.eq('palmares_sets.profile_id', profileId); else q = q.is('palmares_sets.profile_id', null);
       q = q.order('score', { ascending:false }).order('created_at', { ascending:false });
       const { data, error } = await q.limit(Math.max(1, limit));
       if(error || !Array.isArray(data)) return [];
-      const mapped = mapRows(data.map(r=>({ ...r, generation:1 })));
+      const mapped = mapRows(data);
       // Tri numérique côté client selon le mode demandé
       const sorted = mapped.slice().sort((a,b)=>{
         if(mode==='pnl'){
@@ -465,11 +464,15 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
         const paramsUI=uiParamsFromCanonical(row.params||{});
         const metrics=row.metrics||{};
         const score=(typeof row.score==='number')? row.score:0;
+        // row.palmares_sets peut être null si la jointure échoue; on garde un fallback prudant
+        const scope = row.palmares_sets || {};
         out.push({
           id:'glob_'+(idx++),
-          symbol: row.symbol,
-          tf: row.tf,
-          profile_id: row.profile_id || null,
+          symbol: scope.symbol || row.symbol || null,
+          tf: scope.tf || row.tf || null,
+          profile_id: scope.profile_id || row.profile_id || null,
+          name: row.name || null,
+          gen: (typeof row.generation==='number' && Number.isFinite(row.generation)) ? row.generation : 1,
           params: paramsUI,
           res: metrics,
           score,
@@ -479,11 +482,11 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
       return out;
     }
     try{
-      // v_palmares_best: vue des meilleures stratégies (par score) —
-      // on évite tout tri DB sur JSON pour ne pas subir d'ordre lexicographique.
+      // Lire les meilleures entrées de palmarès toutes paires/TF confondues
+      // via palmares_entries + palmares_sets (jointure explicite)
       let q = c
-        .from('v_palmares_best')
-        .select('symbol,tf,profile_id,params,metrics,score,created_at')
+        .from('palmares_entries')
+        .select('name,generation,params,metrics,score,created_at,palmares_sets(symbol,tf,profile_id)')
         .order('score', { ascending:false })
         .order('created_at', { ascending:false });
       const { data, error } = await q.limit(Math.max(1, limit));
