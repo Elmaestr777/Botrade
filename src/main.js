@@ -5777,16 +5777,8 @@ const res = await pool.eval(item.p);
         const dt=performance.now()-t0; __labSimDone++; __labSimDtSum+=dt; __labSimDtCnt++;
         try{ const prev=Number(localStorage.getItem('lab:avgEvalMs')); const newAvg=(Number.isFinite(prev)&&prev>0)? (0.6*prev + 0.4*dt) : dt; localStorage.setItem('lab:avgEvalMs', String(Math.round(newAvg))); }catch(_){ }
         updateGlobalProgressUI();
-// Robustified score: base + mini-MC jitter + optional halves; penalize variance
-const __baseScore=scoreResult(res, weights);
-function __mean(a){ return a.length? a.reduce((x,y)=>x+y,0)/a.length : 0; }
-function __sd(a){ const m=__mean(a); return Math.sqrt(__mean(a.map(x=> (x-m)*(x-m)))); }
-function __jitter(src, sigma){ const out=new Array(src.length); for(let i=0;i<src.length;i++){ const m=1+(Math.random()*2-1)*sigma; const b=src[i]; out[i]={ time:b.time, open:b.open*m, high:b.high*m, low:b.low*m, close:b.close*m }; } return out; }
-const __scores=[__baseScore];
-try{ const __rJ = runBacktestSliceFor(__jitter(bars, 0.0015), sIdx, eIdx, conf, item.p); __scores.push(scoreResult(__rJ, weights)); }catch(_){ }
-try{ const __span=(eIdx - sIdx); if(__span>400){ const __mid = Math.floor((sIdx+eIdx)/2); const __r1=runBacktestSliceFor(bars, sIdx, __mid, conf, item.p); const __r2=runBacktestSliceFor(bars, __mid+1, eIdx, conf, item.p); __scores.push(scoreResult(__r1, weights)); __scores.push(scoreResult(__r2, weights)); } }catch(_){ }
-const __m=__mean(__scores), __sdd=__sd(__scores);
-const score = Math.max(0, __m - Math.min(5, __sdd*1.5));
+        // Score based solely on this evaluation to keep the UI responsive (no extra backtests on main thread)
+        const score = scoreResult(res, weights);
         const rec={ p:item.p, res, score, owner:item.owner||null };
         out.push(rec);
         try{ allTested.push({ params: rec.p, metrics: rec.res, score: rec.score }); }catch(_){ }
