@@ -316,9 +316,20 @@ async function persistLabResults(ctx){
           slog('Supabase: création palmarès_set KO (id absent)');
         }
         // Mark selected — même si setId est null, on passe selected=true pour pouvoir lire via fetchPalmares
+        // IMPORTANT: on copie aussi metrics + score dans strategy_evaluations pour que le Palmarès
+        // côté UI puisse afficher PF, P&L, etc. à partir de la table strategy_evaluations seule.
         try{
-          const selRows = best.map(b=> ({ user_id: uid, symbol: sym, tf, profile_id: profileId || null, params: canonicalParamsFromUI(b.params||{}) }));
-          await markSelectedForSet(selRows, setId||null); slog('Supabase: stratégies marquées selected=true');
+          const selRows = best.map(b=> ({
+            user_id: uid,
+            symbol: sym,
+            tf,
+            profile_id: profileId || null,
+            params: canonicalParamsFromUI(b.params||{}),
+            metrics: b.metrics || b.res || {},
+            score: (typeof b.score === 'number') ? b.score : 0,
+          }));
+          await markSelectedForSet(selRows, setId||null);
+          slog('Supabase: stratégies marquées selected=true');
         }catch(e){ slog('Supabase: mark selected KO — '+(e&&e.message?e.message:e)); }
         slog('Supabase: fin persistance Lab');
       } else {
