@@ -3,7 +3,7 @@
   const LS_URL = 'supabase:url';
   const LS_ANON = 'supabase:anon';
   let client = null;
-let __profileIdCacheByName = new Map();
+const __profileIdCacheByName = new Map();
 
   function staticCfg(){
     try{
@@ -14,7 +14,7 @@ let __profileIdCacheByName = new Map();
   }
   function readCfg(){
     const s = staticCfg();
-    if(s.url && s.anon) return s;
+    if(s.url && s.anon) {return s;}
     try{ return { url: localStorage.getItem(LS_URL)||'', anon: localStorage.getItem(LS_ANON)||'' }; }catch(_){ return {url:'',anon:''}; }
   }
   function saveCfg(url, anon){ try{ localStorage.setItem(LS_URL, url||''); localStorage.setItem(LS_ANON, anon||''); }catch(_){} }
@@ -31,8 +31,8 @@ let __profileIdCacheByName = new Map();
      return client;
    }
 
-  async function isLoggedIn(){ try{ const c=ensureClient(); if(!c) return false; const { data:{ user } } = await c.auth.getUser(); return !!user; }catch(_){ return false; } }
-  async function getUserId(){ try{ const c=ensureClient(); if(!c) return null; const { data:{ user } } = await c.auth.getUser(); return (user && user.id) || null; }catch(_){ return null; } }
+  async function isLoggedIn(){ try{ const c=ensureClient(); if(!c) {return false;} const { data:{ user } } = await c.auth.getUser(); return !!user; }catch(_){ return false; } }
+  async function getUserId(){ try{ const c=ensureClient(); if(!c) {return null;} const { data:{ user } } = await c.auth.getUser(); return (user && user.id) || null; }catch(_){ return null; } }
 
   async function ensureAuthFlow(){
     const stat = staticCfg();
@@ -41,12 +41,12 @@ let __profileIdCacheByName = new Map();
       return true;
     }
     const c = ensureClient(); if(!c) { alert('Configurez Supabase (global supa_config.js ou via invite) d\'abord.'); return false; }
-    if(await isLoggedIn()) return true;
+    if(await isLoggedIn()) {return true;}
     const email = prompt('Entrez votre email pour connexion Supabase (magic link)');
-    if(!email) return false;
+    if(!email) {return false;}
     try{
       const { error } = await c.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
-      if(error) throw error;
+      if(error) {throw error;}
       alert('Lien envoyé. Vérifiez votre email puis revenez ici. Une fois connecté, relancez la synchro.');
     }catch(e){ alert('Erreur de login: '+ (e && e.message || e)); return false; }
     return false;
@@ -55,8 +55,8 @@ let __profileIdCacheByName = new Map();
 function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfile') || 'balancee'; }catch(_){ return 'balancee'; } }
   async function getProfileIdByName(name){
     const key = (name||'balancee').toLowerCase();
-    if(__profileIdCacheByName.has(key)) return __profileIdCacheByName.get(key);
-    const c = ensureClient(); if(!c) return null;
+    if(__profileIdCacheByName.has(key)) {return __profileIdCacheByName.get(key);}
+    const c = ensureClient(); if(!c) {return null;}
     try{
       let row=null;
       let uid=null;
@@ -88,7 +88,7 @@ function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfi
   }
 
   async function fetchLabProfileWeights(profileName){
-    const c = ensureClient(); if(!c) return null;
+    const c = ensureClient(); if(!c) {return null;}
     const key = (profileName||'balancee').toLowerCase();
     try{
       let row=null;
@@ -119,7 +119,7 @@ function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfi
   }
 
   async function upsertLabProfileWeights(profileName, weights){
-    const c = ensureClient(); if(!c) return false;
+    const c = ensureClient(); if(!c) {return false;}
     let uid=null;
     try{ uid = await getUserId(); }catch(_){ uid=null; }
     const name = (profileName||'balancee').toLowerCase();
@@ -168,7 +168,7 @@ function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfi
   function chunk(arr, n){ const out=[]; for(let i=0;i<arr.length;i+=n){ out.push(arr.slice(i,i+n)); } return out; }
 
   async function upsertStrategyEvaluations(rows){
-    const c = ensureClient(); if(!c || !rows || !rows.length) return;
+    const c = ensureClient(); if(!c || !rows || !rows.length) {return;}
     // Upsert with on_conflict composite key matching the table UNIQUE constraint
     // NB: we include user_id to align with "unique (user_id, symbol, tf, profile_id, params)"
     for(const part of chunk(rows, 80)){
@@ -176,13 +176,13 @@ function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfi
         const { error } = await c
           .from('strategy_evaluations')
           .upsert(part, { onConflict: 'user_id,symbol,tf,profile_id,params', ignoreDuplicates: false, returning: 'minimal' });
-        if(error) console.warn('supabase upsert strategy_evaluations', error);
+        if(error) {console.warn('supabase upsert strategy_evaluations', error);}
       }catch(e){ console.warn('supabase upsert strategy_evaluations ex', e); }
     }
   }
 
   async function createPalmaresSet(row){
-    const c = ensureClient(); if(!c) return null;
+    const c = ensureClient(); if(!c) {return null;}
     try{
       const { data, error } = await c.from('palmares_sets').insert(row).select('id').single();
       if(error){ slog('Supabase: create palmares_set erreur — '+(error.message||error));
@@ -199,15 +199,15 @@ function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfi
   }
 
   async function insertPalmaresEntries(rows){
-    const c = ensureClient(); if(!c || !rows || !rows.length) return;
+    const c = ensureClient(); if(!c || !rows || !rows.length) {return;}
     for(const part of chunk(rows, 80)){
-      try{ const { error } = await c.from('palmares_entries').insert(part); if(error) console.warn('palmares_entries', error); }
+      try{ const { error } = await c.from('palmares_entries').insert(part); if(error) {console.warn('palmares_entries', error);} }
       catch(e){ console.warn('palmares_entries ex', e); }
     }
   }
 
   async function markSelectedForSet(rows, setId){
-    if(!rows || !rows.length || !setId) return;
+    if(!rows || !rows.length || !setId) {return;}
     const upd = rows.map(r=> ({ ...r, selected:true, palmares_set_id:setId }));
     await upsertStrategyEvaluations(upd);
   }
@@ -233,12 +233,12 @@ function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfi
         tp_r[i] = Number(t.fib != null ? t.fib : t.value) || 0;
       }
       let w = t.qty;
-      if(w != null) w = (w > 1 ? Number(w) : Number(w) * 100);
+      if(w != null) {w = (w > 1 ? Number(w) : Number(w) * 100);}
       tp_p[i] = Number.isFinite(w) ? Math.max(0, w) : 0;
       sumW += tp_p[i];
     }
     if(sumW > 0){
-      for(let i=0;i<10;i++) tp_p[i] = +(tp_p[i] / sumW * 100).toFixed(6);
+      for(let i=0;i<10;i++) {tp_p[i] = +(tp_p[i] / sumW * 100).toFixed(6);}
     }
     return {
       nol: p.nol|0,
@@ -346,17 +346,17 @@ async function persistLabResults(ctx){
     }
     // Fallback: prompt and save to localStorage if global not set
     const cur = readCfg();
-    const url = prompt('SUPABASE_URL', cur.url||''); if(url==null) return;
-    const anon = prompt('SUPABASE_ANON_KEY (public anon key)', cur.anon||''); if(anon==null) return;
+    const url = prompt('SUPABASE_URL', cur.url||''); if(url==null) {return;}
+    const anon = prompt('SUPABASE_ANON_KEY (public anon key)', cur.anon||''); if(anon==null) {return;}
     saveCfg(url.trim(), anon.trim()); ensureClient();
     alert('Configuration Supabase enregistrée (mode public, sans identification).');
   }
 
 async function fetchKnownCanonicalKeys(symbol, tf, profileName){
-    const c=ensureClient(); if(!c) return new Set();
+    const c=ensureClient(); if(!c) {return new Set();}
     const profileId = await getProfileIdByName(profileName || currentProfileName());
     const out=new Set();
-    let from=0, step=1000; // simple paging
+    let from=0; const step=1000; // simple paging
     for(;;){
       try{
         let q = c
@@ -364,15 +364,15 @@ async function fetchKnownCanonicalKeys(symbol, tf, profileName){
           .select('params')
           .eq('symbol', symbol)
           .eq('tf', tf);
-        if(profileId!=null) q = q.eq('profile_id', profileId); else q = q.is('profile_id', null);
+        if(profileId!=null) {q = q.eq('profile_id', profileId);} else {q = q.is('profile_id', null);}
         const { data, error } = await q.range(from, from+step-1);
-        if(error) break;
-        if(!Array.isArray(data) || !data.length) break;
+        if(error) {break;}
+        if(!Array.isArray(data) || !data.length) {break;}
         for(const row of data){ try{ const p=row.params||{}; const keys=Object.keys(p).sort(); out.add(JSON.stringify(p, keys)); }catch(_){ } }
         // Limite de sécurité pour ne pas charger un volume énorme en mémoire
         const MAX_KEYS = 5000;
-        if(out.size >= MAX_KEYS) break;
-        if(data.length<step) break;
+        if(out.size >= MAX_KEYS) {break;}
+        if(data.length<step) {break;}
         from += step;
       }catch(_){ break; }
     }
@@ -381,7 +381,7 @@ async function fetchKnownCanonicalKeys(symbol, tf, profileName){
 
   function uiParamsFromCanonical(p){
     // Map Python-canonical params to UI schema used by the front
-    if(!p || typeof p !== 'object') return {};
+    if(!p || typeof p !== 'object') {return {};}
     const tp_types = Array.isArray(p.tp_types)? p.tp_types.slice(0,10) : [];
     const tp_r = Array.isArray(p.tp_r)? p.tp_r.slice(0,10) : [];
     const tp_p = Array.isArray(p.tp_p)? p.tp_p.slice(0,10) : [];
@@ -390,10 +390,10 @@ async function fetchKnownCanonicalKeys(symbol, tf, profileName){
       const typ = tp_types[i] || 'Fib';
       const r = Number(tp_r[i]||0);
       const w = Number(tp_p[i]||0);
-      if(!(w>0)) continue;
-      if(typ === 'Percent') tp.push({ type:'Percent', pct:r, value:r, qty: Math.max(0, Math.min(1, w/100)) });
-      else if(typ === 'EMA') tp.push({ type:'EMA', emaLen: (p.ema_len|0)||55, qty: Math.max(0, Math.min(1, w/100)) });
-      else tp.push({ type:'Fib', fib:r, value:r, qty: Math.max(0, Math.min(1, w/100)) });
+      if(!(w>0)) {continue;}
+      if(typ === 'Percent') {tp.push({ type:'Percent', pct:r, value:r, qty: Math.max(0, Math.min(1, w/100)) });}
+      else if(typ === 'EMA') {tp.push({ type:'EMA', emaLen: (p.ema_len|0)||55, qty: Math.max(0, Math.min(1, w/100)) });}
+      else {tp.push({ type:'Fib', fib:r, value:r, qty: Math.max(0, Math.min(1, w/100)) });}
     }
     const entryModeUI = String(p.entry_mode||'Both') === 'Fib' ? 'Fib Retracement' : String(p.entry_mode||'Both');
     return {
@@ -414,7 +414,7 @@ async function fetchKnownCanonicalKeys(symbol, tf, profileName){
   }
 
 async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
-    const c=ensureClient(); if(!c) return [];
+    const c=ensureClient(); if(!c) {return [];}
     const profileId = await getProfileIdByName(profileName || currentProfileName());
     const mode = (sortMode === 'pnl') ? 'pnl' : 'score';
     function mapRows(rows){
@@ -437,17 +437,17 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
         .select('name,generation,params,metrics,score,created_at,palmares_sets!inner(symbol,tf,profile_id)')
         .eq('palmares_sets.symbol', symbol)
         .eq('palmares_sets.tf', tf);
-      if(profileId!=null) q = q.eq('palmares_sets.profile_id', profileId); else q = q.is('palmares_sets.profile_id', null);
+      if(profileId!=null) {q = q.eq('palmares_sets.profile_id', profileId);} else {q = q.is('palmares_sets.profile_id', null);}
       q = q.order('score', { ascending:false }).order('created_at', { ascending:false });
       const { data, error } = await q.limit(Math.max(1, limit));
-      if(error || !Array.isArray(data)) return [];
+      if(error || !Array.isArray(data)) {return [];}
       const mapped = mapRows(data);
       // Tri numérique côté client selon le mode demandé
       const sorted = mapped.slice().sort((a,b)=>{
         if(mode==='pnl'){
           const pb = Number(b.res && b.res.totalPnl || 0);
           const pa = Number(a.res && a.res.totalPnl || 0);
-          if(pb!==pa) return pb-pa;
+          if(pb!==pa) {return pb-pa;}
         }
         return (Number(b.score||0) - Number(a.score||0));
       });
@@ -456,7 +456,7 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
   }
 
   async function fetchGlobalPalmares(limit=200, sortMode){
-    const c=ensureClient(); if(!c) return [];
+    const c=ensureClient(); if(!c) {return [];}
     const mode = sortMode || 'score';
     function mapRows(rows){
       const out=[]; let idx=1;
@@ -484,7 +484,7 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
     try{
       // Lire les meilleures entrées de palmarès toutes paires/TF confondues
       // via palmares_entries + palmares_sets (jointure explicite)
-      let q = c
+      const q = c
         .from('palmares_entries')
         .select('name,generation,params,metrics,score,created_at,palmares_sets(symbol,tf,profile_id)')
         .order('score', { ascending:false })
@@ -522,7 +522,7 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
     }catch(e){ slog('Supabase: persistHeavenStrategy exception — '+(e&&e.message?e.message:e)); return false; }
   }
   async function fetchHeavenStrategies(symbol, tf, limit=50){
-    const c=ensureClient(); if(!c) return [];
+    const c=ensureClient(); if(!c) {return [];}
     try{
       const { data, error } = await c
         .from('heaven_strategies')
@@ -536,17 +536,17 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
     }catch(_){ return []; }
   }
   async function deleteHeavenStrategy(id){
-    const c=ensureClient(); if(!c || !id) return false;
+    const c=ensureClient(); if(!c || !id) {return false;}
     try{ const { error } = await c.from('heaven_strategies').delete().eq('id', id); if(error){ slog('Supabase: deleteHeavenStrategy KO — '+(error.message||error)); return false; } return true; }catch(_){ return false; }
   }
   async function renameHeavenStrategy(id, name){
-    const c=ensureClient(); if(!c || !id) return false;
+    const c=ensureClient(); if(!c || !id) {return false;}
     try{ const { error } = await c.from('heaven_strategies').update({ name }).eq('id', id); if(error){ slog('Supabase: renameHeavenStrategy KO — '+(error.message||error)); return false; } return true; }catch(_){ return false; }
   }
 
   // Headless live sessions API (Supabase)
   async function startHeadlessLive(ctx){
-    const c=ensureClient(); if(!c) return { ok:false };
+    const c=ensureClient(); if(!c) {return { ok:false };}
     try{
       const p = (ctx && ctx.params) || (typeof window!=='undefined' && typeof window.currentHeavenParamsForPersist==='function'? window.currentHeavenParamsForPersist(): {});
       const name = (ctx && ctx.name) || (typeof window!=='undefined' && window.liveWalletName && window.liveWalletName.value) || (typeof window!=='undefined' && window.randomName && window.randomName()) || 'live';
@@ -591,19 +591,19 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
     }catch(e){ return { ok:false, error:(e&&e.message)||String(e) }; }
   }
   async function stopHeadlessLiveByName(name){
-    const c=ensureClient(); if(!c||!name) return false;
+    const c=ensureClient(); if(!c||!name) {return false;}
     try{ const { error } = await c.from('live_sessions').update({ active:false }).eq('name', name); if(error){ slog('Supabase: stopHeadlessLive KO — '+(error.message||error)); return false; } return true; }catch(_){ return false; }
   }
 async function fetchHeadlessSessions(limit=50){
-    const c=ensureClient(); if(!c) return [];
+    const c=ensureClient(); if(!c) {return [];}
     try{ const { data, error } = await c.from('live_sessions').select('id,name,symbol,tf,active,equity,start_cap,created_at,updated_at').order('updated_at',{ascending:false}).limit(Math.max(1,limit)); if(error){ slog('Supabase: fetchHeadlessSessions KO — '+(error.message||error)); return []; } return Array.isArray(data)? data:[]; }catch(_){ return []; }
   }
 async function fetchHeadlessSessionByName(name){
-    const c=ensureClient(); if(!c||!name) return null;
+    const c=ensureClient(); if(!c||!name) {return null;}
     try{ const { data, error } = await c.from('live_sessions').select('id,name,symbol,tf,active,equity,start_cap,last_bar_time,created_at,updated_at').eq('name', name).maybeSingle(); if(error){ slog('Supabase: fetchHeadlessSessionByName KO — '+(error.message||error)); return null; } return data||null; }catch(_){ return null; }
   }
   async function fetchLiveEvents(sessionId, sinceIso, limit=500){
-    const c=ensureClient(); if(!c||!sessionId) return [];
+    const c=ensureClient(); if(!c||!sessionId) {return [];}
     try{
       let q = c.from('live_events').select('id,kind,at_time,payload').eq('session_id', sessionId).order('at_time',{ascending:true}).limit(Math.max(1,limit));
       if(sinceIso){ q = q.gt('at_time', sinceIso); }
@@ -613,10 +613,10 @@ async function fetchHeadlessSessionByName(name){
     }catch(_){ return []; }
   }
   function subscribeLiveEvents(sessionId, onInsert){
-    const c=ensureClient(); if(!c||!sessionId) return { unsubscribe(){}};
+    const c=ensureClient(); if(!c||!sessionId) {return { unsubscribe(){}};}
     const channel = c.channel('live_events_'+sessionId)
       .on('postgres_changes', { event: 'INSERT', schema:'public', table:'live_events', filter:`session_id=eq.${sessionId}` }, (payload)=>{
-        try{ if(typeof onInsert==='function') onInsert(payload.new); }catch(_){ }
+        try{ if(typeof onInsert==='function') {onInsert(payload.new);} }catch(_){ }
       })
       .subscribe((status)=>{ try{ slog('Supabase: realtime '+status); }catch(_){ } });
     return {
@@ -649,7 +649,7 @@ async function fetchHeadlessSessionByName(name){
   }
 
   async function fetchLiveWallets(limit=100, exchange='paper'){
-    const c=ensureClient(); if(!c) return [];
+    const c=ensureClient(); if(!c) {return [];}
     try{
       const { data, error } = await c
         .from('wallets')
@@ -674,7 +674,7 @@ async function fetchHeadlessSessionByName(name){
   }
 
   async function deleteLiveWallet(name, exchange='paper'){
-    const c=ensureClient(); if(!c || !name) return false;
+    const c=ensureClient(); if(!c || !name) {return false;}
     try{ const { error } = await c.from('wallets').delete().eq('name', name).eq('exchange', exchange); if(error){ slog('Supabase: deleteLiveWallet KO — '+(error.message||error)); return false; } return true; }catch(_){ return false; }
   }
   
