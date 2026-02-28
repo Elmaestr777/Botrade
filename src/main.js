@@ -1,4 +1,4 @@
-
+﻿
 // --- Preloader video overlay ---
 (function setupPreloader(){ try{
   const overlay=document.getElementById('preloadOverlay'); if(!overlay) {return;}
@@ -31,7 +31,7 @@
     const sEnd = Math.max(0.14, Math.min((lr.width||40)/Math.max(1, cr.width), 0.22)); const baseTilt=-8*(Math.PI/180);
     const d=Math.max(300, parseInt(durMs||__preParams.FLIGHT_DUR,10)); const t0=performance.now(); function easeInOutCubic(t){ return t<0.5? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
     function at(t){ const u=1-t; const x = u*u*startX + 2*u*t*ctrlX + t*t*endX; const y = u*u*startY + 2*u*t*ctrlY + t*t*endY; return {x,y}; }
-    // Rotation planning: finish horizontal (0 mod 2π) and add a small extra number of rotations during flight
+    // Rotation planning: finish horizontal (0 mod 2Ï€) and add a small extra number of rotations during flight
     const TAU = Math.PI*2; const a0 = (spin && Number.isFinite(spin.angle0))? spin.angle0 : 0; const w0 = (spin && Number.isFinite(spin.omega0))? spin.omega0 : 0; const hasSpin = Math.abs(a0)>1e-6 || Math.abs(w0)>1e-3;
     let totalDelta=0, alpha=0; if(hasSpin){ let phi0 = a0 % TAU; if(phi0<0) {phi0 += TAU;} const deltaMin = (TAU - phi0) % TAU; const extraTurns = 1; totalDelta = deltaMin + extraTurns*TAU; alpha = (w0 * d) / Math.max(1e-6, totalDelta); }
     function sHermite(p){ const p2=p*p, p3=p2*p; return (-2*p3 + 3*p2) + alpha*(p3 - 2*p2 + p); }
@@ -145,73 +145,73 @@ try{ const m=window.matchMedia && window.matchMedia('(prefers-color-scheme: dark
 // --- Internationalisation (FR / EN / ES) ---
 const SUPPORTED_LANGS = ['fr','en','es'];
 const I18N = {
-  'ui.theme.auto':  { fr:'Thème: Auto',   en:'Theme: Auto',   es:'Tema: Auto' },
-  'ui.theme.dark':  { fr:'Thème: Sombre', en:'Theme: Dark',   es:'Tema: Oscuro' },
-  'ui.theme.light': { fr:'Thème: Clair',  en:'Theme: Light',  es:'Tema: Claro' },
-  'ui.theme.btnTitle': { fr:'Basculer thème (Auto → Sombre → Clair)', en:'Switch theme (Auto → Dark → Light)', es:'Cambiar tema (Auto → Oscuro → Claro)' },
+  'ui.theme.auto':  { fr:'ThÃ¨me: Auto',   en:'Theme: Auto',   es:'Tema: Auto' },
+  'ui.theme.dark':  { fr:'ThÃ¨me: Sombre', en:'Theme: Dark',   es:'Tema: Oscuro' },
+  'ui.theme.light': { fr:'ThÃ¨me: Clair',  en:'Theme: Light',  es:'Tema: Claro' },
+  'ui.theme.btnTitle': { fr:'Basculer thÃ¨me (Auto â†’ Sombre â†’ Clair)', en:'Switch theme (Auto â†’ Dark â†’ Light)', es:'Cambiar tema (Auto â†’ Oscuro â†’ Claro)' },
 
   'ui.lang.btn.fr': { fr:'Langue: FR', en:'Language: FR', es:'Idioma: FR' },
   'ui.lang.btn.en': { fr:'Langue: EN', en:'Language: EN', es:'Idioma: EN' },
   'ui.lang.btn.es': { fr:'Langue: ES', en:'Language: ES', es:'Idioma: ES' },
-  'ui.lang.btnTitle': { fr:'Changer la langue (FR → EN → ES)', en:'Change language (FR → EN → ES)', es:'Cambiar idioma (FR → EN → ES)' },
+  'ui.lang.btnTitle': { fr:'Changer la langue (FR â†’ EN â†’ ES)', en:'Change language (FR â†’ EN â†’ ES)', es:'Cambiar idioma (FR â†’ EN â†’ ES)' },
 
   'status.loading':      { fr:'Chargement...', en:'Loading...',        es:'Cargando...' },
   'status.loadingShort': { fr:'Chargement...', en:'Loading...',        es:'Cargando...' },
-  'status.live':         { fr:'Temps réel',    en:'Live',             es:'Tiempo real' },
+  'status.live':         { fr:'Temps rÃ©el',    en:'Live',             es:'Tiempo real' },
   'status.wsError':      { fr:'WS erreur',     en:'WS error',         es:'Error WS' },
   'status.loadError':    { fr:'Erreur chargement', en:'Load error',   es:'Error de carga' },
 
-  'status.noEval':       { fr:'Aucune évaluation', en:'No evaluations', es:'Sin evaluaciones' },
-  'status.noStrategy':   { fr:'Aucune stratégie',   en:'No strategy',    es:'Sin estrategia' },
-  'status.applyOk':      { fr:'Paramètres appliqués à Heaven', en:'Parameters applied to Heaven', es:'Parámetros aplicados a Heaven' },
+  'status.noEval':       { fr:'Aucune Ã©valuation', en:'No evaluations', es:'Sin evaluaciones' },
+  'status.noStrategy':   { fr:'Aucune stratÃ©gie',   en:'No strategy',    es:'Sin estrategia' },
+  'status.applyOk':      { fr:'ParamÃ¨tres appliquÃ©s Ã  Heaven', en:'Parameters applied to Heaven', es:'ParÃ¡metros aplicados a Heaven' },
   'status.applyError':   { fr:'Erreur application',             en:'Apply error',                  es:'Error al aplicar' },
-  'status.weightsSaved': { fr:'Pondérations enregistrées',       en:'Weights saved',              es:'Ponderaciones guardadas' },
-  'status.weightsSaveError': { fr:"Erreur Supabase lors de l'enregistrement des pondérations (profil local uniquement).",
+  'status.weightsSaved': { fr:'PondÃ©rations enregistrÃ©es',       en:'Weights saved',              es:'Ponderaciones guardadas' },
+  'status.weightsSaveError': { fr:"Erreur Supabase lors de l'enregistrement des pondÃ©rations (profil local uniquement).",
                                en:'Supabase error while saving weights (local profile only).',
-                               es:'Error de Supabase al guardar las ponderaciones (sólo perfil local).' },
+                               es:'Error de Supabase al guardar las ponderaciones (sÃ³lo perfil local).' },
 
   'supa.urlAnonRequired': { fr:'URL et ANON requis', en:'URL and ANON are required', es:'Se requieren URL y ANON' },
-  'supa.testing':         { fr:'Test de connexion...', en:'Testing connection...', es:'Probando conexión...' },
-  'supa.ok':              { fr:'Connexion OK. Configuration enregistrée.', en:'Connection OK. Configuration saved.', es:'Conexión OK. Configuración guardada.' },
-  'supa.fail':            { fr:'Échec de connexion. Vérifiez URL/clé.', en:'Connection failed. Check URL/key.', es:'Fallo de conexión. Verifique URL/clave.' },
+  'supa.testing':         { fr:'Test de connexion...', en:'Testing connection...', es:'Probando conexiÃ³n...' },
+  'supa.ok':              { fr:'Connexion OK. Configuration enregistrÃ©e.', en:'Connection OK. Configuration saved.', es:'ConexiÃ³n OK. ConfiguraciÃ³n guardada.' },
+  'supa.fail':            { fr:'Ã‰chec de connexion. VÃ©rifiez URL/clÃ©.', en:'Connection failed. Check URL/key.', es:'Fallo de conexiÃ³n. Verifique URL/clave.' },
 
-  'lab.palmares.empty':   { fr:'Aucun palmarès', en:'No leaderboard', es:'Sin palmarés' },
-  'lab.palmares.prefix':  { fr:'Palmarès:', en:'Leaderboard:', es:'Palmarés:' },
-  'lab.palmares.strats':  { fr:'stratégies', en:'strategies', es:'estrategias' },
-  'lab.palmares.symbol':  { fr:'symbole', en:'symbol', es:'símbolo' },
+  'lab.palmares.empty':   { fr:'Aucun palmarÃ¨s', en:'No leaderboard', es:'Sin palmarÃ©s' },
+  'lab.palmares.prefix':  { fr:'PalmarÃ¨s:', en:'Leaderboard:', es:'PalmarÃ©s:' },
+  'lab.palmares.strats':  { fr:'stratÃ©gies', en:'strategies', es:'estrategias' },
+  'lab.palmares.symbol':  { fr:'symbole', en:'symbol', es:'sÃ­mbolo' },
   'lab.palmares.tf':      { fr:'TF', en:'TF', es:'TF' },
 
-  'lab.table.noData':     { fr:'Aucune donnée', en:'No data', es:'Sin datos' },
-  'lab.table.detailBtn':  { fr:'Détail', en:'Detail', es:'Detalle' },
+  'lab.table.noData':     { fr:'Aucune donnÃ©e', en:'No data', es:'Sin datos' },
+  'lab.table.detailBtn':  { fr:'DÃ©tail', en:'Detail', es:'Detalle' },
   'lab.table.applyBtn':   { fr:'Appliquer', en:'Apply', es:'Aplicar' },
-  'lab.table.applyTitle': { fr:'Appliquer cette stratégie à Heaven', en:'Apply this strategy to Heaven', es:'Aplicar esta estrategia a Heaven' },
+  'lab.table.applyTitle': { fr:'Appliquer cette stratÃ©gie Ã  Heaven', en:'Apply this strategy to Heaven', es:'Aplicar esta estrategia a Heaven' },
 
   'chart.bars.prefix':  { fr:'Bougies:',           en:'Candles:',        es:'Velas:' },
   'chart.cutoff.from':  { fr:'Affichage depuis:',  en:'Showing from:',    es:'Mostrando desde:' },
-  'chart.cutoff.full':  { fr:'Historique complet', en:'Full history',     es:'Histórico completo' },
+  'chart.cutoff.full':  { fr:'Historique complet', en:'Full history',     es:'HistÃ³rico completo' },
 
-  'header.symbolLabel':   { fr:'Symbole',                     en:'Symbol',                 es:'Símbolo' },
+  'header.symbolLabel':   { fr:'Symbole',                     en:'Symbol',                 es:'SÃ­mbolo' },
   'header.intervalLabel': { fr:'Intervalle',                  en:'Timeframe',              es:'Intervalo' },
-  'header.emaToggleTitle':{ fr:"Activer/Désactiver l'affichage des EMA/MA", en:'Toggle EMA/MA display', es:'Activar/Desactivar visualización EMA/MA' },
-  'header.emaCfgTitle':   { fr:'Paramètres EMA/MA',           en:'EMA/MA settings',        es:'Parámetros EMA/MA' },
-  'header.heavenToggleTitle': { fr:'Activer/Désactiver Heaven', en:'Enable/disable Heaven', es:'Activar/Desactivar Heaven' },
-  'header.heavenCfgTitle':{ fr:'Paramètres Heaven',           en:'Heaven settings',        es:'Parámetros Heaven' },
+  'header.emaToggleTitle':{ fr:"Activer/DÃ©sactiver l'affichage des EMA/MA", en:'Toggle EMA/MA display', es:'Activar/Desactivar visualizaciÃ³n EMA/MA' },
+  'header.emaCfgTitle':   { fr:'ParamÃ¨tres EMA/MA',           en:'EMA/MA settings',        es:'ParÃ¡metros EMA/MA' },
+  'header.heavenToggleTitle': { fr:'Activer/DÃ©sactiver Heaven', en:'Enable/disable Heaven', es:'Activar/Desactivar Heaven' },
+  'header.heavenCfgTitle':{ fr:'ParamÃ¨tres Heaven',           en:'Heaven settings',        es:'ParÃ¡metros Heaven' },
   'header.btRun':         { fr:'Backtest',                    en:'Backtest',               es:'Backtest' },
   'header.lab':           { fr:'Lab',                         en:'Lab',                    es:'Lab' },
-  'header.labTitle':      { fr:'Recherche/Apprentissage par TF', en:'Search/Learning by TF', es:'Búsqueda/Aprendizaje por TF' },
+  'header.labTitle':      { fr:'Recherche/Apprentissage par TF', en:'Search/Learning by TF', es:'BÃºsqueda/Aprendizaje por TF' },
   'header.live':          { fr:'Live',                        en:'Live',                   es:'Live' },
   'header.liveTitle':     { fr:'Paper/Live trading',          en:'Paper/Live trading',     es:'Trading simulado/en vivo' },
   'header.supaBtn':       { fr:'Supabase',                    en:'Supabase',               es:'Supabase' },
   'header.supaTitle':     { fr:'Configurer Supabase',         en:'Configure Supabase',     es:'Configurar Supabase' },
-'header.gotoEnd':       { fr:'⏭ Aller à la fin',            en:'⏭ Go to end',            es:'⏭ Ir al final' },
+'header.gotoEnd':       { fr:'â­ Aller Ã  la fin',            en:'â­ Go to end',            es:'â­ Ir al final' },
 
-  'lab.weights.modalTitle':    { fr:'Pondérations — Score global',         en:'Weights — Global score',        es:'Ponderaciones — Puntuación global' },
+  'lab.weights.modalTitle':    { fr:'PondÃ©rations â€” Score global',         en:'Weights â€” Global score',        es:'Ponderaciones â€” PuntuaciÃ³n global' },
   'lab.weights.profileLabel':  { fr:'Profil',                              en:'Profile',                       es:'Perfil' },
-  'lab.weights.profile.safe':  { fr:'Sûre',                                en:'Safe',                          es:'Segura' },
-  'lab.weights.profile.bal':   { fr:'Balancée',                            en:'Balanced',                      es:'Balanceada' },
+  'lab.weights.profile.safe':  { fr:'SÃ»re',                                en:'Safe',                          es:'Segura' },
+  'lab.weights.profile.bal':   { fr:'BalancÃ©e',                            en:'Balanced',                      es:'Balanceada' },
   'lab.weights.profile.agg':   { fr:'Agressive',                           en:'Aggressive',                    es:'Agresiva' },
   'lab.weights.totalHint':     { fr:'Les poids doivent totaliser 100%.',   en:'Weights must sum to 100.',      es:'Los pesos deben sumar 100%.' },
-  'lab.weights.infoDefault':   { fr:"Cliquez sur le (i) d’un facteur pour voir à quoi il sert et comment intervient son poids dans le score.", en:'Click on the (i) of a factor to see what it does and how its weight affects the score.', es:'Haz clic en la (i) de un factor para ver para qué sirve y cómo influye su peso en la puntuación.' },
+  'lab.weights.infoDefault':   { fr:"Cliquez sur le (i) dâ€™un facteur pour voir Ã  quoi il sert et comment intervient son poids dans le score.", en:'Click on the (i) of a factor to see what it does and how its weight affects the score.', es:'Haz clic en la (i) de un factor para ver para quÃ© sirve y cÃ³mo influye su peso en la puntuaciÃ³n.' },
   'lab.weights.save':          { fr:'Enregistrer',                         en:'Save',                          es:'Guardar' },
 
   'lab.weights.pf':            { fr:'Profit Factor',                       en:'Profit Factor',                 es:'Profit Factor' },
@@ -224,125 +224,125 @@ const I18N = {
   'lab.weights.sharpe':        { fr:'Sharpe Ratio',                        en:'Sharpe Ratio',                  es:'Ratio de Sharpe' },
   'lab.weights.recov':         { fr:'Recovery Factor',                     en:'Recovery Factor',               es:'Recovery Factor' },
   'lab.weights.slope':         { fr:'Equity Slope',                        en:'Equity Slope',                  es:'Pendiente de la equity' },
-  'lab.weights.cons':          { fr:'Consistence / Stabilité',             en:'Consistency / Stability',       es:'Consistencia / Estabilidad' },
-  'lab.weights.exp':           { fr:'Espérance (Expectancy)',              en:'Expectancy',                    es:'Esperanza (Expectancy)' },
-  'lab.weights.ret':           { fr:'Return / période (%)',                en:'Return / period (%)',           es:'Retorno / período (%)' },
+  'lab.weights.cons':          { fr:'Consistence / StabilitÃ©',             en:'Consistency / Stability',       es:'Consistencia / Estabilidad' },
+  'lab.weights.exp':           { fr:'EspÃ©rance (Expectancy)',              en:'Expectancy',                    es:'Esperanza (Expectancy)' },
+  'lab.weights.ret':           { fr:'Return / pÃ©riode (%)',                en:'Return / period (%)',           es:'Retorno / perÃ­odo (%)' },
   'lab.weights.infoPrefix':    { fr:'Infos',                               en:'Info',                          es:'Info' },
   'lab.weights.totalPrefix':   { fr:'Total:',                              en:'Total:',                        es:'Total:' },
   'lab.weights.remainingPrefix': { fr:'Reste:',                            en:'Remaining:',                    es:'Restante:' },
 'lab.weights.pointsSuffix':  { fr:'pts',                                 en:'pts',                           es:'pts' },
 
   // Detail / analysis modal
-  'detail.title':          { fr:'Analyse stratégie',                 en:'Strategy analysis',                 es:'Análisis de estrategia' },
+  'detail.title':          { fr:'Analyse stratÃ©gie',                 en:'Strategy analysis',                 es:'AnÃ¡lisis de estrategia' },
   'detail.conf.capital':   { fr:'Capital initial',                   en:'Initial capital',                   es:'Capital inicial' },
   'detail.conf.fee':       { fr:'Frais (%)',                         en:'Fees (%)',                          es:'Comisiones (%)' },
   'detail.conf.lev':       { fr:'Levier (x)',                         en:'Leverage (x)',                      es:'Apalancamiento (x)' },
   'detail.conf.apply':     { fr:'Appliquer',                          en:'Apply',                             es:'Aplicar' },
-  'detail.conf.note':      { fr:"Ces paramètres n'affectent que cette analyse détaillée.", en:'These settings affect only this detailed analysis.', es:'Estos parámetros sólo afectan a este análisis detallado.' },
+  'detail.conf.note':      { fr:"Ces paramÃ¨tres n'affectent que cette analyse dÃ©taillÃ©e.", en:'These settings affect only this detailed analysis.', es:'Estos parÃ¡metros sÃ³lo afectan a este anÃ¡lisis detallado.' },
 
-  'detail.compare.label':  { fr:'Comparer à',                         en:'Compare to',                        es:'Comparar con' },
+  'detail.compare.label':  { fr:'Comparer Ã ',                         en:'Compare to',                        es:'Comparar con' },
   'detail.compare.source.heaven':   { fr:'Heaven (config actuelle)',  en:'Heaven (current config)',           es:'Heaven (config actual)' },
-  'detail.compare.source.palmares': { fr:'Palmarès',                  en:'Leaderboard',                       es:'Palmarés' },
+  'detail.compare.source.palmares': { fr:'PalmarÃ¨s',                  en:'Leaderboard',                       es:'PalmarÃ©s' },
   'detail.compare.pair':   { fr:'Pair',                               en:'Pair',                              es:'Par' },
   'detail.compare.tf':     { fr:'TF',                                 en:'TF',                                es:'TF' },
   'detail.compare.profile':{ fr:'Profil',                             en:'Profile',                           es:'Perfil' },
-  'detail.compare.strategy':{ fr:'Stratégie',                          en:'Strategy',                          es:'Estrategia' },
+  'detail.compare.strategy':{ fr:'StratÃ©gie',                          en:'Strategy',                          es:'Estrategia' },
   'detail.compare.apply':  { fr:'Appliquer',                          en:'Apply',                             es:'Aplicar' },
 
-  'detail.section.radar.title':   { fr:'Radar critères',              en:'Criteria radar',                    es:'Radar de criterios' },
-  'detail.section.radar.desc':    { fr:'Vue synthétique des principaux critères (0–100). Permet de repérer d\'un coup d\'œil les forces et faiblesses globales de la stratégie.', en:'Synthetic view of the main criteria (0–100). Lets you spot strengths and weaknesses of the strategy at a glance.', es:'Vista sintética de los criterios principales (0–100). Permite ver de un vistazo los puntos fuertes y débiles de la estrategia.' },
+  'detail.section.radar.title':   { fr:'Radar critÃ¨res',              en:'Criteria radar',                    es:'Radar de criterios' },
+  'detail.section.radar.desc':    { fr:'Vue synthÃ©tique des principaux critÃ¨res (0â€“100). Permet de repÃ©rer d\'un coup d\'Å“il les forces et faiblesses globales de la stratÃ©gie.', en:'Synthetic view of the main criteria (0â€“100). Lets you spot strengths and weaknesses of the strategy at a glance.', es:'Vista sintÃ©tica de los criterios principales (0â€“100). Permite ver de un vistazo los puntos fuertes y dÃ©biles de la estrategia.' },
 
-  'detail.section.eq.title':      { fr:'Équity',                       en:'Equity',                            es:'Equity' },
-  'detail.section.eq.desc':       { fr:'Évolution du capital dans le temps. Cherchez une courbe régulière avec des phases de baisse limitées et un profil compatible avec votre tolérance au risque.', en:'Evolution of equity over time. Look for a smooth curve with limited drawdown phases and a risk profile matching your tolerance.', es:'Evolución del capital en el tiempo. Busque una curva regular con fases de caída limitadas y un perfil acorde con su tolerancia al riesgo.' },
+  'detail.section.eq.title':      { fr:'Ã‰quity',                       en:'Equity',                            es:'Equity' },
+  'detail.section.eq.desc':       { fr:'Ã‰volution du capital dans le temps. Cherchez une courbe rÃ©guliÃ¨re avec des phases de baisse limitÃ©es et un profil compatible avec votre tolÃ©rance au risque.', en:'Evolution of equity over time. Look for a smooth curve with limited drawdown phases and a risk profile matching your tolerance.', es:'EvoluciÃ³n del capital en el tiempo. Busque una curva regular con fases de caÃ­da limitadas y un perfil acorde con su tolerancia al riesgo.' },
 
   'detail.section.dd.title':      { fr:'Drawdown absolu',              en:'Absolute drawdown',                 es:'Drawdown absoluto' },
-  'detail.section.dd.desc':       { fr:"Taille des creux en dollars. Permet d'identifier les pires périodes de pertes et de vérifier qu'elles restent acceptables pour le capital engagé.", en:'Size of equity dips in currency. Helps to identify the worst loss periods and check they remain acceptable for the capital at risk.', es:'Tamaño de los baches en dinero. Permite identificar los peores periodos de pérdidas y comprobar que siguen siendo aceptables para el capital comprometido.' },
+  'detail.section.dd.desc':       { fr:"Taille des creux en dollars. Permet d'identifier les pires pÃ©riodes de pertes et de vÃ©rifier qu'elles restent acceptables pour le capital engagÃ©.", en:'Size of equity dips in currency. Helps to identify the worst loss periods and check they remain acceptable for the capital at risk.', es:'TamaÃ±o de los baches en dinero. Permite identificar los peores periodos de pÃ©rdidas y comprobar que siguen siendo aceptables para el capital comprometido.' },
 
   'detail.section.under.title':   { fr:'Underwater (drawdown %)',      en:'Underwater (drawdown %)',           es:'Underwater (drawdown %)' },
-  'detail.section.under.desc':    { fr:'Drawdown en pourcentage du capital. Utile pour comparer le risque relatif entre stratégies ou paramètres sur des capitaux différents.', en:'Drawdown as a percentage of equity. Useful to compare relative risk between strategies or parameter sets on different account sizes.', es:'Drawdown en porcentaje del capital. Útil para comparar el riesgo relativo entre estrategias o parámetros en distintos capitales.' },
+  'detail.section.under.desc':    { fr:'Drawdown en pourcentage du capital. Utile pour comparer le risque relatif entre stratÃ©gies ou paramÃ¨tres sur des capitaux diffÃ©rents.', en:'Drawdown as a percentage of equity. Useful to compare relative risk between strategies or parameter sets on different account sizes.', es:'Drawdown en porcentaje del capital. Ãštil para comparar el riesgo relativo entre estrategias o parÃ¡metros en distintos capitales.' },
 
-  'detail.section.hist.title':    { fr:'Distribution des rendements',  en:'Return distribution',               es:'Distribución de rendimientos' },
-  'detail.section.hist.desc':     { fr:"Histogramme des retours par trade. Recherchez une queue de pertes limitée et une queue de gains étendue, signe d'un bon équilibre risque/rendement.", en:'Histogram of returns per trade. Look for a limited loss tail and a wide gain tail: a sign of a good risk/reward profile.', es:'Histograma de retornos por operación. Busque una cola de pérdidas limitada y una cola de ganancias amplia: señal de un buen equilibrio riesgo/beneficio.' },
+  'detail.section.hist.title':    { fr:'Distribution des rendements',  en:'Return distribution',               es:'DistribuciÃ³n de rendimientos' },
+  'detail.section.hist.desc':     { fr:"Histogramme des retours par trade. Recherchez une queue de pertes limitÃ©e et une queue de gains Ã©tendue, signe d'un bon Ã©quilibre risque/rendement.", en:'Histogram of returns per trade. Look for a limited loss tail and a wide gain tail: a sign of a good risk/reward profile.', es:'Histograma de retornos por operaciÃ³n. Busque una cola de pÃ©rdidas limitada y una cola de ganancias amplia: seÃ±al de un buen equilibrio riesgo/beneficio.' },
 
-  'detail.section.eff.title':     { fr:'Efficacité de la stratégie',   en:'Strategy efficiency',               es:'Eficiencia de la estrategia' },
-  'detail.section.eff.desc':      { fr:"Barres normalisées (Win%, R:R, efficacité, temps en marché, fréquence). Permet de voir en un clin d'œil les composantes fortes et celles à optimiser.", en:'Normalised bars (Win%, R:R, efficiency, time in market, frequency). Shows at a glance which components are strong and which need work.', es:'Barras normalizadas (Win%, R:R, eficiencia, tiempo en mercado, frecuencia). Permite ver de un vistazo qué componentes son fuertes y cuáles optimizar.' },
+  'detail.section.eff.title':     { fr:'EfficacitÃ© de la stratÃ©gie',   en:'Strategy efficiency',               es:'Eficiencia de la estrategia' },
+  'detail.section.eff.desc':      { fr:"Barres normalisÃ©es (Win%, R:R, efficacitÃ©, temps en marchÃ©, frÃ©quence). Permet de voir en un clin d'Å“il les composantes fortes et celles Ã  optimiser.", en:'Normalised bars (Win%, R:R, efficiency, time in market, frequency). Shows at a glance which components are strong and which need work.', es:'Barras normalizadas (Win%, R:R, eficiencia, tiempo en mercado, frecuencia). Permite ver de un vistazo quÃ© componentes son fuertes y cuÃ¡les optimizar.' },
 
-  'detail.section.robust.title':  { fr:'Complexité & Robustesse',      en:'Complexity & robustness',           es:'Complejidad y robustez' },
-  'detail.section.robust.desc':   { fr:"Mesure le compromis entre nombre de paramètres actifs et robustesse globale. Idéalement, viser une robustesse élevée avec une complexité raisonnable.", en:'Measures the trade-off between number of active parameters and overall robustness. Ideally aim for high robustness with reasonable complexity.', es:'Mide el compromiso entre número de parámetros activos y robustez global. Idealmente, buscar alta robustez con complejidad razonable.' },
+  'detail.section.robust.title':  { fr:'ComplexitÃ© & Robustesse',      en:'Complexity & robustness',           es:'Complejidad y robustez' },
+  'detail.section.robust.desc':   { fr:"Mesure le compromis entre nombre de paramÃ¨tres actifs et robustesse globale. IdÃ©alement, viser une robustesse Ã©levÃ©e avec une complexitÃ© raisonnable.", en:'Measures the trade-off between number of active parameters and overall robustness. Ideally aim for high robustness with reasonable complexity.', es:'Mide el compromiso entre nÃºmero de parÃ¡metros activos y robustez global. Idealmente, buscar alta robustez con complejidad razonable.' },
 
-  'detail.section.summary.title': { fr:'Commentaire & analyse',        en:'Commentary & analysis',             es:'Comentario y análisis' },
-  'detail.section.summary.desc':  { fr:"Synthèse narrative de la stratégie et de sa comparée. À lire pour comprendre le profil de risque/rendement, les axes d'amélioration, et l'impact du slippage réel sur la performance.", en:'Narrative summary of the strategy and its comparison. Read to understand risk/return profile, improvement axes and the impact of real slippage on performance.', es:'Síntesis narrativa de la estrategia y su comparativa. Sirve para entender el perfil riesgo/rendimiento, las vías de mejora y el impacto del slippage real en el rendimiento.' },
+  'detail.section.summary.title': { fr:'Commentaire & analyse',        en:'Commentary & analysis',             es:'Comentario y anÃ¡lisis' },
+  'detail.section.summary.desc':  { fr:"SynthÃ¨se narrative de la stratÃ©gie et de sa comparÃ©e. Ã€ lire pour comprendre le profil de risque/rendement, les axes d'amÃ©lioration, et l'impact du slippage rÃ©el sur la performance.", en:'Narrative summary of the strategy and its comparison. Read to understand risk/return profile, improvement axes and the impact of real slippage on performance.', es:'SÃ­ntesis narrativa de la estrategia y su comparativa. Sirve para entender el perfil riesgo/rendimiento, las vÃ­as de mejora y el impacto del slippage real en el rendimiento.' },
 
   'detail.slip.label':      { fr:'Slippage (bps)',                    en:'Slippage (bps)',                    es:'Slippage (pbs)' },
   'detail.slip.apply':      { fr:'Appliquer',                          en:'Apply',                             es:'Aplicar' },
   'detail.slip.infoTitle':  { fr:'Infos slippage',                     en:'Slippage info',                     es:'Info de slippage' },
-  'detail.slip.infoText':   { fr:"Le slippage (bps) ajoute un coût d'exécution sur chaque entrée/sortie (1 bps = 0,01%). Cela permet de voir comment PF, Win% et l'expectancy réagissent quand on tient compte du spread/slippage réel.",
+  'detail.slip.infoText':   { fr:"Le slippage (bps) ajoute un coÃ»t d'exÃ©cution sur chaque entrÃ©e/sortie (1 bps = 0,01%). Cela permet de voir comment PF, Win% et l'expectancy rÃ©agissent quand on tient compte du spread/slippage rÃ©el.",
                               en:'Slippage (bps) adds an execution cost on each entry/exit (1 bps = 0.01%). This lets you see how PF, Win% and expectancy react when you take real spread/slippage into account.',
-                              es:'El slippage (pbs) añade un coste de ejecución en cada entrada/salida (1 pbs = 0,01%). Permite ver cómo reaccionan PF, Win% y la expectancy cuando se tiene en cuenta el spread/slippage real.' },
+                              es:'El slippage (pbs) aÃ±ade un coste de ejecuciÃ³n en cada entrada/salida (1 pbs = 0,01%). Permite ver cÃ³mo reaccionan PF, Win% y la expectancy cuando se tiene en cuenta el spread/slippage real.' },
 
   'detail.section.ci.title':  { fr:'IC (bootstrap 95%)',               en:'CI (bootstrap 95%)',                es:'IC (bootstrap 95 %)' },
-  'detail.section.ci.desc':   { fr:"Intervalles de confiance estimés par bootstrap. Permettent de visualiser l'incertitude sur Win%, PF et expectancy plutôt que de se fier à un seul chiffre.", en:'Confidence intervals estimated via bootstrap. Visualises uncertainty on Win%, PF and expectancy instead of relying on a single number.', es:'Intervalos de confianza estimados por bootstrap. Permiten visualizar la incertidumbre sobre Win%, PF y expectancy en lugar de basarse en un único valor.' },
+  'detail.section.ci.desc':   { fr:"Intervalles de confiance estimÃ©s par bootstrap. Permettent de visualiser l'incertitude sur Win%, PF et expectancy plutÃ´t que de se fier Ã  un seul chiffre.", en:'Confidence intervals estimated via bootstrap. Visualises uncertainty on Win%, PF and expectancy instead of relying on a single number.', es:'Intervalos de confianza estimados por bootstrap. Permiten visualizar la incertidumbre sobre Win%, PF y expectancy en lugar de basarse en un Ãºnico valor.' },
 
-  'detail.section.rollpf.title': { fr:"Rolling PF (fenêtre 30)",      en:'Rolling PF (window 30)',            es:'Rolling PF (ventana 30)' },
-  'detail.section.rollpf.desc':  { fr:"Profit factor calculé sur une fenêtre glissante. Sert à détecter les phases où la stratégie passe durablement sous PF 1 (non rentable).", en:'Profit factor computed on a rolling window. Used to detect phases where the strategy stays below PF 1 (unprofitable).', es:'Profit factor calculado sobre una ventana deslizante. Sirve para detectar fases en las que la estrategia se mantiene por debajo de PF 1 (no rentable).' },
+  'detail.section.rollpf.title': { fr:"Rolling PF (fenÃªtre 30)",      en:'Rolling PF (window 30)',            es:'Rolling PF (ventana 30)' },
+  'detail.section.rollpf.desc':  { fr:"Profit factor calculÃ© sur une fenÃªtre glissante. Sert Ã  dÃ©tecter les phases oÃ¹ la stratÃ©gie passe durablement sous PFÂ 1 (non rentable).", en:'Profit factor computed on a rolling window. Used to detect phases where the strategy stays below PF 1 (unprofitable).', es:'Profit factor calculado sobre una ventana deslizante. Sirve para detectar fases en las que la estrategia se mantiene por debajo de PF 1 (no rentable).' },
 
-  'detail.section.rollwin.title': { fr:'Rolling Win% (fenêtre 30)',    en:'Rolling Win% (window 30)',          es:'Rolling Win% (ventana 30)' },
-  'detail.section.rollwin.desc':  { fr:'Taux de réussite glissant. Met en évidence les périodes où la stratégie décroche ou s\'améliore fortement.', en:'Rolling win rate. Highlights periods where the strategy degrades or improves significantly.', es:'Tasa de acierto deslizante. Resalta los periodos en los que la estrategia empeora o mejora claramente.' },
+  'detail.section.rollwin.title': { fr:'Rolling Win% (fenÃªtre 30)',    en:'Rolling Win% (window 30)',          es:'Rolling Win% (ventana 30)' },
+  'detail.section.rollwin.desc':  { fr:'Taux de rÃ©ussite glissant. Met en Ã©vidence les pÃ©riodes oÃ¹ la stratÃ©gie dÃ©croche ou s\'amÃ©liore fortement.', en:'Rolling win rate. Highlights periods where the strategy degrades or improves significantly.', es:'Tasa de acierto deslizante. Resalta los periodos en los que la estrategia empeora o mejora claramente.' },
 
-  'detail.section.rollrr.title':  { fr:'Rolling Avg R:R (fenêtre 30)', en:'Rolling Avg R:R (window 30)',       es:'Rolling Avg R:R (ventana 30)' },
-  'detail.section.rollrr.desc':   { fr:'R:R moyen sur 30 positions. Permet de voir si les objectifs deviennent trop courts ou trop ambitieux dans certains régimes.', en:'Average R:R over 30 trades. Shows whether targets become too tight or too ambitious in some regimes.', es:'R:R medio sobre 30 posiciones. Permite ver si los objetivos se vuelven demasiado cortos o demasiado ambiciosos en ciertos regímenes.' },
+  'detail.section.rollrr.title':  { fr:'Rolling Avg R:R (fenÃªtre 30)', en:'Rolling Avg R:R (window 30)',       es:'Rolling Avg R:R (ventana 30)' },
+  'detail.section.rollrr.desc':   { fr:'R:R moyen sur 30 positions. Permet de voir si les objectifs deviennent trop courts ou trop ambitieux dans certains rÃ©gimes.', en:'Average R:R over 30 trades. Shows whether targets become too tight or too ambitious in some regimes.', es:'R:R medio sobre 30 posiciones. Permite ver si los objetivos se vuelven demasiado cortos o demasiado ambiciosos en ciertos regÃ­menes.' },
 
-  'detail.section.rollexp.title': { fr:'Rolling Expectancy (fenêtre 30)', en:'Rolling Expectancy (window 30)',   es:'Rolling Expectancy (ventana 30)' },
-  'detail.section.rollexp.desc':  { fr:'Expectancy par trade sur fenêtre glissante. À utiliser pour repérer les zones temporelles où la stratégie devient négative.', en:'Expectancy per trade on a rolling window. Use it to spot time zones where the strategy turns negative.', es:'Expectancy por operación en ventana deslizante. Úselo para detectar zonas temporales donde la estrategia se vuelve negativa.' },
+  'detail.section.rollexp.title': { fr:'Rolling Expectancy (fenÃªtre 30)', en:'Rolling Expectancy (window 30)',   es:'Rolling Expectancy (ventana 30)' },
+  'detail.section.rollexp.desc':  { fr:'Expectancy par trade sur fenÃªtre glissante. Ã€ utiliser pour repÃ©rer les zones temporelles oÃ¹ la stratÃ©gie devient nÃ©gative.', en:'Expectancy per trade on a rolling window. Use it to spot time zones where the strategy turns negative.', es:'Expectancy por operaciÃ³n en ventana deslizante. Ãšselo para detectar zonas temporales donde la estrategia se vuelve negativa.' },
 
-  'detail.section.dur.title':     { fr:'Durée des trades',             en:'Trade duration',                    es:'Duración de las operaciones' },
-  'detail.section.dur.desc':      { fr:"Répartition de la durée des positions. Vérifiez que la stratégie correspond bien à votre horizon de temps (scalping, swing, positionnel...).", en:'Distribution of trade durations. Check that the strategy matches your time horizon (scalping, swing, position...).', es:'Distribución de la duración de las posiciones. Compruebe que la estrategia se ajusta a su horizonte temporal (scalping, swing, posición...).' },
+  'detail.section.dur.title':     { fr:'DurÃ©e des trades',             en:'Trade duration',                    es:'DuraciÃ³n de las operaciones' },
+  'detail.section.dur.desc':      { fr:"RÃ©partition de la durÃ©e des positions. VÃ©rifiez que la stratÃ©gie correspond bien Ã  votre horizon de temps (scalping, swing, positionnel...).", en:'Distribution of trade durations. Check that the strategy matches your time horizon (scalping, swing, position...).', es:'DistribuciÃ³n de la duraciÃ³n de las posiciones. Compruebe que la estrategia se ajusta a su horizonte temporal (scalping, swing, posiciÃ³n...).' },
 
-  'detail.section.streaks.title': { fr:'Séquences victoires/défaites', en:'Win/loss streaks',                  es:'Rachas de victorias/derrotas' },
-  'detail.section.streaks.desc':  { fr:'Distribution des séries de gains et de pertes. Met en lumière la possibilité de longues séries perdantes à supporter psychologiquement.', en:'Distribution of winning and losing streaks. Highlights the possibility of long losing streaks to withstand psychologically.', es:'Distribución de rachas de ganancias y pérdidas. Pone de relieve la posibilidad de largas rachas perdedoras que hay que soportar psicológicamente.' },
+  'detail.section.streaks.title': { fr:'SÃ©quences victoires/dÃ©faites', en:'Win/loss streaks',                  es:'Rachas de victorias/derrotas' },
+  'detail.section.streaks.desc':  { fr:'Distribution des sÃ©ries de gains et de pertes. Met en lumiÃ¨re la possibilitÃ© de longues sÃ©ries perdantes Ã  supporter psychologiquement.', en:'Distribution of winning and losing streaks. Highlights the possibility of long losing streaks to withstand psychologically.', es:'DistribuciÃ³n de rachas de ganancias y pÃ©rdidas. Pone de relieve la posibilidad de largas rachas perdedoras que hay que soportar psicolÃ³gicamente.' },
 
-  'detail.section.ls.title':      { fr:'Distribution retours — Long vs Short', en:'Return distribution — Long vs Short', es:'Distribución de retornos — Long vs Short' },
-  'detail.section.ls.desc':       { fr:"Compare la distribution des performances Long et Short. Idéal pour voir si un côté du marché porte l'essentiel de la performance.", en:'Compares the distribution of Long and Short performance. Ideal to see if one side of the market carries most of the performance.', es:'Compara la distribución del rendimiento Long y Short. Ideal para ver si un lado del mercado soporta la mayor parte del rendimiento.' },
+  'detail.section.ls.title':      { fr:'Distribution retours â€” Long vs Short', en:'Return distribution â€” Long vs Short', es:'DistribuciÃ³n de retornos â€” Long vs Short' },
+  'detail.section.ls.desc':       { fr:"Compare la distribution des performances Long et Short. IdÃ©al pour voir si un cÃ´tÃ© du marchÃ© porte l'essentiel de la performance.", en:'Compares the distribution of Long and Short performance. Ideal to see if one side of the market carries most of the performance.', es:'Compara la distribuciÃ³n del rendimiento Long y Short. Ideal para ver si un lado del mercado soporta la mayor parte del rendimiento.' },
 
   'detail.section.mae.title':     { fr:'MAE/MFE (excursions en R)',    en:'MAE/MFE (excursions in R)',         es:'MAE/MFE (excursiones en R)' },
-  'detail.section.mae.desc':      { fr:"Dispersion des excursions maximales en R (risque). Sert à calibrer TP/SL et trailing en fonction de ce que le marché offre réellement.", en:'Spread of maximum excursions in R (risk). Helps to calibrate TP/SL and trailing according to what the market actually offers.', es:'Dispersión de las excursiones máximas en R (riesgo). Sirve para calibrar TP/SL y trailing según lo que realmente ofrece el mercado.' },
+  'detail.section.mae.desc':      { fr:"Dispersion des excursions maximales en R (risque). Sert Ã  calibrer TP/SL et trailing en fonction de ce que le marchÃ© offre rÃ©ellement.", en:'Spread of maximum excursions in R (risk). Helps to calibrate TP/SL and trailing according to what the market actually offers.', es:'DispersiÃ³n de las excursiones mÃ¡ximas en R (riesgo). Sirve para calibrar TP/SL y trailing segÃºn lo que realmente ofrece el mercado.' },
 
-  'detail.section.weekly.title':  { fr:'Saisonnalité — Retours hebdomadaires (%)', en:'Seasonality — Weekly returns (%)', es:'Estacionalidad — Retornos semanales (%)' },
-  'detail.section.weekly.desc':   { fr:"Carte des retours semaine par semaine. À utiliser pour repérer les périodes structurellement favorables ou défavorables à la stratégie.", en:'Map of returns week by week. Use it to spot periods structurally favourable or unfavourable to the strategy.', es:'Mapa de retornos semana a semana. Úselo para detectar periodos estructuralmente favorables o desfavorables para la estrategia.' },
+  'detail.section.weekly.title':  { fr:'SaisonnalitÃ© â€” Retours hebdomadaires (%)', en:'Seasonality â€” Weekly returns (%)', es:'Estacionalidad â€” Retornos semanales (%)' },
+  'detail.section.weekly.desc':   { fr:"Carte des retours semaine par semaine. Ã€ utiliser pour repÃ©rer les pÃ©riodes structurellement favorables ou dÃ©favorables Ã  la stratÃ©gie.", en:'Map of returns week by week. Use it to spot periods structurally favourable or unfavourable to the strategy.', es:'Mapa de retornos semana a semana. Ãšselo para detectar periodos estructuralmente favorables o desfavorables para la estrategia.' },
 
-  'detail.section.dow.title':     { fr:'Saisonnalité — par jour de semaine (%)', en:'Seasonality — by weekday (%)', es:'Estacionalidad — por día de la semana (%)' },
-  'detail.section.dow.desc':      { fr:"Retour moyen par jour de la semaine. Sert à filtrer d'éventuels jours structurellement faibles ou instables.", en:'Average return per weekday. Used to filter structurally weak or unstable days.', es:'Retorno medio por día de la semana. Sirve para filtrar días estructuralmente débiles o inestables.' },
+  'detail.section.dow.title':     { fr:'SaisonnalitÃ© â€” par jour de semaine (%)', en:'Seasonality â€” by weekday (%)', es:'Estacionalidad â€” por dÃ­a de la semana (%)' },
+  'detail.section.dow.desc':      { fr:"Retour moyen par jour de la semaine. Sert Ã  filtrer d'Ã©ventuels jours structurellement faibles ou instables.", en:'Average return per weekday. Used to filter structurally weak or unstable days.', es:'Retorno medio por dÃ­a de la semana. Sirve para filtrar dÃ­as estructuralmente dÃ©biles o inestables.' },
 
-  'detail.section.dowHour.title': { fr:'Saisonnalité — Jour × Heure (retours %)', en:'Seasonality — Day × Hour (returns %)', es:'Estacionalidad — Día × Hora (retornos %)' },
-  'detail.section.dowHour.desc':  { fr:'Heatmap jour × heure. Idéale pour identifier les créneaux horaires où la stratégie surperforme ou sous-performe.', en:'Day × hour heatmap. Ideal to identify time slots where the strategy over‑ or underperforms.', es:'Heatmap día × hora. Ideal para identificar franjas horarias en las que la estrategia sobre‑o infra‑rinde.' },
+  'detail.section.dowHour.title': { fr:'SaisonnalitÃ© â€” Jour Ã— Heure (retours %)', en:'Seasonality â€” Day Ã— Hour (returns %)', es:'Estacionalidad â€” DÃ­a Ã— Hora (retornos %)' },
+  'detail.section.dowHour.desc':  { fr:'Heatmap jour Ã— heure. IdÃ©ale pour identifier les crÃ©neaux horaires oÃ¹ la stratÃ©gie surperforme ou sous-performe.', en:'Day Ã— hour heatmap. Ideal to identify time slots where the strategy overâ€‘ or underperforms.', es:'Heatmap dÃ­a Ã— hora. Ideal para identificar franjas horarias en las que la estrategia sobreâ€‘o infraâ€‘rinde.' },
 
-  'detail.section.dowHourLong.title':  { fr:'Jour × Heure — Long seulement', en:'Day × Hour — Long only',        es:'Día × Hora — sólo Long' },
-  'detail.section.dowHourLong.desc':   { fr:'Même carte jour × heure mais filtrée sur les positions Long. Permet de voir où la jambe acheteuse est réellement efficace.', en:'Same day × hour map but filtered on Long positions. Shows where the long leg is actually effective.', es:'Mismo mapa día × hora pero filtrado por posiciones Long. Muestra dónde la pata compradora es realmente eficaz.' },
+  'detail.section.dowHourLong.title':  { fr:'Jour Ã— Heure â€” Long seulement', en:'Day Ã— Hour â€” Long only',        es:'DÃ­a Ã— Hora â€” sÃ³lo Long' },
+  'detail.section.dowHourLong.desc':   { fr:'MÃªme carte jour Ã— heure mais filtrÃ©e sur les positions Long. Permet de voir oÃ¹ la jambe acheteuse est rÃ©ellement efficace.', en:'Same day Ã— hour map but filtered on Long positions. Shows where the long leg is actually effective.', es:'Mismo mapa dÃ­a Ã— hora pero filtrado por posiciones Long. Muestra dÃ³nde la pata compradora es realmente eficaz.' },
 
-  'detail.section.dowHourShort.title': { fr:'Jour × Heure — Short seulement', en:'Day × Hour — Short only',      es:'Día × Hora — sólo Short' },
-  'detail.section.dowHourShort.desc':  { fr:'Idem pour les positions Short. Utile pour voir si la jambe vendeuse est opportuniste ou trop fragile sur certains créneaux.', en:'Same for Short positions. Useful to see whether the short leg is opportunistic or too fragile in some time slots.', es:'Ídem para las posiciones Short. Útil para ver si la pata vendedora es oportunista o demasiado frágil en ciertos tramos horarios.' },
+  'detail.section.dowHourShort.title': { fr:'Jour Ã— Heure â€” Short seulement', en:'Day Ã— Hour â€” Short only',      es:'DÃ­a Ã— Hora â€” sÃ³lo Short' },
+  'detail.section.dowHourShort.desc':  { fr:'Idem pour les positions Short. Utile pour voir si la jambe vendeuse est opportuniste ou trop fragile sur certains crÃ©neaux.', en:'Same for Short positions. Useful to see whether the short leg is opportunistic or too fragile in some time slots.', es:'Ãdem para las posiciones Short. Ãštil para ver si la pata vendedora es oportunista o demasiado frÃ¡gil en ciertos tramos horarios.' },
 
-  'detail.section.wf.title':      { fr:'Walk-forward — splits temporels', en:'Walk-forward — time splits',     es:'Walk-forward — splits temporales' },
-  'detail.section.wf.desc':       { fr:'Performance par segment temporel. Sert à vérifier que la stratégie reste exploitable hors échantillon et ne dépend pas d\'une seule période.', en:'Performance by time segment. Checks that the strategy remains usable out-of-sample and does not rely on a single period.', es:'Rendimiento por segmento temporal. Sirve para comprobar que la estrategia sigue siendo explotable fuera de muestra y no depende de un solo periodo.' },
+  'detail.section.wf.title':      { fr:'Walk-forward â€” splits temporels', en:'Walk-forward â€” time splits',     es:'Walk-forward â€” splits temporales' },
+  'detail.section.wf.desc':       { fr:'Performance par segment temporel. Sert Ã  vÃ©rifier que la stratÃ©gie reste exploitable hors Ã©chantillon et ne dÃ©pend pas d\'une seule pÃ©riode.', en:'Performance by time segment. Checks that the strategy remains usable out-of-sample and does not rely on a single period.', es:'Rendimiento por segmento temporal. Sirve para comprobar que la estrategia sigue siendo explotable fuera de muestra y no depende de un solo periodo.' },
 
-  'detail.section.regime.title':  { fr:'Régimes (Trend × Volatilité)',  en:'Regimes (Trend × Volatility)',    es:'Regímenes (Tendencia × Volatilidad)' },
-  'detail.section.regime.desc':   { fr:'PF par combinaison de tendance et de volatilité. Identifie clairement les régimes de marché où la stratégie fonctionne bien ou mal.', en:'PF by combination of trend and volatility. Clearly identifies market regimes where the strategy works well or poorly.', es:'PF por combinación de tendencia y volatilidad. Identifica claramente los regímenes de mercado donde la estrategia funciona bien o mal.' },
+  'detail.section.regime.title':  { fr:'RÃ©gimes (Trend Ã— VolatilitÃ©)',  en:'Regimes (Trend Ã— Volatility)',    es:'RegÃ­menes (Tendencia Ã— Volatilidad)' },
+  'detail.section.regime.desc':   { fr:'PF par combinaison de tendance et de volatilitÃ©. Identifie clairement les rÃ©gimes de marchÃ© oÃ¹ la stratÃ©gie fonctionne bien ou mal.', en:'PF by combination of trend and volatility. Clearly identifies market regimes where the strategy works well or poorly.', es:'PF por combinaciÃ³n de tendencia y volatilidad. Identifica claramente los regÃ­menes de mercado donde la estrategia funciona bien o mal.' },
 
-  'detail.section.pareto.title':  { fr:'Pareto — P&L vs Max DD (Palmarès)', en:'Pareto — P&L vs Max DD (Leaderboard)', es:'Pareto — P&L vs Max DD (Palmarés)' },
-  'detail.section.pareto.desc':   { fr:'Nuage P&L vs drawdown. Permet de comparer visuellement le compromis rendement/risque de la stratégie par rapport au Palmarès.', en:'P&L vs drawdown scatter plot. Visually compares the strategy risk/return trade-off against the leaderboard.', es:'Nube P&L vs drawdown. Permite comparar visualmente el compromiso rendimiento/riesgo de la estrategia frente al Palmarés.' },
+  'detail.section.pareto.title':  { fr:'Pareto â€” P&L vs Max DD (PalmarÃ¨s)', en:'Pareto â€” P&L vs Max DD (Leaderboard)', es:'Pareto â€” P&L vs Max DD (PalmarÃ©s)' },
+  'detail.section.pareto.desc':   { fr:'Nuage P&L vs drawdown. Permet de comparer visuellement le compromis rendement/risque de la stratÃ©gie par rapport au PalmarÃ¨s.', en:'P&L vs drawdown scatter plot. Visually compares the strategy risk/return trade-off against the leaderboard.', es:'Nube P&L vs drawdown. Permite comparar visualmente el compromiso rendimiento/riesgo de la estrategia frente al PalmarÃ©s.' },
 
-  'detail.section.mc.title':      { fr:"Monte Carlo — éventail d'équity (bootstrap trades)", en:'Monte Carlo — equity fan (trade bootstrap)', es:'Monte Carlo — abanico de equity (bootstrap de trades)' },
-  'detail.section.mc.desc':       { fr:"Simulation aléatoire de l'ordre des trades. Montre la dispersion possible des trajectoires d'équity à partir du même historique de trades.", en:'Random simulation of trade order. Shows the possible dispersion of equity paths from the same trade history.', es:'Simulación aleatoria del orden de las operaciones. Muestra la posible dispersión de trayectorias de equity a partir del mismo histórico de operaciones.' },
+  'detail.section.mc.title':      { fr:"Monte Carlo â€” Ã©ventail d'Ã©quity (bootstrap trades)", en:'Monte Carlo â€” equity fan (trade bootstrap)', es:'Monte Carlo â€” abanico de equity (bootstrap de trades)' },
+  'detail.section.mc.desc':       { fr:"Simulation alÃ©atoire de l'ordre des trades. Montre la dispersion possible des trajectoires d'Ã©quity Ã  partir du mÃªme historique de trades.", en:'Random simulation of trade order. Shows the possible dispersion of equity paths from the same trade history.', es:'SimulaciÃ³n aleatoria del orden de las operaciones. Muestra la posible dispersiÃ³n de trayectorias de equity a partir del mismo histÃ³rico de operaciones.' },
 
-  'detail.section.qq.title':      { fr:'QQ-Plot (retours normalisés)', en:'QQ-Plot (normalised returns)',      es:'QQ-Plot (retornos normalizados)' },
-  'detail.section.qq.desc':       { fr:'Compare la distribution des rendements à une loi normale. Sert à repérer des queues épaisses ou des asymétries importantes.', en:'Compares the return distribution to a normal law. Used to detect fat tails or strong asymmetries.', es:'Compara la distribución de los retornos con una normal. Sirve para detectar colas gruesas o asimetrías importantes.' },
+  'detail.section.qq.title':      { fr:'QQ-Plot (retours normalisÃ©s)', en:'QQ-Plot (normalised returns)',      es:'QQ-Plot (retornos normalizados)' },
+  'detail.section.qq.desc':       { fr:'Compare la distribution des rendements Ã  une loi normale. Sert Ã  repÃ©rer des queues Ã©paisses ou des asymÃ©tries importantes.', en:'Compares the return distribution to a normal law. Used to detect fat tails or strong asymmetries.', es:'Compara la distribuciÃ³n de los retornos con una normal. Sirve para detectar colas gruesas o asimetrÃ­as importantes.' },
 
-  'detail.section.acf.title':     { fr:'Autocorrélation (lags)',       en:'Autocorrelation (lags)',            es:'Autocorrelación (lags)' },
-  'detail.section.acf.desc':      { fr:'Autocorrélation des rendements sur plusieurs lags. Permet de voir s\'il existe un clustering de gains/pertes ou des dépendances exploitables.', en:'Autocorrelation of returns over several lags. Shows whether there is clustering of gains/losses or exploitable dependencies.', es:'Autocorrelación de retornos en varios lags. Permite ver si existe agrupación de ganancias/pérdidas o dependencias explotables.' },
+  'detail.section.acf.title':     { fr:'AutocorrÃ©lation (lags)',       en:'Autocorrelation (lags)',            es:'AutocorrelaciÃ³n (lags)' },
+  'detail.section.acf.desc':      { fr:'AutocorrÃ©lation des rendements sur plusieurs lags. Permet de voir s\'il existe un clustering de gains/pertes ou des dÃ©pendances exploitables.', en:'Autocorrelation of returns over several lags. Shows whether there is clustering of gains/losses or exploitable dependencies.', es:'AutocorrelaciÃ³n de retornos en varios lags. Permite ver si existe agrupaciÃ³n de ganancias/pÃ©rdidas o dependencias explotables.' },
 
   // Trades & evaluations modals
-  'strat.modal.title':      { fr:'Détails stratégie',                 en:'Strategy details',                  es:'Detalles de la estrategia' },
-  'strat.table.crit':       { fr:'Critère',                           en:'Criterion',                        es:'Criterio' },
+  'strat.modal.title':      { fr:'DÃ©tails stratÃ©gie',                 en:'Strategy details',                  es:'Detalles de la estrategia' },
+  'strat.table.crit':       { fr:'CritÃ¨re',                           en:'Criterion',                        es:'Criterio' },
   'strat.table.score':      { fr:'Note / 100',                        en:'Score / 100',                      es:'Nota / 100' },
   'strat.table.value':      { fr:'Valeur',                            en:'Value',                            es:'Valor' },
 
@@ -350,21 +350,21 @@ const I18N = {
   'trades.table.time':      { fr:'Horaire',                           en:'Time',                             es:'Hora' },
   'trades.table.equity':    { fr:'Capital',                           en:'Equity',                           es:'Capital' },
   'trades.table.trade':     { fr:'Trade',                             en:'Trade',                            es:'Trade' },
-  'trades.table.qty':       { fr:'Quantité',                          en:'Quantity',                         es:'Cantidad' },
-  'trades.table.entry':     { fr:'Prix entrée',                       en:'Entry price',                      es:'Precio de entrada' },
+  'trades.table.qty':       { fr:'QuantitÃ©',                          en:'Quantity',                         es:'Cantidad' },
+  'trades.table.entry':     { fr:'Prix entrÃ©e',                       en:'Entry price',                      es:'Precio de entrada' },
   'trades.table.exit':      { fr:'Prix sortie',                       en:'Exit price',                       es:'Precio de salida' },
   'trades.table.fee':       { fr:'Frais',                             en:'Fees',                             es:'Comisiones' },
   'trades.table.pnl':       { fr:'P&L',                               en:'P&L',                              es:'P&L' },
-  'trades.table.duration':  { fr:'Durée',                             en:'Duration',                         es:'Duración' },
+  'trades.table.duration':  { fr:'DurÃ©e',                             en:'Duration',                         es:'DuraciÃ³n' },
  
-  'evals.modal.title':      { fr:'Détails des évaluations',           en:'Evaluation details',               es:'Detalles de las evaluaciones' },
+  'evals.modal.title':      { fr:'DÃ©tails des Ã©valuations',           en:'Evaluation details',               es:'Detalles de las evaluaciones' },
  
-  'detail.error':           { fr:'Erreur analyse',                    en:'Analysis error',                   es:'Error de análisis' },
+  'detail.error':           { fr:'Erreur analyse',                    en:'Analysis error',                   es:'Error de anÃ¡lisis' },
  
   // Common generic UI
   'common.save':            { fr:'Enregistrer',                        en:'Save',                             es:'Guardar' },
   'common.load':            { fr:'Charger',                            en:'Load',                             es:'Cargar' },
-  'common.reset':           { fr:'Réinitialiser',                      en:'Reset',                            es:'Reiniciar' },
+  'common.reset':           { fr:'RÃ©initialiser',                      en:'Reset',                            es:'Reiniciar' },
   'common.delete':          { fr:'Supprimer',                          en:'Delete',                           es:'Eliminar' },
   'common.cancel':          { fr:'Annuler',                            en:'Cancel',                           es:'Cancelar' },
   'common.name':            { fr:'Nom',                                en:'Name',                             es:'Nombre' },
@@ -373,30 +373,30 @@ const I18N = {
   'ema.modal.title':        { fr:'EMA / MA',                           en:'EMA / MA',                         es:'EMA / MA' },
  
   // Backtest progress modal
-  'bt.progress.title':        { fr:'Simulation',                        en:'Simulation',                       es:'Simulación' },
-  'bt.progress.initShort':    { fr:'Préparation...',                    en:'Preparing...',                     es:'Preparación...' },
-  'bt.progress.trainingShort':{ fr:'Entraînement...',                   en:'Training...',                      es:'Entrenamiento...' },
-  'bt.progress.globalInit':   { fr:'Global: 0% (0/0) — ETA —',          en:'Global: 0% (0/0) — ETA —',         es:'Global: 0% (0/0) — ETA —' },
+  'bt.progress.title':        { fr:'Simulation',                        en:'Simulation',                       es:'SimulaciÃ³n' },
+  'bt.progress.initShort':    { fr:'PrÃ©paration...',                    en:'Preparing...',                     es:'PreparaciÃ³n...' },
+  'bt.progress.trainingShort':{ fr:'EntraÃ®nement...',                   en:'Training...',                      es:'Entrenamiento...' },
+  'bt.progress.globalInit':   { fr:'Global: 0% (0/0) â€” ETA â€”',          en:'Global: 0% (0/0) â€” ETA â€”',         es:'Global: 0% (0/0) â€” ETA â€”' },
   'bt.progress.btn.pause':    { fr:'Pause',                             en:'Pause',                            es:'Pausa' },
   'bt.progress.btn.stop':     { fr:'Stop',                              en:'Stop',                             es:'Stop' },
-  'bt.progress.btn.details':  { fr:'Détails',                           en:'Details',                          es:'Detalles' },
+  'bt.progress.btn.details':  { fr:'DÃ©tails',                           en:'Details',                          es:'Detalles' },
   'bt.progress.btn.export':   { fr:'Exporter CSV',                      en:'Export CSV',                       es:'Exportar CSV' },
   'bt.progress.btn.cancel':   { fr:'Annuler',                           en:'Cancel',                           es:'Cancelar' },
   'bt.progress.pauseTitle':   { fr:'Mettre en pause/Reprendre',         en:'Pause/Resume',                     es:'Pausar/Reanudar' },
-  'bt.progress.stopTitle':    { fr:'Arrêter',                           en:'Stop',                             es:'Detener' },
-  'bt.progress.detailsTitle': { fr:'Afficher la liste complète des évaluations', en:'Show full evaluations list', es:'Mostrar la lista completa de evaluaciones' },
-  'bt.progress.exportTitle':  { fr:'Exporter les évaluations en CSV',   en:'Export evaluations to CSV',        es:'Exportar evaluaciones a CSV' },
+  'bt.progress.stopTitle':    { fr:'ArrÃªter',                           en:'Stop',                             es:'Detener' },
+  'bt.progress.detailsTitle': { fr:'Afficher la liste complÃ¨te des Ã©valuations', en:'Show full evaluations list', es:'Mostrar la lista completa de evaluaciones' },
+  'bt.progress.exportTitle':  { fr:'Exporter les Ã©valuations en CSV',   en:'Export evaluations to CSV',        es:'Exportar evaluaciones a CSV' },
   'bt.progress.globalLabel':  { fr:'Global',                            en:'Global',                           es:'Global' },
   'bt.progress.etaLabel':     { fr:'ETA',                               en:'ETA',                              es:'ETA' },
   'bt.progress.quotaPrefix':  { fr:'Quota:',                            en:'Quota:',                           es:'Cuota:' },
  
   // Detail / analysis progress
-  'detail.progress':          { fr:'Analyse stratégie...',              en:'Strategy analysis...',             es:'Análisis de estrategia...' },
+  'detail.progress':          { fr:'Analyse stratÃ©gie...',              en:'Strategy analysis...',             es:'AnÃ¡lisis de estrategia...' },
  
   // Backtest settings modal (header & footer)
-'bt.modal.title':           { fr:'Paramètres de simulation',          en:'Simulation settings',              es:'Parámetros de simulación' },
-  'bt.modal.general.legend':  { fr:'Général',                           en:'General',                          es:'General' },
-  'bt.modal.period.legend':   { fr:'Période',                           en:'Period',                           es:'Período' },
+'bt.modal.title':           { fr:'ParamÃ¨tres de simulation',          en:'Simulation settings',              es:'ParÃ¡metros de simulaciÃ³n' },
+  'bt.modal.general.legend':  { fr:'GÃ©nÃ©ral',                           en:'General',                          es:'General' },
+  'bt.modal.period.legend':   { fr:'PÃ©riode',                           en:'Period',                           es:'PerÃ­odo' },
   'bt.modal.startCap':        { fr:'Capital initial',                   en:'Initial capital',                  es:'Capital inicial' },
   'bt.modal.fee':             { fr:'Frais (%)',                         en:'Fees (%)',                         es:'Comisiones (%)' },
   'bt.modal.lev':             { fr:'Levier (x)',                         en:'Leverage (x)',                     es:'Apalancamiento (x)' },
@@ -405,43 +405,43 @@ const I18N = {
   'bt.modal.base.initial':    { fr:'Capital initial',                   en:'Initial capital',                  es:'Capital inicial' },
   'bt.modal.base.equity':     { fr:'Capital variable',                  en:'Variable equity',                  es:'Capital variable' },
  
-  'bt.modal.range.visible':   { fr:'Période visible',                   en:'Visible period',                   es:'Período visible' },
-  'bt.modal.range.all':       { fr:"Tout l'historique",               en:'Full history',                     es:'Todo el histórico' },
+  'bt.modal.range.visible':   { fr:'PÃ©riode visible',                   en:'Visible period',                   es:'PerÃ­odo visible' },
+  'bt.modal.range.all':       { fr:"Tout l'historique",               en:'Full history',                     es:'Todo el histÃ³rico' },
   'bt.modal.range.dates':     { fr:'Dates',                             en:'Dates',                            es:'Fechas' },
   'bt.modal.range.from':      { fr:'De',                                en:'From',                             es:'Desde' },
-  'bt.modal.range.to':        { fr:'À',                                 en:'To',                               es:'Hasta' },
-  'bt.modal.range.note':      { fr:'Les dates sont interprétées dans votre fuseau horaire local.', en:'Dates are interpreted in your local time zone.', es:'Las fechas se interpretan en tu zona horaria local.' },
+  'bt.modal.range.to':        { fr:'Ã€',                                 en:'To',                               es:'Hasta' },
+  'bt.modal.range.note':      { fr:'Les dates sont interprÃ©tÃ©es dans votre fuseau horaire local.', en:'Dates are interpreted in your local time zone.', es:'Las fechas se interpretan en tu zona horaria local.' },
  
-  'bt.modal.opt.legend':      { fr:'Optimisation (utiliser le Lab)',    en:'Optimisation (use Lab)',           es:'Optimización (usar Lab)' },
-  'bt.modal.opt.note':        { fr:"Optimise sur l'intervalle actuel (sélectionne 1m/5m/15m en haut).", en:'Optimises over the current interval (select 1m/5m/15m above).', es:'Optimiza sobre el intervalo actual (selecciona 1m/5m/15m arriba).' },
-  'bt.modal.opt.strategy':    { fr:'Stratégie',                         en:'Strategy',                         es:'Estrategia' },
+  'bt.modal.opt.legend':      { fr:'Optimisation (utiliser le Lab)',    en:'Optimisation (use Lab)',           es:'OptimizaciÃ³n (usar Lab)' },
+  'bt.modal.opt.note':        { fr:"Optimise sur l'intervalle actuel (sÃ©lectionne 1m/5m/15m en haut).", en:'Optimises over the current interval (select 1m/5m/15m above).', es:'Optimiza sobre el intervalo actual (selecciona 1m/5m/15m arriba).' },
+  'bt.modal.opt.strategy':    { fr:'StratÃ©gie',                         en:'Strategy',                         es:'Estrategia' },
   'bt.modal.opt.strategy.grid':   { fr:'Grille',                        en:'Grid',                             es:'Grid' },
-  'bt.modal.opt.strategy.random': { fr:'Aléatoire',                     en:'Random',                           es:'Aleatorio' },
-  'bt.modal.opt.strategy.ea':     { fr:'Évolutionnaire',                en:'Evolutionary',                     es:'Evolutivo' },
+  'bt.modal.opt.strategy.random': { fr:'AlÃ©atoire',                     en:'Random',                           es:'Aleatorio' },
+  'bt.modal.opt.strategy.ea':     { fr:'Ã‰volutionnaire',                en:'Evolutionary',                     es:'Evolutivo' },
   'bt.modal.opt.strategy.bayes':  { fr:'Bayes (EDA)',                   en:'Bayes (EDA)',                      es:'Bayes (EDA)' },
   'bt.modal.opt.tf':          { fr:'TF',                                en:'TF',                               es:'TF' },
   'bt.modal.opt.profile':     { fr:'Profil',                            en:'Profile',                          es:'Perfil' },
-  'bt.modal.opt.profile.safe':{ fr:'Sûre',                              en:'Safe',                             es:'Segura' },
-  'bt.modal.opt.profile.bal': { fr:'Balancée',                          en:'Balanced',                         es:'Balanceada' },
+  'bt.modal.opt.profile.safe':{ fr:'SÃ»re',                              en:'Safe',                             es:'Segura' },
+  'bt.modal.opt.profile.bal': { fr:'BalancÃ©e',                          en:'Balanced',                         es:'Balanceada' },
   'bt.modal.opt.profile.agg': { fr:'Agressive',                         en:'Aggressive',                       es:'Agresiva' },
-  'bt.modal.opt.maxComb':     { fr:'Max combinaisons',                  en:'Max combinations',                 es:'Máx combinaciones' },
+  'bt.modal.opt.maxComb':     { fr:'Max combinaisons',                  en:'Max combinations',                 es:'MÃ¡x combinaciones' },
   'bt.modal.opt.topN':        { fr:'Top N',                             en:'Top N',                            es:'Top N' },
  
-  'bt.modal.opt.modesLabel':  { fr:"Modes d'entrée:",                  en:'Entry modes:',                     es:'Modos de entrada:' },
+  'bt.modal.opt.modesLabel':  { fr:"Modes d'entrÃ©e:",                  en:'Entry modes:',                     es:'Modos de entrada:' },
   'bt.modal.opt.mode.original':{ fr:'Original',                         en:'Original',                         es:'Original' },
   'bt.modal.opt.mode.fib':    { fr:'Fib Retracement',                   en:'Fib Retracement',                  es:'Fib Retracement' },
   'bt.modal.opt.mode.both':   { fr:'Both',                              en:'Both',                             es:'Ambos' },
-  'bt.modal.opt.usePriorTitle':{ fr:"Utiliser les résultats historiques (même symbole+TF) comme prior pour l'optimisation", en:'Use historical results (same symbol+TF) as prior for optimisation', es:'Usar resultados históricos (mismo símbolo+TF) como prior para la optimización' },
+  'bt.modal.opt.usePriorTitle':{ fr:"Utiliser les rÃ©sultats historiques (mÃªme symbole+TF) comme prior pour l'optimisation", en:'Use historical results (same symbol+TF) as prior for optimisation', es:'Usar resultados histÃ³ricos (mismo sÃ­mbolo+TF) como prior para la optimizaciÃ³n' },
   'bt.modal.opt.usePrior':    { fr:'Prior TF',                          en:'TF prior',                         es:'Prior TF' },
  
   'bt.modal.opt.nolEn':       { fr:'NOL',                               en:'NOL',                              es:'NOL' },
-  'bt.modal.opt.prdEn':       { fr:'Période (prd)',                     en:'Period (prd)',                     es:'Período (prd)' },
+  'bt.modal.opt.prdEn':       { fr:'PÃ©riode (prd)',                     en:'Period (prd)',                     es:'PerÃ­odo (prd)' },
   'bt.modal.opt.slEn':        { fr:'SL initial %',                      en:'Initial SL %',                     es:'SL inicial %' },
   'bt.modal.opt.beBarsEn':    { fr:'Bars to BE',                        en:'Bars to BE',                       es:'Barras a BE' },
   'bt.modal.opt.beLockEn':    { fr:'Lock % move',                        en:'Lock % move',                      es:'Lock % movimiento' },
   'bt.modal.opt.emaLenEn':    { fr:'EMA len',                           en:'EMA len',                          es:'EMA len' },
-  'bt.modal.opt.min':         { fr:'Min',                               en:'Min',                              es:'Mín' },
-  'bt.modal.opt.max':         { fr:'Max',                               en:'Max',                              es:'Máx' },
+  'bt.modal.opt.min':         { fr:'Min',                               en:'Min',                              es:'MÃ­n' },
+  'bt.modal.opt.max':         { fr:'Max',                               en:'Max',                              es:'MÃ¡x' },
   'bt.modal.opt.step':        { fr:'Pas',                               en:'Step',                             es:'Paso' },
  
   'bt.modal.opt.ea.pop':      { fr:'EA: Pop',                           en:'EA: Pop',                          es:'EA: Pop' },
@@ -456,15 +456,15 @@ const I18N = {
   'bt.modal.opt.bayes.resume':{ fr:'Resume',                            en:'Resume',                           es:'Resume' },
  
   'bt.modal.opt.tpFibEn':     { fr:'Optimiser TP (Fib)',                en:'Optimise TP (Fib)',                es:'Optimizar TP (Fib)' },
-  'bt.modal.opt.tpCount':     { fr:'Nb TP',                             en:'# TP',                             es:'Nº TP' },
-  'bt.modal.opt.tpFibNote':   { fr:'Les ratios sélectionnés seront affectés aux TP1..TPn (ordre croissant)', en:'Selected ratios are assigned to TP1..TPn (ascending order)', es:'Los ratios seleccionados se asignan a TP1..TPn (orden ascendente)' },
+  'bt.modal.opt.tpCount':     { fr:'Nb TP',                             en:'# TP',                             es:'NÂº TP' },
+  'bt.modal.opt.tpFibNote':   { fr:'Les ratios sÃ©lectionnÃ©s seront affectÃ©s aux TP1..TPn (ordre croissant)', en:'Selected ratios are assigned to TP1..TPn (ascending order)', es:'Los ratios seleccionados se asignan a TP1..TPn (orden ascendente)' },
   'bt.modal.opt.tpPctEn':     { fr:'Optimiser TP (Percent)',            en:'Optimise TP (Percent)',            es:'Optimizar TP (Percent)' },
-  'bt.modal.opt.tpMinPct':    { fr:'Min %',                             en:'Min %',                            es:'Mín %' },
-  'bt.modal.opt.tpMaxPct':    { fr:'Max %',                             en:'Max %',                            es:'Máx %' },
+  'bt.modal.opt.tpMinPct':    { fr:'Min %',                             en:'Min %',                            es:'MÃ­n %' },
+  'bt.modal.opt.tpMaxPct':    { fr:'Max %',                             en:'Max %',                            es:'MÃ¡x %' },
   'bt.modal.opt.tpStepPct':   { fr:'Pas %',                             en:'Step %',                           es:'Paso %' },
-  'bt.modal.opt.allocEn':     { fr:'Optimiser répartition (%)',         en:'Optimise allocation (%)',          es:'Optimizar reparto (%)' },
+  'bt.modal.opt.allocEn':     { fr:'Optimiser rÃ©partition (%)',         en:'Optimise allocation (%)',          es:'Optimizar reparto (%)' },
   'bt.modal.opt.allocStep':   { fr:'Pas',                               en:'Step',                             es:'Paso' },
-  'bt.modal.opt.allocMaxPat': { fr:'Max patterns',                      en:'Max patterns',                     es:'Patrones máx' },
+  'bt.modal.opt.allocMaxPat': { fr:'Max patterns',                      en:'Max patterns',                     es:'Patrones mÃ¡x' },
  
   'bt.modal.btn.cancel':      { fr:'Annuler',                           en:'Cancel',                           es:'Cancelar' },
   'bt.modal.btn.optimize':    { fr:'Optimiser',                         en:'Optimize',                         es:'Optimizar' },
@@ -477,27 +477,27 @@ const I18N = {
   'live.mode.real':           { fr:'Live trading',                      en:'Live trading',                     es:'Live trading' },
   'live.wallet.legend':       { fr:'Wallet',                            en:'Wallet',                           es:'Wallet' },
   'live.wallet.label':        { fr:'Portefeuille',                      en:'Portfolio',                        es:'Cartera' },
-  'live.wallet.newOption':    { fr:'+ Nouveau portefeuille…',           en:'+ New portfolio…',                 es:'+ Nuevo portafolio…' },
+  'live.wallet.newOption':    { fr:'+ Nouveau portefeuilleâ€¦',           en:'+ New portfolioâ€¦',                 es:'+ Nuevo portafolioâ€¦' },
   'live.wallet.nameLabel':    { fr:'Nom',                               en:'Name',                             es:'Nombre' },
-  'live.params.legend':       { fr:'Paramètres (paper)',                en:'Settings (paper)',                 es:'Parámetros (paper)' },
+  'live.params.legend':       { fr:'ParamÃ¨tres (paper)',                en:'Settings (paper)',                 es:'ParÃ¡metros (paper)' },
   'live.params.startCap':     { fr:'Capital initial',                   en:'Initial capital',                  es:'Capital inicial' },
   'live.params.fee':          { fr:'Frais (%)',                         en:'Fees (%)',                         es:'Comisiones (%)' },
   'live.params.lev':          { fr:'Levier (x)',                         en:'Leverage (x)',                     es:'Apalancamiento (x)' },
-  'live.tf.legend':           { fr:'TF & Stratégie',                    en:'TF & Strategy',                    es:'TF y Estrategia' },
+  'live.tf.legend':           { fr:'TF & StratÃ©gie',                    en:'TF & Strategy',                    es:'TF y Estrategia' },
   'live.tf.label':            { fr:'TF',                                en:'TF',                               es:'TF' },
   'live.tf.source.heaven':    { fr:'Heaven',                            en:'Heaven',                           es:'Heaven' },
-  'live.tf.source.palmares':  { fr:'Palmarès',                          en:'Leaderboard',                      es:'Palmarés' },
-  'live.tf.strategyLabel':    { fr:'Stratégie',                         en:'Strategy',                         es:'Estrategia' },
-  'live.footer.stop':         { fr:'Arrêter',                           en:'Stop',                             es:'Detener' },
+  'live.tf.source.palmares':  { fr:'PalmarÃ¨s',                          en:'Leaderboard',                      es:'PalmarÃ©s' },
+  'live.tf.strategyLabel':    { fr:'StratÃ©gie',                         en:'Strategy',                         es:'Estrategia' },
+  'live.footer.stop':         { fr:'ArrÃªter',                           en:'Stop',                             es:'Detener' },
   'live.footer.start':        { fr:'Lancer',                            en:'Start',                            es:'Iniciar' },
  
   // Heaven / LBC presets footer
   'heaven.supa.namePlaceholder': { fr:'Nom',                             en:'Name',                             es:'Nombre' },
  
   // Lab / training status messages
-  'status.palmaresUpdated':   { fr:'Palmarès mis à jour',               en:'Leaderboard updated',              es:'Palmarés actualizado' },
-  'status.improveDone':       { fr:'Amélioration terminée',             en:'Improvement completed',           es:'Mejora terminada' },
-  'status.trainingError':     { fr:'Erreur entraînement',               en:'Training error',                  es:'Error de entrenamiento' },
+  'status.palmaresUpdated':   { fr:'PalmarÃ¨s mis Ã  jour',               en:'Leaderboard updated',              es:'PalmarÃ©s actualizado' },
+  'status.improveDone':       { fr:'AmÃ©lioration terminÃ©e',             en:'Improvement completed',           es:'Mejora terminada' },
+  'status.trainingError':     { fr:'Erreur entraÃ®nement',               en:'Training error',                  es:'Error de entrenamiento' },
 };
 let __uiLang = (function(){
   try{
@@ -590,9 +590,9 @@ try{ window.BOTRADE_LANG = { currentLang, setLang, cycleLang, t }; }catch(_){ }
 // --- Lab: Entrainer (AI surrogate) ---
 
 
-// --- Lab: lecture et palmarès (localStorage) ---
+// --- Lab: lecture et palmarÃ¨s (localStorage) ---
 const labTBody = document.getElementById('labTBody'); const labSummaryEl=document.getElementById('labSummary'); const labTFSelect=document.getElementById('labTFSelect');
-// TF d'exécution du Lab: restitue la dernière valeur utilisée
+// TF d'exÃ©cution du Lab: restitue la derniÃ¨re valeur utilisÃ©e
 const labSymbolSelect=document.getElementById('labSymbolSelect');
 const labProfileEl=document.getElementById('labProfile');
 const labSortModeEl=document.getElementById('labSortMode');
@@ -607,17 +607,17 @@ function palmaresKey(sym, tf){ return `lab:palmares:${sym}:${tf}`; }
 function readPalmares(sym, tf){ try{ const s=localStorage.getItem(palmaresKey(sym,tf)); return s? JSON.parse(s): []; }catch(_){ return []; } }
 function writePalmares(sym, tf, arr){ try{ localStorage.setItem(palmaresKey(sym,tf), JSON.stringify(arr)); localStorage.setItem(`lab:palmares:ts:${sym}:${tf}`, String(Date.now())); }catch(_){} }
 function paramsKey(p){ if(!p) {return '';} const o={ nol:p.nol, prd:p.prd, slInitPct:p.slInitPct, beAfterBars:p.beAfterBars, beLockPct:p.beLockPct, emaLen:p.emaLen, entryMode:p.entryMode, useFibRet:!!p.useFibRet, confirmMode:p.confirmMode, ent382:!!p.ent382, ent500:!!p.ent500, ent618:!!p.ent618, ent786:!!p.ent786, tp: Array.isArray(p.tp)? p.tp.slice(0,10): [] }; return JSON.stringify(o); }
-// Dictionnaires (échantillons)
-const DICT_FR=["étoile","forêt","rivière","montagne","océan","tempête","harmonie","nuage","pluie","lueur","zèbre","quartz","vallée","soleil","déluge","orage","saphir","primevère","cendre","ivoire"];
+// Dictionnaires (Ã©chantillons)
+const DICT_FR=["Ã©toile","forÃªt","riviÃ¨re","montagne","ocÃ©an","tempÃªte","harmonie","nuage","pluie","lueur","zÃ¨bre","quartz","vallÃ©e","soleil","dÃ©luge","orage","saphir","primevÃ¨re","cendre","ivoire"];
 const DICT_EN=["river","stone","oak","ember","nova","zenith","aurora","lunar","solar","atlas","odyssey","phoenix","falcon","drake","comet","orbit","vertex","harbor","willow","meadow"];
-const DICT_ES=["río","piedra","roble","brasa","nube","estrella","luna","sol","mar","tierra","tormenta","sierra","valle","bosque","isla","puerto","águila","toro","lince","cometa"];
-const DICT_PL=["rzeka","kamień","dąb","iskra","gwiazda","księżyc","słońce","morze","ziemia","wiatr","burza","las","pustynia","wyspa","orzeł","żubr","ryś","kometa","polana","dolina"];
+const DICT_ES=["rÃ­o","piedra","roble","brasa","nube","estrella","luna","sol","mar","tierra","tormenta","sierra","valle","bosque","isla","puerto","Ã¡guila","toro","lince","cometa"];
+const DICT_PL=["rzeka","kamieÅ„","dÄ…b","iskra","gwiazda","ksiÄ™Å¼yc","sÅ‚oÅ„ce","morze","ziemia","wiatr","burza","las","pustynia","wyspa","orzeÅ‚","Å¼ubr","ryÅ›","kometa","polana","dolina"];
 function randomName(){ const dicts=[DICT_FR,DICT_EN,DICT_ES,DICT_PL]; const d=dicts[Math.floor(Math.random()*dicts.length)]; return d[Math.floor(Math.random()*d.length)]; }
 function uniqueNameFor(sym, tf, base){ const pal=readPalmares(sym, tf); const names=new Set(pal.map(x=>x.name)); let n=base; let k=2; while(names.has(n)){ n=base+"-"+k; k++; } return n; }
 async function renderLabFromStorage(){
   const tf = labTFSelect? labTFSelect.value: (intervalSelect? intervalSelect.value:''), sym=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol;
   const profSel = (document.getElementById('labProfile') && document.getElementById('labProfile').value) || (localStorage.getItem('labWeightsProfile')||'balancee');
-  // Mode de tri: score (par défaut) ou P&L net
+  // Mode de tri: score (par dÃ©faut) ou P&L net
   let sortMode='score';
   try{
     sortMode = (labSortModeEl && labSortModeEl.value) || localStorage.getItem('lab:sortMode') || 'score';
@@ -630,14 +630,14 @@ async function renderLabFromStorage(){
     localStorage.setItem('lab:sortMode', sortMode);
   }catch(_){ }
   let arr=[]; let source='local';
-  // Si Supabase est configuré, on lit UNIQUEMENT Supabase pour le palmarès
+  // Si Supabase est configurÃ©, on lit UNIQUEMENT Supabase pour le palmarÃ¨s
   if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchPalmares==='function'){
     try{
       const supaArr = await SUPA.fetchPalmares(sym, tf, 25, profSel, sortMode);
       if(Array.isArray(supaArr)) { arr = supaArr; source='Supabase'; }
     }catch(_){ /* en cas d'erreur Supabase, on laisse arr = [] */ }
   } else {
-    // Fallback local uniquement si Supabase n'est pas configuré
+    // Fallback local uniquement si Supabase n'est pas configurÃ©
     arr = readPalmares(sym, tf) || []; source='local';
   }
   window.labPalmaresCache = Array.isArray(arr)? arr.slice() : [];
@@ -646,9 +646,9 @@ async function renderLabFromStorage(){
   const symWord = t('lab.palmares.symbol');
   const tfWord = t('lab.palmares.tf');
   if(labSummaryEl){
-    const sortSuffix = sortMode==='pnl' ? ' • tri: P&L' : ' • tri: Score';
+    const sortSuffix = sortMode==='pnl' ? ' â€¢ tri: P&L' : ' â€¢ tri: Score';
     labSummaryEl.textContent = arr.length
-      ? `${prefix} ${arr.length} ${stratsWord} (${symWord} ${symbolToDisplay(sym)} • ${tfWord} ${tf}) — ${source}${sortSuffix}`
+      ? `${prefix} ${arr.length} ${stratsWord} (${symWord} ${symbolToDisplay(sym)} â€¢ ${tfWord} ${tf}) â€” ${source}${sortSuffix}`
       : t('lab.palmares.empty');
   }
   if(!labTBody){ return; }
@@ -684,24 +684,24 @@ rows.push(`
   <td>${idx}</td>
   <td>${pairDisp}</td>
   <td>${tfDisp}</td>
-  <td style="text-align:left">${(r.name||'—')}</td>
+  <td style="text-align:left">${(r.name||'â€”')}</td>
   <td>${(r.gen||1)}</td>
   <td style="text-align:left">${paramsStr}</td>
   <td>${raw.toFixed(2)}</td>
-  <td title="brut: ${raw.toFixed(2)} • pénalité: ${penalty.toFixed(2)}">${robust.toFixed(2)}</td>
+  <td title="brut: ${raw.toFixed(2)} â€¢ pÃ©nalitÃ©: ${penalty.toFixed(2)}">${robust.toFixed(2)}</td>
   <td>${pf.toFixed(2)}</td>
   <td>${pnl.toFixed(0)}</td>
   <td>${eq1.toFixed(0)}</td>
   <td>${cnt}</td>
   <td>${wr.toFixed(1)}</td>
-  <td>${Number.isFinite(rr)? rr.toFixed(2): '—'}</td>
+  <td>${Number.isFinite(rr)? rr.toFixed(2): 'â€”'}</td>
   <td>${mdd.toFixed(0)}</td>
   <td style=\"white-space:nowrap;\"><button class=\"btn\" data-action=\"detail\" data-idx=\"${idx-1}\">${detailLabel}</button> <button class=\"btn\" data-action=\"apply\" data-idx=\"${idx-1}\" title=\"${applyTitle}\">${applyLabel}</button></td>
 </tr>`);
     idx++;
   }
   labTBody.innerHTML = rows.join('');
-  // Wire actions on palmarès rows (Détail / Appliquer)
+  // Wire actions on palmarÃ¨s rows (DÃ©tail / Appliquer)
   if(!labTBody.dataset || labTBody.dataset.wiredDetail!=="1"){
     labTBody.addEventListener('click', (ev)=>{ try{ const t=ev && ev.target; const btn = t && t.closest && t.closest('button[data-action]'); if(!btn) {return;} const act=(btn.getAttribute('data-action')||'').toLowerCase(); if(act==='detail'){ handleLabDetailClick(ev); } else if(act==='apply'){ handleLabApplyClick(ev); } }catch(e){ __labDetailLog('tbody handler error: '+(e&&e.message?e.message:e)); } });
     labTBody.dataset.wiredDetail='1';
@@ -723,10 +723,10 @@ function ensureLabSimpleModal(){
     const backdrop=document.createElement('div'); backdrop.className='modal-backdrop'; backdrop.dataset.close='1'; el.appendChild(backdrop);
     const content=document.createElement('div'); content.className='modal-content small'; content.style.maxWidth='600px'; el.appendChild(content);
     const header=document.createElement('div'); header.className='modal-header'; content.appendChild(header);
-    const h2=document.createElement('h2'); h2.textContent='Détail stratégie'; header.appendChild(h2);
-    const close=document.createElement('button'); close.id='labSimpleDetailClose'; close.className='icon-btn'; close.setAttribute('aria-label','Fermer'); close.textContent='×'; header.appendChild(close);
+    const h2=document.createElement('h2'); h2.textContent='DÃ©tail stratÃ©gie'; header.appendChild(h2);
+    const close=document.createElement('button'); close.id='labSimpleDetailClose'; close.className='icon-btn'; close.setAttribute('aria-label','Fermer'); close.textContent='Ã—'; header.appendChild(close);
     const bodyWrap=document.createElement('div'); bodyWrap.className='modal-body'; content.appendChild(bodyWrap);
-    const body=document.createElement('div'); body.id='labSimpleDetailBody'; body.style.color='var(--muted)'; body.textContent='—'; bodyWrap.appendChild(body);
+    const body=document.createElement('div'); body.id='labSimpleDetailBody'; body.style.color='var(--muted)'; body.textContent='â€”'; bodyWrap.appendChild(body);
     document.body.appendChild(el);
     // wire close
     close.addEventListener('click', ()=> closeModalEl(el));
@@ -746,7 +746,7 @@ function handleLabDetailClick(ev){
   const idx = Math.max(0, parseInt(idxStr||'0',10));
   __labDetailLog('detail button found; idx='+idx);
   try{
-    // Déterminer si le clic vient du palmarès global ou du Lab
+    // DÃ©terminer si le clic vient du palmarÃ¨s global ou du Lab
     let isGlobal = false;
     try{
       const gBody = document.getElementById('globalPalTBody');
@@ -768,12 +768,12 @@ function handleLabDetailClick(ev){
     const item = arr[idx] || null;
     if(!item){ __labDetailLog('no item for idx'); return; }
 
-    // Symbol/TF: si disponibles sur l'item (palmarès global), sinon on retombe sur les sélecteurs Lab
+    // Symbol/TF: si disponibles sur l'item (palmarÃ¨s global), sinon on retombe sur les sÃ©lecteurs Lab
     const tfNow = (item && item.tf) || (labTFSelect? labTFSelect.value : (intervalSelect? intervalSelect.value:''));
     const symSel = (item && item.symbol) || (labSymbolSelect&&labSymbolSelect.value) || currentSymbol;
 
     __labDetailLog('running backtest (full period) for '+(item.name||'strat'));
-    // Lance l'analyse détaillée (période complète)
+    // Lance l'analyse dÃ©taillÃ©e (pÃ©riode complÃ¨te)
     openLabStrategyDetail(item, { symbol: symSel, tf: tfNow, full: true });
     if(ev){ try{ ev.stopPropagation(); ev.preventDefault(); }catch(_){ } }
   }catch(e){ __labDetailLog('error: '+(e&&e.message?e.message:e)); }
@@ -787,7 +787,7 @@ function handleLabApplyClick(ev){
   const idxStr = (btn && btn.getAttribute && btn.getAttribute('data-idx')) || (btn && btn.dataset && btn.dataset.idx);
   const idx = Math.max(0, parseInt(idxStr||'0',10));
   try{
-    // Même logique que pour le détail: choisir la bonne source (Lab ou global)
+    // MÃªme logique que pour le dÃ©tail: choisir la bonne source (Lab ou global)
     let isGlobal = false;
     try{
       const gBody = document.getElementById('globalPalTBody');
@@ -816,17 +816,17 @@ function handleLabApplyClick(ev){
   }catch(e){ setStatus(t('status.applyError')); }
 }
 
-// --- Global palmarès (tous symboles / TF) ---
+// --- Global palmarÃ¨s (tous symboles / TF) ---
 function profileDisplayName(code){
   try{
-    if(!code) {return '—';}
+    if(!code) {return 'â€”';}
     let key = null;
     const c = String(code).toLowerCase();
     if(c==='sure' || c==='safe') {key = 'lab.weights.profile.safe';}
     else if(c==='balancee' || c==='balanced') {key = 'lab.weights.profile.bal';}
     else if(c==='agressive' || c==='aggressive') {key = 'lab.weights.profile.agg';}
     return key ? t(key) : code;
-  }catch(_){ return code || '—'; }
+  }catch(_){ return code || 'â€”'; }
 }
 const globalPalBtn = document.getElementById('globalPalmaresBtn');
 const globalPalModalEl = document.getElementById('globalPalmaresModal');
@@ -847,7 +847,7 @@ async function loadGlobalPalmares(){
     else {prof = localStorage.getItem('labWeightsProfile') || 'balancee';}
   }catch(_){ prof = 'balancee'; }
   const weights = getWeights(prof);
-  // Scope: vue groupée ou Top 25 global
+  // Scope: vue groupÃ©e ou Top 25 global
   let scope = 'grouped';
   try{
     scope = (globalPalScopeEl && globalPalScopeEl.value) || localStorage.getItem('globalPal:scope') || 'grouped';
@@ -871,7 +871,7 @@ async function loadGlobalPalmares(){
     }
     localStorage.setItem('globalPal:sortMode', sortMode);
   }catch(_){ }
-  // Limite SQL: Top 25 global vs vue groupée plus large
+  // Limite SQL: Top 25 global vs vue groupÃ©e plus large
   const sqlLimit = (scope === 'top25') ? 25 : 200;
   let items = [];
   if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchGlobalPalmares==='function'){
@@ -1027,7 +1027,7 @@ function renderGlobalPalmares(){
     });
   }catch(_){ }
 
-  // Scope: vue groupée (par paire/TF) ou Top 25 global toutes paires confondues
+  // Scope: vue groupÃ©e (par paire/TF) ou Top 25 global toutes paires confondues
   let scope = 'grouped';
   try{
     scope = (globalPalScopeEl && globalPalScopeEl.value) || localStorage.getItem('globalPal:scope') || 'grouped';
@@ -1116,7 +1116,7 @@ function renderGlobalPalmares(){
   <td>${pair}</td>
   <td>${tfDisp}</td>
   <td>${prof}</td>
-  <td style=\"text-align:left\">${(it.name||'—')}</td>
+  <td style=\"text-align:left\">${(it.name||'â€”')}</td>
   <td>${it.gen!=null? it.gen:1}</td>
   <td>${Number(it.scoreRaw||0).toFixed(2)}</td>
   <td>${Number(it.scoreRobust||0).toFixed(2)}</td>
@@ -1124,7 +1124,7 @@ function renderGlobalPalmares(){
   <td>${Number(it.eq1||0).toFixed(0)}</td>
   <td>${Number(it.cnt||0)}</td>
   <td>${Number(it.wr||0).toFixed(1)}</td>
-  <td>${Number.isFinite(it.rr)? Number(it.rr).toFixed(2): '—'}</td>
+  <td>${Number.isFinite(it.rr)? Number(it.rr).toFixed(2): 'â€”'}</td>
   <td>${Number(it.mdd||0).toFixed(0)}</td>
   <td style=\"white-space:nowrap;\"><button class=\"btn\" data-action=\"detail\" data-idx=\"${idx-1}\">${detailLabel}</button> <button class=\"btn\" data-action=\"apply\" data-idx=\"${idx-1}\" title=\"${applyTitle}\">${applyLabel}</button></td>
 </tr>`);
@@ -1135,17 +1135,17 @@ function renderGlobalPalmares(){
   if(globalPalSummaryEl){
     let sortSuffix = '';
     switch(sortMode){
-      case 'raw': sortSuffix = ' • tri: Score brut'; break;
-      case 'pnl': sortSuffix = ' • tri: P&L'; break;
-      case 'pf': sortSuffix = ' • tri: PF'; break;
-      case 'eq': sortSuffix = ' • tri: Cap. finale'; break;
-      case 'win': sortSuffix = ' • tri: Win%'; break;
-      case 'rr': sortSuffix = ' • tri: Avg RR'; break;
-      case 'dd': sortSuffix = ' • tri: Max DD'; break;
-      default: sortSuffix = ' • tri: Score robuste'; break;
+      case 'raw': sortSuffix = ' â€¢ tri: Score brut'; break;
+      case 'pnl': sortSuffix = ' â€¢ tri: P&L'; break;
+      case 'pf': sortSuffix = ' â€¢ tri: PF'; break;
+      case 'eq': sortSuffix = ' â€¢ tri: Cap. finale'; break;
+      case 'win': sortSuffix = ' â€¢ tri: Win%'; break;
+      case 'rr': sortSuffix = ' â€¢ tri: Avg RR'; break;
+      case 'dd': sortSuffix = ' â€¢ tri: Max DD'; break;
+      default: sortSuffix = ' â€¢ tri: Score robuste'; break;
     }
     const scopeLabel = (scope === 'top25') ? 'Top 25 global' : 'global';
-    globalPalSummaryEl.textContent = `${t('lab.palmares.prefix')} ${arr.length} ${t('lab.palmares.strats')} — ${scopeLabel}${sortSuffix}`;
+    globalPalSummaryEl.textContent = `${t('lab.palmares.prefix')} ${arr.length} ${t('lab.palmares.strats')} â€” ${scopeLabel}${sortSuffix}`;
   }
 }
 
@@ -1218,7 +1218,7 @@ if(globalPalScopeEl && (!globalPalScopeEl.dataset || globalPalScopeEl.dataset.wi
   if(!globalPalScopeEl.dataset) {globalPalScopeEl.dataset={};}
   globalPalScopeEl.dataset.wired='1';
 }
-// Délégation des clics Détail / Appliquer sur le palmarès global en réutilisant les handlers du Lab
+// DÃ©lÃ©gation des clics DÃ©tail / Appliquer sur le palmarÃ¨s global en rÃ©utilisant les handlers du Lab
 if(globalPalTBody && (!globalPalTBody.dataset || globalPalTBody.dataset.wiredDetail!=="1")){
   globalPalTBody.addEventListener('click', (ev)=>{
     try{
@@ -1235,7 +1235,7 @@ if(globalPalTBody && (!globalPalTBody.dataset || globalPalTBody.dataset.wiredDet
 }
 
 
-/* Chart BTC/USDC avec Lightweight Charts + données Binance + UI Heaven/Lab/Backtest/EMA (restauré) */
+/* Chart BTC/USDC avec Lightweight Charts + donnÃ©es Binance + UI Heaven/Lab/Backtest/EMA (restaurÃ©) */
 
 // --- Elements de base ---
 let container = document.getElementById('chart');
@@ -1264,14 +1264,14 @@ const gotoEndBtn = document.getElementById('gotoEndBtn');
 // Status: main + background indicator
 let __statusMain = '';
 let __statusBg = '';
-function setStatus(msg){ __statusMain = msg || ''; if(statusEl){ statusEl.textContent = __statusMain + (__statusBg ? (' • '+__statusBg) : ''); } }
-function setBgStatus(msg){ __statusBg = msg || ''; if(statusEl){ statusEl.textContent = __statusMain + (__statusBg ? (' • '+__statusBg) : ''); } }
+function setStatus(msg){ __statusMain = msg || ''; if(statusEl){ statusEl.textContent = __statusMain + (__statusBg ? (' â€¢ '+__statusBg) : ''); } }
+function setBgStatus(msg){ __statusBg = msg || ''; if(statusEl){ statusEl.textContent = __statusMain + (__statusBg ? (' â€¢ '+__statusBg) : ''); } }
 // Bars info indicator
 const barsInfoEl = document.getElementById('barsInfo');
 function updateBarsInfo(){
   try{
     if(!barsInfoEl) {return;}
-    // Base complète (après éventuel cutoff live), utilisée aussi par le Lab/BT
+    // Base complÃ¨te (aprÃ¨s Ã©ventuel cutoff live), utilisÃ©e aussi par le Lab/BT
     const base = __baseAfterCutoff();
     const loaded = Array.isArray(base)? base.length : 0;
     const fmt=(n)=>{
@@ -1291,7 +1291,7 @@ function updateBarsInfo(){
     }catch(_){
       since = String(oldest.time||'');
     }
-    // Affiche uniquement le nombre total de bougies chargées + date de la plus ancienne
+    // Affiche uniquement le nombre total de bougies chargÃ©es + date de la plus ancienne
     barsInfoEl.textContent = `${t('chart.bars.prefix')} ${fmt(loaded)} (${since})`;
   }catch(_){ }
 }
@@ -1309,13 +1309,13 @@ function setBtTitle(text){ try{ const h=btProgressEl && btProgressEl.querySelect
 let __lastLabTested = [];
 function formatParamsBrief(p){ try{ return JSON.stringify(p||{}, (k,v)=> (typeof v==='number' && !isFinite(v)? null : v)); }catch(_){ return ''; } }
 function formatParamsPretty(p){ try{
-  const core = `nol=${p.nol} • prd=${p.prd} • SL init=${p.slInitPct}% • BE=${p.beAfterBars}/${p.beLockPct}% • EMA=${p.emaLen}`;
+  const core = `nol=${p.nol} â€¢ prd=${p.prd} â€¢ SL init=${p.slInitPct}% â€¢ BE=${p.beAfterBars}/${p.beLockPct}% â€¢ EMA=${p.emaLen}`;
   const entFlags = [p.ent382?'382':null,p.ent500?'500':null,p.ent618?'618':null,p.ent786?'786':null].filter(Boolean).join('/');
-  const entry = `Entrée: mode=${p.entryMode||'Both'} • FibRet=${p.useFibRet? 'Oui':'Non'} • Confirm=${p.confirmMode||'Bounce'}${entFlags? ' • Ent='+entFlags:''}`;
+  const entry = `EntrÃ©e: mode=${p.entryMode||'Both'} â€¢ FibRet=${p.useFibRet? 'Oui':'Non'} â€¢ Confirm=${p.confirmMode||'Bounce'}${entFlags? ' â€¢ Ent='+entFlags:''}`;
   const tpArr=(Array.isArray(p.tp)? p.tp.slice(0,10):[]);
   const slArr=(Array.isArray(p.sl)? p.sl.slice(0,10):[]);
   
-  // TP ladder détaillé: type, beOn, trail per TP, attached SL per TP
+  // TP ladder dÃ©taillÃ©: type, beOn, trail per TP, attached SL per TP
   const tpDetails = tpArr.length? tpArr.map((t,idx)=>{
     const typ=t.type||'Fib';
     let base = '';
@@ -1346,9 +1346,9 @@ function formatParamsPretty(p){ try{
       }
     }
     return `TP${idx+1}=${base}${extras.length? ' ('+extras.join(', ')+')':''}}`;
-  }).join(' ; ') : '—';
+  }).join(' ; ') : 'â€”';
   
-  const slStr = slArr.length? slArr.map(t=>{ const typ=t.type||'Percent'; if(typ==='Fib') {return `F:${t.fib}`;} if(typ==='Percent') {return `P:${t.pct}%`;} if(typ==='EMA') {return `E:${t.emaLen}`;} return typ; }).join(' ; ') : '—';
+  const slStr = slArr.length? slArr.map(t=>{ const typ=t.type||'Percent'; if(typ==='Fib') {return `F:${t.fib}`;} if(typ==='Percent') {return `P:${t.pct}%`;} if(typ==='EMA') {return `E:${t.emaLen}`;} return typ; }).join(' ; ') : 'â€”';
   const tpLine = `TP: ${tpDetails}`;
   const slLine = `SL ladder: ${slStr}`;
   
@@ -1363,12 +1363,12 @@ function formatParamsPretty(p){ try{
   const optLine = [];
   if(typeof p.tpCompound==='boolean') {optLine.push(`Compound=${p.tpCompound?'On':'Off'}`);}
   if(typeof p.tpCloseAllLast==='boolean') {optLine.push(`CloseAllLast=${p.tpCloseAllLast?'On':'Off'}`);}
-  const optStr = optLine.length? optLine.join(' • '):'';
+  const optStr = optLine.length? optLine.join(' â€¢ '):'';
   
   return `<div>${core}</div><div>${entry}</div><div>${tpLine}</div><div>${slLine}</div>${capLine? ('<div>'+capLine+'</div>'):''}${optStr? ('<div>'+optStr+'</div>'):''}`;
 }catch(_){ return ''; } }
-function openEvalsModal(sym, tf){ try{ const tb=document.getElementById('evalsTBody'); const ctxEl=document.getElementById('evalsCtx'); if(!tb) {return;} const arr = Array.isArray(__lastLabTested)? __lastLabTested.slice(): []; const rows=[]; let idx=1; const sorted=arr.slice().sort((a,b)=> (b.score||0)-(a.score||0)); for(const it of sorted){ const st=it.metrics||it.res||{}; rows.push(`<tr><td>${idx}</td><td>${(it.score!=null? it.score.toFixed(2): '—')}</td><td>${(st.profitFactor===Infinity?'∞':(st.profitFactor||0).toFixed(2))}</td><td>${(st.totalPnl||0).toFixed(0)}</td><td>${st.tradesCount||0}</td><td>${(st.winrate||0).toFixed(1)}</td><td>${(Number.isFinite(st.avgRR)? st.avgRR.toFixed(2):'—')}</td><td style=\"text-align:left; white-space:normal; line-height:1.2;\">${formatParamsPretty(it.params||{})}</td></tr>`); idx++; }
-  tb.innerHTML = rows.length? rows.join('') : '<tr><td colspan="8">—</td></tr>'; if(ctxEl) {ctxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — ${arr.length} évaluations`;} openModalEl(document.getElementById('evalsModal')); }catch(_){ }
+function openEvalsModal(sym, tf){ try{ const tb=document.getElementById('evalsTBody'); const ctxEl=document.getElementById('evalsCtx'); if(!tb) {return;} const arr = Array.isArray(__lastLabTested)? __lastLabTested.slice(): []; const rows=[]; let idx=1; const sorted=arr.slice().sort((a,b)=> (b.score||0)-(a.score||0)); for(const it of sorted){ const st=it.metrics||it.res||{}; rows.push(`<tr><td>${idx}</td><td>${(it.score!=null? it.score.toFixed(2): 'â€”')}</td><td>${(st.profitFactor===Infinity?'âˆž':(st.profitFactor||0).toFixed(2))}</td><td>${(st.totalPnl||0).toFixed(0)}</td><td>${st.tradesCount||0}</td><td>${(st.winrate||0).toFixed(1)}</td><td>${(Number.isFinite(st.avgRR)? st.avgRR.toFixed(2):'â€”')}</td><td style=\"text-align:left; white-space:normal; line-height:1.2;\">${formatParamsPretty(it.params||{})}</td></tr>`); idx++; }
+  tb.innerHTML = rows.length? rows.join('') : '<tr><td colspan="8">â€”</td></tr>'; if(ctxEl) {ctxEl.textContent = `${symbolToDisplay(sym)} â€¢ ${tf} â€” ${arr.length} Ã©valuations`;} openModalEl(document.getElementById('evalsModal')); }catch(_){ }
 }
 function exportEvalsCSV(){
   try{
@@ -1420,7 +1420,7 @@ function exportEvalsCSV(){
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`evals_${currentSymbol}_${(labTFSelect&&labTFSelect.value)||currentInterval}.csv`; a.click();
   }catch(_){ }
 }
-function symbolToDisplay(sym){ if(!sym) {return '—';} return sym.endsWith('USDC')? sym.slice(0,-4)+'/USDC' : sym; }
+function symbolToDisplay(sym){ if(!sym) {return 'â€”';} return sym.endsWith('USDC')? sym.slice(0,-4)+'/USDC' : sym; }
 function updateTitle(sym){ if(titleEl){ titleEl.textContent = symbolToDisplay(sym); } }
 function updateWatermark(){ try{ chart.applyOptions({ watermark: { visible:true, color: isDark()? 'rgba(229,231,235,0.20)' : 'rgba(17,24,39,0.12)', text: symbolToDisplay(currentSymbol), fontSize:34, horzAlign:'left', vertAlign:'top' } }); }catch(_){ } }
 
@@ -1470,9 +1470,9 @@ try{
   }
   // Apply stored value at startup (overrides default option if needed)
   setRightOffset(__rightOff);
-  // Ctrl+Molette (wheel) pour ajuster l'espace à droite dynamiquement
+  // Ctrl+Molette (wheel) pour ajuster l'espace Ã  droite dynamiquement
   if(container){ container.addEventListener('wheel', (e)=>{ try{ if(e && e.ctrlKey){ e.preventDefault(); setRightOffset(__rightOff + (e.deltaY<0? 1:-1)); } }catch(_){ } }, { passive:false }); }
-  // Raccourcis: Alt+Flèche → / ←
+  // Raccourcis: Alt+FlÃ¨che â†’ / â†
   window.addEventListener('keydown', (e)=>{ try{ if(!e || !e.altKey) {return;} if(e.key==='ArrowRight'){ e.preventDefault(); setRightOffset(__rightOff+1); } else if(e.key==='ArrowLeft'){ e.preventDefault(); setRightOffset(__rightOff-1); } }catch(_){ } });
 }catch(_){ }
 const zzUpSeries = chart.addLineSeries({ color: '#00ff00', lineWidth: 2, priceScaleId: 'right' });
@@ -1697,7 +1697,7 @@ if(cached && cached.length){
 if(intervalSelect){ intervalSelect.addEventListener('change', ()=>{ currentInterval=intervalSelect.value; try{ localStorage.setItem('chart:tf', currentInterval); }catch(_){} updateWatermark(); closeWs(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval)); }); }
 if(symbolSelect){ symbolSelect.addEventListener('change', ()=>{ currentSymbol=symbolSelect.value; updateTitle(currentSymbol); updateWatermark(); closeWs(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval)); }); }
 if(gotoEndBtn){ gotoEndBtn.addEventListener('click', ()=>{ try{ const v=(window.__rightOff|0)||10; chart.timeScale().scrollToPosition(v, false); }catch(_){ } }); }
-updateTitle(currentSymbol); updateWatermark(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval));
+updateTitle(currentSymbol); updateWatermark(); load(currentSymbol, currentInterval).then(async ()=>{ openWs(currentSymbol, currentInterval); try{ populateHeavenTFOptions(); await populateHeavenLoadOptions(); await applyBestPalmaresDefaultOnLaunch(); }catch(_){ } });
 // Ensure Lab advanced UI and risk UI are wired from startup as well (idempotent)
 try{ setupLabAdvUI(); setupLabRiskUI(); }catch(_){ }
 // Unconditional global hook as last-resort safety (independent of init wiring)
@@ -1782,17 +1782,17 @@ function populateLiveTFOptions(){ try{ if(!liveTFSelect) {return;} if(intervalSe
   if(!liveTFSelect.value){ try{ liveTFSelect.value = (intervalSelect&&intervalSelect.value)||currentInterval||''; }catch(_){ } }
 }catch(_){ } }
 function liveSelectedSource(){ try{ if(liveStratSrcPalmares&&liveStratSrcPalmares.checked) {return 'palmares';} return 'heaven'; }catch(_){ return 'heaven'; } }
-function updateLiveStrategyMeta(){ try{ if(!liveStrategyMeta) {return;} const val=(liveStrategySel&&liveStrategySel.value)||''; const cache=(window.__liveStratCache||{}); const it=(Array.isArray(cache.items)? cache.items.find(x=> String(x.value)===String(val)) : null); if(!val||!it){ liveStrategyMeta.textContent='—'; return; } const name=it.name||'—'; const sc=(Number.isFinite(it.score)? it.score.toFixed(2): (it.score!=null? String(it.score): '—')); liveStrategyMeta.textContent = `${name} — Score ${sc}`; }catch(_){ } }
+function updateLiveStrategyMeta(){ try{ if(!liveStrategyMeta) {return;} const val=(liveStrategySel&&liveStrategySel.value)||''; const cache=(window.__liveStratCache||{}); const it=(Array.isArray(cache.items)? cache.items.find(x=> String(x.value)===String(val)) : null); if(!val||!it){ liveStrategyMeta.textContent='â€”'; return; } const name=it.name||'â€”'; const sc=(Number.isFinite(it.score)? it.score.toFixed(2): (it.score!=null? String(it.score): 'â€”')); liveStrategyMeta.textContent = `${name} â€” Score ${sc}`; }catch(_){ } }
 async function populateLiveStrategyOptions(){ try{ if(!liveStrategySel) {return;} const sym=(symbolSelect&&symbolSelect.value)||currentSymbol; const tf=(liveTFSelect&&liveTFSelect.value)||((intervalSelect&&intervalSelect.value)||currentInterval)||''; const src=liveSelectedSource(); let items=[]; if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured()){ if(src==='heaven'){ let rows=[]; try{ rows=await SUPA.fetchHeavenStrategies(sym, tf, 50); }catch(_){ rows=[]; }
   // Map to items with score computed from metrics
   const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
   items = (rows||[]).map(r=>({ value:String(r.id), name: (r.name||'(sans nom)'), score: (r.metrics? scoreResult(r.metrics, weights): NaN), params: r.params||{} }));
 } else {
   let arr=[]; try{ arr=await SUPA.fetchPalmares(sym, tf, 25, (localStorage.getItem('labWeightsProfile')||'balancee')); }catch(_){ arr=[]; }
-  items = (arr||[]).map((it,idx)=>({ value:String(it.id||('pal_'+(idx+1))), name: (it.name||`Palmarès #${idx+1}`), score: (Number.isFinite(it.score)? it.score : (it.res? scoreResult(it.res, getWeights(localStorage.getItem('labWeightsProfile')||'balancee')): NaN)), params: it.params||{} }));
+  items = (arr||[]).map((it,idx)=>({ value:String(it.id||('pal_'+(idx+1))), name: (it.name||`PalmarÃ¨s #${idx+1}`), score: (Number.isFinite(it.score)? it.score : (it.res? scoreResult(it.res, getWeights(localStorage.getItem('labWeightsProfile')||'balancee')): NaN)), params: it.params||{} }));
 } } else { items=[]; }
   window.__liveStratCache = { src, items };
-  const opts = ['<option value="">—</option>'].concat(items.map(it=> `<option value="${it.value}">${it.name} — ${Number.isFinite(it.score)? it.score.toFixed(2): '—'}</option>`));
+  const opts = ['<option value="">â€”</option>'].concat(items.map(it=> `<option value="${it.value}">${it.name} â€” ${Number.isFinite(it.score)? it.score.toFixed(2): 'â€”'}</option>`));
   liveStrategySel.innerHTML = opts.join('');
   updateLiveStrategyMeta();
 }catch(_){ } }
@@ -1815,7 +1815,7 @@ function maybeScheduleLabAutoLoop(){
     const nextGoal = __labLastGoal || 'improve';
     try{
       if(typeof addBtLog==='function'){
-        addBtLog(`Auto-loop: relance dans 1s (${nextGoal==='new'?'nouvelle stratégie':'entraîner'})`);
+        addBtLog(`Auto-loop: relance dans 1s (${nextGoal==='new'?'nouvelle stratÃ©gie':'entraÃ®ner'})`);
       }
     }catch(_){ }
     setTimeout(()=>{
@@ -1836,18 +1836,18 @@ const kpiWinEl = document.getElementById('kpiWin');
 const kpiDDEl = document.getElementById('kpiDD');
 const labLogEl = document.getElementById('labLog');
 
-function addLabLog(msg){ try{ if(!labLogEl) {return;} const t=new Date(); const hh=String(t.getHours()).padStart(2,'0'); const mm=String(t.getMinutes()).padStart(2,'0'); const ss=String(t.getSeconds()).padStart(2,'0'); const line=`[${hh}:${mm}:${ss}] ${msg}`; if(labLogEl.textContent==='—') {labLogEl.textContent=line;} else {labLogEl.textContent += ("\n"+line);} labLogEl.scrollTop = labLogEl.scrollHeight; }catch(_){ } }
-function updateLabKpis(best){ try{ if(!best||!best.length){ if(kpiScoreEl) {kpiScoreEl.textContent='—';} if(kpiPFEl) {kpiPFEl.textContent='—';} if(kpiWinEl) {kpiWinEl.textContent='—';} if(kpiDDEl) {kpiDDEl.textContent='—';} return; } const top=best[0]; const st=top.res||{}; if(kpiScoreEl) {kpiScoreEl.textContent = Number(top.score||0).toFixed(2);} if(kpiPFEl) {kpiPFEl.textContent = (st.profitFactor===Infinity? '∞' : Number(st.profitFactor||0).toFixed(2));} if(kpiWinEl) {kpiWinEl.textContent = Number(st.winrate||0).toFixed(1)+'%';} if(kpiDDEl) {kpiDDEl.textContent = Number(st.maxDDAbs||0).toFixed(0);} }catch(_){ } }
-function updateLabKpiFrom(score, res){ try{ if(kpiScoreEl) {kpiScoreEl.textContent = Number(score||0).toFixed(2);} if(kpiPFEl) {kpiPFEl.textContent = (res.profitFactor===Infinity? '∞' : Number(res.profitFactor||0).toFixed(2));} if(kpiWinEl) {kpiWinEl.textContent = Number(res.winrate||0).toFixed(1)+'%';} if(kpiDDEl) {kpiDDEl.textContent = Number(res.maxDDAbs||0).toFixed(0);} }catch(_){ } }
+function addLabLog(msg){ try{ if(!labLogEl) {return;} const t=new Date(); const hh=String(t.getHours()).padStart(2,'0'); const mm=String(t.getMinutes()).padStart(2,'0'); const ss=String(t.getSeconds()).padStart(2,'0'); const line=`[${hh}:${mm}:${ss}] ${msg}`; if(labLogEl.textContent==='â€”') {labLogEl.textContent=line;} else {labLogEl.textContent += ("\n"+line);} labLogEl.scrollTop = labLogEl.scrollHeight; }catch(_){ } }
+function updateLabKpis(best){ try{ if(!best||!best.length){ if(kpiScoreEl) {kpiScoreEl.textContent='â€”';} if(kpiPFEl) {kpiPFEl.textContent='â€”';} if(kpiWinEl) {kpiWinEl.textContent='â€”';} if(kpiDDEl) {kpiDDEl.textContent='â€”';} return; } const top=best[0]; const st=top.res||{}; if(kpiScoreEl) {kpiScoreEl.textContent = Number(top.score||0).toFixed(2);} if(kpiPFEl) {kpiPFEl.textContent = (st.profitFactor===Infinity? 'âˆž' : Number(st.profitFactor||0).toFixed(2));} if(kpiWinEl) {kpiWinEl.textContent = Number(st.winrate||0).toFixed(1)+'%';} if(kpiDDEl) {kpiDDEl.textContent = Number(st.maxDDAbs||0).toFixed(0);} }catch(_){ } }
+function updateLabKpiFrom(score, res){ try{ if(kpiScoreEl) {kpiScoreEl.textContent = Number(score||0).toFixed(2);} if(kpiPFEl) {kpiPFEl.textContent = (res.profitFactor===Infinity? 'âˆž' : Number(res.profitFactor||0).toFixed(2));} if(kpiWinEl) {kpiWinEl.textContent = Number(res.winrate||0).toFixed(1)+'%';} if(kpiDDEl) {kpiDDEl.textContent = Number(res.maxDDAbs||0).toFixed(0);} }catch(_){ } }
 
 function labProfileRiskPct(){
   try{
     const el = (typeof labProfileEl!=='undefined' && labProfileEl) ? labProfileEl : document.getElementById('labProfile');
     const prof = (el && el.value) || (localStorage.getItem('labWeightsProfile')||'balancee');
     const p = String(prof||'').toLowerCase();
-    if(p==='sure') {return 8;}        // profil Sûre: centre autour de 6–8%
-    if(p==='agressive') {return 30;}  // profil Agressive: centre autour de 25–30%
-    return 16;                      // profil Balancée (défaut ~15–20%)
+    if(p==='sure') {return 8;}        // profil SÃ»re: centre autour de 6â€“8%
+    if(p==='agressive') {return 30;}  // profil Agressive: centre autour de 25â€“30%
+    return 16;                      // profil BalancÃ©e (dÃ©faut ~15â€“20%)
   }catch(_){ return 16; }
 }
 function labProfileRiskRange(){
@@ -1865,7 +1865,7 @@ function readLabRiskConf(){
     const startCap = Math.max(0, parseFloat((document.getElementById('labStartCap')&&document.getElementById('labStartCap').value)||'10000'));
     const fee = Math.max(0, parseFloat((document.getElementById('labFee')&&document.getElementById('labFee').value)||'0.1'));
     const lev = Math.max(1, parseFloat((document.getElementById('labLev')&&document.getElementById('labLev').value)||'1'));
-    // Par défaut en mode simple (auto), on adapte Max % par trade au profil Lab
+    // Par dÃ©faut en mode simple (auto), on adapte Max % par trade au profil Lab
     let maxPct = labProfileRiskPct();
     try{
       const modeEl=document.getElementById('labMaxPctMode');
@@ -1911,12 +1911,12 @@ function setupLabRiskUI(){
   }catch(_){ }
 }
 
-// Compute KPI benchmark: Heaven (current config) vs top Palmarès over Lab-selected period
+// Compute KPI benchmark: Heaven (current config) vs top PalmarÃ¨s over Lab-selected period
 async function computeLabBenchmarkAndUpdate(){
   try{
     const tfSel = (labTFSelect&&labTFSelect.value) || currentInterval;
     const symSel = (labSymbolSelect&&labSymbolSelect.value) || currentSymbol;
-    // Utiliser toutes les bougies chargées pour le symbole/TF courant, sinon réutiliser le cache mémoire ou charger l'historique complet via API
+    // Utiliser toutes les bougies chargÃ©es pour le symbole/TF courant, sinon rÃ©utiliser le cache mÃ©moire ou charger l'historique complet via API
     let bars = null;
     if(tfSel === currentInterval && symSel === currentSymbol){
       bars = __baseAfterCutoff();
@@ -1933,7 +1933,7 @@ async function computeLabBenchmarkAndUpdate(){
         try{ saveMemSeries(symSel, tfSel, bars, bars.length); }catch(_){ }
       }catch(_){ bars = []; }
     }
-    if(!bars || !bars.length){ if(kpiScoreEl) {kpiScoreEl.textContent='—';} if(kpiPFEl) {kpiPFEl.textContent='—';} if(kpiWinEl) {kpiWinEl.textContent='—';} if(kpiDDEl) {kpiDDEl.textContent='—';} return; }
+    if(!bars || !bars.length){ if(kpiScoreEl) {kpiScoreEl.textContent='â€”';} if(kpiPFEl) {kpiPFEl.textContent='â€”';} if(kpiWinEl) {kpiWinEl.textContent='â€”';} if(kpiDDEl) {kpiDDEl.textContent='â€”';} return; }
 
     let from=null, to=null;
     const rangeMode=(document.getElementById('labRangeMode')&&document.getElementById('labRangeMode').value)||'visible';
@@ -1957,7 +1957,7 @@ async function computeLabBenchmarkAndUpdate(){
     const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
     const scoreH = scoreResult(resH, weights);
 
-    // Top palmarès (robust score if present; otherwise recompute)
+    // Top palmarÃ¨s (robust score if present; otherwise recompute)
     let palArr = Array.isArray(window.labPalmaresCache)? window.labPalmaresCache.slice() : [];
     if(!palArr.length && window.SUPA && typeof SUPA.fetchPalmares==='function'){
       try{ palArr = await SUPA.fetchPalmares(symSel, tfSel, 1); }catch(_){ palArr=[]; }
@@ -1966,11 +1966,11 @@ async function computeLabBenchmarkAndUpdate(){
     const palRes = palTop&&palTop.res? palTop.res : null;
     const palScore = palTop? (Number.isFinite(palTop.score)? palTop.score : (palRes? scoreResult(palRes, weights): NaN)) : NaN;
 
-    const fmtPF=(v)=> v===Infinity? '∞' : (Number.isFinite(v)? Number(v).toFixed(2) : '—');
-    const scStr = `Heaven: ${scoreH.toFixed(2)} • Palmarès: ${Number.isFinite(palScore)? palScore.toFixed(2): '—'}`;
-    const pfStr = `Heaven: ${fmtPF(resH.profitFactor)} • Palmarès: ${fmtPF(palRes && palRes.profitFactor)}`;
-    const winStr= `Heaven: ${Number(resH.winrate||0).toFixed(1)}% • Palmarès: ${((palRes && Number.isFinite(palRes.winrate))? Number(palRes.winrate).toFixed(1)+'%':'—')}`;
-    const ddStr = `Heaven: ${Number(resH.maxDDAbs||0).toFixed(0)} • Palmarès: ${((palRes && Number.isFinite(palRes.maxDDAbs))? Number(palRes.maxDDAbs).toFixed(0):'—')}`;
+    const fmtPF=(v)=> v===Infinity? 'âˆž' : (Number.isFinite(v)? Number(v).toFixed(2) : 'â€”');
+    const scStr = `Heaven: ${scoreH.toFixed(2)} â€¢ PalmarÃ¨s: ${Number.isFinite(palScore)? palScore.toFixed(2): 'â€”'}`;
+    const pfStr = `Heaven: ${fmtPF(resH.profitFactor)} â€¢ PalmarÃ¨s: ${fmtPF(palRes && palRes.profitFactor)}`;
+    const winStr= `Heaven: ${Number(resH.winrate||0).toFixed(1)}% â€¢ PalmarÃ¨s: ${((palRes && Number.isFinite(palRes.winrate))? Number(palRes.winrate).toFixed(1)+'%':'â€”')}`;
+    const ddStr = `Heaven: ${Number(resH.maxDDAbs||0).toFixed(0)} â€¢ PalmarÃ¨s: ${((palRes && Number.isFinite(palRes.maxDDAbs))? Number(palRes.maxDDAbs).toFixed(0):'â€”')}`;
 
     if(kpiScoreEl) {kpiScoreEl.textContent = scStr;}
     if(kpiPFEl) {kpiPFEl.textContent = pfStr;}
@@ -1989,15 +1989,15 @@ if(liveOpenBtn){ liveOpenBtn.addEventListener('click', async ()=>{ try{
     ensureLiveDrawer();
     try{ const d=document.getElementById('liveDrawer'); if(d){ d.style.display=''; } }catch(_){ }
     updateLiveDrawerOpen(true); await renderLiveDrawer();
-  } else { // désactiver: enlever highlight + fermer menu + restaurer historique complet
+  } else { // dÃ©sactiver: enlever highlight + fermer menu + restaurer historique complet
     if(liveOpenBtn.classList) {liveOpenBtn.classList.remove('primary');}
     updateLiveDrawerOpen(false);
     try{ const d=document.getElementById('liveDrawer'); if(d){ d.style.display='none'; } }catch(_){ }
-    // Masquer la couche Live côté UI, sans couper les connexions headless
+    // Masquer la couche Live cÃ´tÃ© UI, sans couper les connexions headless
     window.__liveUiHidden = true;
-    // cacher le badge cutoff et réinitialiser cutoff
+    // cacher le badge cutoff et rÃ©initialiser cutoff
     try{ delete window.__liveChartMinTimeSec; delete window.__liveChartMinTimeBaseSec; const b=document.getElementById('chartCutoff'); if(b){ b.style.display='none'; } }catch(_){ }
-    // fermer les fenêtres flottantes de live si ouvertes
+    // fermer les fenÃªtres flottantes de live si ouvertes
     try{ if(typeof closeModalEl==='function'){ if(typeof tradesModalEl!=='undefined' && tradesModalEl) {closeModalEl(tradesModalEl);} if(typeof stratModalEl!=='undefined' && stratModalEl) {closeModalEl(stratModalEl);} } }catch(_){ }
     // recharger full historique et relancer Heaven sur tout le chart
     closeWs(); await load(currentSymbol, currentInterval); openWs(currentSymbol, currentInterval); updateCutoffBadge(); renderLBC();
@@ -2006,14 +2006,14 @@ if(liveOpenBtn){ liveOpenBtn.addEventListener('click', async ()=>{ try{
 if(liveCloseBtn&&liveModalEl) {liveCloseBtn.addEventListener('click', ()=> closeModalEl(liveModalEl));} if(liveModalEl) {liveModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) {closeModalEl(liveModalEl);} });}
 if(labOpenBtn&&labModalEl) {labOpenBtn.addEventListener('click', async ()=>{ try{
   openModalEl(labModalEl);
-  // Aligner le sélecteur de profil Lab sur le dernier profil de pondérations utilisé
+  // Aligner le sÃ©lecteur de profil Lab sur le dernier profil de pondÃ©rations utilisÃ©
   try{
     const storedProf = localStorage.getItem('labWeightsProfile');
     if(labProfileEl && storedProf){ labProfileEl.value = storedProf; }
   }catch(_){ }
   try{ setupLabAdvUI(); setupLabRiskUI(); updateLabAlgoPlaceholders(); }catch(_){ }
-  // Synchronise les pondérations du profil courant depuis Supabase (si disponible)
-  // et les considère comme source de vérité (écrase le cache local).
+  // Synchronise les pondÃ©rations du profil courant depuis Supabase (si disponible)
+  // et les considÃ¨re comme source de vÃ©ritÃ© (Ã©crase le cache local).
   try{
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchLabProfileWeights==='function'){
       const prof = (document.getElementById('labProfile') && document.getElementById('labProfile').value) || (localStorage.getItem('labWeightsProfile')||'balancee');
@@ -2101,11 +2101,11 @@ function populateHeavenModal(){ try{
   const pivAll=computePivots(candles, Math.max(2, lbcOpts.prd|0));
   const seg=getLastPivotSeg(pivAll); const A=seg?seg.a.price:null, B=seg?seg.b.price:null; const up=seg? (seg.dir==='up'):null; const move=(seg&&A!=null&&B!=null)? Math.abs(B-A):null;
   const fibRatios=[0,0.236,0.382,0.5,0.618,0.786,1.0,1.272,1.382,1.414,1.618,2.0,2.236,2.618,3.0,3.618,4.236,5.0];
-  function rebuildFibSelect(sel, current){ if(!sel) {return;} sel.innerHTML=''; for(const r of fibRatios){ const opt=document.createElement('option'); opt.value=String(r); let label=r.toFixed(3); if(seg && move!=null){ const px = up? (B + move*r) : (B - move*r); if(isFinite(px)) {label += ` — ${px.toFixed(2)}`;} }
+  function rebuildFibSelect(sel, current){ if(!sel) {return;} sel.innerHTML=''; for(const r of fibRatios){ const opt=document.createElement('option'); opt.value=String(r); let label=r.toFixed(3); if(seg && move!=null){ const px = up? (B + move*r) : (B - move*r); if(isFinite(px)) {label += ` â€” ${px.toFixed(2)}`;} }
       opt.textContent=label; sel.appendChild(opt); }
     if(current!=null){ sel.value=String(current); } }
   function emaCandidates(){ const out=[]; const add=(en,len)=>{ if(en && Number.isFinite(len)&&len>0) {out.push(len|0);} }; add(emaOpts.e21&&emaOpts.e21.en, emaOpts.e21&&emaOpts.e21.len); add(emaOpts.e34&&emaOpts.e34.en, emaOpts.e34&&emaOpts.e34.len); add(emaOpts.e55&&emaOpts.e55.en, emaOpts.e55&&emaOpts.e55.len); add(emaOpts.e200&&emaOpts.e200.en, emaOpts.e200&&emaOpts.e200.len); if(!out.length && Number.isFinite(lbcOpts.emaLen)) {out.push(lbcOpts.emaLen|0);} return Array.from(new Set(out)); }
-  function rebuildEmaSelect(sel, current){ if(!sel) {return;} sel.innerHTML=''; const lens=emaCandidates(); for(const len of lens){ const opt=document.createElement('option'); opt.value=String(len); let label=`EMA ${len}`; try{ const ema=emaCalc(candles, Math.max(1, len|0)); const v=ema[ema.length-1]; if(isFinite(v)) {label += ` — ${v.toFixed(2)}`;} }catch(_){ }
+  function rebuildEmaSelect(sel, current){ if(!sel) {return;} sel.innerHTML=''; const lens=emaCandidates(); for(const len of lens){ const opt=document.createElement('option'); opt.value=String(len); let label=`EMA ${len}`; try{ const ema=emaCalc(candles, Math.max(1, len|0)); const v=ema[ema.length-1]; if(isFinite(v)) {label += ` â€” ${v.toFixed(2)}`;} }catch(_){ }
       opt.textContent=label; sel.appendChild(opt); }
     if(current!=null){ sel.value=String(current); } }
 function updateTPRow(i, t){
@@ -2232,7 +2232,7 @@ const defaultWeights = {
   eq:10,
   trades:5,
   dd:10,
-  // Extended metrics (0 by défaut pour rétro‑compatibilité – l'utilisateur peut les activer)
+  // Extended metrics (0 by dÃ©faut pour rÃ©troâ€‘compatibilitÃ© â€“ l'utilisateur peut les activer)
   sharpe:0,
   recov:0,
   slope:0,
@@ -2269,7 +2269,7 @@ function scoreResult(st, w){
   const hasDd = Number.isFinite(ddAbsRaw);
   const hasTr = Number.isFinite(trRaw);
 
-  // Normalisations legacy (0–1)
+  // Normalisations legacy (0â€“1)
   const pfS  = pfRaw===Infinity? 1 : clamp01(pfRaw/3);
   const wrS  = clamp01(wrRaw/70);
   const rrS  = clamp01(rrRaw/2);
@@ -2278,7 +2278,7 @@ function scoreResult(st, w){
   const trS  = clamp01(trRaw/150);
   const ddS  = hasDd? (1 - clamp01(ddAbsRaw/5000)) : 0;
 
-  // Sharpe ratio (basé sur st.sharpe si disponible)
+  // Sharpe ratio (basÃ© sur st.sharpe si disponible)
   const sharpeRaw = Number(st.sharpe ?? st.Sharpe ?? NaN);
   const hasSharpe = Number.isFinite(sharpeRaw);
   const sharpeS   = hasSharpe? clamp01(sharpeRaw/3) : 0;
@@ -2292,21 +2292,21 @@ function scoreResult(st, w){
   const hasRecov = Number.isFinite(recovRaw);
   const recovS   = hasRecov? clamp01(recovRaw/3) : 0;
 
-  // Pente de l'équité (slope) – attend st.slope normalisé par backtest
+  // Pente de l'Ã©quitÃ© (slope) â€“ attend st.slope normalisÃ© par backtest
   const slopeRaw = Number(st.slope ?? NaN);
   const hasSlope = Number.isFinite(slopeRaw);
-  const slopeS   = hasSlope? clamp01(slopeRaw/0.02) : 0; // heuristique: 0.02 ~ très bonne pente
+  const slopeS   = hasSlope? clamp01(slopeRaw/0.02) : 0; // heuristique: 0.02 ~ trÃ¨s bonne pente
 
-  // Consistency / stabilité
+  // Consistency / stabilitÃ©
   const consRaw = (function(){
-    if(Number.isFinite(st.consistency)) {return Number(st.consistency);} // déjà 0–1
+    if(Number.isFinite(st.consistency)) {return Number(st.consistency);} // dÃ©jÃ  0â€“1
     if(hasWr) {return clamp01(wrRaw/100);} // fallback grossier sur Win%
     return NaN;
   })();
   const hasCons = Number.isFinite(consRaw);
   const consS   = hasCons? clamp01(consRaw) : 0;
 
-  // Expectancy (espérance par trade) – en % si fourni
+  // Expectancy (espÃ©rance par trade) â€“ en % si fourni
   const expRaw = (function(){
     if(Number.isFinite(st.expectancy)) {return Number(st.expectancy);} // ex: % ou USD selon producer
     return NaN;
@@ -2315,7 +2315,7 @@ function scoreResult(st, w){
   const hasExp = Number.isFinite(expRaw);
   const expS   = hasExp? clamp01((expRaw + 2) / 4) : 0;
 
-  // Return / période (%) – utilise retPerPeriod, retPct ou P&L / capital initial
+  // Return / pÃ©riode (%) â€“ utilise retPerPeriod, retPct ou P&L / capital initial
   const retRaw = (function(){
     if(Number.isFinite(st.retPerPeriod)) {return Number(st.retPerPeriod);}
     if(Number.isFinite(st.retPct)) {return Number(st.retPct);}
@@ -2327,13 +2327,13 @@ function scoreResult(st, w){
   })();
   const hasRet = Number.isFinite(retRaw);
   const retS   = hasRet
-    ? (retRaw>0 ? (1 - 1/(1 + retRaw/50)) : 0) // fonction saturante similaire à pnlS
+    ? (retRaw>0 ? (1 - 1/(1 + retRaw/50)) : 0) // fonction saturante similaire Ã  pnlS
     : 0;
 
   let num=0; let totalW=0;
   function acc(hasMetric, weight, value){
     if(!weight || weight<=0) {return;}
-    if(!hasMetric) {return;} // ne tient compte du poids que si la métrique existe réellement
+    if(!hasMetric) {return;} // ne tient compte du poids que si la mÃ©trique existe rÃ©ellement
     totalW += weight;
     num    += weight*value;
   }
@@ -2382,10 +2382,10 @@ function updateFibAndTPLines(piv){ clearTPPriceLines(); if(!candles.length){ ret
   }
   if(fibSet.size){
     const fibs = Array.from(fibSet).sort((a,b)=>a-b);
-    for(const r of fibs){ const target = up? (B + move*r) : (B - move*r); createTPLine(target, `Fib ${r}`, '#6b7280'); }
+    for(const r of fibs){ const target = (A + (B - A) * r); createTPLine(target, `Fib ${r}`, '#6b7280'); }
   }
   // TP Ladder
-  if(lbcOpts.tpEnable && Array.isArray(lbcOpts.tp) && lbcOpts.tp.length){ let n=1; for(const t of lbcOpts.tp){ if(n>10) {break;} const typ=(t.type||'Fib'); let price=null; if(typ==='Fib'){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)){ price = up? (B + move*r) : (B - move*r); } }
+  if(lbcOpts.tpEnable && Array.isArray(lbcOpts.tp) && lbcOpts.tp.length){ let n=1; for(const t of lbcOpts.tp){ if(n>10) {break;} const typ=(t.type||'Fib'); let price=null; if(typ==='Fib'){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)){ price = (A + (B - A) * r); } }
       else if(typ==='Percent'){ const p=parseFloat(t.pct!=null? t.pct : t.value); if(isFinite(p)){ price = up? (C * (1 + p/100)) : (C * (1 - p/100)); } }
       else if(typ==='EMA'){ const len = Math.max(1, parseInt(((t&&t.emaLen)!=null? t.emaLen : (lbcOpts.emaLen||55)),10)); const ema=emaCalc(candles, len); const v = ema[ema.length-1]; if(isFinite(v)){ price=v; } }
       if(price!=null){ createTPLine(price, `TP${n}`, '#7c3aed'); }
@@ -2406,9 +2406,9 @@ try{ const liveActive = (!!(liveSession && liveSession.active)) && !(window.__li
   try{ renderLBCOverlay(lb, piv); ensureDraggableLBCProb(); }catch(_){ }
 }
 
-function renderLBCOverlay(lb, piv){ try{ const probEl=document.getElementById('lbc-prob'); const tableEl=document.getElementById('lbc-table'); if(!probEl){ return; } const n=lb.trend.length; const dir= n? (lb.trend[n-1]===1?'Haussier':'Baissier') : '—'; const lvl=n? lb.level[n-1]: null; probEl.classList.remove('hidden'); probEl.innerHTML = `<div style=\"font-weight:600;margin-bottom:4px;\">Heaven</div>
+function renderLBCOverlay(lb, piv){ try{ const probEl=document.getElementById('lbc-prob'); const tableEl=document.getElementById('lbc-table'); if(!probEl){ return; } const n=lb.trend.length; const dir= n? (lb.trend[n-1]===1?'Haussier':'Baissier') : 'â€”'; const lvl=n? lb.level[n-1]: null; probEl.classList.remove('hidden'); probEl.innerHTML = `<div style=\"font-weight:600;margin-bottom:4px;\">Heaven</div>
   <div>Trend: <span style=\"color:${(lb.trend[n-1]===1?'#10b981':'#ef4444')}\">${dir}</span></div>
-  <div>Reversal: ${lvl!=null? lvl.toFixed(2): '—'}</div>`;
+  <div>Reversal: ${lvl!=null? lvl.toFixed(2): 'â€”'}</div>`;
   if(tableEl){ tableEl.classList.add('hidden'); tableEl.innerHTML=''; } }catch(_){ } }
 
 // Draggable + persistent position for Heaven popup (lbc-prob)
@@ -2428,7 +2428,7 @@ let lbcMkLayer=null; let lbcLastMarkers=[];
 function ensureMkLayer(){ if(!container) {return;} const cs = window.getComputedStyle(container); if(cs && cs.position==='static'){ container.style.position='relative'; } let el=document.getElementById('lbc-markers'); if(!el){ el=document.createElement('div'); el.id='lbc-markers'; el.style.position='absolute'; el.style.left='0'; el.style.top='0'; el.style.width='100%'; el.style.height='100%'; el.style.pointerEvents='none'; el.style.zIndex='100'; container.appendChild(el); } lbcMkLayer=el; }
 function clearMkLayer(){ const el=document.getElementById('lbc-markers'); if(el){ el.innerHTML=''; } }
 function renderMkHTML(markers){ ensureMkLayer(); clearMkLayer(); lbcLastMarkers = Array.isArray(markers)? markers: []; if(!lbcLastMarkers.length) {return;} const ts=chart.timeScale(); const series=candleSeries; const sz=Math.max(8, Math.min(40, (lbcOpts.arrowSizePx|0)||12)); const off=Math.max(0, (lbcOpts.arrowOffsetPx|0)||0); const idxByTime=new Map(); for(let i=0;i<candles.length;i++){ idxByTime.set(candles[i].time, i); } for(const m of lbcLastMarkers){ let x=null; try{ x=ts.timeToCoordinate(m.time); }catch(_){ x=null; } if(x==null) {continue;} const bi=idxByTime.get(m.time); if(bi==null) {continue;} let baseY=null; try{ if(m.position==='belowBar'){ baseY=series.priceToCoordinate(candles[bi].low); } else if(m.position==='aboveBar'){ baseY=series.priceToCoordinate(candles[bi].high); } else { baseY=series.priceToCoordinate(candles[bi].close); } }catch(_){ baseY=null; }
-  if(baseY==null) {continue;} const y = baseY + (m.position==='belowBar'? off : (m.position==='aboveBar'? -off : 0)); const d=document.createElement('div'); d.className='lbc-arrow'; d.style.position='absolute'; d.style.left=x+'px'; d.style.top=y+'px'; d.style.transform = 'translate(-50%, '+(m.position==='aboveBar'? '-100%':'0')+')'; d.style.color=m.color||'#10b981'; let fz=sz; if(m.shape==='cross'){ fz=Math.max(6, Math.round(sz*0.75)); } d.style.fontSize=fz+'px'; d.style.lineHeight='1'; d.style.userSelect='none'; d.style.pointerEvents='none'; let glyph='▼'; if(m.shape==='arrowUp') {glyph='▲';} else if(m.shape==='arrowDown') {glyph='▼';} else if(m.shape==='circle') {glyph='●';} else if(m.shape==='cross') {glyph='✖';} else if(m.shape==='square') {glyph='■';} d.textContent = glyph; lbcMkLayer.appendChild(d); } }
+  if(baseY==null) {continue;} const y = baseY + (m.position==='belowBar'? off : (m.position==='aboveBar'? -off : 0)); const d=document.createElement('div'); d.className='lbc-arrow'; d.style.position='absolute'; d.style.left=x+'px'; d.style.top=y+'px'; d.style.transform = 'translate(-50%, '+(m.position==='aboveBar'? '-100%':'0')+')'; d.style.color=m.color||'#10b981'; let fz=sz; if(m.shape==='cross'){ fz=Math.max(6, Math.round(sz*0.75)); } d.style.fontSize=fz+'px'; d.style.lineHeight='1'; d.style.userSelect='none'; d.style.pointerEvents='none'; let glyph='â–¼'; if(m.shape==='arrowUp') {glyph='â–²';} else if(m.shape==='arrowDown') {glyph='â–¼';} else if(m.shape==='circle') {glyph='â—';} else if(m.shape==='cross') {glyph='âœ–';} else if(m.shape==='square') {glyph='â– ';} d.textContent = glyph; lbcMkLayer.appendChild(d); } }
 function updateMkPositions(){ try{ if(!((lbcOpts.arrowOffsetPx|0)>0)){ clearMkLayer(); return; } renderMkHTML(lbcLastMarkers||[]); }catch(_){ } }
 
 // EMA/MA options + rendering
@@ -2473,13 +2473,14 @@ function updateEMAs(){ if(!emaOpts.enabled||!candles.length){ try{ ema21Series.s
 }
 applyEMAStyles();
 
-// Sauvegarde LBC depuis la modale (si présente)
+// Sauvegarde LBC depuis la modale (si prÃ©sente)
 const lbcSaveBtn = document.getElementById('lbcSave');
 const optEnabled=document.getElementById('optEnabled'); const optNol=document.getElementById('optNol'); const optShowTrend=document.getElementById('optShowTrend'); const optTrendUp=document.getElementById('optTrendUp'); const optTrendDn=document.getElementById('optTrendDn'); const optUseZZDraw=document.getElementById('optUseZZDraw'); const optPrd=document.getElementById('optPrd');
 const optSLInitPct=document.getElementById('optSLInitPct'); const optSLEnable=document.getElementById('optSLEnable'); const optBEEnable=document.getElementById('optBEEnable'); const optBEBars=document.getElementById('optBEBars'); const optBELockPct=document.getElementById('optBELockPct'); const optEMALen=document.getElementById('optEMALen'); const optShowClose=document.getElementById('optShowClose');
 const optEntryMode=document.getElementById('optEntryMode'); const optEnt382=document.getElementById('optEnt382'); const optEnt500=document.getElementById('optEnt500'); const optEnt618=document.getElementById('optEnt618'); const optEnt786=document.getElementById('optEnt786');
 if(lbcSaveBtn){
   lbcSaveBtn.addEventListener('click', ()=>{
+    try{ localStorage.setItem('heaven:manualOverride','1'); }catch(_){ }
     if(optEnabled) {lbcOpts.enabled = !!optEnabled.checked;}
     if(optNol) {lbcOpts.nol = Math.max(1, parseInt(optNol.value||String(lbcOpts.nol)));}
     if(optShowTrend) {lbcOpts.showTrend = !!optShowTrend.checked;}
@@ -2642,7 +2643,7 @@ if(lbcSaveBtn){
   });
 }
 
-// --- Backtest (période visible / all / dates) ---
+// --- Backtest (pÃ©riode visible / all / dates) ---
 const btRunBtn=document.getElementById('btRun'); const btCancelBtn=document.getElementById('btCancel'); const btOptimizeBtn=document.getElementById('btOptimize');
 const btProgressEl=document.getElementById('btProgress'); const btProgText=document.getElementById('btProgText'); const btProgBar=document.getElementById('btProgBar'); const btProgNote=document.getElementById('btProgNote'); const btProgTime=document.getElementById('btProgTime'); const btProgLog=document.getElementById('btProgLog'); const btAbortBtn=document.getElementById('btAbort');
 const btProgGlobalText=document.getElementById('btProgGlobalText'); const btProgGlobalBar=document.getElementById('btProgGlobalBar');
@@ -2650,9 +2651,9 @@ const btStartCap=document.getElementById('btStartCap'); const btFee=document.get
 const btRangeVisible=document.getElementById('btRangeVisible'); const btRangeAll=document.getElementById('btRangeAll'); const btRangeDates=document.getElementById('btRangeDates'); const btFrom=document.getElementById('btFrom'); const btTo=document.getElementById('btTo');
 let btAbort=false; let btPaused=false; let __btTimerId=null; let __btStartTs=0;
 function __fmtElapsed(ms){ const s=Math.floor(ms/1000); const m=Math.floor(s/60); const ss=String(s%60).padStart(2,'0'); const mm=String(m%60).padStart(2,'0'); const hh=Math.floor(m/60); return (hh>0? (String(hh).padStart(2,'0')+':'):'')+mm+':'+ss; }
-function __setBtTime(){ if(btProgTime){ const ms=Date.now()-__btStartTs; btProgTime.textContent = `⏱ ${__fmtElapsed(ms)}`; } }
-function addBtLog(msg){ try{ const t=new Date(); const hh=String(t.getHours()).padStart(2,'0'); const mm=String(t.getMinutes()).padStart(2,'0'); const ss=String(t.getSeconds()).padStart(2,'0'); const line=`[${hh}:${mm}:${ss}] ${msg}`; if(btProgLog){ if(btProgLog.textContent==='—') {btProgLog.textContent=line;} else {btProgLog.textContent += ("\n"+line);} btProgLog.scrollTop = btProgLog.scrollHeight; } if(typeof addLabLog==='function'){ addLabLog(msg); } }catch(_){ } }
-function openBtProgress(msg){ if(btProgText) {btProgText.textContent = msg || t('bt.progress.initShort');} if(btProgBar) {btProgBar.style.width='0%';} if(btProgNote) {btProgNote.textContent='';} if(btProgGlobalBar) {btProgGlobalBar.style.width='0%';} if(btProgGlobalText) {btProgGlobalText.textContent=t('bt.progress.globalInit');} if(btProgLog) {btProgLog.textContent='—';} const pBtn=document.getElementById('btPause'); if(pBtn) {pBtn.textContent=t('bt.progress.btn.pause');} __btStartTs=Date.now(); if(__btTimerId) { try{ clearInterval(__btTimerId);}catch(_){}} __setBtTime(); __btTimerId=setInterval(__setBtTime, 500); openModalEl(btProgressEl); }
+function __setBtTime(){ if(btProgTime){ const ms=Date.now()-__btStartTs; btProgTime.textContent = `â± ${__fmtElapsed(ms)}`; } }
+function addBtLog(msg){ try{ const t=new Date(); const hh=String(t.getHours()).padStart(2,'0'); const mm=String(t.getMinutes()).padStart(2,'0'); const ss=String(t.getSeconds()).padStart(2,'0'); const line=`[${hh}:${mm}:${ss}] ${msg}`; if(btProgLog){ if(btProgLog.textContent==='â€”') {btProgLog.textContent=line;} else {btProgLog.textContent += ("\n"+line);} btProgLog.scrollTop = btProgLog.scrollHeight; } if(typeof addLabLog==='function'){ addLabLog(msg); } }catch(_){ } }
+function openBtProgress(msg){ if(btProgText) {btProgText.textContent = msg || t('bt.progress.initShort');} if(btProgBar) {btProgBar.style.width='0%';} if(btProgNote) {btProgNote.textContent='';} if(btProgGlobalBar) {btProgGlobalBar.style.width='0%';} if(btProgGlobalText) {btProgGlobalText.textContent=t('bt.progress.globalInit');} if(btProgLog) {btProgLog.textContent='â€”';} const pBtn=document.getElementById('btPause'); if(pBtn) {pBtn.textContent=t('bt.progress.btn.pause');} __btStartTs=Date.now(); if(__btTimerId) { try{ clearInterval(__btTimerId);}catch(_){}} __setBtTime(); __btTimerId=setInterval(__setBtTime, 500); openModalEl(btProgressEl); }
 function closeBtProgress(){ if(__btTimerId){ try{ clearInterval(__btTimerId);}catch(_){ } __btTimerId=null; } closeModalEl(btProgressEl); }
 function getVisibleRange(){ try{ const r=chart.timeScale().getVisibleRange(); if(!r) {return null;} return { from: r.from, to: r.to }; }catch(_){ return null; } }
 function idxFromTime(from, to){ let s=0, e=candles.length-1; if(from!=null){ for(let i=0;i<candles.length;i++){ if(candles[i].time>=from){ s=i; break; } } } if(to!=null){ for(let j=candles.length-1;j>=0;j--){ if(candles[j].time<=to){ e=j; break; } } } return [s,e]; }
@@ -2674,7 +2675,7 @@ function runBacktestSlice(sIdx, eIdx, conf){
       const A=seg?seg.a.price:null, B=seg?seg.b.price:null, move=seg?Math.abs(B-A):null;
       for(let idx=0; idx<lbcOpts.tp.length; idx++){
         const t=lbcOpts.tp[idx]; let price=null; const typ=(t.type||'Fib');
-        if(typ==='Fib' && seg && move!=null){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)) {price = (seg.dir==='up')? (B + move*r) : (B - move*r);} }
+        if(typ==='Fib' && seg && move!=null){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)) {price = (A + (B - A) * r);} }
         else if(typ==='Percent'){ const p=parseFloat(t.pct!=null? t.pct : t.value); if(isFinite(p)) {price = dir==='long'? (entry*(1+p/100)) : (entry*(1-p/100));} }
         else if(typ==='EMA'){ const len=Math.max(1, parseInt(((t&&t.emaLen)!=null? t.emaLen : (lbcOpts.emaLen||55)),10)); const ema=emaCalc(candles, len); const v = ema[Math.min(i, ema.length-1)]; if(isFinite(v)) {price=v;} }
         if(price!=null){ if((dir==='long' && price>entry) || (dir==='short' && price<entry)){
@@ -2840,7 +2841,7 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
       const seg=segAtIdx(); const A=seg?seg.a.price:null, B=seg?seg.b.price:null, move=seg?Math.abs(B-A):null;
       for(let idx=0; idx<params.tp.length; idx++){
         const t=params.tp[idx]; let price=null; const typ=(t.type||'Fib');
-        if(typ==='Fib' && seg && move!=null){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)) {price = (seg.dir==='up')? (B + move*r) : (B - move*r);} }
+        if(typ==='Fib' && seg && move!=null){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)) {price = (A + (B - A) * r);} }
         else if(typ==='Percent'){ const p=parseFloat(t.pct!=null? t.pct : t.value); if(isFinite(p)) {price = dir==='long'? (entry*(1+p/100)) : (entry*(1-p/100));} }
         else if(typ==='EMA'){ const len=Math.max(1, parseInt(((t&&t.emaLen)!=null? t.emaLen : (params.emaLen||55)),10)); let ema=emaTargetCache.get(len); if(!ema){ ema=emaCalc(bars, len); emaTargetCache.set(len, ema); } const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) {price=v;} }
         if(price!=null){ if((dir==='long' && price>entry) || (dir==='short' && price<entry)){
@@ -2946,8 +2947,8 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
   const btStopBtn=document.getElementById('btStop');
   const btAbortBtn=document.getElementById('btAbort');
   if(btPauseBtn){ btPauseBtn.addEventListener('click', ()=>{ btPaused=!btPaused; addBtLog(btPaused?'Pause':'Reprise'); if(labRunStatusEl) {labRunStatusEl.textContent = btPaused? 'Pause' : 'En cours';} btPauseBtn.textContent = btPaused? 'Reprendre' : 'Pause'; }); }
-  if(btStopBtn){ btStopBtn.addEventListener('click', ()=>{ btAbort=true; addBtLog('Arrêt demandé'); if(labRunStatusEl) {labRunStatusEl.textContent='Arrêt';} if(labAutoLoopEl){ labAutoLoopEl.checked=false; } }); }
-  if(btAbortBtn){ btAbortBtn.addEventListener('click', ()=>{ btAbort=true; addBtLog('Annulation'); if(labRunStatusEl) {labRunStatusEl.textContent='Arrêt';} if(labAutoLoopEl){ labAutoLoopEl.checked=false; } try{ closeBtProgress(); }catch(_){ } }); }
+  if(btStopBtn){ btStopBtn.addEventListener('click', ()=>{ btAbort=true; addBtLog('ArrÃªt demandÃ©'); if(labRunStatusEl) {labRunStatusEl.textContent='ArrÃªt';} if(labAutoLoopEl){ labAutoLoopEl.checked=false; } }); }
+  if(btAbortBtn){ btAbortBtn.addEventListener('click', ()=>{ btAbort=true; addBtLog('Annulation'); if(labRunStatusEl) {labRunStatusEl.textContent='ArrÃªt';} if(labAutoLoopEl){ labAutoLoopEl.checked=false; } try{ closeBtProgress(); }catch(_){ } }); }
   if(btShowDetails){ btShowDetails.addEventListener('click', ()=> openEvalsModal((labSymbolSelect&&labSymbolSelect.value)||currentSymbol, (labTFSelect&&labTFSelect.value)||currentInterval)); }
   if(btExportDetails){ btExportDetails.addEventListener('click', ()=> exportEvalsCSV()); }
 }catch(_){ }
@@ -2991,14 +2992,14 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
   const [sIdx,eIdx]=idxFromTimeLocal(bars,from,to);
   openBtProgress('Optimisation...'); btAbort=false; const best=[]; const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
   let done=0; const total=combos.length; async function step(k){ const end=Math.min(k+5, total); for(let i=k;i<end;i++){ if(btAbort) {break;} const p=combos[i]; const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, p); const score=scoreResult(res, weights); best.push({ score, params:p, res }); best.sort((a,b)=> b.score-a.score); if(best.length>topN){ best.length=topN; } done++; if(btProgBar&&btProgText){ const pct=Math.round(done/total*100); btProgBar.style.width=pct+'%'; btProgText.textContent=`Optimisation ${pct}% (${done}/${total})`; } }
-    if(done<total && !btAbort){ setTimeout(()=> step(end), 0); } else { closeBtProgress(); closeModalEl(btModalEl); try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } setStatus('Optimisation terminée'); }
+    if(done<total && !btAbort){ setTimeout(()=> step(end), 0); } else { closeBtProgress(); closeModalEl(btModalEl); try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } setStatus('Optimisation terminÃ©e'); }
   }
   step(0);
  }catch(e){ setStatus('Erreur optimisation'); }
 }); }
-if(btRunBtn){ btRunBtn.addEventListener('click', ()=>{ if(!candles.length){ setStatus('Aucune donnée'); return; } const conf={ startCap: Math.max(0, parseFloat(btStartCap&&btStartCap.value||'10000')), fee: Math.max(0, parseFloat(btFee&&btFee.value||'0.1')), lev: Math.max(1, parseFloat(btLev&&btLev.value||'1')), maxPct: Math.max(0, Math.min(100, parseFloat(btMaxPct&&btMaxPct.value||'100'))), base: (btMaxBase&&btMaxBase.value)||'initial' };
+if(btRunBtn){ btRunBtn.addEventListener('click', ()=>{ if(!candles.length){ setStatus('Aucune donnÃ©e'); return; } const conf={ startCap: Math.max(0, parseFloat(btStartCap&&btStartCap.value||'10000')), fee: Math.max(0, parseFloat(btFee&&btFee.value||'0.1')), lev: Math.max(1, parseFloat(btLev&&btLev.value||'1')), maxPct: Math.max(0, Math.min(100, parseFloat(btMaxPct&&btMaxPct.value||'100'))), base: (btMaxBase&&btMaxBase.value)||'initial' };
   let from=null, to=null; if(btRangeDates&&btRangeDates.checked){ const f=(btFrom&&btFrom.value)||''; const t=(btTo&&btTo.value)||''; from = f? Math.floor(new Date(f).getTime()/1000): null; to = t? Math.floor(new Date(t).getTime()/1000): null; } else if(btRangeAll&&btRangeAll.checked){ from=null; to=null; } else { const r=getVisibleRange(); if(r){ from=r.from; to=r.to; } }
-const [sIdx,eIdx]=idxFromTime(from,to); btAbort=false; try{ clearTPHitMarkers(); clearSLHitMarkers(); clearBEHitMarkers(); }catch(_){ } openBtProgress('Préparation...'); setTimeout(()=>{ const res=runBacktestSlice(sIdx,eIdx,conf); try{ clearTPHitMarkers(); clearSLHitMarkers(); clearBEHitMarkers(); const tr = Array.isArray(res.trades)? res.trades: []; for(const ev of tr){ if(ev && ev.reason){ if(ev.reason==='SL'){ const be = Math.abs(ev.exit - ev.entry) <= 1e-8; if(be){ addBEHitMarker(ev.exitTime, ev.dir); } else { addSLHitMarker(ev.exitTime, ev.dir); } } else if(typeof ev.reason==='string' && ev.reason.startsWith('TP')){ addTPHitMarker(ev.exitTime, ev.dir); } } } }catch(_){ } renderLBC(); closeBtProgress(); closeModalEl(btModalEl); showStrategyResult(res, {symbol: currentSymbol, tf: (intervalSelect&&intervalSelect.value)||'', startCap: conf.startCap}); try{ renderLabFromStorage(); }catch(_){ } }, 20); }); }
+const [sIdx,eIdx]=idxFromTime(from,to); btAbort=false; try{ clearTPHitMarkers(); clearSLHitMarkers(); clearBEHitMarkers(); }catch(_){ } openBtProgress('PrÃ©paration...'); setTimeout(()=>{ const res=runBacktestSlice(sIdx,eIdx,conf); try{ clearTPHitMarkers(); clearSLHitMarkers(); clearBEHitMarkers(); const tr = Array.isArray(res.trades)? res.trades: []; for(const ev of tr){ if(ev && ev.reason){ if(ev.reason==='SL'){ const be = Math.abs(ev.exit - ev.entry) <= 1e-8; if(be){ addBEHitMarker(ev.exitTime, ev.dir); } else { addSLHitMarker(ev.exitTime, ev.dir); } } else if(typeof ev.reason==='string' && ev.reason.startsWith('TP')){ addTPHitMarker(ev.exitTime, ev.dir); } } } }catch(_){ } renderLBC(); closeBtProgress(); closeModalEl(btModalEl); showStrategyResult(res, {symbol: currentSymbol, tf: (intervalSelect&&intervalSelect.value)||'', startCap: conf.startCap}); try{ renderLabFromStorage(); }catch(_){ } }, 20); }); }
 
 // Strategy result modal
 const stratModalEl=document.getElementById('stratModal');
@@ -3031,14 +3032,14 @@ function ensureFloatingModal(modalEl, key, def){ try{ if(!modalEl) {return;} con
   content.addEventListener('mousedown', ()=>{ content.style.zIndex=String(bumpZ()); const stNow=loadWinState(key, def); saveWinState(key, { ...stNow, zIndex: parseInt(content.style.zIndex)||bumpZ(), collapsed: (content.dataset.collapsed==='1') }); });
   if(st && st.collapsed){ content.dataset.collapsed='1'; try{ const header=content.querySelector('.modal-header'); const prevW = (parseInt(content.style.width)||content.offsetWidth||0); const prevH = (parseInt(content.style.height)||content.offsetHeight||0); content.dataset.prevW = String(prevW); content.dataset.prevH = String(prevH); const h = header? (header.offsetHeight||40) : 40; content.style.height = h+'px'; content.style.overflow='hidden'; }catch(_){ } }
   content.dataset.floating='1'; }catch(_){ } }
-function showStrategyResult(res, ctx){ if(stratTitle){ stratTitle.textContent = `${symbolToDisplay(ctx.symbol)} • ${ctx.tf} — Résultats`; } if(stratTBody){ const rows=[]; const prof=(localStorage.getItem('labWeightsProfile')||'balancee'); const w=getWeights(prof); const score=scoreResult(res, w); rows.push(`<tr><td style=\"text-align:left\">Score (profil: ${prof})</td><td>${score.toFixed(2)}</td><td style=\"text-align:right\">—</td></tr>`);
-  rows.push(`<tr><td style=\"text-align:left\">Profit factor</td><td>—</td><td style=\"text-align:right\">${(res.profitFactor===Infinity?'∞':res.profitFactor.toFixed(2))}</td></tr>`);
-  rows.push(`<tr><td style=\"text-align:left\">Trades</td><td>—</td><td style=\"text-align:right\">${res.tradesCount}</td></tr>`);
-  rows.push(`<tr><td style=\"text-align:left\">Win %</td><td>—</td><td style=\"text-align:right\">${res.winrate.toFixed(1)}%</td></tr>`);
-  rows.push(`<tr><td style=\"text-align:left\">Avg RR</td><td>—</td><td style=\"text-align:right\">${Number.isFinite(res.avgRR)? res.avgRR.toFixed(2): '—'}</td></tr>`);
-  rows.push(`<tr><td style=\"text-align:left\">P&L net</td><td>—</td><td style=\"text-align:right\">${res.totalPnl.toFixed(2)}</td></tr>`);
-  rows.push(`<tr><td style=\"text-align:left\">Cap. final</td><td>—</td><td style=\"text-align:right\">${res.equityFinal.toFixed(2)}</td></tr>`);
-  rows.push(`<tr><td style=\"text-align:left\">Max DD (abs)</td><td>—</td><td style=\"text-align:right\">${res.maxDDAbs.toFixed(2)}</td></tr>`);
+function showStrategyResult(res, ctx){ if(stratTitle){ stratTitle.textContent = `${symbolToDisplay(ctx.symbol)} â€¢ ${ctx.tf} â€” RÃ©sultats`; } if(stratTBody){ const rows=[]; const prof=(localStorage.getItem('labWeightsProfile')||'balancee'); const w=getWeights(prof); const score=scoreResult(res, w); rows.push(`<tr><td style=\"text-align:left\">Score (profil: ${prof})</td><td>${score.toFixed(2)}</td><td style=\"text-align:right\">â€”</td></tr>`);
+  rows.push(`<tr><td style=\"text-align:left\">Profit factor</td><td>â€”</td><td style=\"text-align:right\">${(res.profitFactor===Infinity?'âˆž':res.profitFactor.toFixed(2))}</td></tr>`);
+  rows.push(`<tr><td style=\"text-align:left\">Trades</td><td>â€”</td><td style=\"text-align:right\">${res.tradesCount}</td></tr>`);
+  rows.push(`<tr><td style=\"text-align:left\">Win %</td><td>â€”</td><td style=\"text-align:right\">${res.winrate.toFixed(1)}%</td></tr>`);
+  rows.push(`<tr><td style=\"text-align:left\">Avg RR</td><td>â€”</td><td style=\"text-align:right\">${Number.isFinite(res.avgRR)? res.avgRR.toFixed(2): 'â€”'}</td></tr>`);
+  rows.push(`<tr><td style=\"text-align:left\">P&L net</td><td>â€”</td><td style=\"text-align:right\">${res.totalPnl.toFixed(2)}</td></tr>`);
+  rows.push(`<tr><td style=\"text-align:left\">Cap. final</td><td>â€”</td><td style=\"text-align:right\">${res.equityFinal.toFixed(2)}</td></tr>`);
+  rows.push(`<tr><td style=\"text-align:left\">Max DD (abs)</td><td>â€”</td><td style=\"text-align:right\">${res.maxDDAbs.toFixed(2)}</td></tr>`);
   stratTBody.innerHTML = rows.join(''); }
 try{ let startCap = ctx && ctx.startCap != null ? ctx.startCap : undefined; if(startCap==null && Number.isFinite(res?.equityFinal) && Number.isFinite(res?.totalPnl)){ startCap = res.equityFinal - res.totalPnl; }
     lastTradesCtx = { trades: Array.isArray(res.trades)? res.trades: [], symbol: ctx.symbol, tf: ctx.tf, startCap, equityFinal: res.equityFinal, totalPnl: res.totalPnl };
@@ -3073,13 +3074,13 @@ try{
   const tradesCollapseBtn=document.getElementById('tradesCollapse');
   if(tradesCollapseBtn && tradesModalEl){ tradesCollapseBtn.addEventListener('click', ()=> toggleCollapse(tradesModalEl, 'trades', { left: 540, top: 40, width: 720, height: 360, zIndex: bumpZ() })); }
 }catch(_){ }
-function populateTradesModal(state){ try{ const t=(state&&state.trades)||[]; if(tradesCtx){ tradesCtx.textContent = ''; tradesCtx.style.display='none'; } if(!tradesTBody){ return; } if(!t.length){ tradesTBody.innerHTML = '<tr><td colspan=\"10\">Aucun trade</td></tr>'; if(tradesHdrCtx){ tradesHdrCtx.textContent = `${symbolToDisplay(state?.symbol||currentSymbol)} • ${(state?.tf||'')}`; } return; }
+function populateTradesModal(state){ try{ const t=(state&&state.trades)||[]; if(tradesCtx){ tradesCtx.textContent = ''; tradesCtx.style.display='none'; } if(!tradesTBody){ return; } if(!t.length){ tradesTBody.innerHTML = '<tr><td colspan=\"10\">Aucun trade</td></tr>'; if(tradesHdrCtx){ tradesHdrCtx.textContent = `${symbolToDisplay(state?.symbol||currentSymbol)} â€¢ ${(state?.tf||'')}`; } return; }
   // Helpers
   const fmt=(ts)=>{ try{ return new Date(ts*1000).toLocaleString(); }catch(_){ return String(ts); } };
   const fmtDurHMS=(secs)=>{ secs=Math.max(0, Math.floor(secs)); const h=Math.floor(secs/3600); const m=Math.floor((secs%3600)/60); const s=secs%60; const parts=[]; if(h) {parts.push(`${h}h`);} if(m||h) {parts.push(`${m}m`);} parts.push(`${s}s`); return parts.join(' '); };
 const getEurRate=()=> getUsdcEurRate();
   const usdEur = (x)=> (Number.isFinite(x)? x*getEurRate(): NaN);
-  const fmtUsdEur=(x)=>{ if(!Number.isFinite(x)) {return '';} const eur=usdEur(x); const usdStr = `$${Math.abs(x).toFixed(2)}`; const eurStr = `${Number.isFinite(eur)? Math.abs(eur).toFixed(2):'—'} €`; const sign = x<0? '-' : ''; return `${sign}${usdStr} ${sign}${eurStr}`; };
+  const fmtUsdEur=(x)=>{ if(!Number.isFinite(x)) {return '';} const eur=usdEur(x); const usdStr = `$${Math.abs(x).toFixed(2)}`; const eurStr = `${Number.isFinite(eur)? Math.abs(eur).toFixed(2):'â€”'} â‚¬`; const sign = x<0? '-' : ''; return `${sign}${usdStr} ${sign}${eurStr}`; };
   const eventLabel=(ev,g)=>{ const r=(ev?.reason||''); if(r.startsWith('TP')) {return r;} if(r==='SL') {return 'SL';} if(r==='Flip') {return 'Close';} if(!r && g) {return (g.dir==='long'?'Long':'Short');} return r; };
   // Compute equity after each event (timeline)
   let startCap = (state && state.startCap!=null)? Number(state.startCap): undefined; if(!(Number.isFinite(startCap))){ const ef=Number(state?.equityFinal), tp=Number(state?.totalPnl); if(Number.isFinite(ef) && Number.isFinite(tp)){ startCap = ef - tp; } }
@@ -3100,7 +3101,7 @@ const groups = groupTradesByPosition(t);
     let minTs = Infinity, maxTs = -Infinity;
     for(const ev of t){ if(Number.isFinite(ev.entryTime) && ev.entryTime<minTs) {minTs=ev.entryTime;} if(Number.isFinite(ev.exitTime) && ev.exitTime>maxTs) {maxTs=ev.exitTime;} }
     const totalNet = groups.reduce((s,g)=> s + (Number(g.net)||0), 0);
-if(tradesHdrCtx){ const periodStr = (minTs<Infinity && maxTs>-Infinity)? `${fmt(minTs)} → ${fmt(maxTs)}` : '—'; tradesHdrCtx.textContent = `${symbolToDisplay(state?.symbol||currentSymbol)} • ${(state?.tf||'')} — ${periodStr} • P&L total: ${fmtUsdEur(totalNet)}`; }
+if(tradesHdrCtx){ const periodStr = (minTs<Infinity && maxTs>-Infinity)? `${fmt(minTs)} â†’ ${fmt(maxTs)}` : 'â€”'; tradesHdrCtx.textContent = `${symbolToDisplay(state?.symbol||currentSymbol)} â€¢ ${(state?.tf||'')} â€” ${periodStr} â€¢ P&L total: ${fmtUsdEur(totalNet)}`; }
   }catch(_){ }
   // Sort groups chronologically to assign numbers (oldest = #1), then display most recent first
   const groupsAsc = groups.slice().sort((a,b)=> (a.entryTime||0)-(b.entryTime||0));
@@ -3109,7 +3110,7 @@ if(tradesHdrCtx){ const periodStr = (minTs<Infinity && maxTs>-Infinity)? `${fmt(
   const rows=[];
   for(const g of groupsDesc){
     // Parent row (position summary)
-    const durParent = (g.exitTime && g.entryTime)? fmtDurHMS((g.exitTime - g.entryTime)) : '—';
+    const durParent = (g.exitTime && g.entryTime)? fmtDurHMS((g.exitTime - g.entryTime)) : 'â€”';
     const pnlPctParent = (g.capEntry>0 && Number.isFinite(g.net))? ((g.net/g.capEntry)*100) : NaN;
     const qtyValPar = (Number.isFinite(g.qty) && Number.isFinite(g.entry))? g.qty*g.entry : NaN;
     const qtyCellPar = Number.isFinite(g.qty)? `${g.qty.toFixed(6)}${Number.isFinite(qtyValPar)? ' ('+fmtUsdEur(qtyValPar)+')':''}` : '';
@@ -3126,9 +3127,9 @@ if(tradesHdrCtx){ const periodStr = (minTs<Infinity && maxTs>-Infinity)? `${fmt(
       `<td>${durParent}</td>`+
     `</tr>`);
     // Children event rows
-    const eidx=1; for(const ev of g.events){ const dur = (ev.exitTime && ev.entryTime)? fmtDurHMS((ev.exitTime - ev.entryTime)) : '—'; const pnlPct = (g.capEntry>0 && Number.isFinite(ev.net))? ((ev.net/g.capEntry)*100) : NaN; const isClose = (ev === g.events[g.events.length-1]); const capClose = (Number.isFinite(g.capEntry)&&Number.isFinite(g.net))? (g.capEntry + g.net) : NaN; const capCell = isClose? fmtUsdEur(capClose) : fmtUsdEur(g.capEntry); const qtyValCh = (Number.isFinite(ev.qty) && Number.isFinite(ev.entry))? ev.qty*ev.entry : NaN; const qtyCellCh = Number.isFinite(ev.qty)? `${ev.qty.toFixed(6)}${Number.isFinite(qtyValCh)? ' ('+fmtUsdEur(qtyValCh)+')':''}` : '';
+    const eidx=1; for(const ev of g.events){ const dur = (ev.exitTime && ev.entryTime)? fmtDurHMS((ev.exitTime - ev.entryTime)) : 'â€”'; const pnlPct = (g.capEntry>0 && Number.isFinite(ev.net))? ((ev.net/g.capEntry)*100) : NaN; const isClose = (ev === g.events[g.events.length-1]); const capClose = (Number.isFinite(g.capEntry)&&Number.isFinite(g.net))? (g.capEntry + g.net) : NaN; const capCell = isClose? fmtUsdEur(capClose) : fmtUsdEur(g.capEntry); const qtyValCh = (Number.isFinite(ev.qty) && Number.isFinite(ev.entry))? ev.qty*ev.entry : NaN; const qtyCellCh = Number.isFinite(ev.qty)? `${ev.qty.toFixed(6)}${Number.isFinite(qtyValCh)? ' ('+fmtUsdEur(qtyValCh)+')':''}` : '';
       rows.push(`<tr class=\"trade-event subrow\" data-type=\"child\" data-parent=\"${g.id}\" style=\"display:none;\">`+
-        `<td style=\"text-align:left; padding-left:18px; color:var(--muted);\">↳</td>`+
+        `<td style=\"text-align:left; padding-left:18px; color:var(--muted);\">â†³</td>`+
         `<td>${fmt(ev.exitTime||0)}</td>`+
         `<td>${capCell}</td>`+
         `<td class=\"${(g.dir==='long'?'dir-long':'dir-short')}\">${eventLabel(ev)}</td>`+
@@ -3182,25 +3183,25 @@ function ensureCrosshairOverlay(canvas){ if(!canvas) {return null;} let ov=canva
 function updateCrosshair(canvas, clientX, clientY){ try{ const ov=ensureCrosshairOverlay(canvas); if(!ov||!canvas) {return;} const rect=canvas.getBoundingClientRect(); ov.style.left=rect.left+'px'; ov.style.top=rect.top+'px'; ov.style.width=rect.width+'px'; ov.style.height=rect.height+'px'; let line=ov.firstChild; if(!line){ line=document.createElement('div'); line.style.position='absolute'; line.style.top='0'; line.style.bottom='0'; line.style.width='1px'; line.style.background='rgba(148,163,184,0.9)'; ov.appendChild(line); }
   const x=Math.max(0, Math.min(rect.width, clientX-rect.left)); line.style.left=(x-0.5)+'px'; line.style.display='block'; }catch(_){ } }
 function hideCrosshair(canvas){ try{ const ov=canvas && canvas.__crosshair; if(ov && ov.firstChild){ ov.firstChild.style.display='none'; } }catch(_){ } }
-function drawRadar(canvas, labels, vals){ if(!canvas) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 14, 'Radar critères (0–100)', 'center'); const cx=w/2, cy=h/2+10, R=Math.min(w,h)/2-30; const n=labels.length; ctx.strokeStyle=__clr().border; ctx.lineWidth=1; for(let r=0;r<=4;r++){ const rr=R*(r/4); ctx.beginPath(); for(let k=0;k<n;k++){ const ang = -Math.PI/2 + 2*Math.PI*k/n; const x=cx+rr*Math.cos(ang), y=cy+rr*Math.sin(ang); if(k===0) {ctx.moveTo(x,y);} else {ctx.lineTo(x,y);} } ctx.closePath(); ctx.stroke(); __drawText(ctx, cx+rr+2, cy, String(r*25), 'left'); }
+function drawRadar(canvas, labels, vals){ if(!canvas) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 14, 'Radar critÃ¨res (0â€“100)', 'center'); const cx=w/2, cy=h/2+10, R=Math.min(w,h)/2-30; const n=labels.length; ctx.strokeStyle=__clr().border; ctx.lineWidth=1; for(let r=0;r<=4;r++){ const rr=R*(r/4); ctx.beginPath(); for(let k=0;k<n;k++){ const ang = -Math.PI/2 + 2*Math.PI*k/n; const x=cx+rr*Math.cos(ang), y=cy+rr*Math.sin(ang); if(k===0) {ctx.moveTo(x,y);} else {ctx.lineTo(x,y);} } ctx.closePath(); ctx.stroke(); __drawText(ctx, cx+rr+2, cy, String(r*25), 'left'); }
   for(let k=0;k<n;k++){ const ang=-Math.PI/2 + 2*Math.PI*k/n; const x=cx+(R+10)*Math.cos(ang), y=cy+(R+10)*Math.sin(ang); __drawText(ctx, x, y, labels[k], (Math.cos(ang)>0?'left':(Math.cos(ang)<0?'right':'center'))); }
   ctx.beginPath(); for(let k=0;k<n;k++){ const v=Math.max(0,Math.min(100, vals[k]||0))/100; const ang=-Math.PI/2 + 2*Math.PI*k/n; const x=cx+R*v*Math.cos(ang), y=cy+R*v*Math.sin(ang); if(k===0) {ctx.moveTo(x,y);} else {ctx.lineTo(x,y);} } ctx.closePath(); ctx.fillStyle='rgba(37,99,235,0.25)'; ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.fill(); ctx.stroke(); }
-function drawEquity(canvas, eq){ if(!canvas) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); if(!eq||!eq.length) {return;} __drawText(ctx, w/2, 12, 'Équity (USD) — ligne bleue; zones rouges = drawdown', 'center'); const padL=46, padR=18, padT=20, padB=24; const min=Math.min(...eq.map(p=>p.equity)); const max=Math.max(...eq.map(p=>p.equity)); const x=(i)=> i/(eq.length-1)*(w-padL-padR)+padL; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB); // axes
+function drawEquity(canvas, eq){ if(!canvas) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); if(!eq||!eq.length) {return;} __drawText(ctx, w/2, 12, 'Ã‰quity (USD) â€” ligne bleue; zones rouges = drawdown', 'center'); const padL=46, padR=18, padT=20, padB=24; const min=Math.min(...eq.map(p=>p.equity)); const max=Math.max(...eq.map(p=>p.equity)); const x=(i)=> i/(eq.length-1)*(w-padL-padR)+padL; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB); // axes
   ctx.strokeStyle=__clr().border; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); // y ticks
   const ticks=4; for(let t=0;t<=ticks;t++){ const val=min + (max-min)*t/ticks; const yy=y(val); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-6, yy, val.toFixed(0), 'right'); }
   // dd shading and equity
   let peak=-Infinity; ctx.fillStyle='rgba(239,68,68,0.18)'; for(let i=0;i<eq.length;i++){ peak=Math.max(peak, eq[i].equity); const dd=peak-eq[i].equity; if(dd>0){ const xx=x(i); ctx.fillRect(xx-1, y(peak), 2, Math.max(0, y(eq[i].equity)-y(peak))); } }
   ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<eq.length;i++){ const xx=x(i), yy=y(eq[i].equity); if(i===0) {ctx.moveTo(xx,yy);} else {ctx.lineTo(xx,yy);} } ctx.stroke();
-  // X‑axis: dates de début/fin + indication temporelle
+  // Xâ€‘axis: dates de dÃ©but/fin + indication temporelle
   try{
     const fmtD=(ts)=>{ const d=new Date((ts||0)*1000); return d.toLocaleDateString(); };
     const t0=eq[0]?.time, t1=eq[eq.length-1]?.time;
     if(t0!=null) {__drawText(ctx, padL, h-8, fmtD(t0), 'left');}
     if(t1!=null) {__drawText(ctx, w-padR, h-8, fmtD(t1), 'right');}
-    __drawText(ctx, (padL+w-padR)/2, h-8, 'Temps du backtest →', 'center');
-  }catch(_){ __drawText(ctx, padL, h-8, 'Temps du backtest →', 'left'); }
+    __drawText(ctx, (padL+w-padR)/2, h-8, 'Temps du backtest â†’', 'center');
+  }catch(_){ __drawText(ctx, padL, h-8, 'Temps du backtest â†’', 'left'); }
 }
-function drawEquityCompare(canvas, eq1, eq2){ if(!canvas) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); if(!eq1||!eq1.length) {return;} const all=eq2&&eq2.length? eq1.concat(eq2) : eq1; __drawText(ctx, w/2, 12, 'Équity comparée (bleu = stratégie analysée, orange = comparaison)', 'center'); const padL=46, padR=18, padT=20, padB=24; const min=Math.min(...all.map(p=>p.equity)); const max=Math.max(...all.map(p=>p.equity)); const n1=eq1.length, n2=(eq2&&eq2.length)||0; const x1=(i)=> i/(n1-1)*(w-padL-padR)+padL; const x2=(i)=> i/(n2-1)*(w-padL-padR)+padL; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB);
+function drawEquityCompare(canvas, eq1, eq2){ if(!canvas) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); if(!eq1||!eq1.length) {return;} const all=eq2&&eq2.length? eq1.concat(eq2) : eq1; __drawText(ctx, w/2, 12, 'Ã‰quity comparÃ©e (bleu = stratÃ©gie analysÃ©e, orange = comparaison)', 'center'); const padL=46, padR=18, padT=20, padB=24; const min=Math.min(...all.map(p=>p.equity)); const max=Math.max(...all.map(p=>p.equity)); const n1=eq1.length, n2=(eq2&&eq2.length)||0; const x1=(i)=> i/(n1-1)*(w-padL-padR)+padL; const x2=(i)=> i/(n2-1)*(w-padL-padR)+padL; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB);
   ctx.strokeStyle=__clr().border; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke();
   const ticks=4; for(let t=0;t<=ticks;t++){ const val=min + (max-min)*t/ticks; const yy=y(val); ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-6, yy, val.toFixed(0), 'right'); }
   // shade for eq1
@@ -3209,16 +3210,16 @@ function drawEquityCompare(canvas, eq1, eq2){ if(!canvas) {return;} const ctx=ca
   ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<n1;i++){ const xx=x1(i), yy=y(eq1[i].equity); if(i===0) {ctx.moveTo(xx,yy);} else {ctx.lineTo(xx,yy);} } ctx.stroke();
   // line 2
   if(eq2&&n2>1){ ctx.strokeStyle='#f59e0b'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<n2;i++){ const xx=x2(i), yy=y(eq2[i].equity); if(i===0) {ctx.moveTo(xx,yy);} else {ctx.lineTo(xx,yy);} } ctx.stroke(); }
-  // X‑axis: dates de début/fin
+  // Xâ€‘axis: dates de dÃ©but/fin
   try{
     const fmtD=(ts)=>{ const d=new Date((ts||0)*1000); return d.toLocaleDateString(); };
     const t0=all[0]?.time, t1=all[all.length-1]?.time;
     if(t0!=null) {__drawText(ctx, padL, h-8, fmtD(t0), 'left');}
     if(t1!=null) {__drawText(ctx, w-padR, h-8, fmtD(t1), 'right');}
-    __drawText(ctx, (padL+w-padR)/2, h-8, 'Temps du backtest →', 'center');
-  }catch(_){ __drawText(ctx, padL, h-8, 'Temps du backtest →', 'left'); }
+    __drawText(ctx, (padL+w-padR)/2, h-8, 'Temps du backtest â†’', 'center');
+  }catch(_){ __drawText(ctx, padL, h-8, 'Temps du backtest â†’', 'left'); }
 }
-function drawDD(canvas, eq){ if(!canvas) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); if(!eq||!eq.length) {return;} __drawText(ctx, w/2, 12, 'Drawdown absolu (USD)', 'center'); let peak=-Infinity; const maxDD=Math.max(1e-9, ...eq.map(p=>{ peak=Math.max(peak, p.equity); return peak-p.equity; })); peak=-Infinity; const padL=46, padR=18, padT=18, padB=24; // y‑axis
+function drawDD(canvas, eq){ if(!canvas) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); if(!eq||!eq.length) {return;} __drawText(ctx, w/2, 12, 'Drawdown absolu (USD)', 'center'); let peak=-Infinity; const maxDD=Math.max(1e-9, ...eq.map(p=>{ peak=Math.max(peak, p.equity); return peak-p.equity; })); peak=-Infinity; const padL=46, padR=18, padT=18, padB=24; // yâ€‘axis
   const x=(i)=> i/(eq.length-1)*(w-padL-padR)+padL; const y0=h-padB; const y1=padT; ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, y0); ctx.lineTo(w-padR, y0); ctx.stroke();
   // bars
   for(let i=0;i<eq.length;i++){ peak=Math.max(peak, eq[i].equity); const dd=peak-eq[i].equity; const xx=x(i); const hh=(dd/maxDD)*(y0-y1); ctx.fillStyle='rgba(239,68,68,0.65)'; ctx.fillRect(xx-1, y0-hh, 2, hh); }
@@ -3230,47 +3231,47 @@ function drawDD(canvas, eq){ if(!canvas) {return;} const ctx=canvas.getContext('
     const t0=eq[0]?.time, t1=eq[eq.length-1]?.time;
     if(t0!=null) {__drawText(ctx, padL, h-8, fmtD(t0), 'left');}
     if(t1!=null) {__drawText(ctx, w-padR, h-8, fmtD(t1), 'right');}
-    __drawText(ctx, (padL+w-padR)/2, h-8, 'Temps du backtest →', 'center');
-  }catch(_){ __drawText(ctx, padL, h-8, 'Temps du backtest →', 'left'); }
+    __drawText(ctx, (padL+w-padR)/2, h-8, 'Temps du backtest â†’', 'center');
+  }catch(_){ __drawText(ctx, padL, h-8, 'Temps du backtest â†’', 'left'); }
 }
 function drawUnderwater(canvas, eq){ if(!canvas||!eq||!eq.length) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'Underwater (drawdown %)', 'center'); const padL=46, padR=12, padT=20, padB=24; let peak=eq[0].equity||0; const uw=eq.map(p=>{ peak=Math.max(peak, p.equity||0); const dd=peak>0? ((p.equity-peak)/peak*100) : 0; return dd; }); const min=Math.min(0, ...uw), max=0; const x=(i)=> i/(uw.length-1)*(w-padL-padR)+padL; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke();
   // 0% line
   const y0=y(0); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, y0); ctx.lineTo(w-padR, y0); ctx.stroke(); __drawText(ctx, padL-8, y0, '0%', 'right');
   // underwater area
   ctx.fillStyle='rgba(239,68,68,0.5)'; for(let i=0;i<uw.length;i++){ const xx=x(i); const yy=y(Math.min(0, uw[i])); ctx.fillRect(xx-1, yy, 2, Math.max(0, y(min)-yy)); }
-  // X‑axis dates
+  // Xâ€‘axis dates
   try{
     const fmtD=(ts)=>{ const d=new Date((ts||0)*1000); return d.toLocaleDateString(); };
     const t0=eq[0]?.time, t1=eq[eq.length-1]?.time;
     if(t0!=null) {__drawText(ctx, padL, h-8, fmtD(t0), 'left');}
     if(t1!=null) {__drawText(ctx, w-padR, h-8, fmtD(t1), 'right');}
-    __drawText(ctx, (padL+w-padR)/2, h-8, 'Temps du backtest →', 'center');
-  }catch(_){ __drawText(ctx, padL, h-8, 'Temps du backtest →', 'left'); }
+    __drawText(ctx, (padL+w-padR)/2, h-8, 'Temps du backtest â†’', 'center');
+  }catch(_){ __drawText(ctx, padL, h-8, 'Temps du backtest â†’', 'left'); }
 }
 function drawHist(canvas, data){ if(!canvas) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); if(!data||!data.length) {return;} const min=Math.min(...data), max=Math.max(...data); const bins=20; const step=(max-min)/(bins||1)||1; const hist=new Array(bins).fill(0); for(const v of data){ let b=Math.floor((v-min)/step); if(b<0) {b=0;} if(b>=bins) {b=bins-1;} hist[b]++; } const mcount=Math.max(...hist); __drawText(ctx, w/2, 12, 'Distribution des rendements (%)', 'center'); // axes
   const padL=36, padR=10, padT=18, padB=22; ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); // draw bars
   for(let i=0;i<bins;i++){ const xx=i/bins*(w-padL-padR)+padL; const hh= (hist[i]/(mcount||1))*(h-padT-padB); ctx.fillStyle='#2563eb'; ctx.fillRect(xx, h-padB-hh, (w-padL-padR)/bins-2, hh); }
   // x labels min/0/max
   __drawText(ctx, padL, h-6, `${min.toFixed(2)}%`, 'left'); __drawText(ctx, w/2, h-6, '0%', 'center'); __drawText(ctx, w-8, h-6, `${max.toFixed(2)}%`, 'right'); }
-function drawBars(canvas, labels, vals){ if(!canvas) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'Efficacité de la stratégie (0–100)', 'center'); const n=labels.length; // grid
+function drawBars(canvas, labels, vals){ if(!canvas) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'EfficacitÃ© de la stratÃ©gie (0â€“100)', 'center'); const n=labels.length; // grid
   ctx.strokeStyle=__clr().border; for(let g=0; g<=5; g++){ const x=120 + (w-140)*(g/5); ctx.beginPath(); ctx.moveTo(x, 18); ctx.lineTo(x, h-10); ctx.stroke(); __drawText(ctx, x, h-4, String(g*20)+'%', 'center'); }
   for(let i=0;i<n;i++){ const y=24+i*((h-36)/n); const val=Math.max(0,Math.min(100, vals[i]||0)); ctx.fillStyle='#e5e7eb'; ctx.fillRect(120, y, w-140, 12); ctx.fillStyle='#2563eb'; ctx.fillRect(120, y, (w-140)*val/100, 12); __drawText(ctx, 110, y+6, String(val.toFixed(0))+'%', 'right'); __drawText(ctx, 10, y+6, labels[i], 'left'); } }
 
-function drawLineChart(canvas, data, opts){ if(!canvas||!Array.isArray(data)||data.length<2) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); const title=opts&&opts.title||'Rolling'; const padL=40, padR=10, padT=18, padB=20; const min=Math.min(...data), max=Math.max(...data); const yMin=(opts&&opts.yMin!=null)?opts.yMin:min; const yMax=(opts&&opts.yMax!=null)?opts.yMax:max; const x=(i)=> i/(data.length-1)*(w-padL-padR)+padL; const y=(v)=> h-padB - (v-yMin)/(yMax-yMin+1e-9)*(h-padT-padB); __drawText(ctx, w/2, 12, title, 'center'); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; for(let t=0;t<=ticks;t++){ const val=yMin + (yMax-yMin)*t/ticks; const yy=y(val); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-6, yy, (opts&&opts.fmt?opts.fmt(val):val.toFixed(2)), 'right'); } ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<data.length;i++){ const xx=x(i), yy=y(data[i]); if(i===0) {ctx.moveTo(xx,yy);} else {ctx.lineTo(xx,yy);} } ctx.stroke(); __drawText(ctx, padL, h-4, 'Positions (ordre chronologique) →', 'left'); }
+function drawLineChart(canvas, data, opts){ if(!canvas||!Array.isArray(data)||data.length<2) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); const title=opts&&opts.title||'Rolling'; const padL=40, padR=10, padT=18, padB=20; const min=Math.min(...data), max=Math.max(...data); const yMin=(opts&&opts.yMin!=null)?opts.yMin:min; const yMax=(opts&&opts.yMax!=null)?opts.yMax:max; const x=(i)=> i/(data.length-1)*(w-padL-padR)+padL; const y=(v)=> h-padB - (v-yMin)/(yMax-yMin+1e-9)*(h-padT-padB); __drawText(ctx, w/2, 12, title, 'center'); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; for(let t=0;t<=ticks;t++){ const val=yMin + (yMax-yMin)*t/ticks; const yy=y(val); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-6, yy, (opts&&opts.fmt?opts.fmt(val):val.toFixed(2)), 'right'); } ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<data.length;i++){ const xx=x(i), yy=y(data[i]); if(i===0) {ctx.moveTo(xx,yy);} else {ctx.lineTo(xx,yy);} } ctx.stroke(); __drawText(ctx, padL, h-4, 'Positions (ordre chronologique) â†’', 'left'); }
 
-function drawDurations(canvas, arrMin){ if(!canvas||!Array.isArray(arrMin)||!arrMin.length) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'Durée des trades (minutes)', 'center'); const padL=46, padR=12, padT=18, padB=24; const sorted=arrMin.slice().sort((a,b)=>a-b); const p95=sorted[Math.floor(sorted.length*0.95)]||sorted[sorted.length-1]; const maxVal=Math.max(1, p95); const bins=20; const hist=new Array(bins).fill(0); for(const v of arrMin){ const c=Math.min(v, maxVal); let b=Math.floor(c/maxVal*(bins)); if(b>=bins) {b=bins-1;} hist[b]++; }
+function drawDurations(canvas, arrMin){ if(!canvas||!Array.isArray(arrMin)||!arrMin.length) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'DurÃ©e des trades (minutes)', 'center'); const padL=46, padR=12, padT=18, padB=24; const sorted=arrMin.slice().sort((a,b)=>a-b); const p95=sorted[Math.floor(sorted.length*0.95)]||sorted[sorted.length-1]; const maxVal=Math.max(1, p95); const bins=20; const hist=new Array(bins).fill(0); for(const v of arrMin){ const c=Math.min(v, maxVal); let b=Math.floor(c/maxVal*(bins)); if(b>=bins) {b=bins-1;} hist[b]++; }
   ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const mcount=Math.max(...hist,1); const ticks=4; for(let t=0;t<=ticks;t++){ const yy=h-padB - (h-padT-padB)*t/ticks; const val=Math.round(mcount*t/ticks); ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-8, yy, String(val), 'right'); }
   for(let i=0;i<bins;i++){ const xx=i/bins*(w-padL-padR)+padL; const hh=(hist[i]/mcount)*(h-padT-padB); ctx.fillStyle='#2563eb'; ctx.fillRect(xx, h-padB-hh, (w-padL-padR)/bins-2, hh); } __drawText(ctx, padL, h-8, '0', 'left'); __drawText(ctx, w-8, h-8, `${maxVal.toFixed(0)}+`, 'right'); }
 
-function drawStreaks(canvas, winCounts, loseCounts){ if(!canvas) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'Séquences victoires/défaites', 'center'); const padL=46, padR=12, padT=18, padB=24; const maxLen=Math.max(winCounts.length, loseCounts.length); const maxVal=Math.max(1, ...winCounts, ...loseCounts); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; for(let t=0;t<=ticks;t++){ const yy=h-padB - (h-padT-padB)*t/ticks; const val=Math.round(maxVal*t/ticks); ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-8, yy, String(val), 'right'); }
+function drawStreaks(canvas, winCounts, loseCounts){ if(!canvas) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'SÃ©quences victoires/dÃ©faites', 'center'); const padL=46, padR=12, padT=18, padB=24; const maxLen=Math.max(winCounts.length, loseCounts.length); const maxVal=Math.max(1, ...winCounts, ...loseCounts); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; for(let t=0;t<=ticks;t++){ const yy=h-padB - (h-padT-padB)*t/ticks; const val=Math.round(maxVal*t/ticks); ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-8, yy, String(val), 'right'); }
   const barW=(w-padL-padR)/Math.max(1,maxLen); for(let i=0;i<maxLen;i++){ const x0=padL+i*barW; const wHalf=barW/2-2; const wv=winCounts[i]||0, lv=loseCounts[i]||0; const hhW = (wv/maxVal)*(h-padT-padB); const hhL = (lv/maxVal)*(h-padT-padB); ctx.fillStyle='#10b981'; ctx.fillRect(x0+2, h-padB-hhW, wHalf, hhW); ctx.fillStyle='#ef4444'; ctx.fillRect(x0+2+wHalf, h-padB-hhL, wHalf, hhL); __drawText(ctx, x0+barW/2, h-8, String(i), 'center'); } __drawText(ctx, w-8, padT+2, 'Vert: Win  Rouge: Loss', 'right'); }
 
-function drawHistLongShort(canvas, longs, shorts){ if(!canvas) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'Distribution retours (%) — Long vs Short', 'center'); const padL=46, padR=12, padT=18, padB=24; const all=longs.concat(shorts); if(!all.length) {return;} const min=Math.min(...all), max=Math.max(...all); const bins=20; const step=(max-min)/(bins||1)||1; const histL=new Array(bins).fill(0), histS=new Array(bins).fill(0); for(const v of longs){ let b=Math.floor((v-min)/step); if(b<0) {b=0;} if(b>=bins) {b=bins-1;} histL[b]++; } for(const v of shorts){ let b=Math.floor((v-min)/step); if(b<0) {b=0;} if(b>=bins) {b=bins-1;} histS[b]++; } const mcount=Math.max(1, ...histL, ...histS); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; for(let t=0;t<=ticks;t++){ const yy=h-padB - (h-padT-padB)*t/ticks; const val=Math.round(mcount*t/ticks); ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-8, yy, String(val), 'right'); }
+function drawHistLongShort(canvas, longs, shorts){ if(!canvas) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'Distribution retours (%) â€” Long vs Short', 'center'); const padL=46, padR=12, padT=18, padB=24; const all=longs.concat(shorts); if(!all.length) {return;} const min=Math.min(...all), max=Math.max(...all); const bins=20; const step=(max-min)/(bins||1)||1; const histL=new Array(bins).fill(0), histS=new Array(bins).fill(0); for(const v of longs){ let b=Math.floor((v-min)/step); if(b<0) {b=0;} if(b>=bins) {b=bins-1;} histL[b]++; } for(const v of shorts){ let b=Math.floor((v-min)/step); if(b<0) {b=0;} if(b>=bins) {b=bins-1;} histS[b]++; } const mcount=Math.max(1, ...histL, ...histS); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; for(let t=0;t<=ticks;t++){ const yy=h-padB - (h-padT-padB)*t/ticks; const val=Math.round(mcount*t/ticks); ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-8, yy, String(val), 'right'); }
   for(let i=0;i<bins;i++){ const xx=i/bins*(w-padL-padR)+padL; const hhL=(histL[i]/mcount)*(h-padT-padB); const hhS=(histS[i]/mcount)*(h-padT-padB); const bw=(w-padL-padR)/bins-3; ctx.fillStyle='rgba(16,185,129,0.6)'; ctx.fillRect(xx, h-padB-hhL, bw, hhL); ctx.fillStyle='rgba(239,68,68,0.6)'; ctx.fillRect(xx, h-padB-hhS, bw, hhS); }
   __drawText(ctx, padL, h-8, `${min.toFixed(2)}%`, 'left'); __drawText(ctx, w-8, h-8, `${max.toFixed(2)}%`, 'right'); __drawText(ctx, w-8, padT+2, 'Vert: Long  Rouge: Short', 'right'); }
 
 function drawMAEMFEScatter(canvas, points){ if(!canvas||!points||!points.length) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'MAE/MFE Scatter (R units)', 'center'); const padL=46, padR=12, padT=20, padB=28; const maxX=Math.max(1, ...points.map(p=>p.maeR)); const maxY=Math.max(1, ...points.map(p=>p.mfeR)); const x=(v)=> padL + (v/Math.max(1e-9,maxX))*(w-padL-padR); const y=(v)=> h-padB - (v/Math.max(1e-9,maxY))*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; for(let t=0;t<=ticks;t++){ const xx=padL + (w-padL-padR)*t/ticks; const yy=h-padB - (h-padT-padB)*t/ticks; ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(xx, padT); ctx.lineTo(xx, h-padB); ctx.stroke(); ctx.beginPath(); ctx.moveTo(padL, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, xx, h-8, (maxX*t/ticks).toFixed(1), 'center'); __drawText(ctx, padL-8, yy, (maxY*t/ticks).toFixed(1), 'right'); }
-  __drawText(ctx, w-8, h-8, 'MAE (R) →', 'right'); __drawText(ctx, padL+2, padT, 'MFE (R) ↑', 'left'); __drawText(ctx, w-8, padT+2, 'Vert = Gain  Rouge = Perte', 'right');
+  __drawText(ctx, w-8, h-8, 'MAE (R) â†’', 'right'); __drawText(ctx, padL+2, padT, 'MFE (R) â†‘', 'left'); __drawText(ctx, w-8, padT+2, 'Vert = Gain  Rouge = Perte', 'right');
   for(const p of points){ const col = p.win? 'rgba(16,185,129,0.85)' : 'rgba(239,68,68,0.85)'; ctx.fillStyle=col; const xx=x(p.maeR), yy=y(p.mfeR); ctx.beginPath(); ctx.arc(xx, yy, 3, 0, Math.PI*2); ctx.fill(); }
 }
 
@@ -3288,7 +3289,7 @@ function drawMonthlyHeatmap(canvas, cells){ if(!canvas||!cells||!cells.length) {
 
 function drawWeeklyHeatmap(canvas, cells){ if(!canvas||!cells||!cells.length) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 10, 'Weekly returns (%)', 'center'); const padL=58, padR=10, padT=30, padB=18; const years=Array.from(new Set(cells.map(c=>c.y))).sort((a,b)=>a-b); const cols=53; const cw=(w-padL-padR)/cols, ch=(h-padT-padB)/Math.max(1,years.length); const vals=cells.map(c=>c.r); const vMin=Math.min(...vals, -10), vMax=Math.max(...vals, 10); function color(v){ const x=(v - vMin)/(vMax-vMin+1e-9); const r=Math.round(239*(1-x)); const g=Math.round(68 + (185-68)*x); const b=Math.round(68*(1-x)); return `rgb(${r},${g},${b})`; }
   const showVals = (ch>=16 && cw>=22);
-  // x ticks every 4 weeks (limités pour éviter le chevauchement)
+  // x ticks every 4 weeks (limitÃ©s pour Ã©viter le chevauchement)
   for(let k=1;k<=cols;k+=8){ __drawText(ctx, padL + (k-0.5)*cw, padT-6, String(k), 'center'); }
   for(let i=0;i<years.length;i++){ __drawText(ctx, padL-6, padT + i*ch + ch/2, String(years[i]), 'right'); }
   const map=new Map(); for(const c of cells){ map.set(`${c.y}-${c.w}`, c.r); }
@@ -3298,55 +3299,55 @@ function drawWeeklyHeatmap(canvas, cells){ if(!canvas||!cells||!cells.length) {r
       if(v!=null && showVals){ __drawText(ctx, x+cw/2, y+ch/2, String(v.toFixed(1)), 'center'); }
     }
   }
-__drawText(ctx, w-8, h-6, 'Semaines (1–53) →', 'right');
+__drawText(ctx, w-8, h-6, 'Semaines (1â€“53) â†’', 'right');
 }
 
 function drawDOWBars(canvas, vals){ if(!canvas||!vals||vals.length!==7) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); const padL=46, padR=12, padT=20, padB=28; __drawText(ctx, w/2, 12, 'Retours moyens par jour de semaine (%)', 'center'); const min=Math.min(0, ...vals.map(v=>v.v)), max=Math.max(0, ...vals.map(v=>v.v)); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB); for(let t=0;t<=ticks;t++){ const val=min + (max-min)*t/ticks; const yy=y(val); ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-8, yy, val.toFixed(2)+'%', 'right'); } const bw=(w-padL-padR)/7 - 6; for(let i=0;i<7;i++){ const x0=padL + i*((w-padL-padR)/7) + 3; const v=vals[i].v; const y0=y(0), yv=y(v); ctx.fillStyle = v>=0? 'rgba(16,185,129,0.75)' : 'rgba(239,68,68,0.75)'; ctx.fillRect(x0, Math.min(y0,yv), bw, Math.abs(y0-yv)); __drawText(ctx, x0+bw/2, h-10, vals[i].k, 'center'); }
 }
 
-function drawDOWHourHeatmap(canvas, cells){ if(!canvas||!cells||!cells.length) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 10, 'Jour × Heure — retours (%)', 'center'); const padL=60, padR=10, padT=30, padB=18; const rows=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']; const cols=24; const cw=(w-padL-padR)/cols, ch=(h-padT-padB)/rows.length; const vals=cells.map(c=>c.r); const vMin=Math.min(...vals, -5), vMax=Math.max(...vals, 5); function color(v){ const x=(v - vMin)/(vMax-vMin+1e-9); const r=Math.round(239*(1-x)); const g=Math.round(68 + (185-68)*x); const b=Math.round(68*(1-x)); return `rgb(${r},${g},${b})`; }
+function drawDOWHourHeatmap(canvas, cells){ if(!canvas||!cells||!cells.length) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 10, 'Jour Ã— Heure â€” retours (%)', 'center'); const padL=60, padR=10, padT=30, padB=18; const rows=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']; const cols=24; const cw=(w-padL-padR)/cols, ch=(h-padT-padB)/rows.length; const vals=cells.map(c=>c.r); const vMin=Math.min(...vals, -5), vMax=Math.max(...vals, 5); function color(v){ const x=(v - vMin)/(vMax-vMin+1e-9); const r=Math.round(239*(1-x)); const g=Math.round(68 + (185-68)*x); const b=Math.round(68*(1-x)); return `rgb(${r},${g},${b})`; }
   for(let hcol=0; hcol<cols; hcol+=6){ __drawText(ctx, padL + hcol*cw + cw/2, padT-6, String(hcol), 'center'); }
   for(let r=0;r<rows.length;r++){ __drawText(ctx, padL-6, padT + r*ch + ch/2, rows[r], 'right'); for(let c=0;c<cols;c++){ const cell=cells[r*cols + c]; const x=padL + c*cw, y=padT + r*ch; const v=(cell && Number.isFinite(cell.r))? cell.r : null; ctx.fillStyle = v==null? '#e5e7eb' : color(v); ctx.fillRect(x+1,y+1,cw-2,ch-2); if(v!=null){ __drawText(ctx, x+cw/2, y+ch/2, String((v).toFixed(1)), 'center'); } } }
   // store hover config on canvas for tooltip/click
   try{ canvas.__heatCfg = { padL, padT, padR, padB, rows, cols, cells, cw, ch }; }catch(_){ }
 }
 
-function drawCIBars(canvas, ci){ if(!canvas||!ci) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'IC 95% — Win%, PF, Exp', 'center'); const padL=70, padR=12, padT=22, padB=12; const rows=[{k:'Win%', lo:(ci.win&&ci.win[0])||0, hi:(ci.win&&ci.win[1])||0, min:0, max:100, fmt:(v)=>v.toFixed(1)+'%'},{k:'PF', lo:(ci.pf&&ci.pf[0])||0, hi:(ci.pf&&ci.pf[1])||0, min:0, max:Math.max(3, (ci.pf&&ci.pf[1])||0), fmt:(v)=> (v===Infinity?'∞':v.toFixed(2))},{k:'Exp', lo:(ci.exp&&ci.exp[0])||0, hi:(ci.exp&&ci.exp[1])||0, min:Math.min((ci.exp&&ci.exp[0])||0,0), max:Math.max((ci.exp&&ci.exp[1])||0,0), fmt:(v)=> v.toFixed(2)}]; const rh=(h-padT-padB)/rows.length; ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); for(let r=0;r<rows.length;r++){ const row=rows[r]; const y=padT + r*rh + rh/2; const min=row.min, max=row.max; const x=(v)=> padL + (v-min)/(max-min+1e-9)*(w-padL-padR); // grid
+function drawCIBars(canvas, ci){ if(!canvas||!ci) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'IC 95% â€” Win%, PF, Exp', 'center'); const padL=70, padR=12, padT=22, padB=12; const rows=[{k:'Win%', lo:(ci.win&&ci.win[0])||0, hi:(ci.win&&ci.win[1])||0, min:0, max:100, fmt:(v)=>v.toFixed(1)+'%'},{k:'PF', lo:(ci.pf&&ci.pf[0])||0, hi:(ci.pf&&ci.pf[1])||0, min:0, max:Math.max(3, (ci.pf&&ci.pf[1])||0), fmt:(v)=> (v===Infinity?'âˆž':v.toFixed(2))},{k:'Exp', lo:(ci.exp&&ci.exp[0])||0, hi:(ci.exp&&ci.exp[1])||0, min:Math.min((ci.exp&&ci.exp[0])||0,0), max:Math.max((ci.exp&&ci.exp[1])||0,0), fmt:(v)=> v.toFixed(2)}]; const rh=(h-padT-padB)/rows.length; ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); for(let r=0;r<rows.length;r++){ const row=rows[r]; const y=padT + r*rh + rh/2; const min=row.min, max=row.max; const x=(v)=> padL + (v-min)/(max-min+1e-9)*(w-padL-padR); // grid
   const ticks=4; for(let t=0;t<=ticks;t++){ const xx=padL + (w-padL-padR)*t/ticks; ctx.beginPath(); ctx.moveTo(xx, y-rh/2+4); ctx.lineTo(xx, y+rh/2-4); ctx.stroke(); }
   // CI segment
   const xl=x(row.lo), xh=x(row.hi); ctx.strokeStyle='#2563eb'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(xl, y); ctx.lineTo(xh, y); ctx.stroke(); ctx.strokeStyle=__clr().border; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(xl, y-6); ctx.lineTo(xl, y+6); ctx.moveTo(xh, y-6); ctx.lineTo(xh, y+6); ctx.stroke(); __drawText(ctx, padL-8, y, row.k, 'right'); __drawText(ctx, xl-4, y-10, row.fmt(row.lo), 'right'); __drawText(ctx, xh+4, y-10, row.fmt(row.hi), 'left'); }
 }
 
-function drawWFTable(canvas, splits){ if(!canvas||!Array.isArray(splits)||!splits.length) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 10, 'Walk-forward — métriques par split', 'center'); const padL=60, padR=10, padT=30, padB=12; const cols=splits.length, rows=['PF','Win%','Exp','P&L']; const cw=(w-padL-padR)/cols, rh=(h-padT-padB)/rows.length; ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); for(let c=0;c<cols;c++){ __drawText(ctx, padL + c*cw + cw/2, padT-6, 'S'+(c+1), 'center'); for(let r=0;r<rows.length;r++){ const x=padL + c*cw, y=padT + r*rh; ctx.strokeStyle=__clr().border; ctx.strokeRect(x+0.5, y+0.5, cw-1, rh-1); let val='—'; if(r===0) {val = (splits[c].pf===Infinity? '∞': splits[c].pf.toFixed(2));} else if(r===1) {val = splits[c].win.toFixed(1)+'%';} else if(r===2) {val = splits[c].exp.toFixed(2);} else if(r===3) {val = splits[c].pnl.toFixed(0);} __drawText(ctx, x+cw/2, y+rh/2, val, 'center'); if(c===0){ __drawText(ctx, padL-8, y+rh/2, rows[r], 'right'); } } }
+function drawWFTable(canvas, splits){ if(!canvas||!Array.isArray(splits)||!splits.length) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 10, 'Walk-forward â€” mÃ©triques par split', 'center'); const padL=60, padR=10, padT=30, padB=12; const cols=splits.length, rows=['PF','Win%','Exp','P&L']; const cw=(w-padL-padR)/cols, rh=(h-padT-padB)/rows.length; ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); for(let c=0;c<cols;c++){ __drawText(ctx, padL + c*cw + cw/2, padT-6, 'S'+(c+1), 'center'); for(let r=0;r<rows.length;r++){ const x=padL + c*cw, y=padT + r*rh; ctx.strokeStyle=__clr().border; ctx.strokeRect(x+0.5, y+0.5, cw-1, rh-1); let val='â€”'; if(r===0) {val = (splits[c].pf===Infinity? 'âˆž': splits[c].pf.toFixed(2));} else if(r===1) {val = splits[c].win.toFixed(1)+'%';} else if(r===2) {val = splits[c].exp.toFixed(2);} else if(r===3) {val = splits[c].pnl.toFixed(0);} __drawText(ctx, x+cw/2, y+rh/2, val, 'center'); if(c===0){ __drawText(ctx, padL-8, y+rh/2, rows[r], 'right'); } } }
 }
 
-function drawRegimeHeatmap(canvas, mat){ if(!canvas||!mat) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 10, 'PF par régime (Trend × Vol)', 'center'); const padL=80, padR=10, padT=30, padB=12; const rows=['Up','Down'], cols=['Low','Med','High']; const cw=(w-padL-padR)/cols.length, ch=(h-padT-padB)/rows.length; for(let r=0;r<rows.length;r++){ __drawText(ctx, padL-6, padT + r*ch + ch/2, rows[r], 'right'); for(let c=0;c<cols.length;c++){ const cell=mat[rows[r]][cols[c]]||{pf:0,count:0}; const pf=(cell.pf===Infinity? 5 : Math.max(0, Math.min(5, cell.pf||0))); const x=padL + c*cw, y=padT + r*ch; // green scale by PF
+function drawRegimeHeatmap(canvas, mat){ if(!canvas||!mat) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 10, 'PF par rÃ©gime (Trend Ã— Vol)', 'center'); const padL=80, padR=10, padT=30, padB=12; const rows=['Up','Down'], cols=['Low','Med','High']; const cw=(w-padL-padR)/cols.length, ch=(h-padT-padB)/rows.length; for(let r=0;r<rows.length;r++){ __drawText(ctx, padL-6, padT + r*ch + ch/2, rows[r], 'right'); for(let c=0;c<cols.length;c++){ const cell=mat[rows[r]][cols[c]]||{pf:0,count:0}; const pf=(cell.pf===Infinity? 5 : Math.max(0, Math.min(5, cell.pf||0))); const x=padL + c*cw, y=padT + r*ch; // green scale by PF
       const g=Math.round(255*Math.min(1, pf/3)); const col=`rgb(${255-g},${g},120)`; ctx.fillStyle=col; ctx.fillRect(x+1,y+1,cw-2,ch-2);
-      // Texte en surimpression avec couleur sombre pour lisibilité
-      const label = `${(cell.pf===Infinity?'∞':pf.toFixed(2))} (${cell.count})`;
+      // Texte en surimpression avec couleur sombre pour lisibilitÃ©
+      const label = `${(cell.pf===Infinity?'âˆž':pf.toFixed(2))} (${cell.count})`;
       ctx.save(); ctx.fillStyle='rgba(15,23,42,0.95)'; ctx.font='11px Segoe UI, Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(label, x+cw/2, y+ch/2); ctx.restore();
       ctx.save(); ctx.fillStyle='rgba(15,23,42,0.95)'; ctx.font='11px Segoe UI, Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(cols[c], x+cw/2, padT-6); ctx.restore(); }
   }
 }
 
-function drawPareto(canvas, pts){ if(!canvas||!pts||!pts.length) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'Pareto — P&L vs Max DD', 'center'); const padL=56, padR=12, padT=22, padB=28; const minX=0, maxX=Math.max(1, ...pts.map(p=>p.dd)); const minY=Math.min(0, ...pts.map(p=>p.pnl)), maxY=Math.max(1, ...pts.map(p=>p.pnl)); const x=(v)=> padL + (v-minX)/(maxX-minX+1e-9)*(w-padL-padR); const y=(v)=> h-padB - (v-minY)/(maxY-minY+1e-9)*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; for(let t=0;t<=ticks;t++){ const tx=padL + (w-padL-padR)*t/ticks; const ty=h-padB - (h-padT-padB)*t/ticks; ctx.beginPath(); ctx.moveTo(tx, padT); ctx.lineTo(tx, h-padB); ctx.stroke(); ctx.beginPath(); ctx.moveTo(padL, ty); ctx.lineTo(w-padR, ty); ctx.stroke(); __drawText(ctx, tx, h-8, String(((maxX-minX)*t/ticks+minX).toFixed(0)), 'center'); __drawText(ctx, padL-8, ty, String(((maxY-minY)*t/ticks+minY).toFixed(0)), 'right'); }
-  __drawText(ctx, w-8, h-8, 'Max DD →', 'right'); __drawText(ctx, padL+2, padT, 'P&L ↑', 'left');
+function drawPareto(canvas, pts){ if(!canvas||!pts||!pts.length) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'Pareto â€” P&L vs Max DD', 'center'); const padL=56, padR=12, padT=22, padB=28; const minX=0, maxX=Math.max(1, ...pts.map(p=>p.dd)); const minY=Math.min(0, ...pts.map(p=>p.pnl)), maxY=Math.max(1, ...pts.map(p=>p.pnl)); const x=(v)=> padL + (v-minX)/(maxX-minX+1e-9)*(w-padL-padR); const y=(v)=> h-padB - (v-minY)/(maxY-minY+1e-9)*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; for(let t=0;t<=ticks;t++){ const tx=padL + (w-padL-padR)*t/ticks; const ty=h-padB - (h-padT-padB)*t/ticks; ctx.beginPath(); ctx.moveTo(tx, padT); ctx.lineTo(tx, h-padB); ctx.stroke(); ctx.beginPath(); ctx.moveTo(padL, ty); ctx.lineTo(w-padR, ty); ctx.stroke(); __drawText(ctx, tx, h-8, String(((maxX-minX)*t/ticks+minX).toFixed(0)), 'center'); __drawText(ctx, padL-8, ty, String(((maxY-minY)*t/ticks+minY).toFixed(0)), 'right'); }
+  __drawText(ctx, w-8, h-8, 'Max DD â†’', 'right'); __drawText(ctx, padL+2, padT, 'P&L â†‘', 'left');
   function colFromScore(s){ if(!Number.isFinite(s)) {return 'rgba(37,99,235,0.85)';} const x=Math.max(0, Math.min(1, s/100)); const g=Math.round(180*x+40); const r=Math.round(220*(1-x)); return `rgba(${r},${g},120,0.9)`; }
   for(const p of pts){ ctx.fillStyle=colFromScore(p.score); ctx.beginPath(); ctx.arc(x(p.dd), y(p.pnl), 3, 0, Math.PI*2); ctx.fill(); }
 }
 
-function drawQQ(canvas, arr){ if(!canvas||!arr||arr.length<3) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'QQ-Plot (retours normalisés)', 'center'); const padL=40, padR=10, padT=18, padB=22; const xs=arr.slice().filter(Number.isFinite).sort((a,b)=>a-b); const n=xs.length; const mean=xs.reduce((s,x)=>s+x,0)/n; const sd=Math.sqrt(xs.reduce((s,x)=> s+(x-mean)*(x-mean),0)/Math.max(1,n-1)); const zs=xs.map(x=> (x-mean)/(sd||1)); function qnorm(p){ // inverse CDF normal approx (Beasley-Springer/Moro) simple poly
+function drawQQ(canvas, arr){ if(!canvas||!arr||arr.length<3) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'QQ-Plot (retours normalisÃ©s)', 'center'); const padL=40, padR=10, padT=18, padB=22; const xs=arr.slice().filter(Number.isFinite).sort((a,b)=>a-b); const n=xs.length; const mean=xs.reduce((s,x)=>s+x,0)/n; const sd=Math.sqrt(xs.reduce((s,x)=> s+(x-mean)*(x-mean),0)/Math.max(1,n-1)); const zs=xs.map(x=> (x-mean)/(sd||1)); function qnorm(p){ // inverse CDF normal approx (Beasley-Springer/Moro) simple poly
   const a=[-39.696830,220.946098,-275.928510,138.357751,-30.664798,2.506628]; const b=[-54.476098,161.585836,-155.698979,66.801311,-13.280681]; const c=[-0.007784894, -0.322396, -2.400758, -2.549732, 4.374664, 2.938163]; const d=[0.007784695, 0.322467, 2.445134, 3.754408]; const plow=0.02425, phigh=1-plow; let q; if(p<plow){ q=Math.sqrt(-2*Math.log(p)); return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); } if(p>phigh){ q=Math.sqrt(-2*Math.log(1-p)); return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); } q=p-0.5; const r=q*q; return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*1; }
   const theo=[]; for(let i=1;i<=n;i++){ const p=(i-0.5)/n; theo.push(qnorm(p)); }
   const minV=Math.min(...zs, ...theo), maxV=Math.max(...zs, ...theo); const x=(v)=> padL + (v-minV)/(maxV-minV+1e-9)*(w-padL-padR); const y=(v)=> h-padB - (v-minV)/(maxV-minV+1e-9)*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); // diagonal
   ctx.strokeStyle='#10b981'; ctx.beginPath(); ctx.moveTo(x(minV), y(minV)); ctx.lineTo(x(maxV), y(maxV)); ctx.stroke(); ctx.fillStyle='rgba(37,99,235,0.85)'; for(let i=0;i<n;i++){ ctx.beginPath(); ctx.arc(x(theo[i]), y(zs[i]), 2.5, 0, Math.PI*2); ctx.fill(); } }
 
-function drawACF(canvas, arr, maxLag){ if(!canvas||!arr||arr.length<3) {return;} maxLag=Math.max(1, maxLag||10); const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'Autocorrélation (lags)', 'center'); const padL=30, padR=10, padT=18, padB=22; const xs=arr.slice().filter(Number.isFinite); const n=xs.length; const mean=xs.reduce((s,x)=>s+x,0)/n; const varr=xs.reduce((s,x)=> s+(x-mean)*(x-mean),0); const acf=[]; for(let k=1;k<=maxLag;k++){ let num=0; for(let i=0;i<n-k;i++){ num += (xs[i]-mean)*(xs[i+k]-mean); } acf.push(num/(varr||1)); } const yMin=Math.min(0, ...acf), yMax=Math.max(0, ...acf); const x=(i)=> padL + (i-1)/(maxLag-1)*(w-padL-padR); const y=(v)=> h-padB - (v-yMin)/(yMax-yMin+1e-9)*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const z=1.96/Math.sqrt(Math.max(1,n)); ctx.strokeStyle='#ef4444'; ctx.beginPath(); ctx.moveTo(padL, y(z)); ctx.lineTo(w-padR, y(z)); ctx.moveTo(padL, y(-z)); ctx.lineTo(w-padR, y(-z)); ctx.stroke(); for(let k=1;k<=maxLag;k++){ const xx=x(k); const hh=(acf[k-1]-0)/(yMax-yMin+1e-9)*(h-padT-padB); ctx.fillStyle='#2563eb'; const y0=y(0), yk=y(acf[k-1]); ctx.fillRect(xx-6, Math.min(y0,yk), 12, Math.abs(y0-yk)); __drawText(ctx, xx, h-6, String(k), 'center'); } }
-function drawRobust(canvas, complexity, robustness){ if(!canvas) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 14, 'Complexité & Robustesse (0–100)', 'center'); // grid
+function drawACF(canvas, arr, maxLag){ if(!canvas||!arr||arr.length<3) {return;} maxLag=Math.max(1, maxLag||10); const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'AutocorrÃ©lation (lags)', 'center'); const padL=30, padR=10, padT=18, padB=22; const xs=arr.slice().filter(Number.isFinite); const n=xs.length; const mean=xs.reduce((s,x)=>s+x,0)/n; const varr=xs.reduce((s,x)=> s+(x-mean)*(x-mean),0); const acf=[]; for(let k=1;k<=maxLag;k++){ let num=0; for(let i=0;i<n-k;i++){ num += (xs[i]-mean)*(xs[i+k]-mean); } acf.push(num/(varr||1)); } const yMin=Math.min(0, ...acf), yMax=Math.max(0, ...acf); const x=(i)=> padL + (i-1)/(maxLag-1)*(w-padL-padR); const y=(v)=> h-padB - (v-yMin)/(yMax-yMin+1e-9)*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const z=1.96/Math.sqrt(Math.max(1,n)); ctx.strokeStyle='#ef4444'; ctx.beginPath(); ctx.moveTo(padL, y(z)); ctx.lineTo(w-padR, y(z)); ctx.moveTo(padL, y(-z)); ctx.lineTo(w-padR, y(-z)); ctx.stroke(); for(let k=1;k<=maxLag;k++){ const xx=x(k); const hh=(acf[k-1]-0)/(yMax-yMin+1e-9)*(h-padT-padB); ctx.fillStyle='#2563eb'; const y0=y(0), yk=y(acf[k-1]); ctx.fillRect(xx-6, Math.min(y0,yk), 12, Math.abs(y0-yk)); __drawText(ctx, xx, h-6, String(k), 'center'); } }
+function drawRobust(canvas, complexity, robustness){ if(!canvas) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 14, 'ComplexitÃ© & Robustesse (0â€“100)', 'center'); // grid
   ctx.strokeStyle=__clr().border; for(let g=0; g<=5; g++){ const x=220 + (w-240)*(g/5); ctx.beginPath(); ctx.moveTo(x, 24); ctx.lineTo(x, h-14); ctx.stroke(); __drawText(ctx, x, h-6, String(g*20)+'%', 'center'); }
-  const labels=['Complexité (params actifs)','Robustesse (stabilité)']; const vals=[complexity, robustness]; for(let i=0;i<2;i++){ const y=40+i*40; ctx.fillStyle='#e5e7eb'; ctx.fillRect(220, y, w-240, 14); ctx.fillStyle=i===0?'#f59e0b':'#10b981'; ctx.fillRect(220, y, (w-240)*Math.max(0,Math.min(100, vals[i]))/100, 14); __drawText(ctx, 210, y+7, String(Math.round(vals[i]))+'%', 'right'); __drawText(ctx, 10, y+7, labels[i], 'left'); } }
+  const labels=['ComplexitÃ© (params actifs)','Robustesse (stabilitÃ©)']; const vals=[complexity, robustness]; for(let i=0;i<2;i++){ const y=40+i*40; ctx.fillStyle='#e5e7eb'; ctx.fillRect(220, y, w-240, 14); ctx.fillStyle=i===0?'#f59e0b':'#10b981'; ctx.fillRect(220, y, (w-240)*Math.max(0,Math.min(100, vals[i]))/100, 14); __drawText(ctx, 210, y+7, String(Math.round(vals[i]))+'%', 'right'); __drawText(ctx, 10, y+7, labels[i], 'left'); } }
 
-// Aide: synthèse et suggestions automatiques
+// Aide: synthÃ¨se et suggestions automatiques
 function generateStrategySummary(res, ctx, d){ try{
   const pf = (res.profitFactor===Infinity? Infinity : (+res.profitFactor||0));
   const wr = +res.winrate||0; const rr = +res.avgRR||0; const dd = +res.maxDDAbs||0;
@@ -3356,59 +3357,59 @@ function generateStrategySummary(res, ctx, d){ try{
   const freq = Math.max(0, d && d.freq || 0);
   const gen = Math.max(1, ctx && ctx.gen || 1);
   const lines = [];
-  // Synthèse courte
-  lines.push(`• Profit Factor: ${pf===Infinity?'∞':pf.toFixed(2)}  • Win%: ${wr.toFixed(1)}%  • Avg R:R: ${Number.isFinite(rr)? rr.toFixed(2):'—'}`);
-  if(Number.isFinite(ddPct)) {lines.push(`• Max DD: ${dd.toFixed(0)} (${ddPct.toFixed(1)}% du capital initial)`);}
-  lines.push(`• Exposition: ${tim.toFixed(1)}%  • Trades/jour: ${freq.toFixed(2)}`);
-  if(d && typeof d.expectancy==='number') {lines.push(`• Expectancy/trade: ${d.expectancy.toFixed(2)} (USD)`);}
-  if(d && typeof d.avgDurMin==='number') {lines.push(`• Durée moyenne/trade: ${d.avgDurMin.toFixed(1)} min`);}
-  if(d && typeof d.bestNet==='number' && typeof d.worstNet==='number') {lines.push(`• Meilleur trade: ${d.bestNet.toFixed(2)}  • Pire trade: ${d.worstNet.toFixed(2)}`);}
-  if(d && Number.isFinite(d.r2)) {lines.push(`• Linéarité equity (R²): ${(d.r2*100).toFixed(0)}%`);}
-  // Interprétation
+  // SynthÃ¨se courte
+  lines.push(`â€¢ Profit Factor: ${pf===Infinity?'âˆž':pf.toFixed(2)}  â€¢ Win%: ${wr.toFixed(1)}%  â€¢ Avg R:R: ${Number.isFinite(rr)? rr.toFixed(2):'â€”'}`);
+  if(Number.isFinite(ddPct)) {lines.push(`â€¢ Max DD: ${dd.toFixed(0)} (${ddPct.toFixed(1)}% du capital initial)`);}
+  lines.push(`â€¢ Exposition: ${tim.toFixed(1)}%  â€¢ Trades/jour: ${freq.toFixed(2)}`);
+  if(d && typeof d.expectancy==='number') {lines.push(`â€¢ Expectancy/trade: ${d.expectancy.toFixed(2)} (USD)`);}
+  if(d && typeof d.avgDurMin==='number') {lines.push(`â€¢ DurÃ©e moyenne/trade: ${d.avgDurMin.toFixed(1)} min`);}
+  if(d && typeof d.bestNet==='number' && typeof d.worstNet==='number') {lines.push(`â€¢ Meilleur trade: ${d.bestNet.toFixed(2)}  â€¢ Pire trade: ${d.worstNet.toFixed(2)}`);}
+  if(d && Number.isFinite(d.r2)) {lines.push(`â€¢ LinÃ©aritÃ© equity (RÂ²): ${(d.r2*100).toFixed(0)}%`);}
+  // InterprÃ©tation
   const insights = [];
-  if(pf<1.2 && pf!==Infinity) {insights.push("rentabilité fragile (PF < 1.2)");}
-  if(wr<45) {insights.push("taux de réussite bas (<45%)");}
+  if(pf<1.2 && pf!==Infinity) {insights.push("rentabilitÃ© fragile (PF < 1.2)");}
+  if(wr<45) {insights.push("taux de rÃ©ussite bas (<45%)");}
   if(Number.isFinite(rr) && rr<1.0) {insights.push("R:R moyen < 1 (cibles trop proches vs SL)");}
-  if(Number.isFinite(ddPct) && ddPct>20) {insights.push("drawdown élevé (>20% du capital)");}
-  if(tim>60) {insights.push("exposition importante au marché (>60%)");}
-  if(insights.length){ lines.push(`• Lecture: ${insights.join(' • ')}`); }
-  if(d && d.ci){ try{ const winCI = d.ci.win||[]; const pfCI=d.ci.pf||[]; const expCI=d.ci.exp||[]; lines.push(`• IC95: Win% [${(winCI[0]||0).toFixed(1)}–${(winCI[1]||0).toFixed(1)}]  PF [${(pfCI[0]||0).toFixed(2)}–${(pfCI[1]||0).toFixed(2)}]  Exp [${(expCI[0]||0).toFixed(2)}–${(expCI[1]||0).toFixed(2)}]`); }catch(_){ } }
-  // Points d'amélioration pour gen ≥ 2
+  if(Number.isFinite(ddPct) && ddPct>20) {insights.push("drawdown Ã©levÃ© (>20% du capital)");}
+  if(tim>60) {insights.push("exposition importante au marchÃ© (>60%)");}
+  if(insights.length){ lines.push(`â€¢ Lecture: ${insights.join(' â€¢ ')}`); }
+  if(d && d.ci){ try{ const winCI = d.ci.win||[]; const pfCI=d.ci.pf||[]; const expCI=d.ci.exp||[]; lines.push(`â€¢ IC95: Win% [${(winCI[0]||0).toFixed(1)}â€“${(winCI[1]||0).toFixed(1)}]  PF [${(pfCI[0]||0).toFixed(2)}â€“${(pfCI[1]||0).toFixed(2)}]  Exp [${(expCI[0]||0).toFixed(2)}â€“${(expCI[1]||0).toFixed(2)}]`); }catch(_){ } }
+  // Points d'amÃ©lioration pour gen â‰¥ 2
   if(gen>=2){
     const imp = [];
-    if(wr<45) {imp.push("Renforcer la confirmation d'entrée (mode: Bounce/Touch), ou augmenter prd/NOL pour filtrer le bruit");}
-    if(pf<1.3) {imp.push("Rééquilibrer l'échelle de TP (plus de distance/poids sur TP ultérieurs) et réduire le nombre de trades");}
-    if(Number.isFinite(rr) && rr<1.0) {imp.push("Augmenter tp1R / ratios Fib, ou rapprocher le SL initial pour améliorer le R:R");}
+    if(wr<45) {imp.push("Renforcer la confirmation d'entrÃ©e (mode: Bounce/Touch), ou augmenter prd/NOL pour filtrer le bruit");}
+    if(pf<1.3) {imp.push("RÃ©Ã©quilibrer l'Ã©chelle de TP (plus de distance/poids sur TP ultÃ©rieurs) et rÃ©duire le nombre de trades");}
+    if(Number.isFinite(rr) && rr<1.0) {imp.push("Augmenter tp1R / ratios Fib, ou rapprocher le SL initial pour amÃ©liorer le R:R");}
     if(Number.isFinite(ddPct) && ddPct>20) {imp.push("Activer/renforcer BE (beAfterBars, beLockPct) et envisager SL ladder plus strict");}
-    if(tim>60) {imp.push("Réduire l'exposition (prd↑, NOL↑) pour limiter le temps en position");}
-    if(!imp.length) {imp.push("Affiner légèrement TP/SL et confirmer sur 2–3 splits temporels");}
-    lines.push("\nPoints d'amélioration (génération ≥ 2):\n- " + imp.join("\n- "));
+    if(tim>60) {imp.push("RÃ©duire l'exposition (prdâ†‘, NOLâ†‘) pour limiter le temps en position");}
+    if(!imp.length) {imp.push("Affiner lÃ©gÃ¨rement TP/SL et confirmer sur 2â€“3 splits temporels");}
+    lines.push("\nPoints d'amÃ©lioration (gÃ©nÃ©ration â‰¥ 2):\n- " + imp.join("\n- "));
   }
   return lines.join("\n");
-}catch(_){ return '—'; }}
+}catch(_){ return 'â€”'; }}
 
-// Description détaillée des paramètres de stratégie (structure, entrées, TP/SL, capital)
+// Description dÃ©taillÃ©e des paramÃ¨tres de stratÃ©gie (structure, entrÃ©es, TP/SL, capital)
 function describeStrategyParams(p, conf){ try{
   p = p || {}; conf = conf || {};
   const parts = [];
-  const nol = (p.nol!=null? p.nol : '—');
-  const prd = (p.prd!=null? p.prd : '—');
-  const slInit = (p.slInitPct!=null? p.slInitPct : (window.lbcOpts && lbcOpts.slInitPct!=null? lbcOpts.slInitPct : '—'));
-  const beBars = (p.beAfterBars!=null? p.beAfterBars : (window.lbcOpts && lbcOpts.beAfterBars!=null? lbcOpts.beAfterBars : '—'));
-  const beLock = (p.beLockPct!=null? p.beLockPct : (window.lbcOpts && lbcOpts.beLockPct!=null? lbcOpts.beLockPct : '—'));
-  const emaLen = (p.emaLen!=null? p.emaLen : (window.lbcOpts && lbcOpts.emaLen!=null? lbcOpts.emaLen : '—'));
-  parts.push(`Structure: nol=${nol} • prd=${prd} • SL init=${slInit}% • BE=${beBars}/${beLock}% • EMA=${emaLen}`);
+  const nol = (p.nol!=null? p.nol : 'â€”');
+  const prd = (p.prd!=null? p.prd : 'â€”');
+  const slInit = (p.slInitPct!=null? p.slInitPct : (window.lbcOpts && lbcOpts.slInitPct!=null? lbcOpts.slInitPct : 'â€”'));
+  const beBars = (p.beAfterBars!=null? p.beAfterBars : (window.lbcOpts && lbcOpts.beAfterBars!=null? lbcOpts.beAfterBars : 'â€”'));
+  const beLock = (p.beLockPct!=null? p.beLockPct : (window.lbcOpts && lbcOpts.beLockPct!=null? lbcOpts.beLockPct : 'â€”'));
+  const emaLen = (p.emaLen!=null? p.emaLen : (window.lbcOpts && lbcOpts.emaLen!=null? lbcOpts.emaLen : 'â€”'));
+  parts.push(`Structure: nol=${nol} â€¢ prd=${prd} â€¢ SL init=${slInit}% â€¢ BE=${beBars}/${beLock}% â€¢ EMA=${emaLen}`);
 
   const mode = p.entryMode || (window.lbcOpts && lbcOpts.entryMode) || 'Both';
   const fibRet = p.useFibRet ? 'Oui' : 'Non';
-  const confirm = p.confirmMode || (window.lbcOpts && lbcOpts.confirmMode) || '—';
+  const confirm = p.confirmMode || (window.lbcOpts && lbcOpts.confirmMode) || 'â€”';
   const ents = [];
   if(p.ent382 || (window.lbcOpts && lbcOpts.ent382)) {ents.push('382');}
   if(p.ent500 || (window.lbcOpts && lbcOpts.ent500)) {ents.push('500');}
   if(p.ent618 || (window.lbcOpts && lbcOpts.ent618)) {ents.push('618');}
   if(p.ent786 || (window.lbcOpts && lbcOpts.ent786)) {ents.push('786');}
-  const entStr = ents.length? ents.join('/') : '—';
-  parts.push(`Entrée: mode=${mode} • FibRet=${fibRet} • Confirm=${confirm} • Ent=${entStr}`);
+  const entStr = ents.length? ents.join('/') : 'â€”';
+  parts.push(`EntrÃ©e: mode=${mode} â€¢ FibRet=${fibRet} â€¢ Confirm=${confirm} â€¢ Ent=${entStr}`);
 
   const tpArr = Array.isArray(p.tp)? p.tp : [];
   const tpEnable = (typeof p.tpEnable==='boolean')? p.tpEnable : !!(window.lbcOpts && lbcOpts.tpEnable);
@@ -3466,7 +3467,7 @@ function describeStrategyParams(p, conf){ try{
     parts.push('TP ladder: '+lines.join(' ; '));
     if(caps.length) {parts.push('Cap/TP: '+caps.join(' / '));}
   } else {
-    parts.push('TP: standard 1R (aucune ladder avancée définie)');
+    parts.push('TP: standard 1R (aucune ladder avancÃ©e dÃ©finie)');
   }
 
   const slArr = Array.isArray(p.sl)? p.sl : [];
@@ -3479,24 +3480,24 @@ function describeStrategyParams(p, conf){ try{
       else if(s.type==='Percent') {descList.push(`${s.pct!=null? s.pct:s.value}%`);}
       else if(s.type==='EMA') {descList.push(`EMA${s.emaLen!=null? s.emaLen:emaLen}`);}
     }
-    if(descList.length) {parts.push('SL ladder: '+descList.join(' • '));}
+    if(descList.length) {parts.push('SL ladder: '+descList.join(' â€¢ '));}
   }
 
   const maxPct = (p.maxPct!=null? p.maxPct : (conf.maxPct!=null? conf.maxPct : null));
   if(maxPct!=null){
-    parts.push(`Risque: Max ≈ ${Number(maxPct).toFixed(2)}% du capital par trade`);
+    parts.push(`Risque: Max â‰ˆ ${Number(maxPct).toFixed(2)}% du capital par trade`);
   }
 
-  parts.push(`Options: Compound=${tpCompound?'On':'Off'} • CloseAllLast=${tpCloseAllLast?'On':'Off'}`);
+  parts.push(`Options: Compound=${tpCompound?'On':'Off'} â€¢ CloseAllLast=${tpCloseAllLast?'On':'Off'}`);
   return parts.join("\n");
-}catch(_){ return '—'; }}
+}catch(_){ return 'â€”'; }}
 
-// Lab detail: dernier contexte principal (stratégie cliquée) et configuration de comparaison
+// Lab detail: dernier contexte principal (stratÃ©gie cliquÃ©e) et configuration de comparaison
 let __detailLastMain = null;
 let __detailCompareCfg = null; // { mode:'heaven' } ou { mode:'palmares', params, label }
 let __detailCompPalmaresList = [];
-let __detailLastCmp = null; // dernier résultat de stratégie comparée (Heaven/Palmarès)
-let __detailBestBySymbol = {}; // cache: meilleure stratégie de comparaison par paire
+let __detailLastCmp = null; // dernier rÃ©sultat de stratÃ©gie comparÃ©e (Heaven/PalmarÃ¨s)
+let __detailBestBySymbol = {}; // cache: meilleure stratÃ©gie de comparaison par paire
 
 async function computeDefaultDetailCompareCfgForSymbol(sym){
   try{
@@ -3509,7 +3510,7 @@ async function computeDefaultDetailCompareCfgForSymbol(sym){
     }
   }catch(_){ }
   let best = null;
-  // Liste de TF utilisée dans le Lab
+  // Liste de TF utilisÃ©e dans le Lab
   let tfs = [];
   try{
     const sel = labTFSelect || document.getElementById('labTFSelect');
@@ -3540,8 +3541,8 @@ async function computeDefaultDetailCompareCfgForSymbol(sym){
           const sc = Number.isFinite(it.score) ? Number(it.score) : scoreResult(st, w);
           if(!Number.isFinite(sc)) {continue;}
           if(!best || sc > best.score){
-            const labelBase = it.name || `Palmarès ${symbolToDisplay(sym)} • ${tf}`;
-            const label = `${labelBase} • ${prof}`;
+            const labelBase = it.name || `PalmarÃ¨s ${symbolToDisplay(sym)} â€¢ ${tf}`;
+            const label = `${labelBase} â€¢ ${prof}`;
             best = { score: sc, params: it.params, label, tf, profile: prof };
           }
         }
@@ -3561,7 +3562,7 @@ async function computeDefaultDetailCompareCfgForSymbol(sym){
         const sc = Number.isFinite(it.score) ? Number(it.score) : scoreResult(st, w);
         if(!Number.isFinite(sc)) {continue;}
         if(!best || sc > best.score){
-          const label = it.name || `Palmarès ${symbolToDisplay(sym)} • ${tf}`;
+          const label = it.name || `PalmarÃ¨s ${symbolToDisplay(sym)} â€¢ ${tf}`;
           best = { score: sc, params: it.params, label, tf, profile: prof };
         }
       }
@@ -3592,14 +3593,14 @@ function setupDetailConfigUI(){
     const labCapEl=document.getElementById('labStartCap');
     const labFeeEl=document.getElementById('labFee');
     const labLevEl=document.getElementById('labLev');
-    // Toujours rafraîchir les valeurs à partir du contexte courant
+    // Toujours rafraÃ®chir les valeurs Ã  partir du contexte courant
     const startCapVal = (conf.startCap!=null? conf.startCap : (labCapEl && labCapEl.value) || 10000);
     const feeVal = (conf.fee!=null? conf.fee : (labFeeEl && labFeeEl.value) || 0.1);
     const levVal = (conf.lev!=null? conf.lev : (labLevEl && labLevEl.value) || 1);
     capEl.value = String(startCapVal);
     feeEl.value = String(feeVal);
     levEl.value = String(levVal);
-    // Ne câbler le bouton qu'une seule fois, mais réutiliser __detailLastMain à chaque clic
+    // Ne cÃ¢bler le bouton qu'une seule fois, mais rÃ©utiliser __detailLastMain Ã  chaque clic
     if(applyEl && (!applyEl.dataset || applyEl.dataset.wired!=='1')){
       applyEl.addEventListener('click', ()=>{
         try{
@@ -3627,7 +3628,7 @@ function setupDetailConfigUI(){
   }catch(_){ }
 }
 
-// Nouveau flux: pop‑up simple via showStrategyResult (métriques & trades)
+// Nouveau flux: popâ€‘up simple via showStrategyResult (mÃ©triques & trades)
 async function openLabStrategyDetail(item, ctx){ try{
   const sym=ctx.symbol, tf=ctx.tf; const p=item.params||item.p||{};
   const conf=readLabRiskConf();
@@ -3637,7 +3638,7 @@ async function openLabStrategyDetail(item, ctx){ try{
       const mode=(modeEl&&modeEl.value)||'auto';
       const mp=Number(conf.maxPct)||0;
       const mpStr=Number.isFinite(mp)? mp.toFixed(2): String(mp);
-      const modeStr = (mode==='fixed') ? `${mpStr}% (fixe)` : 'Auto (algo, plafond 100% du capital de référence)';
+      const modeStr = (mode==='fixed') ? `${mpStr}% (fixe)` : 'Auto (algo, plafond 100% du capital de rÃ©fÃ©rence)';
       addBtLog(`[detail] Contexte risque: startCap=${conf.startCap}, frais=${conf.fee}%, levier=${conf.lev}x, Max % par trade: ${modeStr}`);
     }
   }catch(_){ }
@@ -3645,30 +3646,30 @@ async function openLabStrategyDetail(item, ctx){ try{
   try{
     openBtProgress(t('detail.progress'));
     try{
-      if(typeof addBtLog==='function') {addBtLog(`[detail] Analyse de "${item && item.name ? item.name : 'stratégie'}" sur ${symbolToDisplay(sym)} @ ${tf}`);}
+      if(typeof addBtLog==='function') {addBtLog(`[detail] Analyse de "${item && item.name ? item.name : 'stratÃ©gie'}" sur ${symbolToDisplay(sym)} @ ${tf}`);}
     }catch(_){ }
     try{
       if(btProgText) {btProgText.textContent = t('bt.progress.initShort');}
-      if(btProgNote) {btProgNote.textContent = `Sélection des bougies pour ${symbolToDisplay(sym)} • ${tf} (chart courant, cache mémoire ou API REST)...`;}
+      if(btProgNote) {btProgNote.textContent = `SÃ©lection des bougies pour ${symbolToDisplay(sym)} â€¢ ${tf} (chart courant, cache mÃ©moire ou API REST)...`;}
     }catch(_){ }
   }catch(_){ }
-  // Charger les données (toujours pleine période pour le détail)
+  // Charger les donnÃ©es (toujours pleine pÃ©riode pour le dÃ©tail)
   let bars=null;
   let srcLabel='';
   if(sym===currentSymbol && tf===currentInterval){
     bars = __baseAfterCutoff();
     srcLabel = 'chart courant';
     try{
-      if(btProgNote) {btProgNote.textContent = `Données trouvées sur le chart courant — ${bars.length} bougies`;}
+      if(btProgNote) {btProgNote.textContent = `DonnÃ©es trouvÃ©es sur le chart courant â€” ${bars.length} bougies`;}
     }catch(_){ }
   }
   if((!bars || !bars.length) && !srcLabel){
     const mem = loadMemSeries(sym, tf);
     if(mem && Array.isArray(mem.bars) && mem.bars.length){
       bars = mem.bars;
-      srcLabel = 'cache mémoire';
+      srcLabel = 'cache mÃ©moire';
       try{
-        if(btProgNote) {btProgNote.textContent = `Données rechargées depuis le cache mémoire — ${bars.length} bougies`;}
+        if(btProgNote) {btProgNote.textContent = `DonnÃ©es rechargÃ©es depuis le cache mÃ©moire â€” ${bars.length} bougies`;}
       }catch(_){ }
     }
   }
@@ -3676,10 +3677,10 @@ async function openLabStrategyDetail(item, ctx){ try{
     srcLabel = srcLabel || 'API REST';
     try{
       if(btProgText) {btProgText.textContent = t('status.loading');}
-      if(btProgNote) {btProgNote.textContent = `Pas de données locales pour ${symbolToDisplay(sym)} • ${tf} — chargement complet des bougies depuis l'API REST (peut prendre quelques secondes)...`;}
+      if(btProgNote) {btProgNote.textContent = `Pas de donnÃ©es locales pour ${symbolToDisplay(sym)} â€¢ ${tf} â€” chargement complet des bougies depuis l'API REST (peut prendre quelques secondes)...`;}
     }catch(_){ }
     try{
-      // Utiliser un plafond de sécurité pour éviter des téléchargements énormes (ex: 1m sur plusieurs années)
+      // Utiliser un plafond de sÃ©curitÃ© pour Ã©viter des tÃ©lÃ©chargements Ã©normes (ex: 1m sur plusieurs annÃ©es)
       bars = await fetchAllKlines(sym, tf, REMOTE_MAX_BARS);
       try{ saveMemSeries(sym, tf, bars, bars.length); }catch(_){ }
     }catch(_){ bars = []; }
@@ -3690,11 +3691,11 @@ async function openLabStrategyDetail(item, ctx){ try{
   }
   try{
     const n = Array.isArray(bars)? bars.length:0;
-    const msg = `[detail] Source données: ${srcLabel||'inconnue'} — ${n} bougies`;
+    const msg = `[detail] Source donnÃ©es: ${srcLabel||'inconnue'} â€” ${n} bougies`;
     if(typeof addBtLog==='function') {addBtLog(msg);}
-    if(btProgNote) {btProgNote.textContent = `Données: ${srcLabel||'—'} — ${n} bougies`;}
+    if(btProgNote) {btProgNote.textContent = `DonnÃ©es: ${srcLabel||'â€”'} â€” ${n} bougies`;}
   }catch(_){ }
-  // Période complète
+  // PÃ©riode complÃ¨te
   const from=null, to=null;
   const [sIdx,eIdx]=(()=>{ const s=0,e=bars.length-1; return [s,e]; })();
   try{
@@ -3703,12 +3704,12 @@ async function openLabStrategyDetail(item, ctx){ try{
   }catch(_){ }
   const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, p, true);
   try{ closeBtProgress(); }catch(_){ }
-  // Ouvre la nouvelle fenêtre de Détail et rend l'analyse complète; fallback sur l'ancienne modale si besoin
+  // Ouvre la nouvelle fenÃªtre de DÃ©tail et rend l'analyse complÃ¨te; fallback sur l'ancienne modale si besoin
   try{
-    if(detailCtxEl){ detailCtxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — Analyse en cours...`; }
+    if(detailCtxEl){ detailCtxEl.textContent = `${symbolToDisplay(sym)} â€¢ ${tf} â€” Analyse en cours...`; }
     openModalEl(detailModalEl);
     try{ ensureFloatingModal(detailModalEl, 'detail', { left: 60, top: 60, width: 1000, height: 660, zIndex: bumpZ() }); }catch(_){ }
-    const ctxFull = { symbol: sym, tf, name: (item && item.name) || 'Stratégie', conf, bars, sIdx, eIdx, params: p, gen: (item && item.gen) ? item.gen : 1 };
+    const ctxFull = { symbol: sym, tf, name: (item && item.name) || 'StratÃ©gie', conf, bars, sIdx, eIdx, params: p, gen: (item && item.gen) ? item.gen : 1 };
     __detailLastMain = { item, ctx: ctxFull, res };
     if(!__detailCompareCfg){
       __detailCompareCfg = await computeDefaultDetailCompareCfgForSymbol(sym);
@@ -3718,19 +3719,19 @@ async function openLabStrategyDetail(item, ctx){ try{
     try{ setupDetailCompareUI(); }catch(_){ }
     try{ setupDetailTradesUI(); }catch(_){ }
   }catch(__err){
-    // Fallback: modales Résultats+Trades existantes
+    // Fallback: modales RÃ©sultats+Trades existantes
     try{ showStrategyResult(res, { symbol: sym, tf, startCap: conf.startCap }); }catch(__){ }
   }
-}catch(e){ try{ closeBtProgress(); }catch(_){ } setStatus('Erreur détail'); try{ addLabLog && addLabLog('Erreur détail: '+(e&&e.message?e.message:e)); }catch(__){} }}
+}catch(e){ try{ closeBtProgress(); }catch(_){ } setStatus('Erreur dÃ©tail'); try{ addLabLog && addLabLog('Erreur dÃ©tail: '+(e&&e.message?e.message:e)); }catch(__){} }}
 
-// Met à jour complètement le détail en relançant le rendu avec la configuration de comparaison courante
+// Met Ã  jour complÃ¨tement le dÃ©tail en relanÃ§ant le rendu avec la configuration de comparaison courante
 function refreshStrategyDetailComparator(){ try{
   if(!__detailLastMain || !__detailLastMain.ctx || !__detailLastMain.res) {return;}
   renderStrategyDetailIntoModal(__detailLastMain.res, __detailLastMain.ctx, __detailCompareCfg||{mode:'heaven'});
   try{ setupDetailTradesUI(); }catch(_){ }
 }catch(_){ } }
 
-// UI de configuration de la stratégie comparée
+// UI de configuration de la stratÃ©gie comparÃ©e
 async function populateDetailCompPalmares(){
   try{
     const srcSel=document.getElementById('detailCompSource');
@@ -3751,17 +3752,17 @@ async function populateDetailCompPalmares(){
     }
     __detailCompPalmaresList = Array.isArray(pal)? pal.slice(): [];
     const w=getWeights(prof||'balancee');
-    const opts = ['<option value="">—</option>'];
+    const opts = ['<option value="">â€”</option>'];
     let idx=0;
     for(const it of __detailCompPalmaresList){
       const st=it.res||{};
-      const sc = Number.isFinite(it.score)? it.score.toFixed(2) : (st ? (function(){ try{ return scoreResult(st, w).toFixed(2);}catch(_){ return '—'; } })() : '—');
-      const nm = it.name || `Palmarès #${idx+1}`;
-      opts.push(`<option value="${idx}">${nm} — ${sc}</option>`);
+      const sc = Number.isFinite(it.score)? it.score.toFixed(2) : (st ? (function(){ try{ return scoreResult(st, w).toFixed(2);}catch(_){ return 'â€”'; } })() : 'â€”');
+      const nm = it.name || `PalmarÃ¨s #${idx+1}`;
+      opts.push(`<option value="${idx}">${nm} â€” ${sc}</option>`);
       idx++;
     }
     listSel.innerHTML = opts.join('');
-    // Sélectionner automatiquement la stratégie utilisée comme comparaison par défaut, si possible
+    // SÃ©lectionner automatiquement la stratÃ©gie utilisÃ©e comme comparaison par dÃ©faut, si possible
     try{
       if(__detailCompareCfg && __detailCompareCfg.mode==='palmares' && __detailCompareCfg.params){
         const targetKey = paramsKey(__detailCompareCfg.params);
@@ -3788,7 +3789,7 @@ function setupDetailCompareUI(){
     const applyBtn=document.getElementById('detailCompApply');
     if(!srcSel) {return;}
     const alreadyWired = !!(srcSel.dataset && srcSel.dataset.wired==='1');
-    // Restaurer/mettre à jour la source + méta (pair/TF/profil) à partir de la config courante
+    // Restaurer/mettre Ã  jour la source + mÃ©ta (pair/TF/profil) Ã  partir de la config courante
     let cmpMode = 'heaven';
     let cmpSym = __detailLastMain?.ctx?.symbol || (symbolSelect && symbolSelect.value) || '';
     let cmpTf = __detailLastMain?.ctx?.tf || currentInterval || '1h';
@@ -3802,24 +3803,24 @@ function setupDetailCompareUI(){
       }
     }catch(_){ }
     try{ srcSel.value = cmpMode; }catch(_){ }
-    // Peupler les paires à partir de la liste principale du chart (toujours rafraîchi selon le contexte courant)
+    // Peupler les paires Ã  partir de la liste principale du chart (toujours rafraÃ®chi selon le contexte courant)
     try{
       if(symSel && symbolSelect && symbolSelect.innerHTML){
         symSel.innerHTML = symbolSelect.innerHTML;
         symSel.value = cmpSym || (__detailLastMain?.ctx?.symbol || (symbolSelect && symbolSelect.value) || '');
       }
     }catch(_){ }
-    // TF par défaut = TF du détail ou TF de la stratégie comparée
+    // TF par dÃ©faut = TF du dÃ©tail ou TF de la stratÃ©gie comparÃ©e
     try{
       if(tfSel){ tfSel.value = cmpTf || (__detailLastMain?.ctx?.tf || currentInterval || '1h'); }
     }catch(_){ }
-    // Profil par défaut: profil de la stratégie comparée ou même que Heaven/Lab
+    // Profil par dÃ©faut: profil de la stratÃ©gie comparÃ©e ou mÃªme que Heaven/Lab
     try{
       const prefBase = localStorage.getItem('heaven:profile') || localStorage.getItem('labWeightsProfile') || 'balancee';
       const profVal = cmpProf || prefBase;
       if(profSel){ profSel.value = profVal; }
     }catch(_){ }
-    // Source: Heaven ou Palmarès
+    // Source: Heaven ou PalmarÃ¨s
     const syncVisibility = ()=>{
       const mode = srcSel.value||'heaven';
       const disabled = (mode!=='palmares');
@@ -3831,10 +3832,10 @@ function setupDetailCompareUI(){
     if(!alreadyWired){
       srcSel.addEventListener('change', ()=>{
         syncVisibility();
-        // Quand on passe en mode Palmarès, charger immédiatement la liste
+        // Quand on passe en mode PalmarÃ¨s, charger immÃ©diatement la liste
         if(srcSel.value==='palmares'){ populateDetailCompPalmares(); }
       });
-      // Rafraîchir la liste Palmarès quand pair/TF/profil changent
+      // RafraÃ®chir la liste PalmarÃ¨s quand pair/TF/profil changent
       const triggerPalmares = ()=>{ populateDetailCompPalmares(); };
       if(symSel) {symSel.addEventListener('change', triggerPalmares);}
       if(tfSel) {tfSel.addEventListener('change', triggerPalmares);}
@@ -3849,14 +3850,14 @@ function setupDetailCompareUI(){
               refreshStrategyDetailComparator();
               return;
             }
-            // mode palmarès: utiliser la stratégie sélectionnée mais la rejouer sur les mêmes données que la stratégie analysée
+            // mode palmarÃ¨s: utiliser la stratÃ©gie sÃ©lectionnÃ©e mais la rejouer sur les mÃªmes donnÃ©es que la stratÃ©gie analysÃ©e
             if(!listSel) {return;}
             const idxStr = listSel.value||'';
             if(!idxStr) {return;}
             const idx = parseInt(idxStr,10);
             const it = Array.isArray(__detailCompPalmaresList)? __detailCompPalmaresList[idx] : null;
             if(!it || !it.params){ return; }
-            const label = it.name || `Palmarès #${idx+1}`;
+            const label = it.name || `PalmarÃ¨s #${idx+1}`;
             const selSym = (symSel && symSel.value) || __detailLastMain?.ctx?.symbol || currentSymbol;
             const selTf = (tfSel && tfSel.value) || __detailLastMain?.ctx?.tf || currentInterval;
             let selProf = (profSel && profSel.value) || null;
@@ -3871,7 +3872,7 @@ function setupDetailCompareUI(){
       if(!srcSel.dataset) {srcSel.dataset={};}
       srcSel.dataset.wired='1';
     }
-    // Appliquer visibilité & rafraîchir Palmarès pour le contexte courant si besoin
+    // Appliquer visibilitÃ© & rafraÃ®chir PalmarÃ¨s pour le contexte courant si besoin
     syncVisibility();
     if(srcSel.value==='palmares'){ populateDetailCompPalmares(); }
   }catch(_){ }
@@ -3896,7 +3897,7 @@ function setupDetailTradesUI(){
           showStrategyResult(res, ctxFor);
           try{
             if(stratTitle){
-              stratTitle.textContent = `${symbolToDisplay(ctx.symbol)} • ${ctx.tf} — Résultats (stratégie analysée)`;
+              stratTitle.textContent = `${symbolToDisplay(ctx.symbol)} â€¢ ${ctx.tf} â€” RÃ©sultats (stratÃ©gie analysÃ©e)`;
             }
           }catch(_){ }
         }catch(_){ }
@@ -3920,7 +3921,7 @@ function setupDetailTradesUI(){
           showStrategyResult(resCmp, ctxFor);
           try{
             if(stratTitle){
-              stratTitle.textContent = `${symbolToDisplay(ctx.symbol)} • ${ctx.tf} — Résultats (${label})`;
+              stratTitle.textContent = `${symbolToDisplay(ctx.symbol)} â€¢ ${ctx.tf} â€” RÃ©sultats (${label})`;
             }
           }catch(_){ }
         }catch(_){ }
@@ -3936,8 +3937,8 @@ function setupDetailTradesUI(){
 }
 
 function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
-  const sym = ctx.symbol, tf = ctx.tf; const name = ctx.name||'Stratégie'; const conf = ctx.conf; const bars = ctx.bars; const sIdx = ctx.sIdx, eIdx=ctx.eIdx;
-  // Description textuelle de la stratégie (params)
+  const sym = ctx.symbol, tf = ctx.tf; const name = ctx.name||'StratÃ©gie'; const conf = ctx.conf; const bars = ctx.bars; const sIdx = ctx.sIdx, eIdx=ctx.eIdx;
+  // Description textuelle de la stratÃ©gie (params)
   try{
     if(detailSummaryEl){
       const txt = describeStrategyParams(ctx.params||{}, conf||{});
@@ -3949,27 +3950,27 @@ function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
   const chartReg = {}; function registerChart(id, spec){ chartReg[id]=spec; }
   function heavenNoteText(id){ try{
     const label = (typeof cmpLabel==='string' && cmpLabel)? cmpLabel : 'Heaven';
-    if(id==='detailEquity') {return `Courbe d'équity de ${label} sur la même période; comparez la pente, la régularité et la profondeur des creux avec la stratégie analysée.`;}
-    if(id==='detailDD') {return `Drawdown absolu de ${label}; vérifiez si la taille et la fréquence des creux sont plus ou moins agressives que sur le graphique principal.`;}
-    if(id==='detailHist') {return `Distribution des rendements de ${label}; comparez la forme de l'histogramme (queue gauche/droite) à celle de la stratégie analysée.`;}
-    if(id==='detailRollPF' || id==='detailRollWin' || id==='detailRollRR' || id==='detailRollExp') {return `Rolling métrique pour ${label}; observez si la stabilité (PF, Win%, R:R, expectancy) est meilleure ou plus heurtée que sur la courbe principale.`;}
-    if(id==='detailDurHist') {return `Durée des trades pour ${label}; comparez la dispersion des durées avec la stratégie analysée (scalping vs swing plus lent).`;}
-    if(id==='detailUnder') {return `Underwater de ${label}; jugez si les phases de drawdown sont plus longues/profondes que sur la stratégie de référence.`;}
-    if(id==='detailDOW' || id==='detailWeekly') {return `Saisonnalité de ${label}; repérez si les jours/semaines les plus porteurs diffèrent de ceux de la stratégie principale.`;}
-    if(id==='detailDOWHour' || id==='detailDOWHourLong' || id==='detailDOWHourShort') {return `Créneaux Jour×Heure de ${label}; cherchez des décalages de zones vertes/rouges par rapport au graphique principal.`;}
-    if(id==='detailEff') {return `Radar d'efficacité de ${label}; comparez les forces/faiblesses (PF, Win%, temps en marché...) à la stratégie analysée.`;}
-    if(id==='detailRegime') {return `Régimes de marché favorables à ${label}; notez si les combinaisons Trend×Vol gagnantes sont les mêmes que pour la stratégie principale.`;}
-    if(id==='detailPareto') {return `Nuage Pareto de ${label}; regardez si le compromis P&L / Max DD est plus ou moins efficient que celui de la stratégie de référence.`;}
-    if(id==='detailCIs') {return `Intervalles de confiance de ${label}; comparez l'incertitude (Win%, PF, expectancy) à celle du modèle analysé.`;}
-    if(id==='detailMC') {return `Éventail Monte Carlo de ${label}; jugez si la bande de trajectoires est plus resserrée ou plus risquée que pour la stratégie principale.`;}
-    if(id==='detailQQ') {return `QQ-plot des rendements de ${label}; observez si les queues extrêmes s'écartent davantage de la loi normale que pour la stratégie principale.`;}
-    if(id==='detailACF') {return `ACF des rendements de ${label}; comparez le nombre de lags significatifs à celui de la stratégie analysée.`;}
-    if(id==='detailWF') {return `Walk-forward de ${label}; vérifiez si les splits temporels sont plus homogènes ou plus irréguliers que sur le modèle principal.`;}
-    if(id==='detailMAEMFE') {return `MAE/MFE de ${label}; comparez la zone de points (gains/pertes en R) à celle de la stratégie analysée.`;}
-    if(id==='detailLSHist') {return `Répartition Long/Short de ${label}; voyez si un biais directionnel différent apparaît par rapport à la stratégie principale.`;}
-    if(id==='detailStreaks') {return `Séquences de gains/pertes de ${label}; jugez si les séries gagnantes/perdantes sont plus longues que sur la stratégie de référence.`;}
-    return `Même métrique pour ${label}; interprétez ce graphique en miroir du graphique principal pour juger si la stratégie comparée se comporte mieux ou moins bien.`;
-  }catch(_){ return 'Stratégie comparée — interprétez ce graphique comme celui du dessus, mais pour la stratégie de comparaison.'; }}
+    if(id==='detailEquity') {return `Courbe d'Ã©quity de ${label} sur la mÃªme pÃ©riode; comparez la pente, la rÃ©gularitÃ© et la profondeur des creux avec la stratÃ©gie analysÃ©e.`;}
+    if(id==='detailDD') {return `Drawdown absolu de ${label}; vÃ©rifiez si la taille et la frÃ©quence des creux sont plus ou moins agressives que sur le graphique principal.`;}
+    if(id==='detailHist') {return `Distribution des rendements de ${label}; comparez la forme de l'histogramme (queue gauche/droite) Ã  celle de la stratÃ©gie analysÃ©e.`;}
+    if(id==='detailRollPF' || id==='detailRollWin' || id==='detailRollRR' || id==='detailRollExp') {return `Rolling mÃ©trique pour ${label}; observez si la stabilitÃ© (PF, Win%, R:R, expectancy) est meilleure ou plus heurtÃ©e que sur la courbe principale.`;}
+    if(id==='detailDurHist') {return `DurÃ©e des trades pour ${label}; comparez la dispersion des durÃ©es avec la stratÃ©gie analysÃ©e (scalping vs swing plus lent).`;}
+    if(id==='detailUnder') {return `Underwater de ${label}; jugez si les phases de drawdown sont plus longues/profondes que sur la stratÃ©gie de rÃ©fÃ©rence.`;}
+    if(id==='detailDOW' || id==='detailWeekly') {return `SaisonnalitÃ© de ${label}; repÃ©rez si les jours/semaines les plus porteurs diffÃ¨rent de ceux de la stratÃ©gie principale.`;}
+    if(id==='detailDOWHour' || id==='detailDOWHourLong' || id==='detailDOWHourShort') {return `CrÃ©neaux JourÃ—Heure de ${label}; cherchez des dÃ©calages de zones vertes/rouges par rapport au graphique principal.`;}
+    if(id==='detailEff') {return `Radar d'efficacitÃ© de ${label}; comparez les forces/faiblesses (PF, Win%, temps en marchÃ©...) Ã  la stratÃ©gie analysÃ©e.`;}
+    if(id==='detailRegime') {return `RÃ©gimes de marchÃ© favorables Ã  ${label}; notez si les combinaisons TrendÃ—Vol gagnantes sont les mÃªmes que pour la stratÃ©gie principale.`;}
+    if(id==='detailPareto') {return `Nuage Pareto de ${label}; regardez si le compromis P&L / Max DD est plus ou moins efficient que celui de la stratÃ©gie de rÃ©fÃ©rence.`;}
+    if(id==='detailCIs') {return `Intervalles de confiance de ${label}; comparez l'incertitude (Win%, PF, expectancy) Ã  celle du modÃ¨le analysÃ©.`;}
+    if(id==='detailMC') {return `Ã‰ventail Monte Carlo de ${label}; jugez si la bande de trajectoires est plus resserrÃ©e ou plus risquÃ©e que pour la stratÃ©gie principale.`;}
+    if(id==='detailQQ') {return `QQ-plot des rendements de ${label}; observez si les queues extrÃªmes s'Ã©cartent davantage de la loi normale que pour la stratÃ©gie principale.`;}
+    if(id==='detailACF') {return `ACF des rendements de ${label}; comparez le nombre de lags significatifs Ã  celui de la stratÃ©gie analysÃ©e.`;}
+    if(id==='detailWF') {return `Walk-forward de ${label}; vÃ©rifiez si les splits temporels sont plus homogÃ¨nes ou plus irrÃ©guliers que sur le modÃ¨le principal.`;}
+    if(id==='detailMAEMFE') {return `MAE/MFE de ${label}; comparez la zone de points (gains/pertes en R) Ã  celle de la stratÃ©gie analysÃ©e.`;}
+    if(id==='detailLSHist') {return `RÃ©partition Long/Short de ${label}; voyez si un biais directionnel diffÃ©rent apparaÃ®t par rapport Ã  la stratÃ©gie principale.`;}
+    if(id==='detailStreaks') {return `SÃ©quences de gains/pertes de ${label}; jugez si les sÃ©ries gagnantes/perdantes sont plus longues que sur la stratÃ©gie de rÃ©fÃ©rence.`;}
+    return `MÃªme mÃ©trique pour ${label}; interprÃ©tez ce graphique en miroir du graphique principal pour juger si la stratÃ©gie comparÃ©e se comporte mieux ou moins bien.`;
+  }catch(_){ return 'StratÃ©gie comparÃ©e â€” interprÃ©tez ce graphique comme celui du dessus, mais pour la stratÃ©gie de comparaison.'; }}
   function ensureHeavenClone(id){ try{ const can=document.getElementById(id); if(!can) {return null;} const heavenId=id+'Heaven'; let ch=document.getElementById(heavenId); if(ch) {return ch;} const note=document.getElementById(id+'Note'); const parent=(note&&note.parentElement)||can.parentElement; const lab=document.createElement('div'); lab.style.color='var(--muted)'; lab.style.fontSize='12px'; lab.style.marginTop='6px'; lab.textContent='Comparaison'; parent.appendChild(lab); ch=document.createElement('canvas'); ch.id=heavenId; ch.width=can.width; ch.height=can.height; ch.style.cssText=can.style.cssText; parent.appendChild(ch); const note2=document.createElement('div'); note2.id=heavenId+'Note'; note2.style.color='var(--muted)'; note2.style.fontSize='12px'; note2.style.marginTop='4px'; note2.textContent=heavenNoteText(id); parent.appendChild(note2); return ch; }catch(_){ return null; } }
   // shared helpers
   function groupPositions(tr){ const t=(tr||[]).slice().sort((a,b)=> (a.exitTime||0)-(b.exitTime||0)); const map=new Map(); function keyOf(e){ return `${e.dir}|${e.entryTime}|${e.entry}|${e.initSL}`; } for(const ev of t){ const k=keyOf(ev); let g=map.get(k); if(!g){ g={ entryTime:ev.entryTime, exitTime:ev.exitTime, entry: (Number.isFinite(ev.entry)? ev.entry : null), initSL: (Number.isFinite(ev.initSL)? ev.initSL : null), net:0, dur:0, dir:ev.dir||'long', eq0: (Number(ev.eqBefore)||null) }; map.set(k,g); } g.net += Number(ev.net)||0; if(Number.isFinite(ev.exitTime)&&Number.isFinite(ev.entryTime)) {g.dur = Math.max(g.dur, ev.exitTime-ev.entryTime);} if(Number.isFinite(ev.exitTime)) {g.exitTime = ev.exitTime;} if(g.entry==null && Number.isFinite(ev.entry)) {g.entry = ev.entry;} if(g.initSL==null && Number.isFinite(ev.initSL)) {g.initSL = ev.initSL;} if(g.eq0==null && Number.isFinite(ev.eqBefore)) {g.eq0 = Number(ev.eqBefore);} }
@@ -4037,15 +4038,15 @@ function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
   const r2 = (()=>{ const n=eq.length; if(n<3) {return 0;} const xs=eq.map((_,i)=>i); const ys=eq.map(p=>p.equity); const xm=mean(xs), ym=mean(ys); let num=0, den=0; for(let i=0;i<n;i++){ const xv=xs[i]-xm, yv=ys[i]-ym; num += xv*yv; den += xv*xv; } const a=num/(den||1); const b=ym - a*xm; let ssTot=0, ssRes=0; for(let i=0;i<n;i++){ const y=ys[i]; const yhat=a*xs[i]+b; ssTot += (y-ym)*(y-ym); ssRes += (y-yhat)*(y-yhat); } return 1 - (ssRes/(ssTot||1)); })();
   const r2N = Math.max(0, Math.min(100, r2*100)); const winrate = +res.winrate||0; const avgRR = +res.avgRR||0; const teN = Math.max(0, Math.min(100, (winrate/100) * (pf/(pf+1))*100)); const edgeN = Math.max(0, Math.min(100, (pf/(pf+1)) * (1 - Math.min(1, sd/5))*100));
   // CI bootstrap moved after groups are computed
-  drawRadar(canRadar, ['Profit Factor','Sharpe','Recovery (P&L/DD)','Consistency','Cap. Protection','R² equity','Trade Efficiency','Edge Robustness'], [pfN, sharpeN, recovN, consN, cpiN, r2N, teN, edgeN]);
-  try{ const labs=['PF','Sharpe','Recovery (P&L/DD)','Consistency','CapProt','R²','TradeEff','Edge']; const vals=[pfN,sharpeN,recovN,consN,cpiN,r2N,teN,edgeN]; const idxs=vals.map((v,i)=>[v,i]).sort((a,b)=>b[0]-a[0]); const top=idxs.slice(0,2).map(([v,i])=>`${labs[i]} ${v.toFixed(0)}%`).join(', '); const bot=idxs.slice(-2).map(([v,i])=>`${labs[i]} ${v.toFixed(0)}%`).join(', '); setNote('detailRadarNote', `Forces: ${top} • Faiblesses: ${bot}`); }catch(_){ }
-  // Comparaison: par défaut, config Heaven; optionnellement, une stratégie du Palmarès (rejouée sur les mêmes données)
+  drawRadar(canRadar, ['Profit Factor','Sharpe','Recovery (P&L/DD)','Consistency','Cap. Protection','RÂ² equity','Trade Efficiency','Edge Robustness'], [pfN, sharpeN, recovN, consN, cpiN, r2N, teN, edgeN]);
+  try{ const labs=['PF','Sharpe','Recovery (P&L/DD)','Consistency','CapProt','RÂ²','TradeEff','Edge']; const vals=[pfN,sharpeN,recovN,consN,cpiN,r2N,teN,edgeN]; const idxs=vals.map((v,i)=>[v,i]).sort((a,b)=>b[0]-a[0]); const top=idxs.slice(0,2).map(([v,i])=>`${labs[i]} ${v.toFixed(0)}%`).join(', '); const bot=idxs.slice(-2).map(([v,i])=>`${labs[i]} ${v.toFixed(0)}%`).join(', '); setNote('detailRadarNote', `Forces: ${top} â€¢ Faiblesses: ${bot}`); }catch(_){ }
+  // Comparaison: par dÃ©faut, config Heaven; optionnellement, une stratÃ©gie du PalmarÃ¨s (rejouÃ©e sur les mÃªmes donnÃ©es)
   let resCmp=null, eqCmp=null, H=null; let cmpLabel='Heaven';
   try{
     const mode = (compCfg && compCfg.mode) || 'heaven';
     if(mode==='palmares' && compCfg && compCfg.params){
       const pCmp = { ...(compCfg.params||{}) };
-      cmpLabel = compCfg.label || 'Palmarès';
+      cmpLabel = compCfg.label || 'PalmarÃ¨s';
       resCmp = runBacktestSliceFor(bars, sIdx, eIdx, conf, pCmp, true);
     } else {
       const pHeaven={ ...(window.lbcOpts||{}) };
@@ -4056,8 +4057,8 @@ function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
     try{ H = deriveFor(resCmp); }catch(__){ H=null; }
     try{ __detailLastCmp = resCmp ? { res: resCmp, label: cmpLabel } : null; }catch(__){ }
   }catch(_){ resCmp=null; eqCmp=null; H=null; __detailLastCmp=null; }
-  // Radar de comparaison (Heaven ou Palmarès)
-  try{ if(resCmp && eqCmp && H){ const meanH=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length : 0; const mH = meanH(H.rets||[]); const sdH = Math.sqrt(meanH((H.rets||[]).map(x=> (x-mH)*(x-mH)))); const sharpeH = (sdH>0? (mH/sdH*Math.sqrt(Math.max(1, (H.rets?H.rets.length:1)))) : 0); const pfHraw = (resCmp.profitFactor===Infinity? 3 : Math.max(0, Math.min(3, +resCmp.profitFactor||0))); const pfNH=(pfHraw/3)*100; const recovH = (resCmp.maxDDAbs>0? (resCmp.totalPnl/Math.max(1e-9, resCmp.maxDDAbs)) : 0); const recovNH = Math.max(0, Math.min(100, (recovH/3)*100)); const consNH = Math.max(0, Math.min(100, 100*(1 - Math.min(1, (sdH/3)||0)))); const cpiNH = Math.max(0, Math.min(100, 100*(1 - Math.min(1, ((+resCmp.maxDDAbs||0)/Math.max(1, conf.startCap)) / 0.5)))); const r2H=(function(){ const n=eqCmp.length; if(n<3) {return 0;} const xs=eqCmp.map((_,i)=>i); const ys=eqCmp.map(p=>p.equity); const xm=meanH(xs), ym=meanH(ys); let num=0, den=0; for(let i=0;i<n;i++){ const xv=xs[i]-xm, yv=ys[i]-ym; num += xv*yv; den += xv*xv; } const a=num/(den||1); const b=ym - a*xm; let ssTot=0, ssRes=0; for(let i=0;i<n;i++){ const y=ys[i]; const yhat=a*xs[i]+b; ssTot += (y-ym)*(y-ym); ssRes += (y-yhat)*(y-yhat); } return 1 - (ssRes/(ssTot||1)); })()*100; const teNH = Math.max(0, Math.min(100, ((+resCmp.winrate||0)/100) * (pfHraw/(pfHraw+1))*100)); const edgeNH = Math.max(0, Math.min(100, (pfHraw/(pfHraw+1)) * (1 - Math.min(1, (sdH/5)||0))*100)); const c=ensureHeavenClone('detailRadar'); if(c){ drawRadar(c, ['Profit Factor','Sharpe','Recovery (P&L/DD)','Consistency','Cap. Protection','R² equity','Trade Efficiency','Edge Robustness'], [pfNH, Math.max(0, Math.min(100, (sharpeH/3)*100)), recovNH, consNH, cpiNH, Math.max(0, Math.min(100, r2H)), teNH, edgeNH]); } } }catch(_){ }
+  // Radar de comparaison (Heaven ou PalmarÃ¨s)
+  try{ if(resCmp && eqCmp && H){ const meanH=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length : 0; const mH = meanH(H.rets||[]); const sdH = Math.sqrt(meanH((H.rets||[]).map(x=> (x-mH)*(x-mH)))); const sharpeH = (sdH>0? (mH/sdH*Math.sqrt(Math.max(1, (H.rets?H.rets.length:1)))) : 0); const pfHraw = (resCmp.profitFactor===Infinity? 3 : Math.max(0, Math.min(3, +resCmp.profitFactor||0))); const pfNH=(pfHraw/3)*100; const recovH = (resCmp.maxDDAbs>0? (resCmp.totalPnl/Math.max(1e-9, resCmp.maxDDAbs)) : 0); const recovNH = Math.max(0, Math.min(100, (recovH/3)*100)); const consNH = Math.max(0, Math.min(100, 100*(1 - Math.min(1, (sdH/3)||0)))); const cpiNH = Math.max(0, Math.min(100, 100*(1 - Math.min(1, ((+resCmp.maxDDAbs||0)/Math.max(1, conf.startCap)) / 0.5)))); const r2H=(function(){ const n=eqCmp.length; if(n<3) {return 0;} const xs=eqCmp.map((_,i)=>i); const ys=eqCmp.map(p=>p.equity); const xm=meanH(xs), ym=meanH(ys); let num=0, den=0; for(let i=0;i<n;i++){ const xv=xs[i]-xm, yv=ys[i]-ym; num += xv*yv; den += xv*xv; } const a=num/(den||1); const b=ym - a*xm; let ssTot=0, ssRes=0; for(let i=0;i<n;i++){ const y=ys[i]; const yhat=a*xs[i]+b; ssTot += (y-ym)*(y-ym); ssRes += (y-yhat)*(y-yhat); } return 1 - (ssRes/(ssTot||1)); })()*100; const teNH = Math.max(0, Math.min(100, ((+resCmp.winrate||0)/100) * (pfHraw/(pfHraw+1))*100)); const edgeNH = Math.max(0, Math.min(100, (pfHraw/(pfHraw+1)) * (1 - Math.min(1, (sdH/5)||0))*100)); const c=ensureHeavenClone('detailRadar'); if(c){ drawRadar(c, ['Profit Factor','Sharpe','Recovery (P&L/DD)','Consistency','Cap. Protection','RÂ² equity','Trade Efficiency','Edge Robustness'], [pfNH, Math.max(0, Math.min(100, (sharpeH/3)*100)), recovNH, consNH, cpiNH, Math.max(0, Math.min(100, r2H)), teNH, edgeNH]); } } }catch(_){ }
   // primary equity
   try{ drawEquity(canEquity, eq); registerChart('detailEquity', { type:'equity', eq1:eq }); }catch(_){ }
   // heaven equity
@@ -4073,7 +4074,7 @@ function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
   }catch(_){ ddSeries=null; ddSeriesCmp=null; }
   // primary hist
   drawHist(canHist, rets); registerChart('detailHist', { type:'rets', values: rets.slice() });
-  // comparator hist (Heaven ou Palmarès), si disponible
+  // comparator hist (Heaven ou PalmarÃ¨s), si disponible
   try{ if(typeof H!=='undefined' && H && Array.isArray(H.rets) && H.rets.length){ const cH=ensureHeavenClone('detailHist'); if(cH){ drawHist(cH, H.rets); registerChart('detailHistHeaven', { type:'rets', values:(H.rets||[]).slice() }); } } }catch(_){ }
   try{
     if(eq && eq.length>1){
@@ -4088,23 +4089,23 @@ function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
       const freqDay = days>0? (trades/days) : 0;
       const timeInMktLoc = Math.max(0, Math.min(100, 100*(totalDur/Math.max(1, totalSecs))));
       const pf1Raw = (res.profitFactor===Infinity? Infinity : (+res.profitFactor||0));
-      const pf1Disp = pf1Raw===Infinity? '∞' : pf1Raw.toFixed(2);
+      const pf1Disp = pf1Raw===Infinity? 'âˆž' : pf1Raw.toFixed(2);
       const wr1 = +res.winrate||0;
       // Descriptions qualitatives pour le graphique principal
-      const perfLabel = (retPct1>80? 'Performance globale très forte' : retPct1>30? 'Performance globale solide' : retPct1>10? 'Performance positive' : retPct1>-5? 'Performance quasi neutre' : 'Performance dégradée');
-      const riskLabel = (!Number.isFinite(ddPct1)? 'un profil de risque difficile à estimer' : ddPct1<10? 'un risque bien contenu' : ddPct1<25? 'un risque modéré' : 'un risque élevé');
-      const trendLabel = (r2N>=80? "une courbe d'équity très régulière (trend propre)" : r2N>=50? "une courbe d'équity assez lisible avec quelques phases de respiration marquées" : "une courbe d'équity heurtée, avec des phases de gains et de pertes alternées");
+      const perfLabel = (retPct1>80? 'Performance globale trÃ¨s forte' : retPct1>30? 'Performance globale solide' : retPct1>10? 'Performance positive' : retPct1>-5? 'Performance quasi neutre' : 'Performance dÃ©gradÃ©e');
+      const riskLabel = (!Number.isFinite(ddPct1)? 'un profil de risque difficile Ã  estimer' : ddPct1<10? 'un risque bien contenu' : ddPct1<25? 'un risque modÃ©rÃ©' : 'un risque Ã©levÃ©');
+      const trendLabel = (r2N>=80? "une courbe d'Ã©quity trÃ¨s rÃ©guliÃ¨re (trend propre)" : r2N>=50? "une courbe d'Ã©quity assez lisible avec quelques phases de respiration marquÃ©es" : "une courbe d'Ã©quity heurtÃ©e, avec des phases de gains et de pertes alternÃ©es");
       let activityLabel = '';
-      if(freqDay<0.3) {activityLabel = `peu de positions (~${freqDay.toFixed(2)} trade/jour, ${timeInMktLoc.toFixed(0)}% du temps en marché)`;}
-      else if(freqDay<1) {activityLabel = `un rythme de trading modéré (~${freqDay.toFixed(2)} trades/jour, ${timeInMktLoc.toFixed(0)}% du temps en marché)`;}
-      else {activityLabel = `un trading dense (~${freqDay.toFixed(2)} trades/jour, ${timeInMktLoc.toFixed(0)}% du temps en marché)`;}
-      const teLabel = (teN>=70? 'trade efficiency élevée' : teN>=40? 'trade efficiency correcte' : 'trade efficiency fragile');
-      const eqNote = `${perfLabel} (${retPct1.toFixed(1)}% cumulés, capital ${startE.toFixed(0)} → ${endE.toFixed(0)}). `+
-        `Le couple rendement/risque reste caractérisé par ${riskLabel} (PF ${pf1Disp}, Win ${wr1.toFixed(1)}%, DD max ${ddAbs.toFixed(0)}${Number.isFinite(ddPct1)? ' ('+ddPct1.toFixed(1)+'%)':''}). `+
+      if(freqDay<0.3) {activityLabel = `peu de positions (~${freqDay.toFixed(2)} trade/jour, ${timeInMktLoc.toFixed(0)}% du temps en marchÃ©)`;}
+      else if(freqDay<1) {activityLabel = `un rythme de trading modÃ©rÃ© (~${freqDay.toFixed(2)} trades/jour, ${timeInMktLoc.toFixed(0)}% du temps en marchÃ©)`;}
+      else {activityLabel = `un trading dense (~${freqDay.toFixed(2)} trades/jour, ${timeInMktLoc.toFixed(0)}% du temps en marchÃ©)`;}
+      const teLabel = (teN>=70? 'trade efficiency Ã©levÃ©e' : teN>=40? 'trade efficiency correcte' : 'trade efficiency fragile');
+      const eqNote = `${perfLabel} (${retPct1.toFixed(1)}% cumulÃ©s, capital ${startE.toFixed(0)} â†’ ${endE.toFixed(0)}). `+
+        `Le couple rendement/risque reste caractÃ©risÃ© par ${riskLabel} (PF ${pf1Disp}, Win ${wr1.toFixed(1)}%, DD max ${ddAbs.toFixed(0)}${Number.isFinite(ddPct1)? ' ('+ddPct1.toFixed(1)+'%)':''}). `+
         `La courbe montre ${trendLabel} avec ${activityLabel}. `+
-        `Trade Efficiency ≈ ${teN.toFixed(0)}% (${teLabel}).`;
+        `Trade Efficiency â‰ˆ ${teN.toFixed(0)}% (${teLabel}).`;
       setNote('detailEquityNote', eqNote);
-      setNote('detailDDNote', `Taille et fréquence des creux cohérentes avec ce profil de risque (DD max ${ddAbs.toFixed(0)}).`);
+      setNote('detailDDNote', `Taille et frÃ©quence des creux cohÃ©rentes avec ce profil de risque (DD max ${ddAbs.toFixed(0)}).`);
       if(resCmp && eqCmp && eqCmp.length>1){
         const startE2 = (eqCmp[0].equity!=null? eqCmp[0].equity : (conf.startCap||0));
         const endE2 = (eqCmp[eqCmp.length-1].equity!=null? eqCmp[eqCmp.length-1].equity : startE2);
@@ -4112,18 +4113,18 @@ function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
         const dd2 = +resCmp.maxDDAbs||0;
         const ddPct2 = startE2>0? (dd2/startE2*100) : NaN;
         const pf2Raw = (resCmp.profitFactor===Infinity? Infinity : (+resCmp.profitFactor||0));
-        const pf2Disp = pf2Raw===Infinity? '∞' : pf2Raw.toFixed(2);
+        const pf2Disp = pf2Raw===Infinity? 'âˆž' : pf2Raw.toFixed(2);
         const wr2 = +resCmp.winrate||0;
         const pnl1 = +res.totalPnl||0;
         const pnl2 = +resCmp.totalPnl||0;
-        // Récap numérique entre les deux stratégies
-        setNote('detailCompareNote', `${cmpLabel} — PF ${pf2Disp} vs ${pf1Disp} • Win ${wr2.toFixed(1)}% vs ${wr1.toFixed(1)}% • P&L ${pnl2.toFixed(0)} vs ${pnl1.toFixed(0)} • Max DD ${dd2.toFixed(0)} vs ${ddAbs.toFixed(0)}`);
-        // Analyse concise: principaux avantages / inconvénients de la stratégie comparée
+        // RÃ©cap numÃ©rique entre les deux stratÃ©gies
+        setNote('detailCompareNote', `${cmpLabel} â€” PF ${pf2Disp} vs ${pf1Disp} â€¢ Win ${wr2.toFixed(1)}% vs ${wr1.toFixed(1)}% â€¢ P&L ${pnl2.toFixed(0)} vs ${pnl1.toFixed(0)} â€¢ Max DD ${dd2.toFixed(0)} vs ${ddAbs.toFixed(0)}`);
+        // Analyse concise: principaux avantages / inconvÃ©nients de la stratÃ©gie comparÃ©e
         const advantages=[]; const limits=[];
         if(Number.isFinite(retPct1)&&Number.isFinite(retPct2)){
           const dR = retPct2-retPct1;
-          if(dR>2) {advantages.push(`rendement supérieur (+${dR.toFixed(1)} pts)`);}
-          else if(dR<-2) {limits.push(`rendement inférieur (${dR.toFixed(1)} pts)`);}
+          if(dR>2) {advantages.push(`rendement supÃ©rieur (+${dR.toFixed(1)} pts)`);}
+          else if(dR<-2) {limits.push(`rendement infÃ©rieur (${dR.toFixed(1)} pts)`);}
         }
         if(Number.isFinite(ddPct1)&&Number.isFinite(ddPct2)){
           const dD = ddPct2-ddPct1;
@@ -4132,23 +4133,23 @@ function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
         }
         if(Number.isFinite(pf1Raw)&&Number.isFinite(pf2Raw)){
           const dPf = pf2Raw-pf1Raw;
-          if(dPf>0.1) {advantages.push(`PF plus élevé (${pf2Disp} vs ${pf1Disp})`);}
+          if(dPf>0.1) {advantages.push(`PF plus Ã©levÃ© (${pf2Disp} vs ${pf1Disp})`);}
           else if(dPf<-0.1) {limits.push(`PF plus faible (${pf2Disp} vs ${pf1Disp})`);}
         }
         if(Number.isFinite(wr1)&&Number.isFinite(wr2)){
           const dW = wr2-wr1;
-          if(dW>1.5) {advantages.push(`Win% supérieur (${wr2.toFixed(1)}% vs ${wr1.toFixed(1)}%)`);}
+          if(dW>1.5) {advantages.push(`Win% supÃ©rieur (${wr2.toFixed(1)}% vs ${wr1.toFixed(1)}%)`);}
           else if(dW<-1.5) {limits.push(`Win% plus faible (${wr2.toFixed(1)}% vs ${wr1.toFixed(1)}%)`);}
         }
-        const advStr = advantages.length? advantages.slice(0,3).join(', ') : 'un profil de performance globalement proche de la stratégie analysée';
-        const limStr = limits.length? limits.slice(0,3).join(', ') : 'pas de faiblesse majeure apparente par rapport à la stratégie analysée sur ces métriques simples';
-        const cmpText = `${cmpLabel} — Avantages: ${advStr} • Inconvénients: ${limStr}`;
+        const advStr = advantages.length? advantages.slice(0,3).join(', ') : 'un profil de performance globalement proche de la stratÃ©gie analysÃ©e';
+        const limStr = limits.length? limits.slice(0,3).join(', ') : 'pas de faiblesse majeure apparente par rapport Ã  la stratÃ©gie analysÃ©e sur ces mÃ©triques simples';
+        const cmpText = `${cmpLabel} â€” Avantages: ${advStr} â€¢ InconvÃ©nients: ${limStr}`;
         setNote('detailEquityHeavenNote', cmpText);
         compareSummaryText = cmpText;
       }
     }
     const neg=rets.filter(x=>x<0).length, N=rets.length;
-    setNote('detailHistNote', `Moyenne: ${m.toFixed(2)}% • Écart-type: ${sd.toFixed(2)} • Pertes: ${(N? (neg/N*100):0).toFixed(0)}% des trades`);
+    setNote('detailHistNote', `Moyenne: ${m.toFixed(2)}% â€¢ Ã‰cart-type: ${sd.toFixed(2)} â€¢ Pertes: ${(N? (neg/N*100):0).toFixed(0)}% des trades`);
   }catch(_){ }
 const totalSecs=Math.max(1, (maxTs>minTs? (maxTs-minTs) : (bars[eIdx].time-bars[sIdx].time))); const days=totalSecs/86400; const freq = (res.tradesCount||0)/(days||1); const timeInMkt = Math.max(0, Math.min(100, 100*(totalDur/Math.max(1, totalSecs)))); const effLabels=['Win Rate','Avg R:R','Trade Efficiency','Time in Market','Trades / jour']; const effVals=[winrate, Math.max(0, Math.min(100, (avgRR/2)*100)), teN, timeInMkt, Math.max(0, Math.min(100, (freq/20)*100))];
   // Expectancy & trade stats (par position)
@@ -4158,7 +4159,7 @@ const groups=(function(){ const t=(res.trades||[]).slice().sort((a,b)=> (a.exitT
 const positions = groups.length||0; const expNet = positions? groups.reduce((s,g)=> s+(Number(g.net)||0),0)/positions : 0; const avgDurMin = positions? (groups.reduce((s,g)=> s+(Number(g.dur)||0),0)/positions/60) : 0; const bestNet = positions? Math.max(...groups.map(g=> Number(g.net)||0)) : 0; const worstNet = positions? Math.min(...groups.map(g=> Number(g.net)||0)) : 0;
   // Rolling metrics (window 30 positions)
   const ROLL_N=30; const rollPF=[], rollWin=[], rollRR=[], rollExp=[];
-  // Per-position RR approximée: moyenne des rr d'événements de la position, sinon fallback par signe/net
+  // Per-position RR approximÃ©e: moyenne des rr d'Ã©vÃ©nements de la position, sinon fallback par signe/net
 const rrByPos=(function(){ const map=new Map(); const t=(res.trades||[]); function keyOf(e){ return `${e.dir}|${e.entryTime}|${e.entry}|${e.initSL}`; } for(const ev of t){ const k=keyOf(ev); let arr=map.get(k); if(!arr){ arr=[]; map.set(k,arr); } if(Number.isFinite(ev.rr)) {arr.push(Number(ev.rr));} }
     const out=[]; for(const g of groups){ const k=`${g.dir}|${g.entryTime}|${g.entry}|${g.initSL}`; const arr=map.get(k)||[]; const m=arr.length? (arr.reduce((x,y)=>x+y,0)/arr.length) : null; out.push(m); } return out; })();
   for(let i=0;i<groups.length;i++){
@@ -4182,13 +4183,13 @@ const rrByPos=(function(){ const map=new Map(); const t=(res.trades||[]); functi
   const sortedPos = groups.slice().sort((a,b)=> (a.exitTime||0)-(b.exitTime||0)); let curType=null, curLen=0; const winLen=[], loseLen=[]; function pushStreak(){ if(curLen>0){ if(curType==='win') {winLen.push(curLen);} else {loseLen.push(curLen);} } }
   for(const g of sortedPos){ const typ=(g.net>=0?'win':'lose'); if(typ===curType){ curLen++; } else { pushStreak(); curType=typ; curLen=1; } } pushStreak(); const maxStreak=Math.max(1,...winLen, ...loseLen); const winCounts=new Array(Math.max(1,maxStreak+1)).fill(0); const loseCounts=new Array(Math.max(1,maxStreak+1)).fill(0); for(const k of winLen) {winCounts[k]=(winCounts[k]||0)+1;} for(const k of loseLen) {loseCounts[k]=(loseCounts[k]||0)+1;}
   drawBars(canEff, effLabels, effVals);
-  try{ const idxs=effVals.map((v,i)=>[v,i]).sort((a,b)=>b[0]-a[0]); const best=effLabels[idxs[0][1]]; const worst=effLabels[idxs[idxs.length-1][1]]; setNote('detailEffNote', `Point fort: ${best} • À améliorer: ${worst}`); }catch(_){ }
+  try{ const idxs=effVals.map((v,i)=>[v,i]).sort((a,b)=>b[0]-a[0]); const best=effLabels[idxs[0][1]]; const worst=effLabels[idxs[idxs.length-1][1]]; setNote('detailEffNote', `Point fort: ${best} â€¢ Ã€ amÃ©liorer: ${worst}`); }catch(_){ }
   // Heaven efficiency bars
   try{ if(typeof H!=='undefined' && H){ const totalSecsH=Math.max(1, (H.maxTs>H.minTs? (H.maxTs-H.minTs) : (bars[eIdx].time-bars[sIdx].time))); const daysH=totalSecsH/86400; const freqH = (resCmp.tradesCount||0)/(daysH||1); const timeInMktH = Math.max(0, Math.min(100, 100*(H.totalDur/Math.max(1, totalSecsH)))); const pfH = (resCmp.profitFactor===Infinity? 3 : Math.max(0, Math.min(3, +resCmp.profitFactor||0))); const teNH = Math.max(0, Math.min(100, ((+resCmp.winrate||0)/100) * (pfH/(pfH+1))*100)); const effValsH=[(+resCmp.winrate||0), Math.max(0, Math.min(100, ((+resCmp.avgRR||0)/2)*100)), teNH, timeInMktH, Math.max(0, Math.min(100, (freqH/20)*100))]; const canEH=ensureHeavenClone('detailEff'); if(canEH){ drawBars(canEH, effLabels, effValsH); } } }catch(_){ }
   const complexity = (6 + (+!!(ctx.params&&ctx.params.useFibRet)) + (ctx.params&&ctx.params.confirmMode?1:0) + (Array.isArray((ctx.params&&ctx.params.tp))? ctx.params.tp.length:0)); const compN = Math.max(0, Math.min(100, (complexity/20)*100));
   drawRobust(canRob, compN, edgeN);
-  try{ setNote('detailRobustNote', `Complexité ${compN.toFixed(0)}% • Robustesse ${edgeN.toFixed(0)}%`); }catch(_){ }
-  // Graphique de robustesse pour la stratégie comparée (Heaven / Palmarès)
+  try{ setNote('detailRobustNote', `ComplexitÃ© ${compN.toFixed(0)}% â€¢ Robustesse ${edgeN.toFixed(0)}%`); }catch(_){ }
+  // Graphique de robustesse pour la stratÃ©gie comparÃ©e (Heaven / PalmarÃ¨s)
   try{
     if(typeof H!=='undefined' && H && resCmp){
       const retsH=(H.rets||[]).slice();
@@ -4205,29 +4206,29 @@ const rrByPos=(function(){ const map=new Map(); const t=(res.trades||[]); functi
     }
   }catch(_){ }
   // Rolling charts
-  try{ drawLineChart(canRollPF, rollPF, { title:'Rolling PF (fenêtre 30)', yMin:0, yMax: Math.max(3, Math.min(5, Math.max(...rollPF,3))), fmt:(v)=> (v===Infinity?'∞':v.toFixed(2)) }); registerChart('detailRollPF', { type:'rolling', name:'PF', values: rollPF.slice() }); }catch(_){ }
-  try{ drawLineChart(canRollWin, rollWin, { title:'Rolling Win% (fenêtre 30)', yMin:0, yMax:100, fmt:(v)=> v.toFixed(0)+'%' }); registerChart('detailRollWin', { type:'rolling', name:'Win%', values: rollWin.slice() }); }catch(_){ }
-  try{ drawLineChart(canRollRR, rollRR, { title:'Rolling Avg R:R (fenêtre 30)', yMin:0, yMax: Math.max(2, Math.max(...rollRR,1.5)), fmt:(v)=> v.toFixed(2) }); registerChart('detailRollRR', { type:'rolling', name:'Avg R:R', values: rollRR.slice() }); }catch(_){ }
+  try{ drawLineChart(canRollPF, rollPF, { title:'Rolling PF (fenÃªtre 30)', yMin:0, yMax: Math.max(3, Math.min(5, Math.max(...rollPF,3))), fmt:(v)=> (v===Infinity?'âˆž':v.toFixed(2)) }); registerChart('detailRollPF', { type:'rolling', name:'PF', values: rollPF.slice() }); }catch(_){ }
+  try{ drawLineChart(canRollWin, rollWin, { title:'Rolling Win% (fenÃªtre 30)', yMin:0, yMax:100, fmt:(v)=> v.toFixed(0)+'%' }); registerChart('detailRollWin', { type:'rolling', name:'Win%', values: rollWin.slice() }); }catch(_){ }
+  try{ drawLineChart(canRollRR, rollRR, { title:'Rolling Avg R:R (fenÃªtre 30)', yMin:0, yMax: Math.max(2, Math.max(...rollRR,1.5)), fmt:(v)=> v.toFixed(2) }); registerChart('detailRollRR', { type:'rolling', name:'Avg R:R', values: rollRR.slice() }); }catch(_){ }
   try{ drawLineChart(canRollExp, rollExp, { title:'Rolling Expectancy (USD, fen.30)', yMin: Math.min(0, Math.min(...rollExp,0)), yMax: Math.max(0, Math.max(...rollExp,0)), fmt:(v)=> v.toFixed(2) }); registerChart('detailRollExp', { type:'rolling', name:'Expectancy', values: rollExp.slice() }); }catch(_){ }
   // Heaven rollings
-  try{ if(typeof H!=='undefined' && H){ const c1=ensureHeavenClone('detailRollPF'); if(c1){ drawLineChart(c1, H.rollPF, { title:'Rolling PF (fenêtre 30)', yMin:0, yMax: Math.max(3, Math.min(5, Math.max(...H.rollPF,3))), fmt:(v)=> (v===Infinity?'∞':v.toFixed(2)) }); registerChart('detailRollPFHeaven', { type:'rolling', name:'PF', values: H.rollPF.slice() }); }
-    const c2=ensureHeavenClone('detailRollWin'); if(c2){ drawLineChart(c2, H.rollWin, { title:'Rolling Win% (fenêtre 30)', yMin:0, yMax:100, fmt:(v)=> v.toFixed(0)+'%' }); registerChart('detailRollWinHeaven', { type:'rolling', name:'Win%', values: H.rollWin.slice() }); }
-    const c3=ensureHeavenClone('detailRollRR'); if(c3){ drawLineChart(c3, H.rollRR, { title:'Rolling Avg R:R (fenêtre 30)', yMin:0, yMax: Math.max(2, Math.max(...H.rollRR,1.5)), fmt:(v)=> v.toFixed(2) }); registerChart('detailRollRRHeaven', { type:'rolling', name:'Avg R:R', values: H.rollRR.slice() }); }
+  try{ if(typeof H!=='undefined' && H){ const c1=ensureHeavenClone('detailRollPF'); if(c1){ drawLineChart(c1, H.rollPF, { title:'Rolling PF (fenÃªtre 30)', yMin:0, yMax: Math.max(3, Math.min(5, Math.max(...H.rollPF,3))), fmt:(v)=> (v===Infinity?'âˆž':v.toFixed(2)) }); registerChart('detailRollPFHeaven', { type:'rolling', name:'PF', values: H.rollPF.slice() }); }
+    const c2=ensureHeavenClone('detailRollWin'); if(c2){ drawLineChart(c2, H.rollWin, { title:'Rolling Win% (fenÃªtre 30)', yMin:0, yMax:100, fmt:(v)=> v.toFixed(0)+'%' }); registerChart('detailRollWinHeaven', { type:'rolling', name:'Win%', values: H.rollWin.slice() }); }
+    const c3=ensureHeavenClone('detailRollRR'); if(c3){ drawLineChart(c3, H.rollRR, { title:'Rolling Avg R:R (fenÃªtre 30)', yMin:0, yMax: Math.max(2, Math.max(...H.rollRR,1.5)), fmt:(v)=> v.toFixed(2) }); registerChart('detailRollRRHeaven', { type:'rolling', name:'Avg R:R', values: H.rollRR.slice() }); }
     const c4=ensureHeavenClone('detailRollExp'); if(c4){ drawLineChart(c4, H.rollExp, { title:'Rolling Expectancy (USD, fen.30)', yMin: Math.min(0, Math.min(...H.rollExp,0)), yMax: Math.max(0, Math.max(...H.rollExp,0)), fmt:(v)=> v.toFixed(2) }); registerChart('detailRollExpHeaven', { type:'rolling', name:'Expectancy', values: H.rollExp.slice() }); } } }catch(_){ }
-  try{ const med=(a)=>{ const s=a.slice().sort((x,y)=>x-y); return s.length? s[Math.floor(s.length/2)] : 0; }; setNote('detailRollPFNote', `Dernier ${rollPF.length? (rollPF[rollPF.length-1]).toFixed(2):'—'} • Médiane ${med(rollPF).toFixed(2)}`); setNote('detailRollWinNote', `Dernier ${rollWin.length? (rollWin[rollWin.length-1]).toFixed(0)+'%':'—'} • Médiane ${med(rollWin).toFixed(0)}%`); setNote('detailRollRRNote', `Dernier ${rollRR.length? (rollRR[rollRR.length-1]).toFixed(2):'—'} • Médiane ${med(rollRR).toFixed(2)}`); setNote('detailRollExpNote', `Dernier ${rollExp.length? (rollExp[rollExp.length-1]).toFixed(2):'—'} • Médiane ${med(rollExp).toFixed(2)}`); }catch(_){ }
+  try{ const med=(a)=>{ const s=a.slice().sort((x,y)=>x-y); return s.length? s[Math.floor(s.length/2)] : 0; }; setNote('detailRollPFNote', `Dernier ${rollPF.length? (rollPF[rollPF.length-1]).toFixed(2):'â€”'} â€¢ MÃ©diane ${med(rollPF).toFixed(2)}`); setNote('detailRollWinNote', `Dernier ${rollWin.length? (rollWin[rollWin.length-1]).toFixed(0)+'%':'â€”'} â€¢ MÃ©diane ${med(rollWin).toFixed(0)}%`); setNote('detailRollRRNote', `Dernier ${rollRR.length? (rollRR[rollRR.length-1]).toFixed(2):'â€”'} â€¢ MÃ©diane ${med(rollRR).toFixed(2)}`); setNote('detailRollExpNote', `Dernier ${rollExp.length? (rollExp[rollExp.length-1]).toFixed(2):'â€”'} â€¢ MÃ©diane ${med(rollExp).toFixed(2)}`); }catch(_){ }
   // Diagnostics charts
   try{ drawDurations(canDur, durationsMin); registerChart('detailDurHist', { type:'rolling', name:'Duration(min)', values: durationsMin.slice() }); }catch(_){ }
-  try{ const srt=durationsMin.slice().sort((a,b)=>a-b); const p50=srt.length? srt[Math.floor(0.5*(srt.length-1))]:0; const p95=srt.length? srt[Math.floor(0.95*(srt.length-1))]:0; setNote('detailDurHistNote', `Durée médiane ${p50.toFixed(1)} min • 95% < ${p95.toFixed(1)} min`); }catch(_){ }
+  try{ const srt=durationsMin.slice().sort((a,b)=>a-b); const p50=srt.length? srt[Math.floor(0.5*(srt.length-1))]:0; const p95=srt.length? srt[Math.floor(0.95*(srt.length-1))]:0; setNote('detailDurHistNote', `DurÃ©e mÃ©diane ${p50.toFixed(1)} min â€¢ 95% < ${p95.toFixed(1)} min`); }catch(_){ }
   // Heaven durations
   try{ if(typeof H!=='undefined' && H){ const c=ensureHeavenClone('detailDurHist'); if(c){ drawDurations(c, H.durationsMin||[]); try{ registerChart('detailDurHistHeaven', { type:'rolling', name:'Duration(min)', values: (H.durationsMin||[]).slice() }); }catch(__){} } } }catch(_){ }
   try{ drawUnderwater(document.getElementById('detailUnder'), eq); const days = Math.max(1,( (maxTs>minTs? (maxTs-minTs) : (bars[eIdx].time-bars[sIdx].time)) / 86400 )); const years=days/365; const startE=eq[0]?.equity||conf.startCap||0; const endE=eq[eq.length-1]?.equity||startE; const cagr = (startE>0 && years>0)? (Math.pow(endE/startE, 1/years)-1) : 0; // risk metrics
     let peak=eq[0]?.equity||0; const uw=eq.map(p=>{ peak=Math.max(peak, p.equity||0); return peak>0? ((p.equity-peak)/peak*100) : 0; }); uwSeries = uw.slice(); const ulcer = Math.sqrt(uw.reduce((s,v)=> s + Math.pow(Math.min(0,v),2),0)/Math.max(1,uw.length)); const ddMaxPct = Math.min(0, Math.min(...uw)); const mar = (ddMaxPct<0)? (cagr/Math.abs(ddMaxPct/100)) : 0; const negR = rets.filter(x=>x<0); const ddn = Math.sqrt((negR.length? negR.reduce((s,x)=>s+x*x,0)/negR.length : 0)); const sortino = (ddn>0)? (m/ddn) : 0; const posR=rets.filter(x=>x>0).reduce((s,x)=>s+x,0), negAbs=rets.filter(x=>x<0).reduce((s,x)=>s+Math.abs(x),0); const omega = (negAbs>0)? (posR/negAbs) : Infinity; // VaR/ES (95%)
-    const sr=rets.slice().sort((a,b)=>a-b); const qIdx=Math.floor(0.05*Math.max(0,sr.length-1)); const var95 = sr.length? sr[qIdx] : 0; const es95 = sr.length? (sr.slice(0,qIdx+1).reduce((s,x)=>s+x,0)/Math.max(1,qIdx+1)) : 0; setNote('detailUnderNote', `CAGR ${(cagr*100).toFixed(1)}% • Ulcer ${ulcer.toFixed(2)} • MAR ${mar.toFixed(2)} • Sortino ${sortino.toFixed(2)} • Omega ${omega===Infinity?'∞':omega.toFixed(2)} • VaR95 ${var95.toFixed(2)}% • ES95 ${es95.toFixed(2)}%`); }catch(_){ }
+    const sr=rets.slice().sort((a,b)=>a-b); const qIdx=Math.floor(0.05*Math.max(0,sr.length-1)); const var95 = sr.length? sr[qIdx] : 0; const es95 = sr.length? (sr.slice(0,qIdx+1).reduce((s,x)=>s+x,0)/Math.max(1,qIdx+1)) : 0; setNote('detailUnderNote', `CAGR ${(cagr*100).toFixed(1)}% â€¢ Ulcer ${ulcer.toFixed(2)} â€¢ MAR ${mar.toFixed(2)} â€¢ Sortino ${sortino.toFixed(2)} â€¢ Omega ${omega===Infinity?'âˆž':omega.toFixed(2)} â€¢ VaR95 ${var95.toFixed(2)}% â€¢ ES95 ${es95.toFixed(2)}%`); }catch(_){ }
   try{ drawStreaks(canStreaks, winCounts, loseCounts); try{ registerChart('detailStreaks', { type:'streaks', win: winCounts.slice(), lose: loseCounts.slice() }); }catch(__){} }catch(_){ }
   // Heaven durations + underwater + streaks/LS will follow after H derivation
-  try{ const lw = winLen.length? Math.max(...winLen) : 0; const ll = loseLen.length? Math.max(...loseLen) : 0; setNote('detailStreaksNote', `Plus longue série: ${lw} gains, ${ll} pertes`); }catch(_){ }
+  try{ const lw = winLen.length? Math.max(...winLen) : 0; const ll = loseLen.length? Math.max(...loseLen) : 0; setNote('detailStreaksNote', `Plus longue sÃ©rie: ${lw} gains, ${ll} pertes`); }catch(_){ }
 try{ drawHistLongShort(canLS, retLong, retShort); try{ registerChart('detailLSHist', { type:'lsdist', long: retLong.slice(), short: retShort.slice() }); }catch(__){} }catch(_){ }
-  try{ const mean=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length:0; setNote('detailLSHistNote', `Moyenne Long ${mean(retLong).toFixed(2)}% • Short ${mean(retShort).toFixed(2)}%`); }catch(_){ }
+  try{ const mean=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length:0; setNote('detailLSHistNote', `Moyenne Long ${mean(retLong).toFixed(2)}% â€¢ Short ${mean(retShort).toFixed(2)}%`); }catch(_){ }
   // Heaven Long/Short distributions
   try{ if(typeof H!=='undefined' && H){ const c=ensureHeavenClone('detailLSHist'); if(c){ drawHistLongShort(c, H.retLong||[], H.retShort||[]); try{ registerChart('detailLSHistHeaven', { type:'lsdist', long:(H.retLong||[]).slice(), short:(H.retShort||[]).slice() }); }catch(__){} } } }catch(_){ }
   // Heaven streaks
@@ -4240,11 +4241,11 @@ try{ drawHistLongShort(canLS, retLong, retShort); try{ registerChart('detailLSHi
     for(const g of groups){ if(!Number.isFinite(g.entryTime) || !Number.isFinite(g.exitTime) || !Number.isFinite(g.entry) || !Number.isFinite(g.initSL)) {continue;} const i0=timeToIdx(g.entryTime), i1=timeToIdx(g.exitTime); if(i1<=i0) {continue;} let hi=-Infinity, lo=Infinity; for(let i=i0;i<=i1;i++){ hi=Math.max(hi, bars[i].high); lo=Math.min(lo, bars[i].low); } const entry=g.entry; const risk=Math.max(1e-9, Math.abs(entry - g.initSL)); let maeR=0, mfeR=0; if(g.dir==='long'){ maeR = Math.max(0, (entry - lo)/risk); mfeR = Math.max(0, (hi - entry)/risk); } else { maeR = Math.max(0, (hi - entry)/risk); mfeR = Math.max(0, (entry - lo)/risk); } maePts.push({ maeR, mfeR, win: (g.net||0)>=0 }); }
     drawMAEMFEScatter(canMAEMFE, maePts);
     try{ registerChart('detailMAEMFE', { type:'maemfe', points: maePts.slice() }); }catch(__){}
-    try{ maePtsVar = maePts.slice(); const mean=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length:0; const aMFE=mean(maePts.map(p=>p.mfeR)); const aMAE=mean(maePts.map(p=>p.maeR)); setNote('detailMAEMFENote', `MFE moyen ${aMFE.toFixed(2)}R • MAE moyen ${aMAE.toFixed(2)}R`); }catch(__){}
+    try{ maePtsVar = maePts.slice(); const mean=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length:0; const aMFE=mean(maePts.map(p=>p.mfeR)); const aMAE=mean(maePts.map(p=>p.maeR)); setNote('detailMAEMFENote', `MFE moyen ${aMFE.toFixed(2)}R â€¢ MAE moyen ${aMAE.toFixed(2)}R`); }catch(__){}
   }catch(_){ }
   // Heaven Underwater
-  try{ if(typeof H!=='undefined' && H && eqCmp){ const canUH=ensureHeavenClone('detailUnder'); if(canUH){ drawUnderwater(canUH, eqCmp); const daysH = Math.max(1,( (H.maxTs>H.minTs? (H.maxTs-H.minTs) : (bars[eIdx].time-bars[sIdx].time)) / 86400 )); const yearsH=daysH/365; const startEH=H.eq[0]?.equity||conf.startCap||0; const endEH=H.eq[H.eq.length-1]?.equity||startEH; const cagrH = (startEH>0 && yearsH>0)? (Math.pow(endEH/startEH, 1/yearsH)-1) : 0; let peakH=H.eq[0]?.equity||0; const uwH=H.eq.map(p=>{ peakH=Math.max(peakH, p.equity||0); return peakH>0? ((p.equity-peakH)/peakH*100) : 0; }); uwSeriesCmp = uwH.slice(); const ulcerH = Math.sqrt(uwH.reduce((s,v)=> s + Math.pow(Math.min(0,v),2),0)/Math.max(1,uwH.length)); const ddMaxPctH = Math.min(0, Math.min(...uwH)); const marH = (ddMaxPctH<0)? (cagrH/Math.abs(ddMaxPctH/100)) : 0; const negRH = H.rets.filter(x=>x<0); const ddnH = Math.sqrt((negRH.length? negRH.reduce((s,x)=>s+x*x,0)/negRH.length : 0)); const mH=(H.rets.length? H.rets.reduce((a,b)=>a+b,0)/H.rets.length:0); const sortinoH = (ddnH>0)? (mH/ddnH) : 0; const posRH=H.rets.filter(x=>x>0).reduce((s,x)=>s+x,0), negAbsH=H.rets.filter(x=>x<0).reduce((s,x)=>s+Math.abs(x),0); const omegaH = (negAbsH>0)? (posRH/negAbsH) : Infinity; const srH=H.rets.slice().sort((a,b)=>a-b); const qIdxH=Math.floor(0.05*Math.max(0,srH.length-1)); const var95H = srH.length? srH[qIdxH] : 0; const es95H = srH.length? (srH.slice(0,qIdxH+1).reduce((s,x)=>s+x,0)/Math.max(1,qIdxH+1)) : 0; setNote('detailUnderHeavenNote', `CAGR ${(cagrH*100).toFixed(1)}% • Ulcer ${ulcerH.toFixed(2)} • MAR ${marH.toFixed(2)} • Sortino ${sortinoH.toFixed(2)} • Omega ${omegaH===Infinity?'∞':omegaH.toFixed(2)} • VaR95 ${var95H.toFixed(2)}% • ES95 ${es95H.toFixed(2)}%`); } } }catch(_){ }
-// Seasonality — weekly heatmap
+  try{ if(typeof H!=='undefined' && H && eqCmp){ const canUH=ensureHeavenClone('detailUnder'); if(canUH){ drawUnderwater(canUH, eqCmp); const daysH = Math.max(1,( (H.maxTs>H.minTs? (H.maxTs-H.minTs) : (bars[eIdx].time-bars[sIdx].time)) / 86400 )); const yearsH=daysH/365; const startEH=H.eq[0]?.equity||conf.startCap||0; const endEH=H.eq[H.eq.length-1]?.equity||startEH; const cagrH = (startEH>0 && yearsH>0)? (Math.pow(endEH/startEH, 1/yearsH)-1) : 0; let peakH=H.eq[0]?.equity||0; const uwH=H.eq.map(p=>{ peakH=Math.max(peakH, p.equity||0); return peakH>0? ((p.equity-peakH)/peakH*100) : 0; }); uwSeriesCmp = uwH.slice(); const ulcerH = Math.sqrt(uwH.reduce((s,v)=> s + Math.pow(Math.min(0,v),2),0)/Math.max(1,uwH.length)); const ddMaxPctH = Math.min(0, Math.min(...uwH)); const marH = (ddMaxPctH<0)? (cagrH/Math.abs(ddMaxPctH/100)) : 0; const negRH = H.rets.filter(x=>x<0); const ddnH = Math.sqrt((negRH.length? negRH.reduce((s,x)=>s+x*x,0)/negRH.length : 0)); const mH=(H.rets.length? H.rets.reduce((a,b)=>a+b,0)/H.rets.length:0); const sortinoH = (ddnH>0)? (mH/ddnH) : 0; const posRH=H.rets.filter(x=>x>0).reduce((s,x)=>s+x,0), negAbsH=H.rets.filter(x=>x<0).reduce((s,x)=>s+Math.abs(x),0); const omegaH = (negAbsH>0)? (posRH/negAbsH) : Infinity; const srH=H.rets.slice().sort((a,b)=>a-b); const qIdxH=Math.floor(0.05*Math.max(0,srH.length-1)); const var95H = srH.length? srH[qIdxH] : 0; const es95H = srH.length? (srH.slice(0,qIdxH+1).reduce((s,x)=>s+x,0)/Math.max(1,qIdxH+1)) : 0; setNote('detailUnderHeavenNote', `CAGR ${(cagrH*100).toFixed(1)}% â€¢ Ulcer ${ulcerH.toFixed(2)} â€¢ MAR ${marH.toFixed(2)} â€¢ Sortino ${sortinoH.toFixed(2)} â€¢ Omega ${omegaH===Infinity?'âˆž':omegaH.toFixed(2)} â€¢ VaR95 ${var95H.toFixed(2)}% â€¢ ES95 ${es95H.toFixed(2)}%`); } } }catch(_){ }
+// Seasonality â€” weekly heatmap
   try{
     function isoYearWeek(ts){ const d=new Date(ts*1000); // copy UTC date
       const dt=new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
@@ -4259,11 +4260,11 @@ try{ drawHistLongShort(canLS, retLong, retShort); try{ registerChart('detailLSHi
     const keys=Array.from(endByYW.keys()).sort((a,b)=>{ const [ay,aw]=a.split('-').map(Number), [by,bw]=b.split('-').map(Number); return ay!==by? ay-by : aw-bw; });
     const cells=[]; let prev=null; for(const k of keys){ const v=endByYW.get(k); if(prev!=null){ const [y,w]=k.split('-').map(Number); const r=((v-prev)/prev)*100; cells.push({ y, w, r }); } prev=v; }
 drawWeeklyHeatmap(canWeekly, cells);
-    try{ registerChart('detailWeekly', { type:'weekly', cells: cells.slice() }); weeklyCells = cells.slice(); if(weeklyCells.length){ const r=weeklyCells.map(c=>c.r); const mn=Math.min(...r), mx=Math.max(...r); const avg=r.reduce((a,b)=>a+b,0)/r.length; setNote('detailWeeklyNote', `Moy. hebdo ${avg.toFixed(2)}% • Meilleure ${mx.toFixed(1)}% • Pire ${mn.toFixed(1)}%`); } }catch(__){}
+    try{ registerChart('detailWeekly', { type:'weekly', cells: cells.slice() }); weeklyCells = cells.slice(); if(weeklyCells.length){ const r=weeklyCells.map(c=>c.r); const mn=Math.min(...r), mx=Math.max(...r); const avg=r.reduce((a,b)=>a+b,0)/r.length; setNote('detailWeeklyNote', `Moy. hebdo ${avg.toFixed(2)}% â€¢ Meilleure ${mx.toFixed(1)}% â€¢ Pire ${mn.toFixed(1)}%`); } }catch(__){}
   }catch(_){ }
   // Heaven weekly
   try{ if(typeof H!=='undefined' && H){ const c=ensureHeavenClone('detailWeekly'); if(c){ drawWeeklyHeatmap(c, H.weekly); registerChart('detailWeeklyHeaven', { type:'weekly', cells: H.weekly.slice() }); } } }catch(_){ }
-  // Seasonality — day-of-week bars
+  // Seasonality â€” day-of-week bars
   try{
     function toYMD(ts){ const d=new Date(ts*1000); return `${d.getUTCFullYear()}-${d.getUTCMonth()+1}-${d.getUTCDate()}`; }
     const eod=new Map(); if(eq && eq.length){ for(const p of eq){ const key=toYMD(p.time); eod.set(key, p.equity); } }
@@ -4271,13 +4272,13 @@ drawWeeklyHeatmap(canWeekly, cells);
     const labels=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']; const arr=labels.map((k,i)=>({k, v: (dowCnt[i]>0? dowVals[i]/dowCnt[i] : 0)}));
     drawDOWBars(canDOW, arr);
     try{ registerChart('detailDOW', { type:'bars', labels: arr.map(x=>x.k), values: arr.map(x=>x.v) }); }catch(__){}
-    try{ dowArr = arr.slice(); if(dowArr.length){ let best=dowArr[0], worst=dowArr[0]; for(const x of dowArr){ if(x.v>best.v) {best=x;} if(x.v<worst.v) {worst=x;} } setNote('detailDOWNote', `Jour le plus favorable: ${best.k} (${best.v.toFixed(2)}%) • Le moins: ${worst.k} (${worst.v.toFixed(2)}%)`); } }catch(__){}
+    try{ dowArr = arr.slice(); if(dowArr.length){ let best=dowArr[0], worst=dowArr[0]; for(const x of dowArr){ if(x.v>best.v) {best=x;} if(x.v<worst.v) {worst=x;} } setNote('detailDOWNote', `Jour le plus favorable: ${best.k} (${best.v.toFixed(2)}%) â€¢ Le moins: ${worst.k} (${worst.v.toFixed(2)}%)`); } }catch(__){}
   }catch(_){ }
   // Heaven DOW bars
   try{ if(typeof H!=='undefined' && H){ const c=ensureHeavenClone('detailDOW'); if(c){ drawDOWBars(c, H.dow||[]); try{ registerChart('detailDOWHeaven', { type:'bars', labels: (H.dow||[]).map(x=>x.k), values: (H.dow||[]).map(x=>x.v) }); }catch(__){} } } }catch(_){ }
   // Heaven MAE/MFE
   try{ if(typeof H!=='undefined' && H){ const c=ensureHeavenClone('detailMAEMFE'); if(c){ drawMAEMFEScatter(c, H.maePts||[]); try{ registerChart('detailMAEMFEHeaven', { type:'maemfe', points: (H.maePts||[]).slice() }); }catch(__){} } } }catch(_){ }
-// Seasonality — weekly heatmap
+// Seasonality â€” weekly heatmap
   try{
     function toYMDH(ts){ const d=new Date(ts*1000); return `${d.getUTCFullYear()}-${d.getUTCMonth()+1}-${d.getUTCDate()}-${d.getUTCHours()}`; }
     const eoh=new Map(); if(eq && eq.length){ for(const p of eq){ const key=toYMDH(p.time); eoh.set(key, p.equity); } }
@@ -4286,19 +4287,19 @@ drawWeeklyHeatmap(canWeekly, cells);
     const cells2=[]; for(let r=0;r<7;r++){ for(let c=0;c<24;c++){ const v=cnt[r][c]>0? (sum[r][c]/cnt[r][c]) : 0; cells2.push({ c, d:r, h:c, r:v }); } }
     drawDOWHourHeatmap(canDOWHour, cells2);
     try{ /* also register for CSV if needed */ }catch(__){}
-    try{ registerChart('detailDOWHour', { type:'heatmap', cells: cells2.slice(), rows:7, cols:24 }); dowHourCells=cells2.slice(); if(dowHourCells.length){ let best=dowHourCells[0], worst=dowHourCells[0]; for(const x of dowHourCells){ if(x.r>best.r) {best=x;} if(x.r<worst.r) {worst=x;} } const lab=(x)=> ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'][x.d]+' '+String(x.h).padStart(2,'0')+'h'; setNote('detailDOWHourNote', `Meilleur créneau: ${lab(best)} (${best.r.toFixed(2)}%) • Pire: ${lab(worst)} (${worst.r.toFixed(2)}%)`); } }catch(__){}
+    try{ registerChart('detailDOWHour', { type:'heatmap', cells: cells2.slice(), rows:7, cols:24 }); dowHourCells=cells2.slice(); if(dowHourCells.length){ let best=dowHourCells[0], worst=dowHourCells[0]; for(const x of dowHourCells){ if(x.r>best.r) {best=x;} if(x.r<worst.r) {worst=x;} } const lab=(x)=> ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'][x.d]+' '+String(x.h).padStart(2,'0')+'h'; setNote('detailDOWHourNote', `Meilleur crÃ©neau: ${lab(best)} (${best.r.toFixed(2)}%) â€¢ Pire: ${lab(worst)} (${worst.r.toFixed(2)}%)`); } }catch(__){}
   }catch(_){ }
-  // Heaven DOW×Heure (global)
+  // Heaven DOWÃ—Heure (global)
   try{ if(typeof H!=='undefined' && H){ const c=ensureHeavenClone('detailDOWHour'); if(c){ drawDOWHourHeatmap(c, H.dowHour||[]); registerChart('detailDOWHourHeaven', { type:'heatmap', cells: (H.dowHour||[]).slice(), rows:7, cols:24 }); } } }catch(_){ }
-  // Day×Hour — Long-only and Short-only (by entry hour, mean % return per position)
+  // DayÃ—Hour â€” Long-only and Short-only (by entry hour, mean % return per position)
   try{
     const mkCells=(dir)=>{ const sum=Array.from({length:7},()=> new Array(24).fill(0)); const cnt=Array.from({length:7},()=> new Array(24).fill(0)); for(const g of groups){ if(g && g.dir===dir && Number.isFinite(g.entryTime)){ const eq0=Number.isFinite(g.eq0)&&g.eq0>0? g.eq0 : (Number(conf.startCap)||1); const rpct=(Number(g.net)||0)/eq0*100; const dt=new Date((g.entryTime||0)*1000); const dow=(dt.getUTCDay()+6)%7; const hr=dt.getUTCHours(); sum[dow][hr]+=rpct; cnt[dow][hr]++; } } const cells=[]; for(let r=0;r<7;r++){ for(let c=0;c<24;c++){ const v=cnt[r][c]>0? (sum[r][c]/cnt[r][c]) : 0; cells.push({ c, d:r, h:c, r:v }); } } return cells; };
-    try{ if(canDOWHourLong){ const cL=mkCells('long'); dhLongCells=cL.slice(); drawDOWHourHeatmap(canDOWHourLong, cL); registerChart('detailDOWHourLong', { type:'heatmap', cells:cL.slice(), rows:7, cols:24 }); if(cL.length){ let best=cL[0], worst=cL[0]; for(const x of cL){ if(x.r>best.r) {best=x;} if(x.r<worst.r) {worst=x;} } const lab=(x)=> ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'][x.d]+' '+String(x.h).padStart(2,'0')+'h'; setNote('detailDOWHourLongNote', `Best: ${lab(best)} (${best.r.toFixed(2)}%) • Worst: ${lab(worst)} (${worst.r.toFixed(2)}%)`); } } }catch(__){}
-    try{ if(canDOWHourShort){ const cS=mkCells('short'); dhShortCells=cS.slice(); drawDOWHourHeatmap(canDOWHourShort, cS); registerChart('detailDOWHourShort', { type:'heatmap', cells:cS.slice(), rows:7, cols:24 }); if(cS.length){ let best=cS[0], worst=cS[0]; for(const x of cS){ if(x.r>best.r) {best=x;} if(x.r<worst.r) {worst=x;} } const lab=(x)=> ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'][x.d]+' '+String(x.h).padStart(2,'0')+'h'; setNote('detailDOWHourShortNote', `Best: ${lab(best)} (${best.r.toFixed(2)}%) • Worst: ${lab(worst)} (${worst.r.toFixed(2)}%)`); } } }catch(__){}
+    try{ if(canDOWHourLong){ const cL=mkCells('long'); dhLongCells=cL.slice(); drawDOWHourHeatmap(canDOWHourLong, cL); registerChart('detailDOWHourLong', { type:'heatmap', cells:cL.slice(), rows:7, cols:24 }); if(cL.length){ let best=cL[0], worst=cL[0]; for(const x of cL){ if(x.r>best.r) {best=x;} if(x.r<worst.r) {worst=x;} } const lab=(x)=> ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'][x.d]+' '+String(x.h).padStart(2,'0')+'h'; setNote('detailDOWHourLongNote', `Best: ${lab(best)} (${best.r.toFixed(2)}%) â€¢ Worst: ${lab(worst)} (${worst.r.toFixed(2)}%)`); } } }catch(__){}
+    try{ if(canDOWHourShort){ const cS=mkCells('short'); dhShortCells=cS.slice(); drawDOWHourHeatmap(canDOWHourShort, cS); registerChart('detailDOWHourShort', { type:'heatmap', cells:cS.slice(), rows:7, cols:24 }); if(cS.length){ let best=cS[0], worst=cS[0]; for(const x of cS){ if(x.r>best.r) {best=x;} if(x.r<worst.r) {worst=x;} } const lab=(x)=> ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'][x.d]+' '+String(x.h).padStart(2,'0')+'h'; setNote('detailDOWHourShortNote', `Best: ${lab(best)} (${best.r.toFixed(2)}%) â€¢ Worst: ${lab(worst)} (${worst.r.toFixed(2)}%)`); } } }catch(__){}
   }catch(_){ }
-  // Heaven DOW×Heure — Long/Short
+  // Heaven DOWÃ—Heure â€” Long/Short
   try{ if(typeof H!=='undefined' && H){ const cl=ensureHeavenClone('detailDOWHourLong'); if(cl){ drawDOWHourHeatmap(cl, H.dowHourLong||[]); registerChart('detailDOWHourLongHeaven', { type:'heatmap', cells:(H.dowHourLong||[]).slice(), rows:7, cols:24 }); } const cs=ensureHeavenClone('detailDOWHourShort'); if(cs){ drawDOWHourHeatmap(cs, H.dowHourShort||[]); registerChart('detailDOWHourShortHeaven', { type:'heatmap', cells:(H.dowHourShort||[]).slice(), rows:7, cols:24 }); } } }catch(_){ }
-  // Regime heatmap (Trend × Vol)
+  // Regime heatmap (Trend Ã— Vol)
   try{
     const prd=Math.max(2, lbcOpts.prd|0); const lb=computeLineBreakState(bars, Math.max(1, lbcOpts.nol|0));
     // ATR% (Wilder 14)
@@ -4310,11 +4311,11 @@ drawWeeklyHeatmap(canWeekly, cells);
     for(const g of groups){ const i=idxOfTime(g.entryTime); const tr=bucketTrend(Math.min(i, lb.trend.length-1)); const vol=bucketVol(atrP[Math.min(i, atrP.length-1)]||0); const cell=mat[tr][vol]; cell.count++; if((g.net||0)>=0) {cell.gp += (g.net||0);} else {cell.gl += (g.net||0);} }
     for(const r of ['Up','Down']){ for(const c of ['Low','Med','High']){ const cell=mat[r][c]; cell.pf = (cell.gl<0? cell.gp/Math.abs(cell.gl) : (cell.count>0? Infinity:0)); } }
 drawRegimeHeatmap(canRegime, mat);
-    try{ regimeMat = mat; let best={r:'',c:'',pf:-Infinity,count:0}, worst={r:'',c:'',pf:Infinity,count:0}; for(const rr of ['Up','Down']){ for(const cc of ['Low','Med','High']){ const cell=mat[rr][cc]; const pf=(cell.pf===Infinity? 5: cell.pf||0); if(pf>best.pf){ best={r:rr,c:cc,pf, count:cell.count}; } if(pf<worst.pf){ worst={r:rr,c:cc,pf, count:cell.count}; } } } setNote('detailRegimeNote', `Meilleur régime: ${best.r}/${best.c} (PF ${best.pf.toFixed(2)}, n=${best.count}) • Pire: ${worst.r}/${worst.c}`); }catch(__){}
+    try{ regimeMat = mat; let best={r:'',c:'',pf:-Infinity,count:0}, worst={r:'',c:'',pf:Infinity,count:0}; for(const rr of ['Up','Down']){ for(const cc of ['Low','Med','High']){ const cell=mat[rr][cc]; const pf=(cell.pf===Infinity? 5: cell.pf||0); if(pf>best.pf){ best={r:rr,c:cc,pf, count:cell.count}; } if(pf<worst.pf){ worst={r:rr,c:cc,pf, count:cell.count}; } } } setNote('detailRegimeNote', `Meilleur rÃ©gime: ${best.r}/${best.c} (PF ${best.pf.toFixed(2)}, n=${best.count}) â€¢ Pire: ${worst.r}/${worst.c}`); }catch(__){}
   }catch(_){ }
   // Heaven regime
   try{ if(typeof H!=='undefined' && H && H.regime){ const c=ensureHeavenClone('detailRegime'); if(c){ drawRegimeHeatmap(c, H.regime); } } }catch(_){ }
-  // Pareto (Palmarès)
+  // Pareto (PalmarÃ¨s)
   try{
     const pal = (Array.isArray(window.labPalmaresCache) && window.labPalmaresCache.length)? window.labPalmaresCache.slice() : [];
     const drawFrom = (arr)=>{
@@ -4324,7 +4325,7 @@ drawRegimeHeatmap(canRegime, mat);
       if(!pts.length){ pts.push({ dd: Math.max(0, +res.maxDDAbs||0), pnl: +res.totalPnl||0, score: (Number.isFinite(res.score)? res.score:0) }); }
       drawPareto(canPareto, pts);
       try{ registerChart('detailPareto', { type:'pareto', points: pts.slice() }); }catch(__){}
-      try{ const dd=+res.maxDDAbs||0, pnl=+res.totalPnl||0; const ratio = dd>0? (pnl/Math.abs(dd)) : Infinity; setNote('detailParetoNote', `Point courant: P&L ${pnl.toFixed(0)} • Max DD ${dd.toFixed(0)} • Ratio P&L/DD ${ratio===Infinity?'∞':ratio.toFixed(2)}`); }catch(__){}
+      try{ const dd=+res.maxDDAbs||0, pnl=+res.totalPnl||0; const ratio = dd>0? (pnl/Math.abs(dd)) : Infinity; setNote('detailParetoNote', `Point courant: P&L ${pnl.toFixed(0)} â€¢ Max DD ${dd.toFixed(0)} â€¢ Ratio P&L/DD ${ratio===Infinity?'âˆž':ratio.toFixed(2)}`); }catch(__){}
     };
     if(pal.length){ drawFrom(pal); }
     else if(window.SUPA && typeof SUPA.fetchPalmares==='function'){
@@ -4334,7 +4335,7 @@ drawRegimeHeatmap(canRegime, mat);
   // Heaven Pareto
   try{ if(typeof resCmp!=='undefined' && resCmp){ const pal = (Array.isArray(window.labPalmaresCache) && window.labPalmaresCache.length)? window.labPalmaresCache.slice() : []; const pts=[]; if(Array.isArray(pal)){ for(const it of pal){ const st=it.res||{}; const score=(typeof it.score==='number')? it.score : 0; if(Number.isFinite(st.maxDDAbs)&&Number.isFinite(st.totalPnl)){ pts.push({ dd:+st.maxDDAbs, pnl:+st.totalPnl, score }); } } } if(!pts.length){ pts.push({ dd: Math.max(0, +resCmp.maxDDAbs||0), pnl: +resCmp.totalPnl||0, score: (Number.isFinite(resCmp.score)? resCmp.score:0) }); } const c=ensureHeavenClone('detailPareto'); if(c){ drawPareto(c, pts); try{ registerChart('detailParetoHeaven', { type:'pareto', points: pts.slice() }); }catch(__){} } } }catch(_){ }
   // CI bars
-  try{ if(canCIs && ciBoot){ drawCIBars(canCIs, ciBoot); try{ const w=ciBoot.win||[0,0], p=ciBoot.pf||[0,0], e=ciBoot.exp||[0,0]; setNote('detailCIsNote', `Win% [${w[0].toFixed(1)} ; ${w[1].toFixed(1)}] • PF [${p[0].toFixed(2)} ; ${p[1].toFixed(2)}] • Exp [${e[0].toFixed(2)} ; ${e[1].toFixed(2)}]`); }catch(__){} } }catch(_){ }
+  try{ if(canCIs && ciBoot){ drawCIBars(canCIs, ciBoot); try{ const w=ciBoot.win||[0,0], p=ciBoot.pf||[0,0], e=ciBoot.exp||[0,0]; setNote('detailCIsNote', `Win% [${w[0].toFixed(1)} ; ${w[1].toFixed(1)}] â€¢ PF [${p[0].toFixed(2)} ; ${p[1].toFixed(2)}] â€¢ Exp [${e[0].toFixed(2)} ; ${e[1].toFixed(2)}]`); }catch(__){} } }catch(_){ }
   // Heaven CI bars
   try{ if(typeof H!=='undefined' && H){ const c=ensureHeavenClone('detailCIs'); if(c){ drawCIBars(c, H.ci||{ win:[0,0], pf:[0,0], exp:[0,0] }); } } }catch(_){ }
 // Monte Carlo fan (bootstrap trades)
@@ -4345,7 +4346,7 @@ drawRegimeHeatmap(canRegime, mat);
       // compute percentiles per step
       const steps=paths[0].length; const p10=[], p50=[], p90=[]; for(let i=0;i<steps;i++){ const col=paths.map(p=> p[i]); col.sort((a,b)=>a-b); const q=(q)=> col[Math.max(0, Math.min(col.length-1, Math.floor((col.length-1)*q)))]; p10.push(q(0.10)); p50.push(q(0.50)); p90.push(q(0.90)); }
       // draw
-      const ctx=canMC.getContext('2d'); const w=canMC.width, h=canMC.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, "Monte Carlo — éventail d'équity", 'center'); const padL=56, padR=12, padT=22, padB=28; const min=Math.min(...p10), max=Math.max(...p90); const x=(i)=> i/(steps-1)*(w-padL-padR)+padL; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB); // axes
+      const ctx=canMC.getContext('2d'); const w=canMC.width, h=canMC.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, "Monte Carlo â€” Ã©ventail d'Ã©quity", 'center'); const padL=56, padR=12, padT=22, padB=28; const min=Math.min(...p10), max=Math.max(...p90); const x=(i)=> i/(steps-1)*(w-padL-padR)+padL; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB); // axes
       ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke();
       // grid + ticks
       const ticks=4; for(let t=0;t<=ticks;t++){ const yy=h-padB - (h-padT-padB)*t/ticks; const val=(min + (max-min)*t/ticks); ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-8, yy, val.toFixed(0), 'right'); }
@@ -4353,12 +4354,12 @@ drawRegimeHeatmap(canRegime, mat);
       // band 10-90
       ctx.fillStyle='rgba(37,99,235,0.15)'; ctx.beginPath(); ctx.moveTo(x(0), y(p10[0])); for(let i=1;i<steps;i++) {ctx.lineTo(x(i), y(p10[i]));} for(let i=steps-1;i>=0;i--) {ctx.lineTo(x(i), y(p90[i]));} ctx.closePath(); ctx.fill();
       // median
-      ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<steps;i++){ const xx=x(i), yy=y(p50[i]); if(i===0) {ctx.moveTo(xx,yy);} else {ctx.lineTo(xx,yy);} } ctx.stroke(); __drawText(ctx, padL, h-8, 'Trades (bootstrap) →', 'left');
-      try{ mcBands = { p10, p50, p90, startCap }; const medEnd=p50[p50.length-1], p10e=p10[p10.length-1], p90e=p90[p90.length-1]; const g=((medEnd-startCap)/Math.max(1e-9,startCap))*100; setNote('detailMCNote', `Median fin: ${medEnd.toFixed(0)} (${g.toFixed(1)}%) • Bande [${p10e.toFixed(0)} ; ${p90e.toFixed(0)}]`); }catch(__){}
+      ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<steps;i++){ const xx=x(i), yy=y(p50[i]); if(i===0) {ctx.moveTo(xx,yy);} else {ctx.lineTo(xx,yy);} } ctx.stroke(); __drawText(ctx, padL, h-8, 'Trades (bootstrap) â†’', 'left');
+      try{ mcBands = { p10, p50, p90, startCap }; const medEnd=p50[p50.length-1], p10e=p10[p10.length-1], p90e=p90[p90.length-1]; const g=((medEnd-startCap)/Math.max(1e-9,startCap))*100; setNote('detailMCNote', `Median fin: ${medEnd.toFixed(0)} (${g.toFixed(1)}%) â€¢ Bande [${p10e.toFixed(0)} ; ${p90e.toFixed(0)}]`); }catch(__){}
     }
   }catch(_){ }
   // Heaven Monte Carlo
-  try{ if(typeof H!=='undefined' && H){ const startCap = Number(conf.startCap)||10000; const rp = (H.retLong.concat(H.retShort)).filter(Number.isFinite); const L = Math.min(300, rp.length||0); const N = Math.min(50, 5 + Math.floor((rp.length||0)/2)); if(L>5 && N>1){ const paths=[]; for(let s=0;s<N;s++){ let eq=startCap; const path=[eq]; for(let i=0;i<L;i++){ const r = rp[Math.floor(Math.random()*rp.length)]/100; eq = eq*(1+r); path.push(eq); } paths.push(path); } const steps=paths[0].length; const p10=[], p50=[], p90=[]; for(let i=0;i<steps;i++){ const col=paths.map(p=> p[i]); col.sort((a,b)=>a-b); const q=(q)=> col[Math.max(0, Math.min(col.length-1, Math.floor((col.length-1)*q)))]; p10.push(q(0.10)); p50.push(q(0.50)); p90.push(q(0.90)); } mcBandsH = { p10:p10.slice(), p50:p50.slice(), p90:p90.slice(), startCap }; const c=ensureHeavenClone('detailMC'); if(c){ const ctx=c.getContext('2d'); const w=c.width, h=c.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, "Monte Carlo — éventail d'équity", 'center'); const padL=56, padR=12, padT=22, padB=28; const min=Math.min(...p10), max=Math.max(...p90); const x=(i)=> i/(steps-1)*(w-padL-padR)+padL; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; for(let t=0;t<=ticks;t++){ const yy=h-padB - (h-padT-padB)*t/ticks; const val=(min + (max-min)*t/ticks); ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-8, yy, val.toFixed(0), 'right'); } for(let t=0;t<=ticks;t++){ const xx=padL + (w-padL-padR)*t/ticks; ctx.beginPath(); ctx.moveTo(xx, padT); ctx.lineTo(xx, h-padB); ctx.stroke(); __drawText(ctx, xx, h-8, String(Math.round((steps-1)*t/ticks)), 'center'); } ctx.fillStyle='rgba(37,99,235,0.15)'; ctx.beginPath(); ctx.moveTo(x(0), y(p10[0])); for(let i=1;i<steps;i++) {ctx.lineTo(x(i), y(p10[i]));} for(let i=steps-1;i>=0;i--) {ctx.lineTo(x(i), y(p90[i]));} ctx.closePath(); ctx.fill(); ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<steps;i++){ const xx=x(i), yy=y(p50[i]); if(i===0) {ctx.moveTo(xx,yy);} else {ctx.lineTo(xx,yy);} } ctx.stroke(); } } } }catch(_){ }
+  try{ if(typeof H!=='undefined' && H){ const startCap = Number(conf.startCap)||10000; const rp = (H.retLong.concat(H.retShort)).filter(Number.isFinite); const L = Math.min(300, rp.length||0); const N = Math.min(50, 5 + Math.floor((rp.length||0)/2)); if(L>5 && N>1){ const paths=[]; for(let s=0;s<N;s++){ let eq=startCap; const path=[eq]; for(let i=0;i<L;i++){ const r = rp[Math.floor(Math.random()*rp.length)]/100; eq = eq*(1+r); path.push(eq); } paths.push(path); } const steps=paths[0].length; const p10=[], p50=[], p90=[]; for(let i=0;i<steps;i++){ const col=paths.map(p=> p[i]); col.sort((a,b)=>a-b); const q=(q)=> col[Math.max(0, Math.min(col.length-1, Math.floor((col.length-1)*q)))]; p10.push(q(0.10)); p50.push(q(0.50)); p90.push(q(0.90)); } mcBandsH = { p10:p10.slice(), p50:p50.slice(), p90:p90.slice(), startCap }; const c=ensureHeavenClone('detailMC'); if(c){ const ctx=c.getContext('2d'); const w=c.width, h=c.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, "Monte Carlo â€” Ã©ventail d'Ã©quity", 'center'); const padL=56, padR=12, padT=22, padB=28; const min=Math.min(...p10), max=Math.max(...p90); const x=(i)=> i/(steps-1)*(w-padL-padR)+padL; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; for(let t=0;t<=ticks;t++){ const yy=h-padB - (h-padT-padB)*t/ticks; const val=(min + (max-min)*t/ticks); ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-8, yy, val.toFixed(0), 'right'); } for(let t=0;t<=ticks;t++){ const xx=padL + (w-padL-padR)*t/ticks; ctx.beginPath(); ctx.moveTo(xx, padT); ctx.lineTo(xx, h-padB); ctx.stroke(); __drawText(ctx, xx, h-8, String(Math.round((steps-1)*t/ticks)), 'center'); } ctx.fillStyle='rgba(37,99,235,0.15)'; ctx.beginPath(); ctx.moveTo(x(0), y(p10[0])); for(let i=1;i<steps;i++) {ctx.lineTo(x(i), y(p10[i]));} for(let i=steps-1;i>=0;i--) {ctx.lineTo(x(i), y(p90[i]));} ctx.closePath(); ctx.fill(); ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<steps;i++){ const xx=x(i), yy=y(p50[i]); if(i===0) {ctx.moveTo(xx,yy);} else {ctx.lineTo(xx,yy);} } ctx.stroke(); } } } }catch(_){ }
   // QQ & ACF
   try{
     const retsAll = (retLong.concat(retShort)).slice();
@@ -4371,7 +4372,7 @@ drawRegimeHeatmap(canRegime, mat);
       const sd=Math.sqrt(mean(retsAll.map(x=>(x-m)*(x-m))));
       const skew = (sd>0? mean(retsAll.map(x=>Math.pow((x-m)/sd,3))) : 0);
       const kurt = (sd>0? mean(retsAll.map(x=>Math.pow((x-m)/sd,4))) : 0);
-      setNote('detailQQNote', `Skew ${skew.toFixed(2)} • Kurtosis ${kurt.toFixed(2)} (3≈normal)`);
+      setNote('detailQQNote', `Skew ${skew.toFixed(2)} â€¢ Kurtosis ${kurt.toFixed(2)} (3â‰ˆnormal)`);
     }catch(__){}
     try{
       if(typeof H!=='undefined' && H){
@@ -4397,7 +4398,7 @@ drawRegimeHeatmap(canRegime, mat);
         let num=0; for(let i=0;i<n-k;i++){ num += (retsAll[i]-m)*(retsAll[i+k]-m); }
         const r = num/(varr||1); if(Math.abs(r)>z) {sig++;}
       }
-      setNote('detailACFNote', `${sig} lags significatifs (>±${z.toFixed(2)})`);
+      setNote('detailACFNote', `${sig} lags significatifs (>Â±${z.toFixed(2)})`);
     }catch(__){}
     try{
       if(typeof H!=='undefined' && H){
@@ -4415,25 +4416,25 @@ drawRegimeHeatmap(canRegime, mat);
     const N=4; if(eq && eq.length>10){ const t0=eq[0].time, t1=eq[eq.length-1].time; const bounds=[]; for(let k=0;k<=N;k++){ bounds.push(t0 + Math.round((t1-t0)*k/N)); }
       const segs=[]; for(let k=0;k<N;k++){ const a=bounds[k], b=bounds[k+1]; const gg=groups.filter(g=> Number.isFinite(g.exitTime) && g.exitTime>=a && g.exitTime<b); const L=gg.length; let gp=0, gl=0, wins=0; let exp=0, pnl=0; for(const g of gg){ const net=Number(g.net)||0; pnl+=net; if(net>=0){ gp+=net; wins++; } else { gl+=net; } } if(L>0){ exp = pnl/L; }
         const pf = gl<0? (gp/Math.abs(gl)) : (L>0? Infinity:0); const win = L>0? (wins/L*100):0; segs.push({ pf: Number.isFinite(pf)? pf: Infinity, win, exp, pnl }); }
-      drawWFTable(canWF, segs); try{ wfSegs = segs.slice(); const ok=segs.filter(s=> (s.pf===Infinity || s.pf>=1.0)).length; const best=Math.max(...segs.map(s=> (s.pf===Infinity? 9 : s.pf))); const worst=Math.min(...segs.map(s=> (s.pf===Infinity? 9 : s.pf))); setNote('detailWFNote', `${ok}/${segs.length} splits PF≥1 • PF min ${worst.toFixed(2)} / max ${best.toFixed(2)}`); registerChart('detailWF', { type:'wf', splits: segs.slice() }); }catch(__){} }
+      drawWFTable(canWF, segs); try{ wfSegs = segs.slice(); const ok=segs.filter(s=> (s.pf===Infinity || s.pf>=1.0)).length; const best=Math.max(...segs.map(s=> (s.pf===Infinity? 9 : s.pf))); const worst=Math.min(...segs.map(s=> (s.pf===Infinity? 9 : s.pf))); setNote('detailWFNote', `${ok}/${segs.length} splits PFâ‰¥1 â€¢ PF min ${worst.toFixed(2)} / max ${best.toFixed(2)}`); registerChart('detailWF', { type:'wf', splits: segs.slice() }); }catch(__){} }
   }catch(_){ }
   // Heaven WF
   try{ if(typeof H!=='undefined' && H){ const c=ensureHeavenClone('detailWF'); if(c){ drawWFTable(c, H.wf||[]); try{ registerChart('detailWFHeaven', { type:'wf', splits: (H.wf||[]).slice() }); }catch(__){} } } }catch(_){ }
 if(detailCtxEl){
-  const gtxt = (ctx && ctx.gen && ctx.gen>1)? ` • Gen ${ctx.gen}` : '';
-  const capStr = Number.isFinite(conf.startCap)? ` • Cap ${conf.startCap.toFixed ? conf.startCap.toFixed(0) : Number(conf.startCap).toFixed(0)}` : '';
-  const feeStr = Number.isFinite(conf.fee)? ` • Frais ${Number(conf.fee).toFixed(2)}%` : '';
-  const levStr = Number.isFinite(conf.lev)? ` • Lev x${Number(conf.lev).toFixed(1)}` : '';
+  const gtxt = (ctx && ctx.gen && ctx.gen>1)? ` â€¢ Gen ${ctx.gen}` : '';
+  const capStr = Number.isFinite(conf.startCap)? ` â€¢ Cap ${conf.startCap.toFixed ? conf.startCap.toFixed(0) : Number(conf.startCap).toFixed(0)}` : '';
+  const feeStr = Number.isFinite(conf.fee)? ` â€¢ Frais ${Number(conf.fee).toFixed(2)}%` : '';
+  const levStr = Number.isFinite(conf.lev)? ` â€¢ Lev x${Number(conf.lev).toFixed(1)}` : '';
   let header = '';
   try{
-    header = `${symbolToDisplay(sym)} • ${tf} — ${name}${gtxt}${capStr}${feeStr}${levStr} — PF ${(res.profitFactor===Infinity?'∞':(+res.profitFactor||0).toFixed(2))} • Trades ${res.tradesCount}`;
+    header = `${symbolToDisplay(sym)} â€¢ ${tf} â€” ${name}${gtxt}${capStr}${feeStr}${levStr} â€” PF ${(res.profitFactor===Infinity?'âˆž':(+res.profitFactor||0).toFixed(2))} â€¢ Trades ${res.tradesCount}`;
   }catch(_){
-    header = `${sym} • ${tf} — ${name}${gtxt}${capStr}${feeStr}${levStr} — PF ${(res.profitFactor===Infinity?'∞':(+res.profitFactor||0).toFixed(2))} • Trades ${res.tradesCount}`;
+    header = `${sym} â€¢ ${tf} â€” ${name}${gtxt}${capStr}${feeStr}${levStr} â€” PF ${(res.profitFactor===Infinity?'âˆž':(+res.profitFactor||0).toFixed(2))} â€¢ Trades ${res.tradesCount}`;
   }
-  // Ajout d'un rappel explicite de la stratégie comparée (Heaven / Palmarès)
+  // Ajout d'un rappel explicite de la stratÃ©gie comparÃ©e (Heaven / PalmarÃ¨s)
   try{
     const cmpMode = (compCfg && compCfg.mode) || 'heaven';
-    const prefix = (typeof t==='function') ? t('detail.compare.label') : 'Comparer à';
+    const prefix = (typeof t==='function') ? t('detail.compare.label') : 'Comparer Ã ';
     if(cmpMode === 'palmares'){
       const rawSym = (compCfg && compCfg.symbol) || sym;
       let csymDisp = rawSym;
@@ -4443,18 +4444,18 @@ if(detailCtxEl){
       if(!cprof){
         try{ cprof = localStorage.getItem('heaven:profile') || localStorage.getItem('labWeightsProfile') || 'balancee'; }catch(_){ cprof = null; }
       }
-      const meta = cprof ? ` (${csymDisp} • ${ctf} • ${cprof})` : ` (${csymDisp} • ${ctf})`;
-      header += ` — ${prefix}: ${cmpLabel}${meta}`;
+      const meta = cprof ? ` (${csymDisp} â€¢ ${ctf} â€¢ ${cprof})` : ` (${csymDisp} â€¢ ${ctf})`;
+      header += ` â€” ${prefix}: ${cmpLabel}${meta}`;
     } else {
       const heavenTxt = (typeof t==='function') ? t('detail.compare.source.heaven') : 'Heaven';
-      header += ` — ${prefix}: ${heavenTxt}`;
+      header += ` â€” ${prefix}: ${heavenTxt}`;
     }
   }catch(_){ }
   detailCtxEl.textContent = header;
 }
   // Summary/commentary (pass advanced metrics)
   try{ const sum = generateStrategySummary(res, ctx, { timeInMkt, freq, expectancy: expNet, avgDurMin, bestNet, worstNet, r2, pf: (res.profitFactor===Infinity? Infinity : (+res.profitFactor||0)), winrate, avgRR, maxDDAbs: +res.maxDDAbs||0, ci: ciBoot }); if(detailSummaryEl){ let full=sum; if(compareSummaryText){ full += "\n\n"+compareSummaryText; } detailSummaryEl.innerHTML = full; } }catch(_){ }
-  // Slippage what‑if (bps)
+  // Slippage whatâ€‘if (bps)
   try{
     const slipInp=document.getElementById('detailSlipBps'); const slipBtn=document.getElementById('detailSlipApply'); const slipNote=document.getElementById('detailSlipNote'); const slipInfo=document.getElementById('detailSlipInfo');
     if(slipBtn && slipInp && (!slipBtn.dataset || slipBtn.dataset.wired!=='1')){
@@ -4462,7 +4463,7 @@ if(detailCtxEl){
         const map=new Map(); function keyOf(e){ return `${e.dir}|${e.entryTime}|${e.entry}|${e.initSL}`; }
         for(const ev of evs){ const k=keyOf(ev); let g=map.get(k); if(!g){ g={ net:0 }; map.set(k,g); } const qty=Math.abs(Number(ev.qty)||0); const pe=Math.abs(Number(ev.entry)||0); const px=Math.abs(Number(ev.exit)||0); const extra=(pe*qty + px*qty)*(bps/10000); const newNet=(Number(ev.net)||0) - extra; g.net += newNet; }
         const gs=Array.from(map.values()); const L=gs.length; let gp=0, gl=0, wins=0, sum=0; for(const g of gs){ const v=Number(g.net)||0; sum+=v; if(v>=0){ gp+=v; wins++; } else { gl+=v; } }
-        const pf = gl<0? (gp/Math.abs(gl)) : (L>0? Infinity:0); const win = L>0? (wins/L*100):0; const exp = L>0? (sum/L):0; if(slipNote){ slipNote.textContent = `→ PF ${(pf===Infinity?'∞':pf.toFixed(2))}, Win% ${win.toFixed(1)}%, Exp ${exp.toFixed(2)} USD`; }
+        const pf = gl<0? (gp/Math.abs(gl)) : (L>0? Infinity:0); const win = L>0? (wins/L*100):0; const exp = L>0? (sum/L):0; if(slipNote){ slipNote.textContent = `â†’ PF ${(pf===Infinity?'âˆž':pf.toFixed(2))}, Win% ${win.toFixed(1)}%, Exp ${exp.toFixed(2)} USD`; }
       }catch(__){} });
       if(!slipBtn.dataset) {slipBtn.dataset={};}
       slipBtn.dataset.wired='1';
@@ -4500,7 +4501,7 @@ if(detailCtxEl){
     }); detailModalEl.__expWired=true; }
     // Equity tooltip
     try{
-      if(canEquity && !canEquity.__tipWired){ const handler=(ev)=>{ try{ const rect=canEquity.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canEquity.width; const padL=46, padR=18; const n=(eq||[]).length; if(n<=1) {return;} const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const p=eq[i]; const t=new Date((p.time||0)*1000).toLocaleString(); let html=`${t}<br/>Sel: ${p.equity.toFixed(0)}`; if(eqCmp&&eqCmp.length){ const j=Math.max(0, Math.min(eqCmp.length-1, i)); html+=` • ${cmpLabel}: ${eqCmp[j].equity.toFixed(0)}`; } updateCrosshair(canEquity, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
+      if(canEquity && !canEquity.__tipWired){ const handler=(ev)=>{ try{ const rect=canEquity.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canEquity.width; const padL=46, padR=18; const n=(eq||[]).length; if(n<=1) {return;} const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const p=eq[i]; const t=new Date((p.time||0)*1000).toLocaleString(); let html=`${t}<br/>Sel: ${p.equity.toFixed(0)}`; if(eqCmp&&eqCmp.length){ const j=Math.max(0, Math.min(eqCmp.length-1, i)); html+=` â€¢ ${cmpLabel}: ${eqCmp[j].equity.toFixed(0)}`; } updateCrosshair(canEquity, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
         canEquity.addEventListener('mousemove', handler); canEquity.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(canEquity); }); canEquity.__tipWired=true; }
     }catch(_){ }
     // Equity tooltip (comparateur)
@@ -4510,9 +4511,9 @@ if(detailCtxEl){
         canEquityH.addEventListener('mousemove', handlerH); canEquityH.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(canEquityH); }); canEquityH.__tipWired=true; }
     }catch(_){ }
     // Heatmap tooltips + click filter on long/short
-    function heatHover(can, lab){ if(!can) {return;} if(can.__heatTipWired) {return;} can.addEventListener('mousemove', (ev)=>{ try{ const cfg=can.__heatCfg; if(!cfg) {return;} const rect=can.getBoundingClientRect(); const x=ev.clientX-rect.left, y=ev.clientY-rect.top; const c=Math.floor((x-cfg.padL)/cfg.cw), r=Math.floor((y-cfg.padT)/cfg.ch); if(c<0||c>=cfg.cols||r<0||r>=cfg.rows) {hideTip(); return;} const cell=cfg.cells[r*cfg.cols+c]; if(!cell) {hideTip(); return;} const dnames=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']; const html=`${lab}: ${dnames[r]} ${String(c).padStart(2,'0')}h — ${Number(cell.r).toFixed(2)}%`; updateCrosshair(can, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } }); can.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(can); }); can.__heatTipWired=true; }
-    heatHover(canDOWHour, 'Jour×Heure'); heatHover(canDOWHourLong, 'Long'); heatHover(canDOWHourShort, 'Short');
-    heatHover(document.getElementById('detailDOWHourHeaven'), `Jour×Heure (${cmpLabel})`);
+    function heatHover(can, lab){ if(!can) {return;} if(can.__heatTipWired) {return;} can.addEventListener('mousemove', (ev)=>{ try{ const cfg=can.__heatCfg; if(!cfg) {return;} const rect=can.getBoundingClientRect(); const x=ev.clientX-rect.left, y=ev.clientY-rect.top; const c=Math.floor((x-cfg.padL)/cfg.cw), r=Math.floor((y-cfg.padT)/cfg.ch); if(c<0||c>=cfg.cols||r<0||r>=cfg.rows) {hideTip(); return;} const cell=cfg.cells[r*cfg.cols+c]; if(!cell) {hideTip(); return;} const dnames=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']; const html=`${lab}: ${dnames[r]} ${String(c).padStart(2,'0')}h â€” ${Number(cell.r).toFixed(2)}%`; updateCrosshair(can, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } }); can.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(can); }); can.__heatTipWired=true; }
+    heatHover(canDOWHour, 'JourÃ—Heure'); heatHover(canDOWHourLong, 'Long'); heatHover(canDOWHourShort, 'Short');
+    heatHover(document.getElementById('detailDOWHourHeaven'), `JourÃ—Heure (${cmpLabel})`);
     heatHover(document.getElementById('detailDOWHourLongHeaven'), `Long (${cmpLabel})`);
     heatHover(document.getElementById('detailDOWHourShortHeaven'), `Short (${cmpLabel})`);
     // DD tooltip (absolu USD)
@@ -4552,12 +4553,12 @@ if(detailCtxEl){
     }catch(_){ }
     // Monte Carlo tooltip
     try{
-      if(canMC && mcBands && mcBands.p50 && mcBands.p50.length && !canMC.__tipWired){ const handlerMC=(ev)=>{ try{ const rect=canMC.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canMC.width; const padL=56, padR=12; const n=mcBands.p50.length; if(n<=1) {return;} const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const t=i; const eMed=mcBands.p50[i]; const eLo=mcBands.p10[i]; const eHi=mcBands.p90[i]; const html=`Trade bootstrap ${t}<br/>P10: ${eLo.toFixed(0)} • Median: ${eMed.toFixed(0)} • P90: ${eHi.toFixed(0)}`; updateCrosshair(canMC, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
+      if(canMC && mcBands && mcBands.p50 && mcBands.p50.length && !canMC.__tipWired){ const handlerMC=(ev)=>{ try{ const rect=canMC.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canMC.width; const padL=56, padR=12; const n=mcBands.p50.length; if(n<=1) {return;} const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const t=i; const eMed=mcBands.p50[i]; const eLo=mcBands.p10[i]; const eHi=mcBands.p90[i]; const html=`Trade bootstrap ${t}<br/>P10: ${eLo.toFixed(0)} â€¢ Median: ${eMed.toFixed(0)} â€¢ P90: ${eHi.toFixed(0)}`; updateCrosshair(canMC, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
         canMC.addEventListener('mousemove', handlerMC); canMC.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(canMC); }); canMC.__tipWired=true; }
     }catch(_){ }
     try{
       const canMCH=document.getElementById('detailMCHeaven');
-      if(canMCH && mcBandsH && mcBandsH.p50 && mcBandsH.p50.length && !canMCH.__tipWired){ const handlerMCH=(ev)=>{ try{ const rect=canMCH.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canMCH.width; const padL=56, padR=12; const n=mcBandsH.p50.length; if(n<=1) {return;} const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const t=i; const eMed=mcBandsH.p50[i]; const eLo=mcBandsH.p10[i]; const eHi=mcBandsH.p90[i]; const html=`Trade bootstrap ${t} (${cmpLabel})<br/>P10: ${eLo.toFixed(0)} • Median: ${eMed.toFixed(0)} • P90: ${eHi.toFixed(0)}`; updateCrosshair(canMCH, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
+      if(canMCH && mcBandsH && mcBandsH.p50 && mcBandsH.p50.length && !canMCH.__tipWired){ const handlerMCH=(ev)=>{ try{ const rect=canMCH.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canMCH.width; const padL=56, padR=12; const n=mcBandsH.p50.length; if(n<=1) {return;} const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const t=i; const eMed=mcBandsH.p50[i]; const eLo=mcBandsH.p10[i]; const eHi=mcBandsH.p90[i]; const html=`Trade bootstrap ${t} (${cmpLabel})<br/>P10: ${eLo.toFixed(0)} â€¢ Median: ${eMed.toFixed(0)} â€¢ P90: ${eHi.toFixed(0)}`; updateCrosshair(canMCH, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
         canMCH.addEventListener('mousemove', handlerMCH); canMCH.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(canMCH); }); canMCH.__tipWired=true; }
     }catch(_){ }
     // Histograms, DOW, Pareto, QQ, ACF, WF tooltips
@@ -4581,7 +4582,7 @@ if(detailCtxEl){
           const rel=x-left; const width=Math.max(1, right-left); const binsz=width/bins;
           const b=Math.max(0, Math.min(bins-1, Math.floor(rel/binsz)));
           const from=cfg.min + cfg.step*b; const to=cfg.min + cfg.step*(b+1); const count=(cfg.hist[b]||0);
-          const html=`${label}<br/>[${from.toFixed(2)} ; ${to.toFixed(2)}]% • n=${count}`;
+          const html=`${label}<br/>[${from.toFixed(2)} ; ${to.toFixed(2)}]% â€¢ n=${count}`;
           updateCrosshair(can, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html);
         }catch(_){ } };
         can.addEventListener('mousemove', handler); can.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(can); });
@@ -4619,8 +4620,8 @@ if(detailCtxEl){
           let best=null, bestD=Infinity, idx=-1;
           for(let i=0;i<pts.length;i++){ const p=pts[i]; const d=Math.abs((p.dd||0)-xVal); if(d<bestD){ bestD=d; best=p; idx=i; } }
           if(!best){ hideTip(); hideCrosshair(can); return; }
-          const scorePart = Number.isFinite(best.score) ? (' • Score: ' + best.score.toFixed(1)) : '';
-          const html=`${label} #${idx+1}<br/>Max DD: ${(best.dd||0).toFixed(0)} • P&L: ${(best.pnl||0).toFixed(0)}${scorePart}`;
+          const scorePart = Number.isFinite(best.score) ? (' â€¢ Score: ' + best.score.toFixed(1)) : '';
+          const html=`${label} #${idx+1}<br/>Max DD: ${(best.dd||0).toFixed(0)} â€¢ P&L: ${(best.pnl||0).toFixed(0)}${scorePart}`;
           updateCrosshair(can, ev.clientX, ev.clientY);
         }catch(_){ } };
         can.addEventListener('mousemove', handler); can.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(can); });
@@ -4647,7 +4648,7 @@ if(detailCtxEl){
           const left=padL, right=w-padR; if(x<left || x>right || !spec.theo.length){ hideTip(); hideCrosshair(can); return; }
           const n=spec.theo.length; const rel=x-left; const width=Math.max(1,right-left); const idx=Math.max(0, Math.min(n-1, Math.round(rel/width*(n-1))));
           const theo=spec.theo[idx], zs=spec.zs[idx];
-          const html=`${label} ${idx+1}/${n}<br/>Théorique: ${theo.toFixed(2)} • Observé: ${zs.toFixed(2)}`;
+          const html=`${label} ${idx+1}/${n}<br/>ThÃ©orique: ${theo.toFixed(2)} â€¢ ObservÃ©: ${zs.toFixed(2)}`;
           updateCrosshair(can, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html);
         }catch(_){ } };
         can.addEventListener('mousemove', handler); can.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(can); });
@@ -4687,7 +4688,7 @@ if(detailCtxEl){
           const rect=can.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=can.width;
           const left=padL, right=w-padR; if(x<left || x>right){ hideTip(); hideCrosshair(can); return; }
           const rel=x-left; const width=Math.max(1,right-left); const idx=Math.max(0, Math.min(N-1, Math.floor(rel/(width/N))));
-          const s=splits[idx]; const html=`${label} S${idx+1}<br/>PF: ${(s.pf===Infinity?'∞':(s.pf||0).toFixed(2))} • Win: ${(s.win||0).toFixed(1)}% • Exp: ${(s.exp||0).toFixed(2)} • P&L: ${(s.pnl||0).toFixed(0)}`;
+          const s=splits[idx]; const html=`${label} S${idx+1}<br/>PF: ${(s.pf===Infinity?'âˆž':(s.pf||0).toFixed(2))} â€¢ Win: ${(s.win||0).toFixed(1)}% â€¢ Exp: ${(s.exp||0).toFixed(2)} â€¢ P&L: ${(s.pnl||0).toFixed(0)}`;
           updateCrosshair(can, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html);
         }catch(_){ } };
         can.addEventListener('mousemove', handler); can.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(can); });
@@ -4715,12 +4716,12 @@ if(labTFSelect){ labTFSelect.addEventListener('change', async ()=>{ try{ localSt
 if(labSymbolSelect){ labSymbolSelect.addEventListener('change', async ()=>{ try{ localStorage.setItem('lab:sym', labSymbolSelect.value); await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
 if(labSortModeEl){ labSortModeEl.addEventListener('change', async ()=>{ try{ localStorage.setItem('lab:sortMode', labSortModeEl.value||'score'); await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
 if(labProfileEl){ labProfileEl.addEventListener('change', async ()=>{ try{
-  // Quand l'utilisateur change de profil dans le Lab, on le considère comme profil actif global
+  // Quand l'utilisateur change de profil dans le Lab, on le considÃ¨re comme profil actif global
   const prof = (labProfileEl && labProfileEl.value) || 'balancee';
   try{ localStorage.setItem('labWeightsProfile', prof); }catch(_){ }
-  // Garder le sélecteur de la modale Pondérations aligné si elle est ouverte
+  // Garder le sÃ©lecteur de la modale PondÃ©rations alignÃ© si elle est ouverte
   try{ if(typeof weightsProfile!=='undefined' && weightsProfile){ weightsProfile.value = prof; } }catch(_){ }
-  // Optionnel: mettre à jour les pondérations locales depuis Supabase pour ce profil
+  // Optionnel: mettre Ã  jour les pondÃ©rations locales depuis Supabase pour ce profil
   try{
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchLabProfileWeights==='function'){
       try{
@@ -4732,7 +4733,7 @@ if(labProfileEl){ labProfileEl.addEventListener('change', async ()=>{ try{
     }
   }catch(_){ }
   updateLabAlgoPlaceholders();
-  // Rafraîchir immédiatement le palmarès + les KPIs pour le nouveau profil
+  // RafraÃ®chir immÃ©diatement le palmarÃ¨s + les KPIs pour le nouveau profil
   try{ await renderLabFromStorage(); }catch(_){ }
   try{ await computeLabBenchmarkAndUpdate(); }catch(_){ }
 }catch(_){ } }); }
@@ -4746,7 +4747,7 @@ try{
   wireDate(labFromEl); wireDate(labToEl);
 }catch(_){ }
 if(labRunNewBtn){ labRunNewBtn.addEventListener('click', ()=>{ try{ window.__labGoalOverride='new'; if(labRunBtn){ labRunBtn.click(); } }catch(_){ } }); }
-if(labExportBtn){ labExportBtn.addEventListener('click', ()=>{ try{ const tf=(labTFSelect&&labTFSelect.value)||(intervalSelect&&intervalSelect.value)||''; const sym=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol; const arr=Array.isArray(window.labPalmaresCache)? window.labPalmaresCache : []; if(!arr.length){ setStatus('Rien à exporter'); return; }
+if(labExportBtn){ labExportBtn.addEventListener('click', ()=>{ try{ const tf=(labTFSelect&&labTFSelect.value)||(intervalSelect&&intervalSelect.value)||''; const sym=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol; const arr=Array.isArray(window.labPalmaresCache)? window.labPalmaresCache : []; if(!arr.length){ setStatus('Rien Ã  exporter'); return; }
   const DL=';';
   function esc(v){ let s=(v==null?'':String(v)); if(s.includes('"')) {s=s.replace(/"/g,'""');} if(s.includes(DL)||s.includes('\n')) {s='"'+s+'"';} return s; }
   function tpColsHdr(){ const cols=[]; for(let i=1;i<=10;i++){ cols.push(`TP${i}_type`,`TP${i}_val`,`TP${i}_qty`,`TP${i}_beOn`,`TP${i}_trail_mode`,`TP${i}_trail_emaLen`,`TP${i}_trail_pct`,`TP${i}_SL_type`,`TP${i}_SL_val`,`TP${i}_SL_trail_mode`,`TP${i}_SL_trail_emaLen`,`TP${i}_SL_trail_pct`); } return cols; }
@@ -4761,69 +4762,69 @@ if(labExportBtn){ labExportBtn.addEventListener('click', ()=>{ try{ const tf=(la
   const csv=lines.join('\r\n'); const blob=new Blob([csv], {type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`palmares_${sym}_${tf}.csv`; a.click(); }catch(_){ } }); }
 const WEIGHTS_HELP = {
   pf: {
-    fr: "Profit Factor : rapport entre gains bruts et pertes brutes. Un poids élevé favorise les stratégies où les pertes sont petites par rapport aux gains, même si le P&L absolu est modéré.",
+    fr: "Profit Factor : rapport entre gains bruts et pertes brutes. Un poids Ã©levÃ© favorise les stratÃ©gies oÃ¹ les pertes sont petites par rapport aux gains, mÃªme si le P&L absolu est modÃ©rÃ©.",
     en: "Profit Factor: ratio between gross profits and gross losses. A high weight favors strategies where losses are small relative to gains, even if absolute P&L is moderate.",
-    es: "Profit Factor: relación entre ganancias brutas y pérdidas brutas. Un peso alto favorece estrategias donde las pérdidas son pequeñas en relación con las ganancias, incluso si el P&L absoluto es moderado.",
+    es: "Profit Factor: relaciÃ³n entre ganancias brutas y pÃ©rdidas brutas. Un peso alto favorece estrategias donde las pÃ©rdidas son pequeÃ±as en relaciÃ³n con las ganancias, incluso si el P&L absoluto es moderado.",
   },
   wr: {
-    fr: "Win % : pourcentage de trades gagnants. Un poids élevé privilégie les stratégies confortables psychologiquement (plus de trades gagnants), au détriment éventuel du R:R.",
+    fr: "Win % : pourcentage de trades gagnants. Un poids Ã©levÃ© privilÃ©gie les stratÃ©gies confortables psychologiquement (plus de trades gagnants), au dÃ©triment Ã©ventuel du R:R.",
     en: "Win %: percentage of winning trades. A high weight emphasizes psychologically comfortable strategies (more winning trades), sometimes at the expense of risk/reward.",
-    es: "Win %: porcentaje de operaciones ganadoras. Un peso alto favorece estrategias cómodas psicológicamente (más operaciones ganadoras), a veces en detrimento del ratio riesgo/beneficio.",
+    es: "Win %: porcentaje de operaciones ganadoras. Un peso alto favorece estrategias cÃ³modas psicolÃ³gicamente (mÃ¡s operaciones ganadoras), a veces en detrimento del ratio riesgo/beneficio.",
   },
   rr: {
-    fr: "Risk/Reward (Avg RR) : gain moyen par unité de risque. Un poids élevé favorise les stratégies avec des gains importants par rapport aux pertes (R:R élevés).",
+    fr: "Risk/Reward (Avg RR) : gain moyen par unitÃ© de risque. Un poids Ã©levÃ© favorise les stratÃ©gies avec des gains importants par rapport aux pertes (R:R Ã©levÃ©s).",
     en: "Risk/Reward (Avg RR): average gain per unit of risk. A high weight favors strategies with large gains relative to losses (high R:R).",
-    es: "Risk/Reward (RR medio): ganancia media por unidad de riesgo. Un peso alto favorece estrategias con grandes ganancias en relación con las pérdidas (R:R altos).",
+    es: "Risk/Reward (RR medio): ganancia media por unidad de riesgo. Un peso alto favorece estrategias con grandes ganancias en relaciÃ³n con las pÃ©rdidas (R:R altos).",
   },
   pnl: {
-    fr: "P&L net : résultat total sur la période (en dollars). Un poids élevé pousse l’algorithme vers les stratégies avec le P&L absolu le plus élevé.",
+    fr: "P&L net : rÃ©sultat total sur la pÃ©riode (en dollars). Un poids Ã©levÃ© pousse lâ€™algorithme vers les stratÃ©gies avec le P&L absolu le plus Ã©levÃ©.",
     en: "Net P&L: total result over the period (in currency). A high weight pushes the algorithm towards strategies with the highest absolute P&L.",
-    es: "P&L neto: resultado total en el período (en divisa). Un peso alto empuja al algoritmo hacia las estrategias con el P&L absoluto más alto.",
+    es: "P&L neto: resultado total en el perÃ­odo (en divisa). Un peso alto empuja al algoritmo hacia las estrategias con el P&L absoluto mÃ¡s alto.",
   },
   eq: {
-    fr: "Capital final : valeur finale du portefeuille. Similaire au P&L, mais prend en compte le capital de départ et permet de comparer différentes configurations.",
+    fr: "Capital final : valeur finale du portefeuille. Similaire au P&L, mais prend en compte le capital de dÃ©part et permet de comparer diffÃ©rentes configurations.",
     en: "Final equity: final value of the account. Similar to P&L but takes starting capital into account, making different configurations comparable.",
     es: "Capital final: valor final de la cuenta. Similar al P&L, pero tiene en cuenta el capital inicial y permite comparar diferentes configuraciones.",
   },
   trades: {
-    fr: "Trades : nombre de trades. Un poids modéré permet de privilégier des stratégies avec assez de trades pour être statistiquement crédibles, sans basculer dans l’over‑trading.",
+    fr: "Trades : nombre de trades. Un poids modÃ©rÃ© permet de privilÃ©gier des stratÃ©gies avec assez de trades pour Ãªtre statistiquement crÃ©dibles, sans basculer dans lâ€™overâ€‘trading.",
     en: "Trades: number of trades. A moderate weight favors strategies with enough trades to be statistically credible, without drifting into over-trading.",
-    es: "Trades: número de operaciones. Un peso moderado favorece estrategias con suficientes operaciones para ser estadísticamente creíbles, sin caer en sobre-operar.",
+    es: "Trades: nÃºmero de operaciones. Un peso moderado favorece estrategias con suficientes operaciones para ser estadÃ­sticamente creÃ­bles, sin caer en sobre-operar.",
   },
   dd: {
-    fr: "Max DD (inverse) : drawdown maximal en valeur absolue, pris à l’envers (plus il est faible, mieux c’est). Un poids élevé favorise les stratégies qui protègent fortement le capital.",
+    fr: "Max DD (inverse) : drawdown maximal en valeur absolue, pris Ã  lâ€™envers (plus il est faible, mieux câ€™est). Un poids Ã©levÃ© favorise les stratÃ©gies qui protÃ¨gent fortement le capital.",
     en: "Max DD (inverse): maximum drawdown in absolute value, used inversely (the smaller, the better). A high weight favors strategies that strongly protect capital.",
-    es: "Max DD (inverso): drawdown máximo en valor absoluto, usado de forma inversa (cuanto más pequeño, mejor). Un peso alto favorece estrategias que protegen mucho el capital.",
+    es: "Max DD (inverso): drawdown mÃ¡ximo en valor absoluto, usado de forma inversa (cuanto mÃ¡s pequeÃ±o, mejor). Un peso alto favorece estrategias que protegen mucho el capital.",
   },
   sharpe: {
-    fr: "Sharpe Ratio : rendement ajusté de la volatilité des résultats. Un poids élevé privilégie les courbes d’équité régulières plutôt que les profils en dents de scie.",
+    fr: "Sharpe Ratio : rendement ajustÃ© de la volatilitÃ© des rÃ©sultats. Un poids Ã©levÃ© privilÃ©gie les courbes dâ€™Ã©quitÃ© rÃ©guliÃ¨res plutÃ´t que les profils en dents de scie.",
     en: "Sharpe Ratio: return adjusted for volatility of results. A high weight favors smooth equity curves over very choppy ones.",
     es: "Ratio de Sharpe: rendimiento ajustado por la volatilidad de los resultados. Un peso alto favorece curvas de equity suaves frente a perfiles muy irregulares.",
   },
   recov: {
-    fr: "Recovery Factor : P&L total divisé par le plus gros drawdown. Un poids élevé met en avant les stratégies qui génèrent beaucoup de gains pour chaque unité de drawdown subie.",
+    fr: "Recovery Factor : P&L total divisÃ© par le plus gros drawdown. Un poids Ã©levÃ© met en avant les stratÃ©gies qui gÃ©nÃ¨rent beaucoup de gains pour chaque unitÃ© de drawdown subie.",
     en: "Recovery Factor: total P&L divided by the largest drawdown. A high weight highlights strategies that generate a lot of profit per unit of drawdown endured.",
     es: "Recovery Factor: P&L total dividido por el mayor drawdown. Un peso alto resalta estrategias que generan muchas ganancias por cada unidad de drawdown soportado.",
   },
   slope: {
-    fr: "Equity Slope : pente moyenne de la courbe d’équité. Plus la pente est forte et régulière, plus la stratégie a une tendance haussière nette.",
+    fr: "Equity Slope : pente moyenne de la courbe dâ€™Ã©quitÃ©. Plus la pente est forte et rÃ©guliÃ¨re, plus la stratÃ©gie a une tendance haussiÃ¨re nette.",
     en: "Equity Slope: average slope of the equity curve. The steeper and more regular the slope, the clearer the upward trend.",
-    es: "Pendiente de la equity: pendiente media de la curva de equity. Cuanto más pronunciada y regular es la pendiente, más clara es la tendencia alcista.",
+    es: "Pendiente de la equity: pendiente media de la curva de equity. Cuanto mÃ¡s pronunciada y regular es la pendiente, mÃ¡s clara es la tendencia alcista.",
   },
   cons: {
-    fr: "Consistence / Stabilité : proportion de trades non perdants et régularité des résultats. Un poids élevé favorise les stratégies stables plutôt que celles qui alternent gros gains et grosses pertes.",
+    fr: "Consistence / StabilitÃ© : proportion de trades non perdants et rÃ©gularitÃ© des rÃ©sultats. Un poids Ã©levÃ© favorise les stratÃ©gies stables plutÃ´t que celles qui alternent gros gains et grosses pertes.",
     en: "Consistency / Stability: proportion of non-losing trades and regularity of results. A high weight favors stable strategies over those alternating big wins and big losses.",
-    es: "Consistencia / Estabilidad: proporción de operaciones no perdedoras y regularidad de los resultados. Un peso alto favorece estrategias estables frente a las que alternan grandes ganancias y grandes pérdidas.",
+    es: "Consistencia / Estabilidad: proporciÃ³n de operaciones no perdedoras y regularidad de los resultados. Un peso alto favorece estrategias estables frente a las que alternan grandes ganancias y grandes pÃ©rdidas.",
   },
   exp: {
-    fr: "Espérance (Expectancy) : gain moyen par trade (en % ou en valeur). Un poids élevé pousse vers des stratégies avec un avantage statistique fort sur chaque trade.",
+    fr: "EspÃ©rance (Expectancy) : gain moyen par trade (en % ou en valeur). Un poids Ã©levÃ© pousse vers des stratÃ©gies avec un avantage statistique fort sur chaque trade.",
     en: "Expectancy: average gain per trade (in % or value). A high weight pushes towards strategies with a strong statistical edge on each trade.",
-    es: "Esperanza (Expectancy): ganancia media por operación (en % o en valor). Un peso alto impulsa estrategias con una fuerte ventaja estadística en cada operación.",
+    es: "Esperanza (Expectancy): ganancia media por operaciÃ³n (en % o en valor). Un peso alto impulsa estrategias con una fuerte ventaja estadÃ­stica en cada operaciÃ³n.",
   },
   ret: {
-    fr: "Return / période (%) : rendement total sur la période (ou annualisé). Un poids élevé favorise les stratégies agressives avec une croissance rapide du capital.",
+    fr: "Return / pÃ©riode (%) : rendement total sur la pÃ©riode (ou annualisÃ©). Un poids Ã©levÃ© favorise les stratÃ©gies agressives avec une croissance rapide du capital.",
     en: "Return / period (%): total return over the period (or annualized). A high weight favors aggressive strategies with fast capital growth.",
-    es: "Retorno / período (%): rendimiento total en el período (o anualizado). Un peso alto favorece estrategias agresivas con un crecimiento rápido del capital.",
+    es: "Retorno / perÃ­odo (%): rendimiento total en el perÃ­odo (o anualizado). Un peso alto favorece estrategias agresivas con un crecimiento rÃ¡pido del capital.",
   },
 };
 
@@ -4979,25 +4980,25 @@ function updateWeightsTotalInfo(){
     const totalLbl=t('lab.weights.totalPrefix');
     const remLbl=t('lab.weights.remainingPrefix');
     const ptsLbl=t('lab.weights.pointsSuffix');
-    info.textContent = `${totalLbl} ${total.toFixed(1)} ${ptsLbl} • ${remLbl} ${remaining.toFixed(1)} ${ptsLbl}`;
+    info.textContent = `${totalLbl} ${total.toFixed(1)} ${ptsLbl} â€¢ ${remLbl} ${remaining.toFixed(1)} ${ptsLbl}`;
   }catch(_){ }
 }
 if(labWeightsBtn){ labWeightsBtn.addEventListener('click', async ()=>{ try{
-  // Profil actif prioritaire: sélecteur du Lab s'il est présent, sinon dernier profil utilisé
+  // Profil actif prioritaire: sÃ©lecteur du Lab s'il est prÃ©sent, sinon dernier profil utilisÃ©
   const prof = (labProfileEl && labProfileEl.value) || localStorage.getItem('labWeightsProfile') || 'balancee';
   try{ localStorage.setItem('labWeightsProfile', prof); }catch(_){ }
   if(weightsProfile){ weightsProfile.value=prof; }
-  try{ if(typeof addLabLog==='function') {addLabLog(`Ouverture Pondérations (profil ${prof})`);} }catch(_){ }
-  // Si Supabase est configuré, récupérer la version distante des pondérations en best-effort
-  // et la considérer comme source de vérité (écrase le cache local).
+  try{ if(typeof addLabLog==='function') {addLabLog(`Ouverture PondÃ©rations (profil ${prof})`);} }catch(_){ }
+  // Si Supabase est configurÃ©, rÃ©cupÃ©rer la version distante des pondÃ©rations en best-effort
+  // et la considÃ©rer comme source de vÃ©ritÃ© (Ã©crase le cache local).
   try{
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchLabProfileWeights==='function'){
       const row = await SUPA.fetchLabProfileWeights(prof);
       if(row && row.weights && typeof row.weights==='object'){
         saveWeights(prof, row.weights);
-        try{ if(typeof addLabLog==='function') {addLabLog(`Pondérations chargées depuis Supabase pour ${prof}`);} }catch(_){ }
+        try{ if(typeof addLabLog==='function') {addLabLog(`PondÃ©rations chargÃ©es depuis Supabase pour ${prof}`);} }catch(_){ }
       } else {
-        try{ if(typeof addLabLog==='function') {addLabLog(`Aucune pondération Supabase trouvée pour ${prof} (utilisation du cache local)`);} }catch(_){ }
+        try{ if(typeof addLabLog==='function') {addLabLog(`Aucune pondÃ©ration Supabase trouvÃ©e pour ${prof} (utilisation du cache local)`);} }catch(_){ }
       }
     }
   }catch(_){ }
@@ -5007,9 +5008,9 @@ if(labWeightsBtn){ labWeightsBtn.addEventListener('click', async ()=>{ try{
 }catch(_){ } }); }
 if(weightsProfile){ weightsProfile.addEventListener('change', ()=>{ try{
   const prof = (weightsProfile && weightsProfile.value) || 'balancee';
-  // Quand on change de profil dans la modale Pondérations, on met aussi à jour le profil actif global
+  // Quand on change de profil dans la modale PondÃ©rations, on met aussi Ã  jour le profil actif global
   try{ localStorage.setItem('labWeightsProfile', prof); }catch(_){ }
-  // Maintenir le sélecteur de profil du Lab aligné s'il est présent
+  // Maintenir le sÃ©lecteur de profil du Lab alignÃ© s'il est prÃ©sent
   try{ if(typeof labProfileEl!=='undefined' && labProfileEl){ labProfileEl.value = prof; } }catch(_){ }
   buildWeightsUI();
   updateWeightsTotalInfo();
@@ -5018,18 +5019,18 @@ if(weightsClose){ weightsClose.addEventListener('click', ()=> closeModalEl(weigh
 if(weightsSave){ weightsSave.addEventListener('click', async ()=>{ try{
   const prof = (weightsProfile&&weightsProfile.value)||'balancee';
   const w = readWeightsFromUI();
-  // Toujours sauvegarder en local comme filet de sécurité
+  // Toujours sauvegarder en local comme filet de sÃ©curitÃ©
   saveWeights(prof, w);
   localStorage.setItem('labWeightsProfile', prof);
   let supaOk = true;
-  // Persistance Supabase best-effort (si configuré + connecté)
+  // Persistance Supabase best-effort (si configurÃ© + connectÃ©)
   try{
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.upsertLabProfileWeights==='function'){
       const ok = await SUPA.upsertLabProfileWeights(prof, w);
       if(!ok){
         supaOk = false;
       } else if(typeof SUPA.fetchLabProfileWeights==='function'){
-        // Round‑trip de vérification: recharger ce que Supabase renvoie comme source de vérité
+        // Roundâ€‘trip de vÃ©rification: recharger ce que Supabase renvoie comme source de vÃ©ritÃ©
         try{
           const row2 = await SUPA.fetchLabProfileWeights(prof);
           if(row2 && row2.weights && typeof row2.weights==='object'){
@@ -5044,7 +5045,7 @@ if(weightsSave){ weightsSave.addEventListener('click', async ()=>{ try{
   try{ renderLabFromStorage(); computeLabBenchmarkAndUpdate(); }catch(_){ }
 }catch(_){ } }); }
 
-// Lab — Entraîner
+// Lab â€” EntraÃ®ner
 const labRunBtn=document.getElementById('labRun');
 if(labRunBtn){ labRunBtn.addEventListener('click', async ()=>{ try{
   const profSel = (document.getElementById('labProfile') && document.getElementById('labProfile').value) || (localStorage.getItem('labWeightsProfile')||'balancee');
@@ -5056,11 +5057,11 @@ if(labRunBtn){ labRunBtn.addEventListener('click', async ()=>{ try{
   try{ window.__labGoalOverride = null; }catch(_){ }
   const strategy=(document.getElementById('labStrategy')&&document.getElementById('labStrategy').value)||'hybrid';
 const conf=readLabRiskConf();
-  // Log mode (Nouvelle stratégie vs Entraîner) for clarity
+  // Log mode (Nouvelle stratÃ©gie vs EntraÃ®ner) for clarity
   try{
     if(typeof addBtLog==='function'){
-      if(goal==='new') {addBtLog('Mode Lab: Nouvelle stratégie (exploration aléatoire guidée)');}
-      else {addBtLog('Mode Lab: Entraîner (amélioration du palmarès existant)');}
+      if(goal==='new') {addBtLog('Mode Lab: Nouvelle stratÃ©gie (exploration alÃ©atoire guidÃ©e)');}
+      else {addBtLog('Mode Lab: EntraÃ®ner (amÃ©lioration du palmarÃ¨s existant)');}
     }
   }catch(_){ }
   try{
@@ -5072,10 +5073,10 @@ const conf=readLabRiskConf();
       if(mode==='fixed'){
         addBtLog(`Max % par trade: ${mpStr}% (fixe)`);
       } else {
-        // Auto: borne dérivée du profil (Sûre/Balancée/Agressive)
+        // Auto: borne dÃ©rivÃ©e du profil (SÃ»re/BalancÃ©e/Agressive)
         let prof='balancee';
         try{ prof = (labProfileEl && labProfileEl.value) || localStorage.getItem('labWeightsProfile') || 'balancee'; }catch(_){ }
-        addBtLog(`Max % par trade: Auto (profil ${prof}, plafond ≈ ${mpStr}% du capital de référence)`);
+        addBtLog(`Max % par trade: Auto (profil ${prof}, plafond â‰ˆ ${mpStr}% du capital de rÃ©fÃ©rence)`);
       }
     }
   }catch(_){ }
@@ -5088,39 +5089,39 @@ const conf=readLabRiskConf();
     const pe=document.getElementById('btProgress'); if(pe){ pe.style.zIndex=String(bumpModalZ()); const pc=pe.querySelector('.modal-content'); if(pc){ pc.style.zIndex=String(bumpModalZ()); } }
   }catch(_){ }
   try{ if(btProgText) {btProgText.textContent=t('bt.progress.trainingShort');} if(btProgNote) {btProgNote.textContent='';} }catch(_){ }
-  try{ const tl=(timeLimitSec>0? `${timeLimitSec}s`:'∞'); const mq=(maxEvals>0? `${maxEvals}`:'∞'); addBtLog(`Limites: temps ${tl}, max évals ${mq}`); }catch(_){ }
+  try{ const tl=(timeLimitSec>0? `${timeLimitSec}s`:'âˆž'); const mq=(maxEvals>0? `${maxEvals}`:'âˆž'); addBtLog(`Limites: temps ${tl}, max Ã©vals ${mq}`); }catch(_){ }
   let bars=null;
   const rangeMode=(document.getElementById('labRangeMode')&&document.getElementById('labRangeMode').value)||'visible';
   if(sym===currentSymbol && tfSel===currentInterval){
     if(rangeMode==='all'){
-      // Plage = "Tout l'historique" pour le symbole/TF courant → charger l'historique complet disponible
+      // Plage = "Tout l'historique" pour le symbole/TF courant â†’ charger l'historique complet disponible
       try{
         bars = await fetchAllKlines(sym, tfSel, REMOTE_MAX_BARS);
         try{ saveMemSeries(sym, tfSel, bars, bars.length); }catch(_){ }
-        try{ addBtLog(`Chargement des données (tout l'historique): ${sym} @ ${tfSel} — ${bars.length} bougies`); }catch(_){ }
+        try{ addBtLog(`Chargement des donnÃ©es (tout l'historique): ${sym} @ ${tfSel} â€” ${bars.length} bougies`); }catch(_){ }
       }catch(_){
-        // Fallback : on se rabat sur la fenêtre actuellement en mémoire (éventuellement coupée par le Live)
+        // Fallback : on se rabat sur la fenÃªtre actuellement en mÃ©moire (Ã©ventuellement coupÃ©e par le Live)
         bars = __baseAfterCutoff();
-        try{ addBtLog(`Données (fallback, fenêtre active): ${bars.length} bougies`); }catch(__){}
+        try{ addBtLog(`DonnÃ©es (fallback, fenÃªtre active): ${bars.length} bougies`); }catch(__){}
       }
     } else {
-      // Modes "Visible" ou "Dates" : on part de la base affichée (après éventuel cutoff Live)
+      // Modes "Visible" ou "Dates" : on part de la base affichÃ©e (aprÃ¨s Ã©ventuel cutoff Live)
       bars = __baseAfterCutoff();
-      try{ addBtLog(`Données chargées: ${bars.length} bougies`); }catch(_){ }
+      try{ addBtLog(`DonnÃ©es chargÃ©es: ${bars.length} bougies`); }catch(_){ }
     }
   } else {
     const mem = loadMemSeries(sym, tfSel);
     if(mem && Array.isArray(mem.bars) && mem.bars.length){
       bars = mem.bars;
-      try{ addBtLog(`Données chargées: ${bars.length} bougies`); }catch(_){ }
+      try{ addBtLog(`DonnÃ©es chargÃ©es: ${bars.length} bougies`); }catch(_){ }
     } else {
       try{
         bars = await fetchAllKlines(sym, tfSel, REMOTE_MAX_BARS);
         try{ saveMemSeries(sym, tfSel, bars, bars.length); }catch(_){ }
-        try{ addBtLog(`Chargement des données: ${sym} @ ${tfSel} — ${bars.length} bougies`); }catch(_){ }
+        try{ addBtLog(`Chargement des donnÃ©es: ${sym} @ ${tfSel} â€” ${bars.length} bougies`); }catch(_){ }
       }catch(_){
         bars = [];
-        try{ addBtLog('Échec du chargement — aucune donnée Lab pour ce symbole/TF'); }catch(__){}
+        try{ addBtLog('Ã‰chec du chargement â€” aucune donnÃ©e Lab pour ce symbole/TF'); }catch(__){}
       }
     }
   }
@@ -5131,8 +5132,8 @@ const conf=readLabRiskConf();
   else { from=null; to=null; }
   const idxFromTimeLocal=(bars,from,to)=>{ let s=0,e=bars.length-1; if(from!=null){ for(let i=0;i<bars.length;i++){ if(bars[i].time>=from){ s=i; break; } } } if(to!=null){ for(let j=bars.length-1;j>=0;j--){ if(bars[j].time<=to){ e=j; break; } } } return [s,e]; };
   const [sIdx,eIdx]=idxFromTimeLocal(bars,from,to);
-  try{ const span = (from!=null||to!=null)? `${new Date((from||bars[sIdx]?.time||0)*1000).toLocaleString()} → ${new Date((to||bars[eIdx]?.time||0)*1000).toLocaleString()}` : `${new Date((bars[sIdx]?.time||0)*1000).toLocaleString()} → ${new Date((bars[eIdx]?.time||0)*1000).toLocaleString()}`; addBtLog(`Période: idx ${sIdx}-${eIdx} (${Math.max(0,eIdx-sIdx+1)} barres) • ${span}`); }catch(_){ }
-  // Rafraîchir les pondérations depuis Supabase (source de vérité) juste avant l'entraînement
+  try{ const span = (from!=null||to!=null)? `${new Date((from||bars[sIdx]?.time||0)*1000).toLocaleString()} â†’ ${new Date((to||bars[eIdx]?.time||0)*1000).toLocaleString()}` : `${new Date((bars[sIdx]?.time||0)*1000).toLocaleString()} â†’ ${new Date((bars[eIdx]?.time||0)*1000).toLocaleString()}`; addBtLog(`PÃ©riode: idx ${sIdx}-${eIdx} (${Math.max(0,eIdx-sIdx+1)} barres) â€¢ ${span}`); }catch(_){ }
+  // RafraÃ®chir les pondÃ©rations depuis Supabase (source de vÃ©ritÃ©) juste avant l'entraÃ®nement
   try{
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchLabProfileWeights==='function'){
       const rowW = await SUPA.fetchLabProfileWeights(profSel);
@@ -5145,20 +5146,20 @@ const conf=readLabRiskConf();
   try{
     if(typeof addBtLog==='function'){
       const tot=(weights.pf+weights.wr+weights.rr+weights.pnl+weights.eq+weights.trades+weights.dd+weights.sharpe+weights.recov+weights.slope+weights.cons+weights.exp+weights.ret)||0;
-      addBtLog(`Pondérations actives (profil ${profSel}): PF=${weights.pf} WR=${weights.wr} RR=${weights.rr} PNL=${weights.pnl} EQ=${weights.eq} TR=${weights.trades} DD=${weights.dd} Sharpe=${weights.sharpe} Recov=${weights.recov} Slope=${weights.slope} Cons=${weights.cons} Exp=${weights.exp} Ret=${weights.ret} • Total=${tot.toFixed(1)} pts`);
+      addBtLog(`PondÃ©rations actives (profil ${profSel}): PF=${weights.pf} WR=${weights.wr} RR=${weights.rr} PNL=${weights.pnl} EQ=${weights.eq} TR=${weights.trades} DD=${weights.dd} Sharpe=${weights.sharpe} Recov=${weights.recov} Slope=${weights.slope} Cons=${weights.cons} Exp=${weights.exp} Ret=${weights.ret} â€¢ Total=${tot.toFixed(1)} pts`);
     }
   }catch(_){ }
   const allTested=[]; // accumulate every evaluated strategy for Supabase persistence
   // Global simulation progress (for ETA)
   let __labSimTotal=0, __labSimDone=0, __labSimDtSum=0, __labSimDtCnt=0, __labConc=1, __labSimPlanned=0;
-  function __fmtETA(ms){ if(!(ms>0)) {return '—';} const s=Math.round(ms/1000); const m=Math.floor(s/60); const ss=String(s%60).padStart(2,'0'); const mm=String(m%60).padStart(2,'0'); const hh=Math.floor(m/60); return (hh>0? (String(hh).padStart(2,'0')+':'):'')+mm+':'+ss; }
+  function __fmtETA(ms){ if(!(ms>0)) {return 'â€”';} const s=Math.round(ms/1000); const m=Math.floor(s/60); const ss=String(s%60).padStart(2,'0'); const mm=String(m%60).padStart(2,'0'); const hh=Math.floor(m/60); return (hh>0? (String(hh).padStart(2,'0')+':'):'')+mm+':'+ss; }
 function updateGlobalProgressUI(){ try{ const plannedDen = (__labSimPlanned>0)? __labSimPlanned : (maxEvals>0? maxEvals : Math.max(1,__labSimTotal)); let dn=Math.max(0,__labSimDone); const tot=Math.max(1, plannedDen); if(maxEvals>0){ dn = Math.min(dn, maxEvals); }
-  const pct = Math.max(0, Math.min(100, Math.round(dn/tot*100))); if(btProgGlobalBar) {btProgGlobalBar.style.width=pct+'%';} let eta='—'; if(tot>0){ let avg=null; try{ const fallback=Number(localStorage.getItem('lab:avgEvalMs')); avg = (Number.isFinite(fallback)&&fallback>0)? fallback : null; }catch(_){ avg=null; } if(__labSimDtCnt>0){ avg = __labSimDtSum/Math.max(1,__labSimDtCnt); } if(!(avg>0)) {avg = 1000;} const effConc=Math.max(1,__labConc|0); const remain=Math.max(0, tot-dn); eta=__fmtETA((remain*avg)/effConc); }
-  const quotaStr = (maxEvals>0? ` • ${t('bt.progress.quotaPrefix')} ${dn}/${maxEvals}` : ''); if(btProgGlobalText) {btProgGlobalText.textContent = `${t('bt.progress.globalLabel')}: ${pct}% (${dn}/${tot}) — ${t('bt.progress.etaLabel')} ${eta}${quotaStr}`;} }catch(_){ } }
+  const pct = Math.max(0, Math.min(100, Math.round(dn/tot*100))); if(btProgGlobalBar) {btProgGlobalBar.style.width=pct+'%';} let eta='â€”'; if(tot>0){ let avg=null; try{ const fallback=Number(localStorage.getItem('lab:avgEvalMs')); avg = (Number.isFinite(fallback)&&fallback>0)? fallback : null; }catch(_){ avg=null; } if(__labSimDtCnt>0){ avg = __labSimDtSum/Math.max(1,__labSimDtCnt); } if(!(avg>0)) {avg = 1000;} const effConc=Math.max(1,__labConc|0); const remain=Math.max(0, tot-dn); eta=__fmtETA((remain*avg)/effConc); }
+  const quotaStr = (maxEvals>0? ` â€¢ ${t('bt.progress.quotaPrefix')} ${dn}/${maxEvals}` : ''); if(btProgGlobalText) {btProgGlobalText.textContent = `${t('bt.progress.globalLabel')}: ${pct}% (${dn}/${tot}) â€” ${t('bt.progress.etaLabel')} ${eta}${quotaStr}`;} }catch(_){ } }
   __lastLabTested = allTested;
   // Preload known keys from Supabase to avoid retest across sessions
   let seenCanon = new Set();
-  try{ if(window.SUPA && typeof SUPA.fetchKnownKeys==='function'){ const profSel=(document.getElementById('labProfile') && document.getElementById('labProfile').value) || (localStorage.getItem('labWeightsProfile')||'balancee'); seenCanon = await SUPA.fetchKnownKeys(sym, tfSel, profSel) || new Set(); addBtLog && addBtLog(`Déduplication (${profSel}): ${seenCanon.size} stratégies déjà en base`); } }catch(_){ }
+  try{ if(window.SUPA && typeof SUPA.fetchKnownKeys==='function'){ const profSel=(document.getElementById('labProfile') && document.getElementById('labProfile').value) || (localStorage.getItem('labWeightsProfile')||'balancee'); seenCanon = await SUPA.fetchKnownKeys(sym, tfSel, profSel) || new Set(); addBtLog && addBtLog(`DÃ©duplication (${profSel}): ${seenCanon.size} stratÃ©gies dÃ©jÃ  en base`); } }catch(_){ }
   // Stopping conditions
   const timeLimitSec = Math.max(0, parseInt((document.getElementById('labTimeLimitSec')&&document.getElementById('labTimeLimitSec').value)||'0',10));
   const maxEvals = Math.max(0, parseInt((document.getElementById('labMaxEvals')&&document.getElementById('labMaxEvals').value)||'0',10));
@@ -5212,7 +5213,7 @@ function updateGlobalProgressUI(){ try{ const plannedDen = (__labSimPlanned>0)? 
     const vars = readLabVarToggles();
     const b = (v)=> v?'on':'off';
     const gv=(id)=>{ const el=document.getElementById(id); return (el&&el.value!=null)? String(el.value):''; };
-    const rng=(a,b2,c)=> `${gv(a)}–${gv(b2)}:${gv(c)}`;
+    const rng=(a,b2,c)=> `${gv(a)}â€“${gv(b2)}:${gv(c)}`;
     const tpCfg = readTPOpt();
     const slCfg = readSLOpt();
     const strat = (document.getElementById('labStrategy')&&document.getElementById('labStrategy').value)||'hybrid';
@@ -5230,12 +5231,12 @@ function updateGlobalProgressUI(){ try{ const plannedDen = (__labSimPlanned>0)? 
     const bayItersEff = Math.max(0, Math.round(bayItersBase * (tune.bayItersMul||1)));
     const bayInitEff  = Math.max(1, Math.round(bayInitBase * (tune.bayInitMul||1)));
     const bayEliteEff = Math.max(5, Math.min(80, (tune.eliteOverride!=null? tune.eliteOverride : bayEliteBase)));
-    addBtLog(`Pré-vol: Avancé ${adv?'on':'off'} • Vars NOL ${b(vars.varNol)} PRD ${b(vars.varPrd)} SL% ${b(vars.varSLInit)} BEbars ${b(vars.varBEBars)} BElock ${b(vars.varBELock)} EMA ${b(vars.varEMALen)} TP ${b(vars.varTP)} SL ${b(vars.varSL)} Entrées ${b(vars.varEntries)}`);
+    addBtLog(`PrÃ©-vol: AvancÃ© ${adv?'on':'off'} â€¢ Vars NOL ${b(vars.varNol)} PRD ${b(vars.varPrd)} SL% ${b(vars.varSLInit)} BEbars ${b(vars.varBEBars)} BElock ${b(vars.varBELock)} EMA ${b(vars.varEMALen)} TP ${b(vars.varTP)} SL ${b(vars.varSL)} EntrÃ©es ${b(vars.varEntries)}`);
     if(adv){
       addBtLog(`Plages: NOL ${rng('labNolMin','labNolMax','labNolStep')} PRD ${rng('labPrdMin','labPrdMax','labPrdStep')} SL% ${rng('labSLInitMin','labSLInitMax','labSLInitStep')} BEbars ${rng('labBEBarsMin','labBEBarsMax','labBEBarsStep')} BElock ${rng('labBELockMin','labBELockMax','labBELockStep')} EMA ${rng('labEMALenMin','labEMALenMax','labEMALenStep')}`);
     }
-    addBtLog(`TPOpt ${tpCfg.en?'on':'off'} (n=${tpCfg.count}, fib=${tpCfg.allowFib?1:0}, pct=${tpCfg.allowPct?1:0}, ema=${tpCfg.allowEMA?1:0}, % ${tpCfg.pctMin}–${tpCfg.pctMax}, fibs=${(tpCfg.fibs||[]).length}) • SLOpt ${slCfg.en?'on':'off'} (n=${slCfg.count}, fib=${slCfg.allowFib?1:0}, pct=${slCfg.allowPct?1:0}, ema=${slCfg.allowEMA?1:0}, % ${slCfg.pctMin}–${slCfg.pctMax}, fibs=${(slCfg.fibs||[]).length})`);
-    addBtLog(`Stratégie ${strat} • EA pop=${eaPopEff} gen=${eaGenEff} mut%=${eaMutEff} cx%=${eaCx} • Bayes iters=${bayItersEff} init=${bayInitEff} elite%=${bayEliteEff}`);
+    addBtLog(`TPOpt ${tpCfg.en?'on':'off'} (n=${tpCfg.count}, fib=${tpCfg.allowFib?1:0}, pct=${tpCfg.allowPct?1:0}, ema=${tpCfg.allowEMA?1:0}, % ${tpCfg.pctMin}â€“${tpCfg.pctMax}, fibs=${(tpCfg.fibs||[]).length}) â€¢ SLOpt ${slCfg.en?'on':'off'} (n=${slCfg.count}, fib=${slCfg.allowFib?1:0}, pct=${slCfg.allowPct?1:0}, ema=${slCfg.allowEMA?1:0}, % ${slCfg.pctMin}â€“${slCfg.pctMax}, fibs=${(slCfg.fibs||[]).length})`);
+    addBtLog(`StratÃ©gie ${strat} â€¢ EA pop=${eaPopEff} gen=${eaGenEff} mut%=${eaMutEff} cx%=${eaCx} â€¢ Bayes iters=${bayItersEff} init=${bayInitEff} elite%=${bayEliteEff}`);
   }catch(_){ }
   const keyOf=(p)=> JSON.stringify([p.nol,p.prd,p.slInitPct,p.beAfterBars,p.beLockPct,p.emaLen,p.entryMode,p.useFibRet,p.confirmMode,p.ent382,p.ent500,p.ent618,p.ent786,Array.isArray(p.tp)? p.tp.slice(0,10):[], Array.isArray(p.sl)? p.sl.slice(0,10):[]]);
 const canonKey=(p)=>{ try{
@@ -5284,8 +5285,8 @@ function readTPOpt(){
     try{
       const adv = (typeof isLabAdvMode==='function') ? isLabAdvMode() : false;
       const enRaw = !!document.getElementById('labTPOptEn')?.checked;
-      // En mode simple (non avancé), on considère toujours que l'optimisation TP est active
-      // afin de rester fidèle à l'essence du Lab (optimiser les sorties Heaven).
+      // En mode simple (non avancÃ©), on considÃ¨re toujours que l'optimisation TP est active
+      // afin de rester fidÃ¨le Ã  l'essence du Lab (optimiser les sorties Heaven).
       const en = adv ? enRaw : true;
       // Prefer the Heaven TP count unless the user explicitly overrides the Lab field.
       const cntEl = document.getElementById('labTPCount');
@@ -5404,7 +5405,7 @@ btn.dataset.wired='1';
 }
 
 function readLabVarToggles(){
-  // Default: core + ladders vary in Simple; entries remain fixed unless Avancée + enabled
+  // Default: core + ladders vary in Simple; entries remain fixed unless AvancÃ©e + enabled
   try{
     if(!isLabAdvMode()){
       return { varNol:true, varPrd:true, varSLInit:true, varBEBars:true, varBELock:true, varEMALen:true, varTP:true, varSL:true, varEntries:false };
@@ -5432,37 +5433,37 @@ function labProfileTuning(){
     const prof=(el&&el.value) || (localStorage.getItem('labWeightsProfile')||'balancee');
     const p=String(prof||'').toLowerCase();
     if(p==='sure'){
-      // Stratégie sûre: variations plus douces, Bayes un peu plus profond
-      // Capital très protégé : BE tôt dans la ladder
+      // StratÃ©gie sÃ»re: variations plus douces, Bayes un peu plus profond
+      // Capital trÃ¨s protÃ©gÃ© : BE tÃ´t dans la ladder
       return {
         eaPopMul:0.8, eaGenMul:0.8, mutMul:0.7,
         bayItersMul:1.3, bayInitMul:1.1, eliteOverride:40, varIntMul:0.85,
-        // BE quasiment toujours présent, dès les premiers TP
+        // BE quasiment toujours prÃ©sent, dÃ¨s les premiers TP
         beBaseProb:0.9,
         beMutMul:0.8,
-        // fraction de la ladder à partir de laquelle BE doit être quasi systématique
-        // 0.0 ⇒ on peut poser le BE dès TP1
+        // fraction de la ladder Ã  partir de laquelle BE doit Ãªtre quasi systÃ©matique
+        // 0.0 â‡’ on peut poser le BE dÃ¨s TP1
         beStartFrac:0.0,
       };
     }
     if(p==='agressive'){
-      // Stratégie agressive: EA plus large, mutation plus forte
-      // Capital toujours protégé, mais BE posé plus tard dans la ladder
+      // StratÃ©gie agressive: EA plus large, mutation plus forte
+      // Capital toujours protÃ©gÃ©, mais BE posÃ© plus tard dans la ladder
       return {
         eaPopMul:1.3, eaGenMul:1.3, mutMul:1.3,
         bayItersMul:1.0, bayInitMul:1.0, eliteOverride:25, varIntMul:1.2,
-        // BE encore fréquent, mais un peu moins que Sûre/Balancée
+        // BE encore frÃ©quent, mais un peu moins que SÃ»re/BalancÃ©e
         beBaseProb:0.7,
         beMutMul:1.2,
-        // 0.4 ⇒ en moyenne BE commence plutôt vers le milieu de la ladder
+        // 0.4 â‡’ en moyenne BE commence plutÃ´t vers le milieu de la ladder
         beStartFrac:0.4,
       };
     }
-    // Stratégie balancée (par défaut)
+    // StratÃ©gie balancÃ©e (par dÃ©faut)
     return {
       eaPopMul:1.0, eaGenMul:1.0, mutMul:1.0,
       bayItersMul:1.0, bayInitMul:1.0, eliteOverride:null, varIntMul:1.0,
-      // BE bien présent, avec démarrage plutôt sur les TP intermédiaires
+      // BE bien prÃ©sent, avec dÃ©marrage plutÃ´t sur les TP intermÃ©diaires
       beBaseProb:0.8,
       beMutMul:1.0,
       beStartFrac:0.2,
@@ -5490,13 +5491,13 @@ function varIntensityFactor(){
     return f;
   }catch(_){ return 1.0; }
 }
-// Met à jour les placeholders EA/Bayes et les hints en fonction du profil
+// Met Ã  jour les placeholders EA/Bayes et les hints en fonction du profil
 function updateLabAlgoPlaceholders(){
   try{
     const tune = labProfileTuning();
     const profEl = (typeof labProfileEl!=='undefined' && labProfileEl) ? labProfileEl : document.getElementById('labProfile');
     const profVal = (profEl && profEl.value) || 'balancee';
-    const label = profVal==='sure' ? 'Stratégie sûre' : (profVal==='agressive' ? 'Stratégie agressive' : 'Stratégie balancée');
+    const label = profVal==='sure' ? 'StratÃ©gie sÃ»re' : (profVal==='agressive' ? 'StratÃ©gie agressive' : 'StratÃ©gie balancÃ©e');
     function baseOf(id, def){
       const el=document.getElementById(id);
       if(!el) {return def;}
@@ -5527,9 +5528,9 @@ function updateLabAlgoPlaceholders(){
     setPh('labBayInit', bayInitEff);
     setPh('labBayElitePct', bayEliteEff);
     const eaHint=document.getElementById('labEAProfileHint');
-    if(eaHint){ eaHint.textContent = `${label} : EA pop≈${eaPopEff}, gen≈${eaGenEff}, mut≈${eaMutEff}%`; }
+    if(eaHint){ eaHint.textContent = `${label} : EA popâ‰ˆ${eaPopEff}, genâ‰ˆ${eaGenEff}, mutâ‰ˆ${eaMutEff}%`; }
     const bayHint=document.getElementById('labBayesProfileHint');
-    if(bayHint){ bayHint.textContent = `${label} : Bayes iters≈${bayItersEff}, init≈${bayInitEff}, élite≈${bayEliteEff}%`; }
+    if(bayHint){ bayHint.textContent = `${label} : Bayes itersâ‰ˆ${bayItersEff}, initâ‰ˆ${bayInitEff}, Ã©liteâ‰ˆ${bayEliteEff}%`; }
   }catch(_){ }
 }
 function updateLabAdvVisibility(){
@@ -5591,7 +5592,7 @@ function updateLabAdvVisibility(){
     const showBay = showAdv && (strat==='bayes' || strat==='hybrid');
     if(eaCfg) {eaCfg.style.display = showEA? 'flex':'none';}
     if(bayCfg) {bayCfg.style.display = showBay? 'flex':'none';}
-    // Show the optional 'Entrées' toggle in advanced mode
+    // Show the optional 'EntrÃ©es' toggle in advanced mode
     const varEntInput = document.getElementById('labVarEntries');
     const varEntLabel = varEntInput && varEntInput.closest ? varEntInput.closest('label') : null;
     if(varEntLabel){ varEntLabel.style.display = showAdv? '': 'none'; }
@@ -5639,7 +5640,7 @@ function keyOfTP(t){ try{ if(!t) {return '';} const typ=t.type||'Fib'; if(typ===
     const types=[]; if(allowFib) {types.push('Fib');} if(allowPct) {types.push('Percent');} if(allowEMA) {types.push('EMA');} if(!types.length) {types.push('Fib');}
     const ws=randWeights(n);
     const list=[];
-    // Bias BE par profil Lab : même probabilité globale élevée, mais TP de départ différent
+    // Bias BE par profil Lab : mÃªme probabilitÃ© globale Ã©levÃ©e, mais TP de dÃ©part diffÃ©rent
     const tune = labProfileTuning();
     const beBase = (tune && typeof tune.beBaseProb==='number') ? Math.max(0, Math.min(1, tune.beBaseProb)) : 0.8;
     const beStartFrac = (tune && typeof tune.beStartFrac==='number') ? Math.max(0, Math.min(1, tune.beStartFrac)) : 0.2;
@@ -5650,11 +5651,11 @@ function keyOfTP(t){ try{ if(!t) {return '';} const typ=t.type||'Fib'; if(typ===
       if(pos < beStartFrac){
         // Avant la zone "normale" de BE : faible proba mais non nulle
         const rel = pos / Math.max(1e-6, beStartFrac);
-        p = beBase * (0.2 + 0.8 * rel); // de 0.2*base à ~base au seuil
+        p = beBase * (0.2 + 0.8 * rel); // de 0.2*base Ã  ~base au seuil
       } else {
-        // Après le TP cible de démarrage : BE quasi systématique
+        // AprÃ¨s le TP cible de dÃ©marrage : BE quasi systÃ©matique
         const rel = (pos - beStartFrac) / Math.max(1e-6, 1 - beStartFrac);
-        // 0.7*base → base
+        // 0.7*base â†’ base
         p = beBase * (0.7 + 0.3 * Math.min(1, Math.max(0, rel)));
       }
       return Math.max(0, Math.min(1, p));
@@ -5711,14 +5712,14 @@ function keyOfTP(t){ try{ if(!t) {return '';} const typ=t.type||'Fib'; if(typ===
         entry={ type:'EMA', emaLen: len, qty: ws[i] };
       }
       key=keyOfTP(entry); usedKeys.add(key);
-      // BE par TP: proba dépend du profil ET de l'index (profil = TP à partir duquel on pose BE)
+      // BE par TP: proba dÃ©pend du profil ET de l'index (profil = TP Ã  partir duquel on pose BE)
       const beProb = beProbForIndex(i);
       entry.beOn = Math.random() < beProb;
       const tr = sampleTrailTP(); if(tr) {entry.trail = tr;}
       const atSL = sampleAttachedSL(); if(atSL){ entry.sl = atSL; const st=sampleTrailSL(); if(st){ entry.sl.trail = st; } }
       list.push(entry);
     }
-    // Invariant: au moins un TP doit poser le BE pour protéger le capital
+    // Invariant: au moins un TP doit poser le BE pour protÃ©ger le capital
     if(list.length && !list.some(t=> t && t.beOn)){
       list[list.length-1].beOn = true;
     }
@@ -5774,7 +5775,7 @@ function mutateTP(list,tpCfg){
       used.add(keyOfTP(out[i]));
     }
   }
-  // Mutation BE: resample en fonction du profil ET de l'index (décaler le TP de départ du BE)
+  // Mutation BE: resample en fonction du profil ET de l'index (dÃ©caler le TP de dÃ©part du BE)
   if(Math.random() < beMutRate){
     const prob = beProbForIndex(i);
     out[i].beOn = (Math.random() < prob);
@@ -5803,7 +5804,7 @@ function mutateTP(list,tpCfg){
       const adv = (typeof isLabAdvMode==='function') ? isLabAdvMode() : false;
       const enRaw = !!document.getElementById('labSLOptEn')?.checked;
       // En mode simple, on active toujours l'optimisation SL pour explorer des ladders de sortie
-      // même si la case dédiée n'est pas cochée, tout en respectant le réglage explicite en mode avancé.
+      // mÃªme si la case dÃ©diÃ©e n'est pas cochÃ©e, tout en respectant le rÃ©glage explicite en mode avancÃ©.
       const en = adv ? enRaw : true;
       const allowFib = !!document.getElementById('labSLAllowFib')?.checked;
       const allowPct = !!document.getElementById('labSLAllowPct')?.checked;
@@ -5887,11 +5888,11 @@ function randomParams(){ const vars=readLabVarToggles(); const tpCfg=readTPOpt()
     if(!vars.varEMALen) {p.emaLen = lbcOpts.emaLen|0;}
     if(vars.varEntries){ const e=__sampleEntries(p); Object.assign(p, e); }
     if(vars.varTP && tpCfg.en){
-      // Cas normal: on échantillonne une nouvelle ladder TP selon la config Lab
+      // Cas normal: on Ã©chantillonne une nouvelle ladder TP selon la config Lab
       p.tp = sampleTPList(tpCfg).slice(0,10);
       p.tpEnable=true;
     } else {
-      // Fallback: on reprend la ladder Heaven existante, sinon on en génère une par défaut
+      // Fallback: on reprend la ladder Heaven existante, sinon on en gÃ©nÃ¨re une par dÃ©faut
       p.tp = Array.isArray(lbcOpts.tp)? lbcOpts.tp.slice(0,10):[];
       if(!p.tp.length && tpCfg && tpCfg.en){
         p.tp = sampleTPList(tpCfg).slice(0,10);
@@ -5919,7 +5920,7 @@ function mutate(p, rate){ const vars=readLabVarToggles(); const tpCfg=readTPOpt(
 function crossover(a,b){ const tpCfg=readTPOpt(); const slCfg=readSLOpt(); return { nol: Math.random()<0.5?a.nol:b.nol, prd: Math.random()<0.5?a.prd:b.prd, slInitPct: Math.random()<0.5?a.slInitPct:b.slInitPct, beAfterBars: Math.random()<0.5?a.beAfterBars:b.beAfterBars, beLockPct: Math.random()<0.5?a.beLockPct:b.beLockPct, emaLen: Math.random()<0.5?a.emaLen:b.emaLen, maxPct: (Math.random()<0.5? (a.maxPct!=null?a.maxPct:b.maxPct) : (b.maxPct!=null?b.maxPct:a.maxPct)), entryMode: a.entryMode, useFibRet: a.useFibRet, confirmMode: a.confirmMode, ent382:a.ent382, ent500:a.ent500, ent618:a.ent618, ent786:a.ent786, tpEnable:true, tpCompound: (Math.random()<0.5? a.tpCompound : b.tpCompound), tpCloseAllLast: (Math.random()<0.5? a.tpCloseAllLast : b.tpCloseAllLast), tp: crossoverTP(a.tp||[], b.tp||[], tpCfg).slice(0,10), slEnable:true, sl: crossoverSL(a.sl||[], b.sl||[], slCfg).slice(0,10) }; }
 async function evalParamsList(list, phase='Eval'){
     const out=[]; let idx=0; const N=list.length||0;
-    function fmtTP(tp){ try{ if(!Array.isArray(tp)||!tp.length) {return '—';} return tp.map(t=>{ const typ=(t.type||'Fib'); if(typ==='Fib'){ return `F:${t.fib}`; } if(typ==='Percent'){ return `P:${t.pct}%`; } if(typ==='EMA'){ return `E:${t.emaLen}`; } return typ; }).slice(0,10).join(';'); }catch(_){ return '—'; } }
+    function fmtTP(tp){ try{ if(!Array.isArray(tp)||!tp.length) {return 'â€”';} return tp.map(t=>{ const typ=(t.type||'Fib'); if(typ==='Fib'){ return `F:${t.fib}`; } if(typ==='Percent'){ return `P:${t.pct}%`; } if(typ==='EMA'){ return `E:${t.emaLen}`; } return typ; }).slice(0,10).join(';'); }catch(_){ return 'â€”'; } }
     function fmtParams(p){ try{ return `nol=${p.nol} prd=${p.prd} sl=${p.slInitPct}% be=${p.beAfterBars}/${p.beLockPct}% ema=${p.emaLen} entry=${p.entryMode||'Both'} fibRet=${p.useFibRet?1:0} confirm=${p.confirmMode||'Bounce'} ent=[${p.ent382?'382':''}${p.ent500? (p.ent382?',500':'500'):''}${p.ent618? (p.ent382||p.ent500?',618':'618'):''}${p.ent786? ((p.ent382||p.ent500||p.ent618)?',786':'786'):''}] tp=${fmtTP(p.tp)}`; }catch(_){ return ''; } }
 
     // Worker pool for parallel evals
@@ -5958,7 +5959,7 @@ async function evalParamsList(list, phase='Eval'){
     const fallbackPool = { eval: (params)=> Promise.resolve(runBacktestSliceFor(bars, sIdx, eIdx, conf, params)), close(){ } };
     let pool=null;
     try{ pool = makePool(CONC); }catch(_){ pool=null; }
-    if(!pool){ try{ addBtLog(`[${phase}] mode séquentiel (fallback, workers indisponibles)`); }catch(_){ }
+    if(!pool){ try{ addBtLog(`[${phase}] mode sÃ©quentiel (fallback, workers indisponibles)`); }catch(_){ }
       pool = fallbackPool; __labConc=1; }
     let done=0;
     const tasks = list.map(async (item)=>{
@@ -5977,8 +5978,8 @@ const res = await pool.eval(item.p);
         out.push(rec);
         try{ allTested.push({ params: rec.p, metrics: rec.res, score: rec.score }); }catch(_){ }
         idx++; done++;
-        try{ if(btProgNote) {btProgNote.textContent = `${phase} • ${Math.round(dt)} ms`;} }catch(_){ }
-try{ const pfStr = (res.profitFactor===Infinity?'∞':(Number(res.profitFactor||0)).toFixed(2)); addBtLog(`[${phase}] ${done}/${N} ${fmtParams(item.p)} => score ${score.toFixed(2)} PF ${pfStr} trades ${res.tradesCount} win ${Number(res.winrate||0).toFixed(1)}% (${Math.round(dt)} ms)`); }catch(_){ }
+        try{ if(btProgNote) {btProgNote.textContent = `${phase} â€¢ ${Math.round(dt)} ms`;} }catch(_){ }
+try{ const pfStr = (res.profitFactor===Infinity?'âˆž':(Number(res.profitFactor||0)).toFixed(2)); addBtLog(`[${phase}] ${done}/${N} ${fmtParams(item.p)} => score ${score.toFixed(2)} PF ${pfStr} trades ${res.tradesCount} win ${Number(res.winrate||0).toFixed(1)}% (${Math.round(dt)} ms)`); }catch(_){ }
       }catch(e){ try{ addBtLog(`[${phase}] error: ${e&&e.message?e.message:e}`); }catch(_){ } }
       if(btProgBar && btProgText){ const pct=Math.round(done/Math.max(1,N)*100); btProgBar.style.width=pct+'%'; btProgText.textContent=`${phase} ${pct}% (${done}/${N})`; }
       await new Promise(r=> setTimeout(r, 0));
@@ -6008,12 +6009,12 @@ try{ const pfStr = (res.profitFactor===Infinity?'∞':(Number(res.profitFactor||
     while(init.length<pop){ let p=null; if(Array.isArray(seed)&&seed.length){ const base = seed[(Math.random()*seed.length)|0]; p = mutate(base.p, Math.max(0.05, Math.min(0.99, 0.7*varIntensityFactor()))); } else { p=randomParams(); }
       if(isDup(p)) {continue;} pushSeen(p); init.push({ p }); }
 __labSimTotal += init.length; updateGlobalProgressUI();
-try{ addBtLog && addBtLog(`EA:init — scheduling ${init.length} évals`); }catch(_){ }
+try{ addBtLog && addBtLog(`EA:init â€” scheduling ${init.length} Ã©vals`); }catch(_){ }
     let cur = await evalParamsList(init, 'EA:init');
-    // Taguer les évaluations initiales comme génération 1 si non défini
+    // Taguer les Ã©valuations initiales comme gÃ©nÃ©ration 1 si non dÃ©fini
     try{ cur.forEach(r=>{ if(r && r.gen==null) {r.gen = 1;} }); }catch(_){ }
     cur.sort((a,b)=> b.score-a.score);
-try{ const top=cur[0]; if(top){ addBtLog(`EA init — best score ${top.score.toFixed(2)} • PF ${(top.res.profitFactor===Infinity?'∞':(top.res.profitFactor||0).toFixed(2))} • Trades ${top.res.tradesCount} • Win ${(top.res.winrate||0).toFixed(1)}%`); } }catch(_){ }
+try{ const top=cur[0]; if(top){ addBtLog(`EA init â€” best score ${top.score.toFixed(2)} â€¢ PF ${(top.res.profitFactor===Infinity?'âˆž':(top.res.profitFactor||0).toFixed(2))} â€¢ Trades ${top.res.tradesCount} â€¢ Win ${(top.res.winrate||0).toFixed(1)}%`); } }catch(_){ }
     bestGlobal = Math.max(bestGlobal, (cur[0]?.score ?? -Infinity));
     if(timeUp() || goalReached() || quotaReached()) {return cur;}
     updateProgress(`EA g 1/${gens}`, 100*(1/(gens+1)));
@@ -6038,11 +6039,11 @@ const t0g=performance.now();
       const evald = await evalParamsList(children, 'EA'); if(!Array.isArray(evald)||!evald.length){ if(!elites.length){ // nothing to build upon
           break; }
         }
-      // Taguer cette génération EA
+      // Taguer cette gÃ©nÃ©ration EA
       try{ evald.forEach(r=>{ if(r && r.gen==null) {r.gen = g;} }); }catch(_){ }
       const dtg=performance.now()-t0g;
       cur = elites.concat(evald).sort((x,y)=> y.score-x.score).slice(0,pop);
-try{ const top=cur[0]; if(top){ addBtLog(`EA g ${g-1}→${g-1} done — ${children.length} évals en ${Math.round(dtg)} ms (${Math.round(dtg/Math.max(1,children.length))} ms/éval) — best ${top.score.toFixed(2)} PF ${(top.res.profitFactor===Infinity?'∞':(top.res.profitFactor||0).toFixed(2))} Trades ${top.res.tradesCount}`); } }catch(_){ }
+try{ const top=cur[0]; if(top){ addBtLog(`EA g ${g-1}â†’${g-1} done â€” ${children.length} Ã©vals en ${Math.round(dtg)} ms (${Math.round(dtg/Math.max(1,children.length))} ms/Ã©val) â€” best ${top.score.toFixed(2)} PF ${(top.res.profitFactor===Infinity?'âˆž':(top.res.profitFactor||0).toFixed(2))} Trades ${top.res.tradesCount}`); } }catch(_){ }
       bestGlobal = Math.max(bestGlobal, (cur[0]?.score ?? -Infinity));
       updateProgress(`EA g ${g}/${gens}`, 100*(g/(gens+1)));
     }
@@ -6061,13 +6062,13 @@ try{ const top=cur[0]; if(top){ addBtLog(`EA g ${g-1}→${g-1} done — ${childr
     const seeds = Array.isArray(seed)? seed.slice(0) : [];
     const start=[]; for(const s of seeds){ if(isDup(s.p)) {continue;} pushSeen(s.p); start.push({ p:s.p, owner:s.owner||null }); if(start.length>=initN) {break;} }
     while(start.length<initN){ const p=randomParams(); if(isDup(p)) {continue;} pushSeen(p); start.push({ p }); }
-    try{ setBtTitle('Bayes (EDA)'); addBtLog('Bayes: démarrage'); }catch(_){ }
+    try{ setBtTitle('Bayes (EDA)'); addBtLog('Bayes: dÃ©marrage'); }catch(_){ }
 __labSimTotal += start.length; updateGlobalProgressUI();
-try{ addBtLog && addBtLog(`Bayes:init — scheduling ${start.length} évals`); }catch(_){ }
+try{ addBtLog && addBtLog(`Bayes:init â€” scheduling ${start.length} Ã©vals`); }catch(_){ }
     let cur = (await evalParamsList(start, 'Bayes:init')).sort((a,b)=> b.score - a.score);
-    // Génération Bayes init = 1 si non défini
+    // GÃ©nÃ©ration Bayes init = 1 si non dÃ©fini
     try{ cur.forEach(r=>{ if(r && r.gen==null) {r.gen = 1;} }); }catch(_){ }
-try{ const top=cur[0]; if(top){ addBtLog(`Bayes init — best ${top.score.toFixed(2)} PF ${(top.res.profitFactor===Infinity?'∞':(top.res.profitFactor||0).toFixed(2))}`); } }catch(_){ }
+try{ const top=cur[0]; if(top){ addBtLog(`Bayes init â€” best ${top.score.toFixed(2)} PF ${(top.res.profitFactor===Infinity?'âˆž':(top.res.profitFactor||0).toFixed(2))}`); } }catch(_){ }
     bestGlobal = Math.max(bestGlobal, (cur[0]?.score ?? -Infinity));
     updateProgress(`Bayes 0/${iters}`, 0);
     function baseFromLbc(){ return { nol:lbcOpts.nol|0, prd:lbcOpts.prd|0, slInitPct:+lbcOpts.slInitPct||0, beAfterBars:lbcOpts.beAfterBars|0, beLockPct:+lbcOpts.beLockPct||0, emaLen:lbcOpts.emaLen|0, entryMode:lbcOpts.entryMode||'Both', useFibRet:!!lbcOpts.useFibRet, confirmMode:lbcOpts.confirmMode||'Bounce', ent382:!!lbcOpts.ent382, ent500:!!lbcOpts.ent500, ent618:!!lbcOpts.ent618, ent786:!!lbcOpts.ent786, tpEnable:!!lbcOpts.tpEnable, tp:(Array.isArray(lbcOpts.tp)? lbcOpts.tp.slice(0,10):[]), slEnable:!!lbcOpts.slEnable, sl:(Array.isArray(lbcOpts.sl)? lbcOpts.sl.slice(0,10):[]) }; }
@@ -6103,17 +6104,17 @@ const vars = readLabVarToggles();
       const t0=performance.now();
       __labSimTotal += batch.length; updateGlobalProgressUI();
       const evald = await evalParamsList(batch, `Bayes`);
-      // Génération Bayes = it+1 pour les nouveaux échantillons (init = 1)
+      // GÃ©nÃ©ration Bayes = it+1 pour les nouveaux Ã©chantillons (init = 1)
       try{ evald.forEach(r=>{ if(r && r.gen==null) {r.gen = (it+1);} }); }catch(_){ }
       const dt=performance.now()-t0;
       cur = cur.concat(evald).sort((a,b)=> b.score-a.score).slice(0, Math.max(50, initN));
-try{ const top=cur[0]; if(top && (it===1 || it%5===0 || it===iters)){ addBtLog(`Bayes it ${it}/${iters} — batch ${batch.length} évals en ${Math.round(dt)} ms — best ${top.score.toFixed(2)} PF ${(top.res.profitFactor===Infinity?'∞':(top.res.profitFactor||0).toFixed(2))}`); } }catch(_){ }
+try{ const top=cur[0]; if(top && (it===1 || it%5===0 || it===iters)){ addBtLog(`Bayes it ${it}/${iters} â€” batch ${batch.length} Ã©vals en ${Math.round(dt)} ms â€” best ${top.score.toFixed(2)} PF ${(top.res.profitFactor===Infinity?'âˆž':(top.res.profitFactor||0).toFixed(2))}`); } }catch(_){ }
       bestGlobal = Math.max(bestGlobal, (cur[0]?.score ?? -Infinity));
       updateProgress(`Bayes ${it}/${iters}`, 100*it/iters);
     }
     return cur; }
     
-  // Build seeds (prefer Supabase-backed palmarès cache when available)
+  // Build seeds (prefer Supabase-backed palmarÃ¨s cache when available)
   const seeds=[];
   if(goal==='improve'){
     let pal = (Array.isArray(window.labPalmaresCache) && window.labPalmaresCache.length)
@@ -6125,20 +6126,20 @@ try{ const top=cur[0]; if(top && (it===1 || it%5===0 || it===iters)){ addBtLog(`
     for(const it of pal){ seeds.push({ p:{ ...(it.params||{}) }, owner:it }); }
   }
 
-btAbort=false; btPaused=false; updateProgress('Entraînement...', 0);
+btAbort=false; btPaused=false; updateProgress('EntraÃ®nement...', 0);
   if(labRunStatusEl) {labRunStatusEl.textContent='En cours';}
   let eaOut=[], bayOut=[];
   if(strategy==='ea' || strategy==='hybrid'){ eaOut = await runEA(seeds); }
   if(strategy==='bayes'){ bayOut = await runBayes(seeds); }
 if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(eaOut); }
   const results = (strategy==='ea'? eaOut : (strategy==='bayes'? bayOut : ((eaOut||[]).concat(bayOut||[]))));
-  try{ addBtLog && addBtLog(`Résultats finaux — EA:${(eaOut||[]).length} Bayes:${(bayOut||[]).length} Choisi:${(results||[]).length}`); }catch(_){ }
-  // Fallback: si aucun résultat (cas rare), prendre le top des évaluations accumulées
+  try{ addBtLog && addBtLog(`RÃ©sultats finaux â€” EA:${(eaOut||[]).length} Bayes:${(bayOut||[]).length} Choisi:${(results||[]).length}`); }catch(_){ }
+  // Fallback: si aucun rÃ©sultat (cas rare), prendre le top des Ã©valuations accumulÃ©es
   let finalResults = Array.isArray(results)? results.slice() : [];
-  // Toujours trier par score décroissant avant de persister
+  // Toujours trier par score dÃ©croissant avant de persister
   try{ finalResults.sort((a,b)=> (Number(b&&b.score)||0) - (Number(a&&a.score)||0)); }catch(_){ }
   if(!finalResults.length && Array.isArray(allTested) && allTested.length){
-    try{ const sorted = allTested.slice().sort((a,b)=> (b.score||0)-(a.score||0)); finalResults = sorted.slice(0, Math.min(10, sorted.length)).map(it=>({ p: it.params||{}, res: it.metrics||{}, score: it.score||0, gen:1, name:null })); addBtLog && addBtLog(`Fallback best depuis évaluations: ${finalResults.length}`); }catch(_){ }
+    try{ const sorted = allTested.slice().sort((a,b)=> (b.score||0)-(a.score||0)); finalResults = sorted.slice(0, Math.min(10, sorted.length)).map(it=>({ p: it.params||{}, res: it.metrics||{}, score: it.score||0, gen:1, name:null })); addBtLog && addBtLog(`Fallback best depuis Ã©valuations: ${finalResults.length}`); }catch(_){ }
   }
 
   if(goal==='new'){
@@ -6151,14 +6152,14 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
       name: x.name || (x.owner && x.owner.name) || null,
     }));
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.persistLabResults==='function'){
-      // Tout passe par Supabase (naming + persistance gérés côté SUPA)
+      // Tout passe par Supabase (naming + persistance gÃ©rÃ©s cÃ´tÃ© SUPA)
       try{ await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut, profileName: (localStorage.getItem('labWeightsProfile')||'balancee') }); }catch(_){ }
       try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
     } else {
-      // Fallback local uniquement si Supabase non configuré
+      // Fallback local uniquement si Supabase non configurÃ©
       try{
         const existing = readPalmares(sym, tfSel) || [];
-        // Donner un nom unique aux nouvelles stratégies si absent
+        // Donner un nom unique aux nouvelles stratÃ©gies si absent
         const namedNew = bestOut.map((it)=>{
           if(it.name && typeof it.name==='string') {return it;}
           let base='strat';
@@ -6166,7 +6167,7 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
           const nm = uniqueNameFor(sym, tfSel, base);
           return { ...it, name: nm };
         });
-        // Fusionner ancien palmarès et nouvelles entrées en dédupliquant par params
+        // Fusionner ancien palmarÃ¨s et nouvelles entrÃ©es en dÃ©dupliquant par params
         const weightsLocal = getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
         const byKey = new Map();
         const pushOrUpdate = (item)=>{
@@ -6193,7 +6194,7 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
     maybeScheduleLabAutoLoop();
   } else {
     const MAX_BEST = 10;
-    // Construire un "nouveau" top à partir du run courant
+    // Construire un "nouveau" top Ã  partir du run courant
     const bestNew = finalResults.slice(0, Math.min(MAX_BEST, finalResults.length)).map(x=>({
       params:x.p,
       metrics:x.res,
@@ -6201,7 +6202,7 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
       gen:(x.gen!=null? x.gen : ((x.owner&&x.owner.gen)||1)),
       name: x.name || (x.owner && x.owner.name) || null,
     }));
-    // Récupérer l'ancien palmarès pour ce profil/symbole/TF et fusionner sans dégrader
+    // RÃ©cupÃ©rer l'ancien palmarÃ¨s pour ce profil/symbole/TF et fusionner sans dÃ©grader
     const mergedMap = new Map();
     const pushOrUpdate = (item)=>{
       if(!item || !item.params) {return;}
@@ -6239,7 +6240,7 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
     setStatus(t('status.improveDone')); try{ __labSimDone = Math.max(__labSimDone, __labSimPlanned||__labSimDone); updateGlobalProgressUI(); }catch(_){ } closeBtProgress();
     maybeScheduleLabAutoLoop();
   }
- }catch(e){ try{ addBtLog(`Erreur entraînement: ${e&&e.message?e.message:e}`); }catch(_){ } setStatus(t('status.trainingError')); try{ closeBtProgress(); }catch(_){ } try{ if(labAutoLoopEl){ labAutoLoopEl.checked=false; } }catch(_){ } } }); }
+ }catch(e){ try{ addBtLog(`Erreur entraÃ®nement: ${e&&e.message?e.message:e}`); }catch(_){ } setStatus(t('status.trainingError')); try{ closeBtProgress(); }catch(_){ } try{ if(labAutoLoopEl){ labAutoLoopEl.checked=false; } }catch(_){ } } }); }
 
 // Lab Pause/Stop controls are now on the progress popup (btPause/btStop)
 
@@ -6251,10 +6252,10 @@ function savePreset(name){ const names=loadPresetList(); const idx=names.indexOf
 function loadPresetByName(name){ try{ const s=localStorage.getItem('lbcPreset:'+name); if(!s) {return false;} lbcOpts = { ...defaultLBC, ...JSON.parse(s) }; normalizeLBCOpts(); saveLBCOpts(); renderLBC(); return true; }catch(_){ return false; } }
 function deletePreset(name){ try{ localStorage.removeItem('lbcPreset:'+name); const names=loadPresetList().filter(n=>n!==name); savePresetList(names); loadPresetList(); }catch(_){} }
 loadPresetList();
-if(lbcPresetSave){ lbcPresetSave.addEventListener('click', ()=>{ const name=(lbcPresetName&&lbcPresetName.value||'').trim(); if(!name){ setStatus('Nom du preset requis'); return; } savePreset(name); setStatus('Preset sauvegardé'); }); }
-if(lbcPresetLoad){ lbcPresetLoad.addEventListener('click', ()=>{ const name=(lbcPresetSelect&&lbcPresetSelect.value)||''; if(!name){ setStatus('Aucun preset'); return; } if(loadPresetByName(name)){ try{ populateHeavenModal(); }catch(_){ } setStatus('Preset chargé'); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } } }); }
-if(lbcPresetDelete){ lbcPresetDelete.addEventListener('click', ()=>{ const name=(lbcPresetSelect&&lbcPresetSelect.value)||''; if(!name) {return;} if(confirm(`Supprimer le preset \"${name}\" ?`)){ deletePreset(name); setStatus('Preset supprimé'); } }); }
-if(lbcResetBtn){ lbcResetBtn.addEventListener('click', ()=>{ lbcOpts = { ...defaultLBC }; normalizeLBCOpts(); saveLBCOpts(); renderLBC(); try{ populateHeavenModal(); }catch(_){ } setStatus('Paramètres réinitialisés'); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
+if(lbcPresetSave){ lbcPresetSave.addEventListener('click', ()=>{ const name=(lbcPresetName&&lbcPresetName.value||'').trim(); if(!name){ setStatus('Nom du preset requis'); return; } savePreset(name); setStatus('Preset sauvegardÃ©'); }); }
+if(lbcPresetLoad){ lbcPresetLoad.addEventListener('click', ()=>{ const name=(lbcPresetSelect&&lbcPresetSelect.value)||''; if(!name){ setStatus('Aucun preset'); return; } if(loadPresetByName(name)){ try{ populateHeavenModal(); }catch(_){ } setStatus('Preset chargÃ©'); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } } }); }
+if(lbcPresetDelete){ lbcPresetDelete.addEventListener('click', ()=>{ const name=(lbcPresetSelect&&lbcPresetSelect.value)||''; if(!name) {return;} if(confirm(`Supprimer le preset \"${name}\" ?`)){ deletePreset(name); setStatus('Preset supprimÃ©'); } }); }
+if(lbcResetBtn){ lbcResetBtn.addEventListener('click', ()=>{ lbcOpts = { ...defaultLBC }; normalizeLBCOpts(); saveLBCOpts(); renderLBC(); try{ populateHeavenModal(); }catch(_){ } setStatus('ParamÃ¨tres rÃ©initialisÃ©s'); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
 
 // Supabase-backed Heaven strategies
 const lbcSupaName=document.getElementById('lbcSupaName');
@@ -6306,7 +6307,7 @@ async function populateHeavenSupaList(){ try{
   const tf = (intervalSelect&&intervalSelect.value)||currentInterval;
   let rows=[]; try{ rows = await SUPA.fetchHeavenStrategies(sym, tf, 50); }catch(_){ rows=[]; }
   window.__heavenSupaList = Array.isArray(rows)? rows.slice() : [];
-  if(lbcSupaSelect){ lbcSupaSelect.innerHTML = (rows||[]).map(r=>`<option value=\"${r.id}\">${(r.name||'(sans nom)')} — ${new Date(r.created_at).toLocaleString()}</option>`).join(''); }
+  if(lbcSupaSelect){ lbcSupaSelect.innerHTML = (rows||[]).map(r=>`<option value=\"${r.id}\">${(r.name||'(sans nom)')} â€” ${new Date(r.created_at).toLocaleString()}</option>`).join(''); }
 }catch(_){ }}
 // Heaven TF and unified loader elements
 const heavenTFSelect=document.getElementById('heavenTFSelect');
@@ -6315,20 +6316,44 @@ const heavenLoadBtn=document.getElementById('heavenLoadBtn');
 
 function populateHeavenTFOptions(){ try{ if(!heavenTFSelect) {return;} if(intervalSelect && intervalSelect.innerHTML){ heavenTFSelect.innerHTML = intervalSelect.innerHTML; } else { const tfs=['1m','5m','15m','1h','4h','1d']; heavenTFSelect.innerHTML = tfs.map(tf=>`<option value="${tf}">${tf}</option>`).join(''); } const saved=localStorage.getItem('heaven:tf'); if(saved){ try{ heavenTFSelect.value=saved; }catch(_){ } } if(!heavenTFSelect.value){ try{ heavenTFSelect.value = (intervalSelect&&intervalSelect.value)||currentInterval||''; }catch(_){ } } }catch(_){ } }
 
-async function populateHeavenLoadOptions(){ try{ if(!heavenLoadSelect) {return;} const tf=(heavenTFSelect&&heavenTFSelect.value)||((intervalSelect&&intervalSelect.value)||currentInterval)||''; const sym=(symbolSelect&&symbolSelect.value)||currentSymbol; const profSel=(document.getElementById('heavenProfileSelect')&&document.getElementById('heavenProfileSelect').value)|| (localStorage.getItem('heaven:profile')|| localStorage.getItem('labWeightsProfile')||'balancee'); const opts=['<option value="">—</option>'];
-  // Supabase — Heaven strategies
+async function populateHeavenLoadOptions(){ try{ if(!heavenLoadSelect) {return;} const tf=(heavenTFSelect&&heavenTFSelect.value)||((intervalSelect&&intervalSelect.value)||currentInterval)||''; const sym=(symbolSelect&&symbolSelect.value)||currentSymbol; const profSel=(document.getElementById('heavenProfileSelect')&&document.getElementById('heavenProfileSelect').value)|| (localStorage.getItem('heaven:profile')|| localStorage.getItem('labWeightsProfile')||'balancee'); const opts=['<option value="">â€”</option>'];
+  // Supabase â€” Heaven strategies
   let supa = [];
   if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured()){ try{ await populateHeavenSupaList(); supa = Array.isArray(window.__heavenSupaList)? window.__heavenSupaList.slice(): []; }catch(_){ supa=[]; } }
-  if(supa.length){ for(const r of supa){ opts.push(`<option value="supa:${r.id}">Supa: ${(r.name||'(sans nom)')} — ${new Date(r.created_at).toLocaleString()}</option>`); } }
+  if(supa.length){ for(const r of supa){ opts.push(`<option value="supa:${r.id}">Supa: ${(r.name||'(sans nom)')} â€” ${new Date(r.created_at).toLocaleString()}</option>`); } }
   // Local presets
   let localNames=[]; try{ localNames = loadPresetList(); }catch(_){ localNames=[]; }
   if(Array.isArray(localNames) && localNames.length){ for(const n of localNames){ opts.push(`<option value="local:${n}">Preset: ${n}</option>`); } }
-  // Palmarès (Lab)
+  // PalmarÃ¨s (Lab)
   let pal=[]; if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured()){ try{ pal = await SUPA.fetchPalmares(sym, tf, 25, profSel); }catch(_){ pal=[]; } } else { try{ pal = readPalmares(sym, tf)||[]; }catch(_){ pal=[]; } }
   window.__heavenPalmaresList = Array.isArray(pal)? pal.slice() : [];
-  if(window.__heavenPalmaresList.length){ let idx=0; for(const it of window.__heavenPalmaresList){ const sc = Number.isFinite(it.score)? it.score.toFixed(2) : (it.res? (function(){ try{ const w=getWeights(profSel||'balancee'); return scoreResult(it.res, w).toFixed(2);}catch(_){ return '—'; } })() : '—'); const nm = it.name || `Palmarès #${idx+1}`; opts.push(`<option value="pal:${idx}">Palmarès: ${nm} — ${sc}</option>`); idx++; } }
+  try{ const w=getWeights(profSel||'balancee'); window.__heavenPalmaresList.sort((a,b)=>{ const sa=Number.isFinite(a&&a.score)? Number(a.score) : scoreResult((a&&a.res)||{}, w); const sb=Number.isFinite(b&&b.score)? Number(b.score) : scoreResult((b&&b.res)||{}, w); return sb-sa; }); }catch(_){ }
+  if(window.__heavenPalmaresList.length){ let idx=0; for(const it of window.__heavenPalmaresList){ const sc = Number.isFinite(it.score)? it.score.toFixed(2) : (it.res? (function(){ try{ const w=getWeights(profSel||'balancee'); return scoreResult(it.res, w).toFixed(2);}catch(_){ return 'â€”'; } })() : 'â€”'); const nm = it.name || `PalmarÃ¨s #${idx+1}`; opts.push(`<option value="pal:${idx}">PalmarÃ¨s: ${nm} â€” ${sc}</option>`); idx++; } }
   heavenLoadSelect.innerHTML = opts.join('');
 }catch(_){ } }
+
+let __heavenAutoBestApplied=false;
+async function applyBestPalmaresDefaultOnLaunch(){
+  try{
+    if(__heavenAutoBestApplied) {return;}
+    const profile=((document.getElementById('heavenProfileSelect')&&document.getElementById('heavenProfileSelect').value) || localStorage.getItem('heaven:profile') || localStorage.getItem('labWeightsProfile') || 'balancee');
+    // Respect user override if they already set one in this browser
+    const userLocked = localStorage.getItem('heaven:manualOverride')==='1';
+    if(userLocked) { __heavenAutoBestApplied=true; return; }
+    if(!Array.isArray(window.__heavenPalmaresList) || !window.__heavenPalmaresList.length){
+      await populateHeavenLoadOptions();
+    }
+    const arr = Array.isArray(window.__heavenPalmaresList)? window.__heavenPalmaresList : [];
+    if(!arr.length) {return;}
+    const best = arr[0];
+    if(best && best.params){
+      applyHeavenParams(best.params);
+      try{ if(heavenLoadSelect){ heavenLoadSelect.value='pal:0'; } }catch(_){ }
+      try{ localStorage.setItem('heaven:autoAppliedProfile', profile); }catch(_){ }
+      __heavenAutoBestApplied=true;
+    }
+  }catch(_){ }
+}
 
 if(heavenTFSelect && (!heavenTFSelect.dataset || heavenTFSelect.dataset.wired!=='1')){ heavenTFSelect.addEventListener('change', ()=>{ try{ localStorage.setItem('heaven:tf', heavenTFSelect.value||''); }catch(_){ } populateHeavenLoadOptions(); }); if(!heavenTFSelect.dataset) {heavenTFSelect.dataset={};} heavenTFSelect.dataset.wired='1'; }
 // Profile selector wiring (persist + refresh)
@@ -6347,7 +6372,7 @@ try{
     }
   }
 }catch(_){ }
-if(heavenLoadBtn && (!heavenLoadBtn.dataset || heavenLoadBtn.dataset.wired!=='1')){ heavenLoadBtn.addEventListener('click', async ()=>{ try{ const v=(heavenLoadSelect&&heavenLoadSelect.value)||''; if(!v) {return;} const parts=String(v).split(':'); const kind=parts[0]||''; const id=parts.slice(1).join(':'); if(kind==='local'){ if(id){ if(loadPresetByName(id)){ try{ populateHeavenModal(); }catch(_){ } } } }
+if(heavenLoadBtn && (!heavenLoadBtn.dataset || heavenLoadBtn.dataset.wired!=='1')){ heavenLoadBtn.addEventListener('click', async ()=>{ try{ try{ localStorage.setItem('heaven:manualOverride','1'); }catch(_){ } const v=(heavenLoadSelect&&heavenLoadSelect.value)||''; if(!v) {return;} const parts=String(v).split(':'); const kind=parts[0]||''; const id=parts.slice(1).join(':'); if(kind==='local'){ if(id){ if(loadPresetByName(id)){ try{ populateHeavenModal(); }catch(_){ } } } }
   else if(kind==='supa'){ const rows=Array.isArray(window.__heavenSupaList)? window.__heavenSupaList:[]; const it=rows.find(r=> String(r.id)===String(id)); if(it && it.params){ applyHeavenParams(it.params||{}); try{ if(heavenTFSelect && it.tf){ heavenTFSelect.value = it.tf; try{ localStorage.setItem('heaven:tf', it.tf); }catch(_){ } } }catch(_){ } try{ populateHeavenModal(); }catch(_){ } } }
   else if(kind==='pal'){ const idx=parseInt(id,10); const arr=Array.isArray(window.__heavenPalmaresList)? window.__heavenPalmaresList:[]; const it=arr[idx]; if(it && it.params){ applyHeavenParams(it.params||{}); try{ populateHeavenModal(); }catch(_){ } } }
   // Switch chart TF to selected Heaven TF
@@ -6355,10 +6380,10 @@ if(heavenLoadBtn && (!heavenLoadBtn.dataset || heavenLoadBtn.dataset.wired!=='1'
 }catch(_){ } }); if(!heavenLoadBtn.dataset) {heavenLoadBtn.dataset={};} heavenLoadBtn.dataset.wired='1'; }
 
 if(lbcSupaSave){ lbcSupaSave.addEventListener('click', async ()=>{ try{
-  if(!(window.SUPA && SUPA.isConfigured && SUPA.isConfigured())){ setStatus('Supabase non configuré'); return; }
+  if(!(window.SUPA && SUPA.isConfigured && SUPA.isConfigured())){ setStatus('Supabase non configurÃ©'); return; }
   let name=(lbcSupaName&&lbcSupaName.value||'').trim(); if(!name){ try{ name=randomName(); }catch(_){ name='heaven'; } }
   const params=currentHeavenParamsForPersist();
-  // Optional metrics snapshot over visible range (sur l'intégralité des bougies chargées)
+  // Optional metrics snapshot over visible range (sur l'intÃ©gralitÃ© des bougies chargÃ©es)
   let metrics=null; try{
     const conf={ startCap: 10000, fee: 0.1, lev: 1, maxPct:100, base:'initial' };
     let from=null, to=null; const r=getVisibleRange(); if(r){ from=r.from; to=r.to; }
@@ -6371,16 +6396,16 @@ if(lbcSupaSave){ lbcSupaSave.addEventListener('click', async ()=>{ try{
   }catch(_){ metrics=null; }
   const tfSel = (heavenTFSelect&&heavenTFSelect.value) || ((intervalSelect&&intervalSelect.value)||currentInterval);
   const ok = await SUPA.persistHeavenStrategy({ symbol: ((symbolSelect&&symbolSelect.value)||currentSymbol), tf: tfSel, name, params, metrics });
-  if(ok){ setStatus('Heaven sauvegardée (Supabase)'); await populateHeavenSupaList(); }
+  if(ok){ setStatus('Heaven sauvegardÃ©e (Supabase)'); await populateHeavenSupaList(); }
 }catch(_){ setStatus('Erreur sauvegarde Supabase'); } }); }
 
 // Also switch TF when clicking the primary button in Heaven modal
 try{ const lbcSaveBtn2=document.getElementById('lbcSave'); if(lbcSaveBtn2 && (!lbcSaveBtn2.dataset || lbcSaveBtn2.dataset.tfWired!=='1')){ lbcSaveBtn2.addEventListener('click', ()=>{ try{ const tfSel=(heavenTFSelect&&heavenTFSelect.value)||''; if(tfSel && tfSel!==currentInterval){ try{ if(intervalSelect) {intervalSelect.value=tfSel;} localStorage.setItem('chart:tf', tfSel); }catch(_){ } currentInterval=tfSel; closeWs(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval)); } }catch(_){ } }); if(!lbcSaveBtn2.dataset) {lbcSaveBtn2.dataset={};} lbcSaveBtn2.dataset.tfWired='1'; } }catch(_){ }
 if(lbcSupaLoad){ lbcSupaLoad.addEventListener('click', ()=>{ try{
-  const id=(lbcSupaSelect&&lbcSupaSelect.value)||''; if(!id) {return;} const rows=Array.isArray(window.__heavenSupaList)? window.__heavenSupaList:[]; const it=rows.find(r=> r.id===id); if(!it) {return;} applyHeavenParams(it.params||{}); try{ populateHeavenModal(); }catch(_){ } try{ computeLabBenchmarkAndUpdate(); }catch(_){ } setStatus('Stratégie Heaven chargée');
+  const id=(lbcSupaSelect&&lbcSupaSelect.value)||''; if(!id) {return;} const rows=Array.isArray(window.__heavenSupaList)? window.__heavenSupaList:[]; const it=rows.find(r=> r.id===id); if(!it) {return;} applyHeavenParams(it.params||{}); try{ populateHeavenModal(); }catch(_){ } try{ computeLabBenchmarkAndUpdate(); }catch(_){ } setStatus('StratÃ©gie Heaven chargÃ©e');
 }catch(_){ } }); }
 if(lbcSupaDelete){ lbcSupaDelete.addEventListener('click', async ()=>{ try{
-  const id=(lbcSupaSelect&&lbcSupaSelect.value)||''; if(!id) {return;} if(!confirm('Supprimer cette stratégie Supabase ?')) {return;} const ok=await SUPA.deleteHeavenStrategy(id); if(ok){ setStatus('Supprimée'); await populateHeavenSupaList(); }
+  const id=(lbcSupaSelect&&lbcSupaSelect.value)||''; if(!id) {return;} if(!confirm('Supprimer cette stratÃ©gie Supabase ?')) {return;} const ok=await SUPA.deleteHeavenStrategy(id); if(ok){ setStatus('SupprimÃ©e'); await populateHeavenSupaList(); }
 }catch(_){ } }); }
 
 // Live (paper) minimal
@@ -6397,7 +6422,7 @@ function ensureLiveDrawer(){ try{ if(document.getElementById('liveDrawer')) {ret
   // Header with collapse icon moved to the right
   d.innerHTML = '<div style=\"display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;\">'+
                 '<div style=\"font-weight:600; display:flex; align-items:center; gap:6px;\">Live wallets <button id=\"liveDrawerNew\" class=\"btn\" style=\"padding:2px 6px; font-size:12px;\" title=\"Nouveau wallet\">Nouveau</button> <button id=\"liveDrawerHistory\" class=\"btn\" style=\"padding:2px 6px; font-size:12px;\" title=\"Historique\">Historique</button></div>'+
-                '<button id=\"liveDrawerCollapse\" class=\"icon-btn\" title=\"Replier\">⟨</button>'+
+                '<button id=\"liveDrawerCollapse\" class=\"icon-btn\" title=\"Replier\">âŸ¨</button>'+
                 '</div>'+
                 '<div id=\"liveDrawerList\" style=\"overflow:auto; max-height: calc(100% - 10px);\"></div>';
   document.body.appendChild(d);
@@ -6421,11 +6446,11 @@ try{ if(Array.isArray(candles)){ candles = candles.filter(b=> b.time>=window.__l
 function updateLiveDrawerOpen(open){ try{ const d=document.getElementById('liveDrawer'); if(!d) {return;} d.dataset.open = open?'1':'0'; d.style.transform = open? 'translateX(0)' : 'translateX(-240px)'; }catch(_){ }
 }
 // Update tab content (name + active)
-function updateLiveDrawerTab(){ try{ const nameEl=document.getElementById('liveDrawerTabName'); const actEl=document.getElementById('liveDrawerTabActive'); if(nameEl){ nameEl.textContent = __headlessActiveName || '—'; } if(actEl){ /* status updated on list refresh */ } }catch(_){ } }
+function updateLiveDrawerTab(){ try{ const nameEl=document.getElementById('liveDrawerTabName'); const actEl=document.getElementById('liveDrawerTabActive'); if(nameEl){ nameEl.textContent = __headlessActiveName || 'â€”'; } if(actEl){ /* status updated on list refresh */ } }catch(_){ } }
 async function renderLiveDrawer(){ try{ ensureLiveDrawer(); const list=document.getElementById('liveDrawerList'); if(!list) {return;} let arr=[]; if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured()){ try{ arr = await SUPA.fetchHeadlessSessions(100); }catch(_){ arr=[]; } } list.innerHTML = (arr||[]).map(s=>{ const on=!!s.active; const sel=(s.name===__headlessActiveName); return `<div data-name=\"${s.name}\" class=\"lw-item\" style=\"padding:6px; margin:4px 0; border-radius:6px; cursor:pointer; background:${sel? (isDark()? '#111827':'#e5e7eb') : 'transparent'};\">`+
   `<div style=\"display:flex; align-items:center; justify-content:space-between; gap:8px;\"><div style=\"font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;\">${s.name}</div>`+
   `<label data-act=\"1\" style=\"font-size:12px; display:flex; align-items:center; gap:6px; user-select:none; cursor:pointer;\">Actif <input type=\"checkbox\" data-act=\"1\" ${on?'checked':''} /></label></div>`+
-  `<div style=\"font-size:12px; color:${isDark()? '#9ca3af':'#4b5563'};\">${symbolToDisplay(s.symbol)} • ${s.tf}</div>`+
+  `<div style=\"font-size:12px; color:${isDark()? '#9ca3af':'#4b5563'};\">${symbolToDisplay(s.symbol)} â€¢ ${s.tf}</div>`+
   `</div>`; }).join('');
   list.querySelectorAll('.lw-item').forEach(el=>{ const name=el.getAttribute('data-name'); el.addEventListener('click', async (e)=>{ const t=e.target; try{ if(t && (t.closest && (t.closest('label[data-act]') || t.closest('input[data-act]')))) {return;} }catch(_){ if(t && t.getAttribute && t.getAttribute('data-act')==='1') {return;} } await headlessActivate(name); }); const ck=el.querySelector('input[type=checkbox][data-act]'); if(ck){ ck.addEventListener('click', (ev)=> ev.stopPropagation()); ck.addEventListener('change', async ()=>{ if(ck.checked){ const sess=await SUPA.fetchHeadlessSessionByName(name); const sym=(sess&&sess.symbol)||currentSymbol; const tf=(sess&&sess.tf)||currentInterval; await SUPA.startHeadlessLive({ name, symbol:sym, tf, startCap:(sess&&sess.start_cap)||10000, fee:0.1, lev:1, params: currentHeavenParamsForPersist() }); } else { await SUPA.stopHeadlessLiveByName(name); } renderLiveDrawer(); }); } });
   // UX enhancements for live wallets list (hover, buttons, accent)
@@ -6439,19 +6464,19 @@ async function renderLiveDrawer(){ try{ ensureLiveDrawer(); const list=document.
       if(header){
         const lbl = header.querySelector('label[data-act]') || header.querySelector('label');
         if(!header.querySelector('button[data-play]')){
-          const b=document.createElement('button'); b.className='icon-btn'; b.setAttribute('data-act','1'); b.setAttribute('data-play','1'); b.title='Démarrer'; b.textContent='▶';
+          const b=document.createElement('button'); b.className='icon-btn'; b.setAttribute('data-act','1'); b.setAttribute('data-play','1'); b.title='DÃ©marrer'; b.textContent='â–¶';
           b.addEventListener('click', async (ev)=>{ ev.stopPropagation(); const sess=await SUPA.fetchHeadlessSessionByName(name); const sym=(sess&&sess.symbol)||currentSymbol; const tf=(sess&&sess.tf)||currentInterval; await SUPA.startHeadlessLive({ name, symbol:sym, tf, startCap:(sess&&sess.start_cap)||10000, fee:0.1, lev:1, params: currentHeavenParamsForPersist() }); renderLiveDrawer(); });
           if(lbl){ header.insertBefore(b, lbl); } else { header.appendChild(b); }
         }
         if(!header.querySelector('button[data-stop]')){
-          const b2=document.createElement('button'); b2.className='icon-btn'; b2.setAttribute('data-act','1'); b2.setAttribute('data-stop','1'); b2.title='Arrêter'; b2.textContent='■';
+          const b2=document.createElement('button'); b2.className='icon-btn'; b2.setAttribute('data-act','1'); b2.setAttribute('data-stop','1'); b2.title='ArrÃªter'; b2.textContent='â– ';
           b2.addEventListener('click', async (ev)=>{ ev.stopPropagation(); await SUPA.stopHeadlessLiveByName(name); renderLiveDrawer(); });
           const ref = header.querySelector('label[data-act]') || header.querySelector('label');
           if(ref){ header.insertBefore(b2, ref); } else { header.appendChild(b2); }
         }
         // Delete wallet button
         if(!header.querySelector('button[data-del]')){
-          const bd=document.createElement('button'); bd.className='icon-btn'; bd.setAttribute('data-act','1'); bd.setAttribute('data-del','1'); bd.title='Supprimer le wallet'; bd.textContent='🗑';
+          const bd=document.createElement('button'); bd.className='icon-btn'; bd.setAttribute('data-act','1'); bd.setAttribute('data-del','1'); bd.title='Supprimer le wallet'; bd.textContent='ðŸ—‘';
           bd.addEventListener('click', async (ev)=>{
             try{
               ev.stopPropagation();
@@ -6469,8 +6494,8 @@ async function renderLiveDrawer(){ try{ ensureLiveDrawer(); const list=document.
                   ok = true;
                 }
               }catch(_){ ok=false; }
-              if(ok){ try{ setStatus && setStatus('Wallet supprimé'); }catch(_){ } try{ if(typeof populateLiveWalletsUI==='function') {await populateLiveWalletsUI();} }catch(_){ } renderLiveDrawer(); }
-              else { try{ setStatus && setStatus('Suppression échouée'); }catch(_){ } }
+              if(ok){ try{ setStatus && setStatus('Wallet supprimÃ©'); }catch(_){ } try{ if(typeof populateLiveWalletsUI==='function') {await populateLiveWalletsUI();} }catch(_){ } renderLiveDrawer(); }
+              else { try{ setStatus && setStatus('Suppression Ã©chouÃ©e'); }catch(_){ } }
             }catch(_){ }
           });
           const ref2 = header.querySelector('label[data-act]') || header.querySelector('label');
@@ -6494,14 +6519,14 @@ async function setActiveLive(id){ try{ const s=liveSessions[id]; if(!s) {return;
   try{ tpHitMarkers=(s.markers&&s.markers.tps)||[]; slHitMarkers=(s.markers&&s.markers.sls)||[]; beHitMarkers=(s.markers&&s.markers.bes)||[]; liveEntryMarkers=(s.markers&&s.markers.entries)||[]; }catch(_){ }
 renderLBC(); renderLiveHUD(); refreshLiveTradesUI(); renderLiveDrawer();
   try{ updateLiveDrawerTab(); }catch(_){ }
-  // Re-open the two floating popups (Résultats + Trades) when switching wallet via left menu
+  // Re-open the two floating popups (RÃ©sultats + Trades) when switching wallet via left menu
   try{ openModalEl(stratModalEl); openModalEl(tradesModalEl); ensureFloatingModal(stratModalEl, 'strat', { left: 40, top: 40, width: 480, height: 300, zIndex: bumpZ() }); ensureFloatingModal(tradesModalEl, 'trades', { left: 540, top: 40, width: 720, height: 360, zIndex: bumpZ() }); }catch(_){ }
 }catch(_){ } }
 function multiLiveOnBar(bar){ }
 // Live state for markers and position mgmt (with equity and trade events)
 let livePos=null; let livePendingFib=null; let liveTrades=[];
 function clearLiveTrades(){ liveTrades=[]; }
-function renderLiveHUD(){ try{ if(!liveSession||!liveSession.active) {return;} if(stratTitle){ stratTitle.textContent = `${symbolToDisplay(liveSession.symbol)} • ${liveSession.tf} — Live`; } if(stratTBody){ const eq=Number(liveSession.equity)||0; const start=Number(liveSession.startCap)||0; const pnl=eq-start; const rows=[]; rows.push(`<tr><td style=\"text-align:left\">Capital</td><td>—</td><td style=\"text-align:right\">${eq.toFixed(2)}</td></tr>`); rows.push(`<tr><td style=\"text-align:left\">P&L net</td><td>—</td><td style=\"text-align:right\">${pnl.toFixed(2)}</td></tr>`); stratTBody.innerHTML = rows.join(''); } }catch(_){ } }function refreshLiveMonitoringUI(){ try{ renderLiveHUD(); const state={ trades: __headlessTrades.slice(), symbol: liveSession.symbol, tf: liveSession.tf, startCap: liveSession.startCap, equityFinal: liveSession.equity, totalPnl: (Number(liveSession.equity)||0) - (Number(liveSession.startCap)||0) }; lastTradesCtx=state; populateTradesModal(state); }catch(_){ } } async function headlessPollOnce(){ try{ if(!(window.SUPA && SUPA.fetchHeadlessSessionByName && SUPA.fetchLiveEvents)) {return;} if(!__headlessActiveName) {return;} const sess=await SUPA.fetchHeadlessSessionByName(__headlessActiveName); if(!sess){ return; } liveSession = { ...(liveSession||{}), active:true, symbol:sess.symbol, tf:sess.tf, equity: Number(sess.equity||sess.start_cap||0)||0, startCap: Number(sess.start_cap||0)||0 };
+function renderLiveHUD(){ try{ if(!liveSession||!liveSession.active) {return;} if(stratTitle){ stratTitle.textContent = `${symbolToDisplay(liveSession.symbol)} â€¢ ${liveSession.tf} â€” Live`; } if(stratTBody){ const eq=Number(liveSession.equity)||0; const start=Number(liveSession.startCap)||0; const pnl=eq-start; const rows=[]; rows.push(`<tr><td style=\"text-align:left\">Capital</td><td>â€”</td><td style=\"text-align:right\">${eq.toFixed(2)}</td></tr>`); rows.push(`<tr><td style=\"text-align:left\">P&L net</td><td>â€”</td><td style=\"text-align:right\">${pnl.toFixed(2)}</td></tr>`); stratTBody.innerHTML = rows.join(''); } }catch(_){ } }function refreshLiveMonitoringUI(){ try{ renderLiveHUD(); const state={ trades: __headlessTrades.slice(), symbol: liveSession.symbol, tf: liveSession.tf, startCap: liveSession.startCap, equityFinal: liveSession.equity, totalPnl: (Number(liveSession.equity)||0) - (Number(liveSession.startCap)||0) }; lastTradesCtx=state; populateTradesModal(state); }catch(_){ } } async function headlessPollOnce(){ try{ if(!(window.SUPA && SUPA.fetchHeadlessSessionByName && SUPA.fetchLiveEvents)) {return;} if(!__headlessActiveName) {return;} const sess=await SUPA.fetchHeadlessSessionByName(__headlessActiveName); if(!sess){ return; } liveSession = { ...(liveSession||{}), active:true, symbol:sess.symbol, tf:sess.tf, equity: Number(sess.equity||sess.start_cap||0)||0, startCap: Number(sess.start_cap||0)||0 };
   const events = await SUPA.fetchLiveEvents(sess.id, __headlessLastAt||null, 500);
   if(Array.isArray(events) && events.length){ for(const ev of events){ const p=ev.payload||{}; const tsSec = (p.time!=null)? Number(p.time) : Math.floor(new Date(ev.at_time).getTime()/1000); if(ev.kind==='entry'){ try{ addLiveEntryMarker(tsSec, p.dir); }catch(_){ } try{ __headlessTrades.push({ dir:p.dir, entryTime:tsSec, entry:p.entry, initSL:p.sl, exitTime:tsSec, exit:p.entry, reason:'Entry', qty:p.qty, pnl:0, fees:0, net:0, rr:null }); }catch(_){ } }
     else if(ev.kind==='tp'){ try{ addTPHitMarker(tsSec, p.dir); }catch(_){ } try{ __headlessTrades.push({ dir:p.dir, entryTime:tsSec, entry:p.entry, initSL:p.initSL||p.sl||null, exitTime:tsSec, exit:p.exit, reason:`TP${(p.idx||'')}`, qty:p.qty, pnl:p.pnl, fees:p.fees, net:p.net, rr:null }); }catch(_){ } }
@@ -6620,8 +6645,8 @@ function computeSLFromLadder(dir, entry, i){ try{ if(!(lbcOpts.slEnable && Array
     if(uiDirty){ renderLiveHUD(); refreshLiveTradesUI(); }
   }catch(_){ }
 }
-if(liveStartBtn){ liveStartBtn.addEventListener('click', async ()=>{ try{ if(!(window.SUPA && SUPA.isConfigured && SUPA.isConfigured())){ setStatus('Supabase requis pour le mode headless'); return; } const name=(liveWalletName&&liveWalletName.value)||randomName(); const cap=Math.max(0, parseFloat(liveStartCap&&liveStartCap.value||'10000')); const fee=Math.max(0, parseFloat(liveFee&&liveFee.value||'0.1')); const lev=Math.max(1, parseFloat(liveLev&&liveLev.value||'1')); const sym=currentSymbol; const tfSel=(liveTFSelect&&liveTFSelect.value)||((intervalSelect&&intervalSelect.value)||currentInterval)||''; let params=currentHeavenParamsForPersist(); try{ const val=(liveStrategySel&&liveStrategySel.value)||''; const cache=(window.__liveStratCache||{}); if(val && Array.isArray(cache.items)){ const it=cache.items.find(x=> String(x.value)===String(val)); if(it && it.params){ params = it.params; } } }catch(_){ } const ok = await SUPA.startHeadlessLive({ name, symbol:sym, tf: tfSel, startCap:cap, fee, lev, params }); if(ok && ok.ok){ setStatus('Session live démarrée (headless)'); await headlessActivate(name); ensureLiveDrawer(); renderLiveDrawer(); closeModalEl(liveModalEl); } else { setStatus('Erreur démarrage headless'); } }catch(_){ } }); }
-if(liveStopBtn){ liveStopBtn.addEventListener('click', async ()=>{ try{ if(!(window.SUPA && SUPA.stopHeadlessLiveByName)) {return;} if(!__headlessActiveName) {return;} const ok=await SUPA.stopHeadlessLiveByName(__headlessActiveName); if(ok){ setStatus('Session headless arrêtée'); } else { setStatus('Arrêt échoué'); } ensureLiveDrawer(); renderLiveDrawer(); }catch(_){ } }); }
+if(liveStartBtn){ liveStartBtn.addEventListener('click', async ()=>{ try{ if(!(window.SUPA && SUPA.isConfigured && SUPA.isConfigured())){ setStatus('Supabase requis pour le mode headless'); return; } const name=(liveWalletName&&liveWalletName.value)||randomName(); const cap=Math.max(0, parseFloat(liveStartCap&&liveStartCap.value||'10000')); const fee=Math.max(0, parseFloat(liveFee&&liveFee.value||'0.1')); const lev=Math.max(1, parseFloat(liveLev&&liveLev.value||'1')); const sym=currentSymbol; const tfSel=(liveTFSelect&&liveTFSelect.value)||((intervalSelect&&intervalSelect.value)||currentInterval)||''; let params=currentHeavenParamsForPersist(); try{ const val=(liveStrategySel&&liveStrategySel.value)||''; const cache=(window.__liveStratCache||{}); if(val && Array.isArray(cache.items)){ const it=cache.items.find(x=> String(x.value)===String(val)); if(it && it.params){ params = it.params; } } }catch(_){ } const ok = await SUPA.startHeadlessLive({ name, symbol:sym, tf: tfSel, startCap:cap, fee, lev, params }); if(ok && ok.ok){ setStatus('Session live dÃ©marrÃ©e (headless)'); await headlessActivate(name); ensureLiveDrawer(); renderLiveDrawer(); closeModalEl(liveModalEl); } else { setStatus('Erreur dÃ©marrage headless'); } }catch(_){ } }); }
+if(liveStopBtn){ liveStopBtn.addEventListener('click', async ()=>{ try{ if(!(window.SUPA && SUPA.stopHeadlessLiveByName)) {return;} if(!__headlessActiveName) {return;} const ok=await SUPA.stopHeadlessLiveByName(__headlessActiveName); if(ok){ setStatus('Session headless arrÃªtÃ©e'); } else { setStatus('ArrÃªt Ã©chouÃ©'); } ensureLiveDrawer(); renderLiveDrawer(); }catch(_){ } }); }
 
 async function headlessActivate(name){ try{ if(!name) {return;} __headlessActiveName=name; const sess = (window.SUPA && SUPA.fetchHeadlessSessionByName)? await SUPA.fetchHeadlessSessionByName(name) : null; if(!sess){ setStatus('Session introuvable'); return; } __headlessSessionId = sess.id; __headlessLastAt = null; __headlessTrades = []; __headlessMarkers={ entries:[], tps:[], sls:[], bes:[] }; if(__headlessRTSub && __headlessRTSub.unsubscribe){ try{ __headlessRTSub.unsubscribe(); }catch(_){ } __headlessRTSub=null; } if(__headlessPollTimer){ try{ clearInterval(__headlessPollTimer); }catch(_){ } __headlessPollTimer=null; }
   // Enforce chart min-time at session creation
@@ -6645,18 +6670,18 @@ try{ if(typeof window.__liveChartMinTimeSec==='number' && isFinite(window.__live
 
 // Live History modal
 function openLiveHistoryModal(){ try{ const m=ensureLiveHistoryModal(); populateLiveHistorySessions().then(()=> refreshLiveHistory()).catch(()=>{}); openModalEl(m); }catch(_){ } }
-function ensureLiveHistoryModal(){ let el=document.getElementById('liveHistoryModal'); if(el) {return el;} try{ el=document.createElement('div'); el.id='liveHistoryModal'; el.className='modal hidden'; el.setAttribute('aria-hidden','true'); const bd=document.createElement('div'); bd.className='modal-backdrop'; bd.dataset.close='1'; el.appendChild(bd); const ct=document.createElement('div'); ct.className='modal-content large'; el.appendChild(ct); const hd=document.createElement('div'); hd.className='modal-header'; ct.appendChild(hd); const h2=document.createElement('h2'); h2.textContent='Historique Live'; hd.appendChild(h2); const x=document.createElement('button'); x.className='icon-btn'; x.setAttribute('aria-label','Fermer'); x.textContent='×'; x.addEventListener('click', ()=> closeModalEl(el)); hd.appendChild(x); const body=document.createElement('div'); body.className='modal-body'; body.innerHTML = `
+function ensureLiveHistoryModal(){ let el=document.getElementById('liveHistoryModal'); if(el) {return el;} try{ el=document.createElement('div'); el.id='liveHistoryModal'; el.className='modal hidden'; el.setAttribute('aria-hidden','true'); const bd=document.createElement('div'); bd.className='modal-backdrop'; bd.dataset.close='1'; el.appendChild(bd); const ct=document.createElement('div'); ct.className='modal-content large'; el.appendChild(ct); const hd=document.createElement('div'); hd.className='modal-header'; ct.appendChild(hd); const h2=document.createElement('h2'); h2.textContent='Historique Live'; hd.appendChild(h2); const x=document.createElement('button'); x.className='icon-btn'; x.setAttribute('aria-label','Fermer'); x.textContent='Ã—'; x.addEventListener('click', ()=> closeModalEl(el)); hd.appendChild(x); const body=document.createElement('div'); body.className='modal-body'; body.innerHTML = `
   <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:8px;">
     <label>Session <select id="liveHistSessionSel" style="min-width:220px"></select></label>
     <label>De <input id="liveHistFrom" type="datetime-local" /></label>
-    <label>À <input id="liveHistTo" type="datetime-local" /></label>
+    <label>Ã€ <input id="liveHistTo" type="datetime-local" /></label>
     <button id="liveHistRefresh" class="btn">Actualiser</button>
     <button id="liveHistExport" class="btn">Export CSV</button>
   </div>
   <div style="max-height:60vh; overflow:auto;">
     <table class="lbc-table" style="width:100%">
       <thead><tr><th>Heure</th><th>Type</th><th>Dir</th><th>Entry</th><th>Exit/SL/TP</th><th>Qty</th><th>PNL</th><th>Fees</th><th>Net</th></tr></thead>
-      <tbody id="liveHistTBody"><tr><td colspan="9">—</td></tr></tbody>
+      <tbody id="liveHistTBody"><tr><td colspan="9">â€”</td></tr></tbody>
     </table>
   </div>`; ct.appendChild(body); document.body.appendChild(el);
   // wire actions
@@ -6665,9 +6690,9 @@ function ensureLiveHistoryModal(){ let el=document.getElementById('liveHistoryMo
   el.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) {closeModalEl(el);} });
 } catch(_){ }
   return el; }
-async function populateLiveHistorySessions(){ try{ const sel=document.getElementById('liveHistSessionSel'); if(!sel) {return;} let rows=[]; try{ rows = await (SUPA&&SUPA.fetchHeadlessSessions? SUPA.fetchHeadlessSessions(200): []); }catch(_){ rows=[]; } sel.innerHTML = (rows||[]).map(r=> `<option value="${r.id}">${r.name} — ${r.symbol} • ${r.tf}</option>`).join(''); }catch(_){ } }
+async function populateLiveHistorySessions(){ try{ const sel=document.getElementById('liveHistSessionSel'); if(!sel) {return;} let rows=[]; try{ rows = await (SUPA&&SUPA.fetchHeadlessSessions? SUPA.fetchHeadlessSessions(200): []); }catch(_){ rows=[]; } sel.innerHTML = (rows||[]).map(r=> `<option value="${r.id}">${r.name} â€” ${r.symbol} â€¢ ${r.tf}</option>`).join(''); }catch(_){ } }
 async function refreshLiveHistory(){ try{ const sel=document.getElementById('liveHistSessionSel'); const fromEl=document.getElementById('liveHistFrom'); const toEl=document.getElementById('liveHistTo'); const tb=document.getElementById('liveHistTBody'); if(!tb) {return;} const sid=sel&&sel.value; if(!sid){ tb.innerHTML='<tr><td colspan="9">Aucune session</td></tr>'; return; } const fromIso=fromEl&&fromEl.value? new Date(fromEl.value).toISOString(): null; const toIso=toEl&&toEl.value? new Date(toEl.value).toISOString(): null; const evts = await (SUPA&&SUPA.fetchLiveEvents? SUPA.fetchLiveEvents(sid, fromIso, 5000): []); const rows=[]; for(const ev of (evts||[])){ if(toIso && ev.at_time>toIso) {continue;} const p=ev.payload||{}; const dir=p.dir||''; const entry=(p.entry!=null? p.entry:''); const exit=(p.exit!=null? p.exit:''); const qty=(p.qty!=null? p.qty:''); const pnl=(p.pnl!=null? p.pnl:''); const fees=(p.fees!=null? p.fees:''); const net=(p.net!=null? p.net:''); rows.push(`<tr><td>${new Date(ev.at_time).toLocaleString()}</td><td>${ev.kind}</td><td>${dir}</td><td>${fmtNum(entry)}</td><td>${fmtNum(exit)}</td><td>${fmtNum(qty)}</td><td>${fmtNum(pnl)}</td><td>${fmtNum(fees)}</td><td>${fmtNum(net)}</td></tr>`); }
-  tb.innerHTML = rows.length? rows.join('') : '<tr><td colspan="9">—</td></tr>';
+  tb.innerHTML = rows.length? rows.join('') : '<tr><td colspan="9">â€”</td></tr>';
 }catch(_){ } }
 function fmtNum(v){ const n=Number(v); return Number.isFinite(n)? n.toFixed(4):''; }
 function exportLiveHistoryCSV(){ try{ const sel=document.getElementById('liveHistSessionSel'); const tb=document.getElementById('liveHistTBody'); if(!tb) {return;} const rows = Array.from(tb.querySelectorAll('tr')); let csv='time,kind,dir,entry,exit,qty,pnl,fees,net\n'; for(const tr of rows){ const tds=Array.from(tr.querySelectorAll('td')).map(td=> (td.textContent||'').replaceAll(',', '')); if(tds.length===9){ csv += tds.join(',')+'\n'; } }
@@ -6690,6 +6715,10 @@ async function populateLiveWalletsUI(){ try{ const locals = readLiveWallets(); i
   if(liveWalletSel){ liveWalletSel.innerHTML = (merged||[]).map(w=>`<option value=\"${w.name}\">${w.name}</option>`).join(''); }
 } else { if(liveWalletSel){ liveWalletSel.innerHTML = (locals||[]).map(w=>`<option value=\"${w.name}\">${w.name}</option>`).join(''); } }
 }catch(_){ } }
-if(liveWalletSave){ liveWalletSave.addEventListener('click', async ()=>{ try{ const name=(liveWalletName&&liveWalletName.value||'').trim(); if(!name){ setStatus('Nom du wallet requis'); return; } const cap=+(liveStartCap&&liveStartCap.value||'10000'); const fee=+(liveFee&&liveFee.value||'0.1'); const lev=+(liveLev&&liveLev.value||'1'); if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.persistLiveWallet==='function'){ const ok = await SUPA.persistLiveWallet({ name, startCap:cap, fee, lev, exchange:'paper', base_currency:'USDC' }); if(ok){ setStatus('Wallet enregistré (Supabase)'); await populateLiveWalletsUI(); } else { setStatus('Erreur enregistrement Supabase'); } } else { const arr=readLiveWallets(); const idx=arr.findIndex(w=>w.name===name); const item={ name, startCap:cap, fee, lev }; if(idx>=0) {arr[idx]=item;} else {arr.unshift(item);} writeLiveWallets(arr.slice(0,100)); populateLiveWalletsUI(); setStatus('Wallet enregistré'); } }catch(_){ } }); }
-if(liveWalletLoad){ liveWalletLoad.addEventListener('click', async ()=>{ try{ const sel=(liveWalletSel&&liveWalletSel.value)||''; if(!sel) {return;} if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && Array.isArray(window.__liveWalletsCache)){ const w = window.__liveWalletsCache.find(x=>x.name===sel); if(w){ if(liveStartCap) {liveStartCap.value=String(w.startCap||'');} if(liveFee) {liveFee.value=String(w.fee||'');} if(liveLev) {liveLev.value=String(w.lev||'');} setStatus('Wallet chargé (Supabase)'); return; } } const w=readLiveWallets().find(x=>x.name===sel); if(!w) {return;} if(liveStartCap) {liveStartCap.value=String(w.startCap||'');} if(liveFee) {liveFee.value=String(w.fee||'');} if(liveLev) {liveLev.value=String(w.lev||'');} setStatus('Wallet chargé'); }catch(_){ } }); }
-if(liveWalletDelete){ liveWalletDelete.addEventListener('click', async ()=>{ try{ const sel=(liveWalletSel&&liveWalletSel.value)||''; if(!sel) {return;} if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.deleteLiveWallet==='function'){ const ok = await SUPA.deleteLiveWallet(sel, 'paper'); if(ok){ await populateLiveWalletsUI(); setStatus('Wallet supprimé (Supabase)'); } else { setStatus('Suppression échouée (Supabase)'); } } else { const arr=readLiveWallets().filter(x=>x.name!==sel); writeLiveWallets(arr); populateLiveWalletsUI(); setStatus('Wallet supprimé'); } }catch(_){ } }); }
+if(liveWalletSave){ liveWalletSave.addEventListener('click', async ()=>{ try{ const name=(liveWalletName&&liveWalletName.value||'').trim(); if(!name){ setStatus('Nom du wallet requis'); return; } const cap=+(liveStartCap&&liveStartCap.value||'10000'); const fee=+(liveFee&&liveFee.value||'0.1'); const lev=+(liveLev&&liveLev.value||'1'); if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.persistLiveWallet==='function'){ const ok = await SUPA.persistLiveWallet({ name, startCap:cap, fee, lev, exchange:'paper', base_currency:'USDC' }); if(ok){ setStatus('Wallet enregistrÃ© (Supabase)'); await populateLiveWalletsUI(); } else { setStatus('Erreur enregistrement Supabase'); } } else { const arr=readLiveWallets(); const idx=arr.findIndex(w=>w.name===name); const item={ name, startCap:cap, fee, lev }; if(idx>=0) {arr[idx]=item;} else {arr.unshift(item);} writeLiveWallets(arr.slice(0,100)); populateLiveWalletsUI(); setStatus('Wallet enregistrÃ©'); } }catch(_){ } }); }
+if(liveWalletLoad){ liveWalletLoad.addEventListener('click', async ()=>{ try{ const sel=(liveWalletSel&&liveWalletSel.value)||''; if(!sel) {return;} if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && Array.isArray(window.__liveWalletsCache)){ const w = window.__liveWalletsCache.find(x=>x.name===sel); if(w){ if(liveStartCap) {liveStartCap.value=String(w.startCap||'');} if(liveFee) {liveFee.value=String(w.fee||'');} if(liveLev) {liveLev.value=String(w.lev||'');} setStatus('Wallet chargÃ© (Supabase)'); return; } } const w=readLiveWallets().find(x=>x.name===sel); if(!w) {return;} if(liveStartCap) {liveStartCap.value=String(w.startCap||'');} if(liveFee) {liveFee.value=String(w.fee||'');} if(liveLev) {liveLev.value=String(w.lev||'');} setStatus('Wallet chargÃ©'); }catch(_){ } }); }
+if(liveWalletDelete){ liveWalletDelete.addEventListener('click', async ()=>{ try{ const sel=(liveWalletSel&&liveWalletSel.value)||''; if(!sel) {return;} if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.deleteLiveWallet==='function'){ const ok = await SUPA.deleteLiveWallet(sel, 'paper'); if(ok){ await populateLiveWalletsUI(); setStatus('Wallet supprimÃ© (Supabase)'); } else { setStatus('Suppression Ã©chouÃ©e (Supabase)'); } } else { const arr=readLiveWallets().filter(x=>x.name!==sel); writeLiveWallets(arr); populateLiveWalletsUI(); setStatus('Wallet supprimÃ©'); } }catch(_){ } }); }
+
+
+
+
