@@ -8,7 +8,7 @@ from pathlib import Path
 import yaml
 
 from heaven_opt import OptimizationConfig
-from heaven_opt.api import optimize_heaven
+from heaven_opt.api import PersistencePartialError, optimize_heaven
 
 
 def main(argv=None) -> int:
@@ -68,7 +68,11 @@ def main(argv=None) -> int:
         import os
         os.environ["HEAVEN_NO_WF"] = "1"
 
-    res = optimize_heaven(config)
+    try:
+        res = optimize_heaven(config)
+    except PersistencePartialError as e:
+        print(str(e), file=sys.stderr)
+        return 1
 
     print(f"Top {len(res.top)} results. Artifacts: {res.artifacts_dir}")
     return 0

@@ -102,6 +102,9 @@ class MetricsWeights(BaseModel):
 class MetricsCfg(BaseModel):
     weights: MetricsWeights = Field(default_factory=MetricsWeights)
     min_trades: int = 30
+    pf_min: float = 1.0
+    pnl_min: float = 0.0
+    max_dd_pct: float = 35.0
     penalize_complexity: bool = True
 
 class OptimizationConfig(BaseModel):

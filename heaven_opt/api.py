@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import math
 import os
 import time
+import uuid
 from pathlib import Path
 
 import yaml
@@ -46,6 +48,41 @@ def _rank_key(m: dict) -> tuple:
     pf = float(m.get("profitFactor", 0.0))
     pnl = float(m.get("totalPnl", 0.0))
     return (-pf, -pnl)
+
+
+def _sanitize_json_value(v):
+    if isinstance(v, float):
+        if not math.isfinite(v):
+            return None
+        return float(v)
+    if isinstance(v, dict):
+        return {k: _sanitize_json_value(x) for k, x in v.items()}
+    if isinstance(v, list):
+        return [_sanitize_json_value(x) for x in v]
+    return v
+
+
+def _sanitize_metrics(metrics: dict | None) -> dict:
+    raw = metrics or {}
+    cleaned = _sanitize_json_value(raw)
+    return cleaned if isinstance(cleaned, dict) else {}
+
+
+class PersistencePartialError(RuntimeError):
+    pass
+
+
+def _passes_metric_gates(metrics: dict, config: OptimizationConfig) -> bool:
+    pf = float(metrics.get("profitFactor", 0.0) or 0.0)
+    pnl = float(metrics.get("totalPnl", 0.0) or 0.0)
+    trades = float(metrics.get("trades", 0.0) or 0.0)
+    dd_pct = float(metrics.get("maxDDPct", 9999.0) or 9999.0)
+    return (
+        pf >= float(config.metrics.pf_min)
+        and pnl > float(config.metrics.pnl_min)
+        and trades >= float(config.metrics.min_trades)
+        and dd_pct <= float(config.metrics.max_dd_pct)
+    )
 
 
 def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
@@ -116,6 +153,9 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
 
     # Orchestration per mode
     mode = (config.search.mode or "ea_bayesian_hybrid")
+    run_id = os.getenv("HEAVEN_RUN_ID") or str(uuid.uuid4())
+    campaign_id = os.getenv("HEAVEN_CAMPAIGN_ID") or run_id
+    run_type = (os.getenv("HEAVEN_RUN_TYPE") or "NEW").strip().upper()
     # Base options from backtest cfg
     base_opts = HeavenOpts(
         nol=int((config.ranges.nol_range.min + config.ranges.nol_range.max) // 2),
@@ -161,6 +201,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
         space = EASpace(
             nol_list=nol_list, prd_list=prd_list, sl_list=sl_list, beb_list=beb_list, bel_list=bel_list,
             ema_list=ema_list, entry_modes=modes, tp_vectors=tp_vectors, alloc_patterns=alloc_patterns,
+            tp_mode=str(config.TP.mode),
         )
         weights = {
             "pf": float(config.metrics.weights.pf),
@@ -278,7 +319,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
             beb = random.choice(beb_list)
             bel = random.choice(bel_list)
             ema = random.choice(ema_list)
-            mode = random.choice(modes)
+            entry_mode = random.choice(modes)
             tpv = random.choice(tp_vectors) if tp_vectors else []
             alloc = random.choice(alloc_patterns) if alloc_patterns else [100.0]
             cand = {
@@ -288,7 +329,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
                 "be_after_bars": int(beb),
                 "be_lock_pct": float(bel),
                 "ema_len": int(ema),
-                "entry_mode": mode,
+                "entry_mode": entry_mode,
                 "tp_types": tp_types[:],
                 "tp_r": list(tpv) + [0.0] * (10 - len(tpv)),
                 "tp_p": list(alloc) + [0.0] * (10 - len(alloc)),
@@ -334,92 +375,127 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
             r["metrics"].update(mc)
         r["metrics"]["score"] = composite_score(r["metrics"], weights)
 
-    # Persist all tested strategies to Supabase (best-effort)
-    try:
-        from . import supabase_io as sio  # local module
-        svc_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-        base_ok = bool(svc_key) and bool(os.getenv("SUPABASE_URL") or os.getenv("SUPABASE_REST_URL"))
-        if base_ok and results:
-            user_id = os.getenv("HEAVEN_USER_ID")  # optional; leave null if not provided
-            profile_id = sio.get_balancee_profile_id(svc_key)
-            # Build run context
-            rc = {
-                "mode": str(mode),
-                "date_from": str(getattr(config.general, "date_from", "")),
-                "date_to": str(getattr(config.general, "date_to", "")),
-                "seed": os.getenv("HEAVEN_SEED"),
-                "ts": time.time(),
-            }
-            # Copy before sort/slice
-            all_results_for_persist = list(results)
-            rows_all: list[dict] = []
-            for r in all_results_for_persist:
-                rows_all.append({
-                    "user_id": user_id,
-                    "symbol": sym,
-                    "tf": tf,
-                    "profile_id": profile_id,
-                    "params": r.get("params") or {},
-                    "metrics": r.get("metrics") or {},
-                    "score": float((r.get("metrics") or {}).get("score", 0.0)),
-                    "selected": False,
-                    "palmares_set_id": None,
-                    "provenance": r.get("provenance", "coarse"),
-                    "run_context": rc,
-                })
-            sio.upsert_strategy_evaluations(rows_all, svc_key)
-    except Exception:
-        # Do not fail the optimization if persistence fails
-        pass
-
-    # Sort and select top-N
-    results.sort(key=lambda r: -float(r["metrics"].get("score", 0.0)))
-    top_results = results[: int(config.general.top_n_results)]
-
-    # Create palmarès set and entries (best-effort)
-    set_id = None
-    try:
-        svc_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-        if bool(svc_key) and bool(os.getenv("SUPABASE_URL") or os.getenv("SUPABASE_REST_URL")) and top_results:
-            from . import supabase_io as sio
-            user_id = os.getenv("HEAVEN_USER_ID")
-            profile_id = sio.get_balancee_profile_id(svc_key)
-            note = os.getenv("HEAVEN_NOTE") or f"{mode} {sym} {tf}"
-            set_id = sio.create_palmares_set({
+    # Persist all tested strategies to Supabase (fail-fast on partial persistence)
+    from . import supabase_io as sio  # local module
+    svc_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    base_ok = bool(svc_key) and bool(os.getenv("SUPABASE_URL") or os.getenv("SUPABASE_REST_URL"))
+    profile_name = os.getenv("HEAVEN_PROFILE_NAME", "balancee")
+    profile_id = None
+    if base_ok and results:
+        user_id = os.getenv("HEAVEN_USER_ID")  # optional; leave null if not provided
+        profile_id = sio.get_profile_id(svc_key, profile_name)
+        # Build run context
+        rc = {
+            "mode": str(mode),
+            "date_from": str(getattr(config.general, "date_from", "")),
+            "date_to": str(getattr(config.general, "date_to", "")),
+            "seed": os.getenv("HEAVEN_SEED"),
+            "ts": time.time(),
+            "run_id": run_id,
+            "campaign_id": campaign_id,
+            "run_type": run_type,
+            "profile": profile_name,
+        }
+        rows_all: list[dict] = []
+        for r in list(results):
+            rows_all.append({
                 "user_id": user_id,
                 "symbol": sym,
                 "tf": tf,
                 "profile_id": profile_id,
-                "top_n": int(config.general.top_n_results),
-                "note": note,
-            }, svc_key)
-            if set_id:
-                ents = []
-                rank = 1
-                for r in top_results:
-                    ents.append({
-                        "set_id": set_id,
-                        "rank": rank,
-                        "name": None,
-                        "params": r.get("params") or {},
-                        "metrics": r.get("metrics") or {},
-                        "score": float((r.get("metrics") or {}).get("score", 0.0)),
-                        "provenance": r.get("provenance", "coarse"),
-                        "generation": 1,
-                    })
-                    rank += 1
-                sio.insert_palmares_entries(ents, svc_key)
-                # Mark selected=true for top results
-                rows_sel = [{
-                    "user_id": os.getenv("HEAVEN_USER_ID"),
-                    "symbol": sym,
-                    "tf": tf,
-                    "profile_id": profile_id,
-                    "params": r.get("params") or {},
-                } for r in top_results]
-                sio.mark_selected_for_set(rows_sel, set_id, svc_key)
-    except Exception:
-        pass
+                "params": r.get("params") or {},
+                "metrics": _sanitize_metrics(r.get("metrics") or {}),
+                "score": float((_sanitize_metrics(r.get("metrics") or {})).get("score") or 0.0),
+                "selected": False,
+                "palmares_set_id": None,
+                "provenance": r.get("provenance", "coarse"),
+                "run_context": rc,
+                "run_id": run_id,
+                "campaign_id": campaign_id,
+                "run_type": run_type,
+                "profile": profile_name,
+            })
+        p_sum = sio.insert_strategy_evaluations(rows_all, svc_key)
+        if p_sum.get("persisted", 0) < p_sum.get("rows_total", 0):
+            msg = (
+                f"FAILED_PARTIAL strategy_evaluations persisted={p_sum.get('persisted',0)} "
+                f"rows_total={p_sum.get('rows_total',0)}"
+            )
+            log.error(msg)
+            raise PersistencePartialError(msg)
+
+    # Metric gates before top selection
+    gated_results = [r for r in results if _passes_metric_gates(r.get("metrics") or {}, config)]
+    log.info("Metric gates: total=%s passed=%s", len(results), len(gated_results))
+    results.sort(key=lambda r: -float(r["metrics"].get("score", 0.0)))
+    gated_results.sort(key=lambda r: -float(r["metrics"].get("score", 0.0)))
+    top_results = gated_results[: int(config.general.top_n_results)]
+
+    # Create palmarès set and entries
+    set_id = None
+
+    def _strategy_name_for_rank(rank: int, params: dict) -> str:
+        sig = sha1_of_params(params)[:6]
+        return f"heaven-{rank:02d}-{sig}"
+
+    if bool(svc_key) and bool(os.getenv("SUPABASE_URL") or os.getenv("SUPABASE_REST_URL")) and top_results:
+        user_id = os.getenv("HEAVEN_USER_ID")
+        note = os.getenv("HEAVEN_NOTE") or f"{mode} {sym} {tf}"
+        set_id = sio.create_palmares_set({
+            "user_id": user_id,
+            "symbol": sym,
+            "tf": tf,
+            "profile_id": profile_id,
+            "top_n": int(config.general.top_n_results),
+            "note": note,
+            "run_id": run_id,
+            "campaign_id": campaign_id,
+            "run_type": run_type,
+            "profile": profile_name,
+        }, svc_key)
+        if set_id:
+            ents = []
+            rank = 1
+            for r in top_results:
+                params_r = r.get("params") or {}
+                ents.append({
+                    "set_id": set_id,
+                    "rank": rank,
+                    "name": _strategy_name_for_rank(rank, params_r),
+                    "params": params_r,
+                    "metrics": _sanitize_metrics(r.get("metrics") or {}),
+                    "score": float((_sanitize_metrics(r.get("metrics") or {})).get("score") or 0.0),
+                    "provenance": r.get("provenance", "coarse"),
+                    "generation": 1,
+                    "run_id": run_id,
+                    "campaign_id": campaign_id,
+                    "run_type": run_type,
+                    "profile": profile_name,
+                })
+                rank += 1
+            e_sum = sio.insert_palmares_entries(ents, svc_key)
+            if e_sum.get("persisted", 0) < e_sum.get("rows_total", 0):
+                msg = (
+                    f"FAILED_PARTIAL palmares_entries persisted={e_sum.get('persisted',0)} "
+                    f"rows_total={e_sum.get('rows_total',0)}"
+                )
+                log.error(msg)
+                raise PersistencePartialError(msg)
+            rows_sel = [{
+                "user_id": os.getenv("HEAVEN_USER_ID"),
+                "symbol": sym,
+                "tf": tf,
+                "profile_id": profile_id,
+                "params": r.get("params") or {},
+                "run_id": run_id,
+            } for r in top_results]
+            s_sum = sio.mark_selected_for_set(rows_sel, set_id, svc_key)
+            if s_sum.get("updated", 0) < len(rows_sel):
+                msg = (
+                    f"FAILED_PARTIAL selected_mark updated={s_sum.get('updated',0)} rows_total={len(rows_sel)}"
+                )
+                log.error(msg)
+                raise PersistencePartialError(msg)
 
     # Build OptimizationResult
     top = []

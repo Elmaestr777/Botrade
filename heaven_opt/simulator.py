@@ -16,6 +16,10 @@ class HeavenOpts:
                  nol: int = 3,
                  prd: int = 15,
                  entry_mode: str = "Both",
+                 # Execution timing:
+                 # - signal_close: enter on the same bar close that confirms the signal (fastest, default)
+                 # - next_open: enter on next bar open (legacy behavior)
+                 entry_exec: str = "signal_close",
                  risk_mgmt: bool = True,
                  risk_max_pct: float = 1.0,
                  sl_init_pct: float = 2.0,
@@ -34,6 +38,9 @@ class HeavenOpts:
         self.nol = int(max(1, nol))
         self.prd = int(max(2, prd))
         self.entry_mode = entry_mode
+        self.entry_exec = (entry_exec or "signal_close").strip()
+        if self.entry_exec not in ("signal_close", "next_open"):
+            self.entry_exec = "signal_close"
         self.risk_mgmt = bool(risk_mgmt)
         self.risk_max_pct = float(max(0.0, risk_max_pct))
         self.sl_init_pct = float(max(0.0, sl_init_pct))
@@ -68,7 +75,7 @@ def generate_heaven_signals(opts: HeavenOpts, bars: list[Bar], precomputed: dict
     sigs: list[dict[str, object]] = []
     if use_lb:
         for i in flips:
-            entry_idx = min(len(bars) - 1, i + 1)
+            entry_idx = i if opts.entry_exec == "signal_close" else min(len(bars) - 1, i + 1)
             risk_ok = (not opts.risk_mgmt) or (math.isfinite(level[i]) and (opts.risk_max_pct / 100.0 >= abs(bars[i].open - level[i]) / max(1e-9, bars[i].open)))
             if not risk_ok:
                 continue
@@ -94,7 +101,7 @@ def generate_heaven_signals(opts: HeavenOpts, bars: list[Bar], precomputed: dict
                         if bounce:
                             risk_ok = (not opts.risk_mgmt) or (math.isfinite(level[j]) and (opts.risk_max_pct / 100.0 >= abs(bars[j].close - level[j]) / max(1e-9, bars[j].close)))
                             if risk_ok and trend[j] == 1:
-                                entry_idx = min(len(bars) - 1, j + 1)
+                                entry_idx = j if opts.entry_exec == "signal_close" else min(len(bars) - 1, j + 1)
                                 sigs.append({"idx": entry_idx, "dir": 'long', "type": 'Fib'})
                                 break
                     else:
@@ -105,7 +112,7 @@ def generate_heaven_signals(opts: HeavenOpts, bars: list[Bar], precomputed: dict
                         if bounce:
                             risk_ok = (not opts.risk_mgmt) or (math.isfinite(level[j]) and (opts.risk_max_pct / 100.0 >= abs(bars[j].close - level[j]) / max(1e-9, bars[j].close)))
                             if risk_ok and trend[j] == -1:
-                                entry_idx = min(len(bars) - 1, j + 1)
+                                entry_idx = j if opts.entry_exec == "signal_close" else min(len(bars) - 1, j + 1)
                                 sigs.append({"idx": entry_idx, "dir": 'short', "type": 'Fib'})
                                 break
         # Enable common fib ratios as in UI
@@ -125,12 +132,13 @@ def generate_heaven_signals(opts: HeavenOpts, bars: list[Bar], precomputed: dict
     return sigs
 
 
-def simulate_trade_from_signal(sig: dict[str, object], to_idx: int, piv: list[dict[str, float]], opts: HeavenOpts, equity: float, fee_pct: float, equity_start: float, bars: list[Bar]):
+def simulate_trade_from_signal(sig: dict[str, object], to_idx: int, piv: list[dict[str, float]], opts: HeavenOpts, equity: float, fee_pct: float, equity_start: float, bars: list[Bar], precomputed: dict | None = None):
     is_long = (sig["dir"] == 'long')
-    entry_idx = int(sig["idx"])  # entry at next bar open already computed in signals
+    entry_idx = int(sig["idx"])  # execution bar index already computed in signals
     if entry_idx >= len(bars) or entry_idx > to_idx:
         return None
-    entry_price = bars[entry_idx].open
+    # If entry was requested at signal close, use bar close; otherwise use bar open (legacy).
+    entry_price = bars[entry_idx].close if getattr(opts, "entry_exec", "next_open") == "signal_close" else bars[entry_idx].open
     sl = entry_price * (1.0 - opts.sl_init_pct / 100.0) if is_long else entry_price * (1.0 + opts.sl_init_pct / 100.0)
     # sizing
     if opts.risk_mgmt:
@@ -290,6 +298,18 @@ def simulate_trade_from_signal(sig: dict[str, object], to_idx: int, piv: list[di
     }
 
 
+def max_drawdown_abs_from_equity(eq: list[float]) -> float:
+    peak = -float("inf")
+    max_dd_abs = 0.0
+    for v in eq:
+        if v > peak:
+            peak = v
+        dd = peak - v
+        if dd > max_dd_abs:
+            max_dd_abs = dd
+    return max_dd_abs
+
+
 def lin_reg(y: list[float]) -> tuple[float, float]:
     n = len(y)
     if n < 2:
@@ -327,6 +347,7 @@ def backtest_with_bars(opts: HeavenOpts, bars: list[Bar], from_idx: int, to_idx:
     equity = equity_start
     peak = equity
     max_dd = 0.0
+    max_dd_abs = 0.0
     gross_prof = 0.0
     gross_loss = 0.0
     wins = 0
@@ -335,7 +356,7 @@ def backtest_with_bars(opts: HeavenOpts, bars: list[Bar], from_idx: int, to_idx:
     for i, sig in enumerate(signals):
         end_bound = min(to_idx, int(signals[i + 1]["idx"]) if i + 1 < len(signals) else to_idx)
         eq_before = equity
-        res = simulate_trade_from_signal(sig, end_bound, piv, opts, equity, fee_pct, equity_start, bars)
+        res = simulate_trade_from_signal(sig, end_bound, piv, opts, equity, fee_pct, equity_start, bars, precomputed=precomputed)
         if res is None:
             continue
         trades.append(res)
@@ -350,6 +371,9 @@ def backtest_with_bars(opts: HeavenOpts, bars: list[Bar], from_idx: int, to_idx:
         eq_series.append(equity)
         if equity > peak:
             peak = equity
+        dd_abs = (peak - equity)
+        if dd_abs > max_dd_abs:
+            max_dd_abs = dd_abs
         dd = (peak - equity) / max(1e-9, peak)
         if dd > max_dd:
             max_dd = dd
@@ -383,5 +407,5 @@ def backtest_with_bars(opts: HeavenOpts, bars: list[Bar], from_idx: int, to_idx:
         "r2": r2,
         "calmar": calmar,
         "maxDDPct": max_dd * 100.0,
-        "maxDDAbs": (0.0 if not eq_series else (max(eq_series) - min(eq_series))),
+        "maxDDAbs": max_dd_abs,
     }

@@ -167,6 +167,29 @@ function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfi
 
   function chunk(arr, n){ const out=[]; for(let i=0;i<arr.length;i+=n){ out.push(arr.slice(i,i+n)); } return out; }
 
+  function sanitizeMetrics(obj){
+    const walk = (v)=>{
+      if(Array.isArray(v)) {return v.map(walk);}
+      if(v && typeof v==='object'){
+        const o={};
+        for(const [k,val] of Object.entries(v)) {o[k]=walk(val);} 
+        return o;
+      }
+      if(typeof v==='number' && !Number.isFinite(v)) {return null;}
+      return v;
+    };
+    return walk(obj||{});
+  }
+
+  function stableStringify(v){
+    if(Array.isArray(v)) {return '['+v.map(stableStringify).join(',')+']';}
+    if(v && typeof v==='object'){
+      const keys=Object.keys(v).sort();
+      return '{'+keys.map(k=>JSON.stringify(k)+':'+stableStringify(v[k])).join(',')+'}';
+    }
+    return JSON.stringify(v);
+  }
+
   async function upsertStrategyEvaluations(rows){
     const c = ensureClient(); if(!c || !rows || !rows.length) {return;}
     // Upsert with on_conflict composite key matching the table UNIQUE constraint
@@ -207,9 +230,44 @@ function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfi
   }
 
   async function markSelectedForSet(rows, setId){
-    if(!rows || !rows.length || !setId) {return;}
-    const upd = rows.map(r=> ({ ...r, selected:true, palmares_set_id:setId }));
-    await upsertStrategyEvaluations(upd);
+    const c = ensureClient();
+    if(!c || !rows || !rows.length || !setId) {return;}
+
+    // Update-first strategy to avoid upsert conflicts on public pool.
+    const groups = new Map();
+    for(const r of rows){
+      const k = [String(r.user_id||'null'), String(r.symbol||''), String(r.tf||''), String(r.profile_id||'null'), String(r.run_id||'null')].join('|');
+      if(!groups.has(k)) {groups.set(k, []);} 
+      groups.get(k).push(r);
+    }
+
+    let updated=0, missing=0, failed=0;
+    for(const [k, grp] of groups.entries()){
+      const [uid,sym,tf,pid,runId] = k.split('|');
+      try{
+        let q = c.from('strategy_evaluations').select('id,params').eq('symbol', sym).eq('tf', tf).limit(5000);
+        q = (uid==='null') ? q.is('user_id', null) : q.eq('user_id', uid);
+        q = (pid==='null') ? q.is('profile_id', null) : q.eq('profile_id', pid);
+        if(runId && runId!=='null') {q = q.eq('run_id', runId);} 
+        const { data, error } = await q;
+        if(error){ failed += grp.length; continue; }
+        const byKey = new Map();
+        for(const row of (data||[])) {byKey.set(stableStringify(row.params||{}), row.id);} 
+
+        for(const r of grp){
+          const id = byKey.get(stableStringify(r.params||{}));
+          if(!id) {missing += 1; continue;}
+          try{
+            const { error: e2 } = await c
+              .from('strategy_evaluations')
+              .update({ selected:true, palmares_set_id:setId })
+              .eq('id', id);
+            if(e2){ failed += 1; } else { updated += 1; }
+          }catch(_){ failed += 1; }
+        }
+      }catch(_){ failed += grp.length; }
+    }
+    slog(`Supabase: mark selected summary updated=${updated} missing=${missing} failed=${failed}`);
   }
 
   function canonicalParamsFromUI(p){
@@ -274,7 +332,20 @@ async function persistLabResults(ctx){
       const profileId = await getProfileIdByName(profName);
       const sym = ctx.symbol, tf = ctx.tf;
       const now = Date.now();
-      const runContext = { source:'UI:Lab', ts: now };
+      const mkId = ()=> (globalThis.crypto && typeof globalThis.crypto.randomUUID==='function') ? globalThis.crypto.randomUUID() : ('run-'+Date.now()+'-'+Math.random().toString(16).slice(2));
+      const runId = (ctx && ctx.run_id) || mkId();
+      const campaignId = (ctx && ctx.campaign_id) || runId;
+      const runType = ((ctx && ctx.run_type) || 'LAB').toUpperCase();
+      const runContext = {
+        source:'UI:Lab',
+        ts: now,
+        date_from: (ctx && (ctx.date_from || ctx.dateFrom)) || null,
+        date_to: (ctx && (ctx.date_to || ctx.dateTo)) || null,
+        run_id: runId,
+        campaign_id: campaignId,
+        run_type: runType,
+        profile: profName,
+      };
  
       // Upsert tested strategies (selected=false)
       const toEval = [];
@@ -286,9 +357,9 @@ async function persistLabResults(ctx){
         const subset = tested.slice(0, MAX_EVAL_ROWS);
         for(const t of subset){
           const params = canonicalParamsFromUI(t.params||{});
-          const metrics = t.metrics||t.res||{};
-          const score = (typeof t.score==='number')? t.score : 0;
-          toEval.push({ user_id: uid, symbol: sym, tf, profile_id: profileId || null, params, metrics, score, selected: false, palmares_set_id: null, provenance: 'UI:Lab', run_context: runContext });
+          const metrics = sanitizeMetrics(t.metrics||t.res||{});
+          const score = (typeof t.score==='number')? t.score : Number(metrics.score||0) || 0;
+          toEval.push({ user_id: uid, symbol: sym, tf, profile_id: profileId || null, params, metrics, score, selected: false, palmares_set_id: null, provenance: 'UI:Lab', run_context: runContext, run_id: runId, campaign_id: campaignId, run_type: runType, profile: profName });
         }
       }
       if(toEval.length){ slog(`Supabase: upsert ${toEval.length} évaluations (top) ...`); await upsertStrategyEvaluations(toEval); slog('Supabase: évaluations enregistrées'); }
@@ -297,7 +368,7 @@ async function persistLabResults(ctx){
       const best = Array.isArray(ctx.best)? ctx.best.slice() : [];
       if(best.length){
         slog(`Supabase: création palmarès (${best.length})...`);
-        const setId = await createPalmaresSet({ user_id: uid, symbol: sym, tf, profile_id: profileId || null, top_n: best.length, note: `Lab ${sym} ${tf}` });
+        const setId = await createPalmaresSet({ user_id: uid, symbol: sym, tf, profile_id: profileId || null, top_n: best.length, note: `Lab ${sym} ${tf}`, run_id: runId, campaign_id: campaignId, run_type: runType, profile: profName });
         if(setId){
           const entries = []; let rank=1;
           const used=new Set();
@@ -306,7 +377,8 @@ async function persistLabResults(ctx){
           for(const b of best){
             let nm = (b.name||null);
             if(!nm){ let tries=0; do{ nm=genName(); tries++; }while(used.has(nm)&&tries<5); used.add(nm); }
-            entries.push({ set_id: setId, rank, name: nm, params: canonicalParamsFromUI(b.params||{}), metrics: b.metrics||b.res||{}, score: (typeof b.score==='number')? b.score : 0, provenance: 'UI:Lab', generation: (b.gen!=null? b.gen:1) });
+            const m = sanitizeMetrics(b.metrics||b.res||{});
+            entries.push({ set_id: setId, rank, name: nm, params: canonicalParamsFromUI(b.params||{}), metrics: m, score: (typeof b.score==='number')? b.score : Number(m.score||0) || 0, provenance: 'UI:Lab', generation: (b.gen!=null? b.gen:1), run_id: runId, campaign_id: campaignId, run_type: runType, profile: profName });
             rank++;
           }
           try{
@@ -325,8 +397,9 @@ async function persistLabResults(ctx){
             tf,
             profile_id: profileId || null,
             params: canonicalParamsFromUI(b.params||{}),
-            metrics: b.metrics || b.res || {},
-            score: (typeof b.score === 'number') ? b.score : 0,
+            metrics: sanitizeMetrics(b.metrics || b.res || {}),
+            score: (typeof b.score === 'number') ? b.score : Number((sanitizeMetrics(b.metrics || b.res || {})).score || 0) || 0,
+            run_id: runId,
           }));
           await markSelectedForSet(selRows, setId||null);
           slog('Supabase: stratégies marquées selected=true');

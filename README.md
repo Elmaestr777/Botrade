@@ -12,6 +12,13 @@ Quickstart
 - Create a config: see config.example.yaml
 - Run: python run_optimize.py --config config.example.yaml
 
+OpenClaw-friendly one-command flow (run + DB report)
+- Ensure env vars are set securely (not in code/chat):
+  - SUPABASE_URL (or SUPABASE_REST_URL)
+  - SUPABASE_SERVICE_ROLE_KEY
+- PowerShell:
+  - `tools/run_and_report.ps1 -Symbol BTCUSDC -Tf 1h -Profile balancee -Config config.example.yaml -Fast -NoWf`
+
 Outputs
 - JSON/CSV of top-N results
 - Equity curves (CSV) per candidate
