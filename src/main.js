@@ -1,7 +1,7 @@
-﻿
+
 // --- Preloader video overlay ---
 (function setupPreloader(){ try{
-  const overlay=document.getElementById('preloadOverlay'); if(!overlay) {return;}
+  const overlay=document.getElementById('preloadOverlay'); if(!overlay) return;
   const clip=document.getElementById('preloadClip');
   const vid=document.getElementById('preloadVideo');
   const canv=document.getElementById('preloadCanvas');
@@ -10,7 +10,7 @@
   // Prepare chart for fade-in reveal under overlay
   try{ if(chartEl){ chartEl.style.opacity='0'; chartEl.style.transition=`opacity ${fadeMs}ms ease`; } }catch(_){ }
   // helper: reveal chart + fade overlay bg to transparent when flight starts
-  function revealChart(){ try{ if(overlay && overlay.dataset){ if(overlay.dataset.revealed==='1') {return;} overlay.dataset.revealed='1'; } if(chartEl){ chartEl.style.transition=`opacity ${fadeMs}ms ease`; chartEl.style.opacity='1'; } if(overlay){ overlay.style.transition = (overlay.style.transition? overlay.style.transition+`, background-color ${fadeMs}ms ease` : `background-color ${fadeMs}ms ease`); overlay.style.backgroundColor='rgba(0,0,0,0)'; } }catch(_){ } }
+  function revealChart(){ try{ if(overlay && overlay.dataset){ if(overlay.dataset.revealed==='1') return; overlay.dataset.revealed='1'; } if(chartEl){ chartEl.style.transition=`opacity ${fadeMs}ms ease`; chartEl.style.opacity='1'; } if(overlay){ overlay.style.transition = (overlay.style.transition? overlay.style.transition+`, background-color ${fadeMs}ms ease` : `background-color ${fadeMs}ms ease`); overlay.style.backgroundColor='rgba(0,0,0,0)'; } }catch(_){ } }
   // Preloader params & prefs (tunable)
   const __preParams = { RADF: 0.66, SPIN_DUR: 3600, SPIN_TURNS: 8.0, TRAILS: 2, TRAIL_STEP: 0.025, TRAIL_ALPHA_MAX: 0.16, FOLD_DUR: 820, FLIGHT_DUR: 4150, CHART_FADE_MS: 1400 };
   // update fade duration now that params are defined
@@ -22,7 +22,7 @@
   const sheet=document.getElementById('preloadSheet');
   const creases=document.getElementById('preloadCreases');
   const glCanvas=document.getElementById('preloadGL');
-  function freezeLastFrame(){ try{ if(!(vid && canv)) {return;} const vw=vid.videoWidth||1920, vh=vid.videoHeight||1080; const ww=window.innerWidth||1920, wh=window.innerHeight||1080; const dpr=Math.max(1, Math.min(3, window.devicePixelRatio||1)); canv.width=Math.floor(ww*dpr); canv.height=Math.floor(wh*dpr); const ctx=canv.getContext('2d'); // cover compute
+  function freezeLastFrame(){ try{ if(!(vid && canv)) return; const vw=vid.videoWidth||1920, vh=vid.videoHeight||1080; const ww=window.innerWidth||1920, wh=window.innerHeight||1080; const dpr=Math.max(1, Math.min(3, window.devicePixelRatio||1)); canv.width=Math.floor(ww*dpr); canv.height=Math.floor(wh*dpr); const ctx=canv.getContext('2d'); // cover compute
     const scale=Math.max(ww/vw, wh/vh); const srcW=ww/scale; const srcH=wh/scale; const sx=(vw - srcW)/2; const sy=(vh - srcH)/2; ctx.drawImage(vid, sx, sy, srcW, srcH, 0, 0, canv.width, canv.height); vid.style.display='none'; canv.style.display='block';
     try{ const plane=document.getElementById('preloadPlane'); if(plane){ const url=canv.toDataURL('image/jpeg', 0.9); plane.style.backgroundImage = `url(${url})`; } }catch(_){ }
   }catch(_){ } }
@@ -31,12 +31,12 @@
     const sEnd = Math.max(0.14, Math.min((lr.width||40)/Math.max(1, cr.width), 0.22)); const baseTilt=-8*(Math.PI/180);
     const d=Math.max(300, parseInt(durMs||__preParams.FLIGHT_DUR,10)); const t0=performance.now(); function easeInOutCubic(t){ return t<0.5? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
     function at(t){ const u=1-t; const x = u*u*startX + 2*u*t*ctrlX + t*t*endX; const y = u*u*startY + 2*u*t*ctrlY + t*t*endY; return {x,y}; }
-    // Rotation planning: finish horizontal (0 mod 2Ï€) and add a small extra number of rotations during flight
+    // Rotation planning: finish horizontal (0 mod 2π) and add a small extra number of rotations during flight
     const TAU = Math.PI*2; const a0 = (spin && Number.isFinite(spin.angle0))? spin.angle0 : 0; const w0 = (spin && Number.isFinite(spin.omega0))? spin.omega0 : 0; const hasSpin = Math.abs(a0)>1e-6 || Math.abs(w0)>1e-3;
-    let totalDelta=0, alpha=0; if(hasSpin){ let phi0 = a0 % TAU; if(phi0<0) {phi0 += TAU;} const deltaMin = (TAU - phi0) % TAU; const extraTurns = 1; totalDelta = deltaMin + extraTurns*TAU; alpha = (w0 * d) / Math.max(1e-6, totalDelta); }
+    let totalDelta=0, alpha=0; if(hasSpin){ let phi0 = a0 % TAU; if(phi0<0) phi0 += TAU; const deltaMin = (TAU - phi0) % TAU; const extraTurns = 1; totalDelta = deltaMin + extraTurns*TAU; alpha = (w0 * d) / Math.max(1e-6, totalDelta); }
     function sHermite(p){ const p2=p*p, p3=p2*p; return (-2*p3 + 3*p2) + alpha*(p3 - 2*p2 + p); }
     function spinEaseOut(t){ return 1 - Math.pow(1 - t, 4); } // stronger ease-out near the end
-    function loop(){ const now=performance.now(); let p=(now-t0)/d; if(p>1) {p=1;} const e=easeInOutCubic(p); const {x,y}=at(e); const dx = x - startX, dy = y - startY; const s = 1 - (1 - sEnd)*e;
+    function loop(){ const now=performance.now(); let p=(now-t0)/d; if(p>1) p=1; const e=easeInOutCubic(p); const {x,y}=at(e); const dx = x - startX, dy = y - startY; const s = 1 - (1 - sEnd)*e;
       let rotZ = baseTilt * (1 - e); if(hasSpin){ const pe = spinEaseOut(p); const spinProg = sHermite(pe); const ang = a0 + totalDelta*spinProg; rotZ += ang; }
       clip.style.willChange='transform'; clip.style.transform = `translate(-50%, -50%) translate(${dx}px, ${dy}px) scale(${s}) rotate(${rotZ}rad)`; if(p<1){ requestAnimationFrame(loop); } else { try{ if(chartEl){ chartEl.style.opacity='1'; } overlay.remove(); }catch(_){ overlay.style.display='none'; } } }
     requestAnimationFrame(loop);
@@ -136,82 +136,82 @@
 
 // --- Theme (light/dark/auto) ---
 (function setupTheme(){ try{ const t=localStorage.getItem('ui:theme'); if(t==='dark' || t==='light'){ document.documentElement.dataset.theme=t; } else { delete document.documentElement.dataset.theme; } }catch(_){ } })();
-function isDark(){ try{ const t=document.documentElement.dataset && document.documentElement.dataset.theme; if(t==='dark') {return true;} if(t==='light') {return false;} }catch(_){ } return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; }
+function isDark(){ try{ const t=document.documentElement.dataset && document.documentElement.dataset.theme; if(t==='dark') return true; if(t==='light') return false; }catch(_){ } return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; }
 function applyTheme(mode){ try{ if(mode==='dark'){ document.documentElement.dataset.theme='dark'; localStorage.setItem('ui:theme','dark'); } else if(mode==='light'){ document.documentElement.dataset.theme='light'; localStorage.setItem('ui:theme','light'); } else { delete document.documentElement.dataset.theme; localStorage.removeItem('ui:theme'); } refreshThemeOnChart(); updateThemeBtn(); }catch(_){ } }
 function cycleTheme(){ try{ const cur=localStorage.getItem('ui:theme')||'auto'; const next = (cur==='auto')? 'dark' : (cur==='dark'? 'light' : 'auto'); applyTheme(next); }catch(_){ } }
-function updateThemeBtn(){ try{ const btn=document.getElementById('themeToggle'); if(!btn) {return;} const cur=localStorage.getItem('ui:theme')||'auto'; const key = cur==='dark' ? 'ui.theme.dark' : (cur==='light' ? 'ui.theme.light' : 'ui.theme.auto'); btn.textContent = t(key); btn.title = t('ui.theme.btnTitle'); }catch(_){ } }
+function updateThemeBtn(){ try{ const btn=document.getElementById('themeToggle'); if(!btn) return; const cur=localStorage.getItem('ui:theme')||'auto'; const key = cur==='dark' ? 'ui.theme.dark' : (cur==='light' ? 'ui.theme.light' : 'ui.theme.auto'); btn.textContent = t(key); btn.title = t('ui.theme.btnTitle'); }catch(_){ } }
 try{ const m=window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)'); if(m && m.addEventListener){ m.addEventListener('change', ()=>{ try{ if(!localStorage.getItem('ui:theme')){ refreshThemeOnChart(); updateThemeBtn(); } }catch(_){ } }); } }catch(_){ }
 
 // --- Internationalisation (FR / EN / ES) ---
 const SUPPORTED_LANGS = ['fr','en','es'];
 const I18N = {
-  'ui.theme.auto':  { fr:'ThÃ¨me: Auto',   en:'Theme: Auto',   es:'Tema: Auto' },
-  'ui.theme.dark':  { fr:'ThÃ¨me: Sombre', en:'Theme: Dark',   es:'Tema: Oscuro' },
-  'ui.theme.light': { fr:'ThÃ¨me: Clair',  en:'Theme: Light',  es:'Tema: Claro' },
-  'ui.theme.btnTitle': { fr:'Basculer thÃ¨me (Auto â†’ Sombre â†’ Clair)', en:'Switch theme (Auto â†’ Dark â†’ Light)', es:'Cambiar tema (Auto â†’ Oscuro â†’ Claro)' },
+  'ui.theme.auto':  { fr:'Thème: Auto',   en:'Theme: Auto',   es:'Tema: Auto' },
+  'ui.theme.dark':  { fr:'Thème: Sombre', en:'Theme: Dark',   es:'Tema: Oscuro' },
+  'ui.theme.light': { fr:'Thème: Clair',  en:'Theme: Light',  es:'Tema: Claro' },
+  'ui.theme.btnTitle': { fr:'Basculer thème (Auto → Sombre → Clair)', en:'Switch theme (Auto → Dark → Light)', es:'Cambiar tema (Auto → Oscuro → Claro)' },
 
   'ui.lang.btn.fr': { fr:'Langue: FR', en:'Language: FR', es:'Idioma: FR' },
   'ui.lang.btn.en': { fr:'Langue: EN', en:'Language: EN', es:'Idioma: EN' },
   'ui.lang.btn.es': { fr:'Langue: ES', en:'Language: ES', es:'Idioma: ES' },
-  'ui.lang.btnTitle': { fr:'Changer la langue (FR â†’ EN â†’ ES)', en:'Change language (FR â†’ EN â†’ ES)', es:'Cambiar idioma (FR â†’ EN â†’ ES)' },
+  'ui.lang.btnTitle': { fr:'Changer la langue (FR → EN → ES)', en:'Change language (FR → EN → ES)', es:'Cambiar idioma (FR → EN → ES)' },
 
   'status.loading':      { fr:'Chargement...', en:'Loading...',        es:'Cargando...' },
   'status.loadingShort': { fr:'Chargement...', en:'Loading...',        es:'Cargando...' },
-  'status.live':         { fr:'Temps rÃ©el',    en:'Live',             es:'Tiempo real' },
+  'status.live':         { fr:'Temps réel',    en:'Live',             es:'Tiempo real' },
   'status.wsError':      { fr:'WS erreur',     en:'WS error',         es:'Error WS' },
   'status.loadError':    { fr:'Erreur chargement', en:'Load error',   es:'Error de carga' },
 
-  'status.noEval':       { fr:'Aucune Ã©valuation', en:'No evaluations', es:'Sin evaluaciones' },
-  'status.noStrategy':   { fr:'Aucune stratÃ©gie',   en:'No strategy',    es:'Sin estrategia' },
-  'status.applyOk':      { fr:'ParamÃ¨tres appliquÃ©s Ã  Heaven', en:'Parameters applied to Heaven', es:'ParÃ¡metros aplicados a Heaven' },
+  'status.noEval':       { fr:'Aucune évaluation', en:'No evaluations', es:'Sin evaluaciones' },
+  'status.noStrategy':   { fr:'Aucune stratégie',   en:'No strategy',    es:'Sin estrategia' },
+  'status.applyOk':      { fr:'Paramètres appliqués à Heaven', en:'Parameters applied to Heaven', es:'Parámetros aplicados a Heaven' },
   'status.applyError':   { fr:'Erreur application',             en:'Apply error',                  es:'Error al aplicar' },
-  'status.weightsSaved': { fr:'PondÃ©rations enregistrÃ©es',       en:'Weights saved',              es:'Ponderaciones guardadas' },
-  'status.weightsSaveError': { fr:"Erreur Supabase lors de l'enregistrement des pondÃ©rations (profil local uniquement).",
+  'status.weightsSaved': { fr:'Pondérations enregistrées',       en:'Weights saved',              es:'Ponderaciones guardadas' },
+  'status.weightsSaveError': { fr:"Erreur Supabase lors de l'enregistrement des pondérations (profil local uniquement).",
                                en:'Supabase error while saving weights (local profile only).',
-                               es:'Error de Supabase al guardar las ponderaciones (sÃ³lo perfil local).' },
+                               es:'Error de Supabase al guardar las ponderaciones (sólo perfil local).' },
 
   'supa.urlAnonRequired': { fr:'URL et ANON requis', en:'URL and ANON are required', es:'Se requieren URL y ANON' },
-  'supa.testing':         { fr:'Test de connexion...', en:'Testing connection...', es:'Probando conexiÃ³n...' },
-  'supa.ok':              { fr:'Connexion OK. Configuration enregistrÃ©e.', en:'Connection OK. Configuration saved.', es:'ConexiÃ³n OK. ConfiguraciÃ³n guardada.' },
-  'supa.fail':            { fr:'Ã‰chec de connexion. VÃ©rifiez URL/clÃ©.', en:'Connection failed. Check URL/key.', es:'Fallo de conexiÃ³n. Verifique URL/clave.' },
+  'supa.testing':         { fr:'Test de connexion...', en:'Testing connection...', es:'Probando conexión...' },
+  'supa.ok':              { fr:'Connexion OK. Configuration enregistrée.', en:'Connection OK. Configuration saved.', es:'Conexión OK. Configuración guardada.' },
+  'supa.fail':            { fr:'Échec de connexion. Vérifiez URL/clé.', en:'Connection failed. Check URL/key.', es:'Fallo de conexión. Verifique URL/clave.' },
 
-  'lab.palmares.empty':   { fr:'Aucun palmarÃ¨s', en:'No leaderboard', es:'Sin palmarÃ©s' },
-  'lab.palmares.prefix':  { fr:'PalmarÃ¨s:', en:'Leaderboard:', es:'PalmarÃ©s:' },
-  'lab.palmares.strats':  { fr:'stratÃ©gies', en:'strategies', es:'estrategias' },
-  'lab.palmares.symbol':  { fr:'symbole', en:'symbol', es:'sÃ­mbolo' },
+  'lab.palmares.empty':   { fr:'Aucun palmarès', en:'No leaderboard', es:'Sin palmarés' },
+  'lab.palmares.prefix':  { fr:'Palmarès:', en:'Leaderboard:', es:'Palmarés:' },
+  'lab.palmares.strats':  { fr:'stratégies', en:'strategies', es:'estrategias' },
+  'lab.palmares.symbol':  { fr:'symbole', en:'symbol', es:'símbolo' },
   'lab.palmares.tf':      { fr:'TF', en:'TF', es:'TF' },
 
-  'lab.table.noData':     { fr:'Aucune donnÃ©e', en:'No data', es:'Sin datos' },
-  'lab.table.detailBtn':  { fr:'DÃ©tail', en:'Detail', es:'Detalle' },
+  'lab.table.noData':     { fr:'Aucune donnée', en:'No data', es:'Sin datos' },
+  'lab.table.detailBtn':  { fr:'Détail', en:'Detail', es:'Detalle' },
   'lab.table.applyBtn':   { fr:'Appliquer', en:'Apply', es:'Aplicar' },
-  'lab.table.applyTitle': { fr:'Appliquer cette stratÃ©gie Ã  Heaven', en:'Apply this strategy to Heaven', es:'Aplicar esta estrategia a Heaven' },
+  'lab.table.applyTitle': { fr:'Appliquer cette stratégie à Heaven', en:'Apply this strategy to Heaven', es:'Aplicar esta estrategia a Heaven' },
 
   'chart.bars.prefix':  { fr:'Bougies:',           en:'Candles:',        es:'Velas:' },
   'chart.cutoff.from':  { fr:'Affichage depuis:',  en:'Showing from:',    es:'Mostrando desde:' },
-  'chart.cutoff.full':  { fr:'Historique complet', en:'Full history',     es:'HistÃ³rico completo' },
+  'chart.cutoff.full':  { fr:'Historique complet', en:'Full history',     es:'Histórico completo' },
 
-  'header.symbolLabel':   { fr:'Symbole',                     en:'Symbol',                 es:'SÃ­mbolo' },
+  'header.symbolLabel':   { fr:'Symbole',                     en:'Symbol',                 es:'Símbolo' },
   'header.intervalLabel': { fr:'Intervalle',                  en:'Timeframe',              es:'Intervalo' },
-  'header.emaToggleTitle':{ fr:"Activer/DÃ©sactiver l'affichage des EMA/MA", en:'Toggle EMA/MA display', es:'Activar/Desactivar visualizaciÃ³n EMA/MA' },
-  'header.emaCfgTitle':   { fr:'ParamÃ¨tres EMA/MA',           en:'EMA/MA settings',        es:'ParÃ¡metros EMA/MA' },
-  'header.heavenToggleTitle': { fr:'Activer/DÃ©sactiver Heaven', en:'Enable/disable Heaven', es:'Activar/Desactivar Heaven' },
-  'header.heavenCfgTitle':{ fr:'ParamÃ¨tres Heaven',           en:'Heaven settings',        es:'ParÃ¡metros Heaven' },
+  'header.emaToggleTitle':{ fr:"Activer/Désactiver l'affichage des EMA/MA", en:'Toggle EMA/MA display', es:'Activar/Desactivar visualización EMA/MA' },
+  'header.emaCfgTitle':   { fr:'Paramètres EMA/MA',           en:'EMA/MA settings',        es:'Parámetros EMA/MA' },
+  'header.heavenToggleTitle': { fr:'Activer/Désactiver Heaven', en:'Enable/disable Heaven', es:'Activar/Desactivar Heaven' },
+  'header.heavenCfgTitle':{ fr:'Paramètres Heaven',           en:'Heaven settings',        es:'Parámetros Heaven' },
   'header.btRun':         { fr:'Backtest',                    en:'Backtest',               es:'Backtest' },
   'header.lab':           { fr:'Lab',                         en:'Lab',                    es:'Lab' },
-  'header.labTitle':      { fr:'Recherche/Apprentissage par TF', en:'Search/Learning by TF', es:'BÃºsqueda/Aprendizaje por TF' },
+  'header.labTitle':      { fr:'Recherche/Apprentissage par TF', en:'Search/Learning by TF', es:'Búsqueda/Aprendizaje por TF' },
   'header.live':          { fr:'Live',                        en:'Live',                   es:'Live' },
   'header.liveTitle':     { fr:'Paper/Live trading',          en:'Paper/Live trading',     es:'Trading simulado/en vivo' },
   'header.supaBtn':       { fr:'Supabase',                    en:'Supabase',               es:'Supabase' },
   'header.supaTitle':     { fr:'Configurer Supabase',         en:'Configure Supabase',     es:'Configurar Supabase' },
-'header.gotoEnd':       { fr:'â­ Aller Ã  la fin',            en:'â­ Go to end',            es:'â­ Ir al final' },
+'header.gotoEnd':       { fr:'⏭ Aller à la fin',            en:'⏭ Go to end',            es:'⏭ Ir al final' },
 
-  'lab.weights.modalTitle':    { fr:'PondÃ©rations â€” Score global',         en:'Weights â€” Global score',        es:'Ponderaciones â€” PuntuaciÃ³n global' },
+  'lab.weights.modalTitle':    { fr:'Pondérations — Score global',         en:'Weights — Global score',        es:'Ponderaciones — Puntuación global' },
   'lab.weights.profileLabel':  { fr:'Profil',                              en:'Profile',                       es:'Perfil' },
-  'lab.weights.profile.safe':  { fr:'SÃ»re',                                en:'Safe',                          es:'Segura' },
-  'lab.weights.profile.bal':   { fr:'BalancÃ©e',                            en:'Balanced',                      es:'Balanceada' },
+  'lab.weights.profile.safe':  { fr:'Sûre',                                en:'Safe',                          es:'Segura' },
+  'lab.weights.profile.bal':   { fr:'Balancée',                            en:'Balanced',                      es:'Balanceada' },
   'lab.weights.profile.agg':   { fr:'Agressive',                           en:'Aggressive',                    es:'Agresiva' },
   'lab.weights.totalHint':     { fr:'Les poids doivent totaliser 100%.',   en:'Weights must sum to 100.',      es:'Los pesos deben sumar 100%.' },
-  'lab.weights.infoDefault':   { fr:"Cliquez sur le (i) dâ€™un facteur pour voir Ã  quoi il sert et comment intervient son poids dans le score.", en:'Click on the (i) of a factor to see what it does and how its weight affects the score.', es:'Haz clic en la (i) de un factor para ver para quÃ© sirve y cÃ³mo influye su peso en la puntuaciÃ³n.' },
+  'lab.weights.infoDefault':   { fr:"Cliquez sur le (i) d’un facteur pour voir à quoi il sert et comment intervient son poids dans le score.", en:'Click on the (i) of a factor to see what it does and how its weight affects the score.', es:'Haz clic en la (i) de un factor para ver para qué sirve y cómo influye su peso en la puntuación.' },
   'lab.weights.save':          { fr:'Enregistrer',                         en:'Save',                          es:'Guardar' },
 
   'lab.weights.pf':            { fr:'Profit Factor',                       en:'Profit Factor',                 es:'Profit Factor' },
@@ -224,125 +224,125 @@ const I18N = {
   'lab.weights.sharpe':        { fr:'Sharpe Ratio',                        en:'Sharpe Ratio',                  es:'Ratio de Sharpe' },
   'lab.weights.recov':         { fr:'Recovery Factor',                     en:'Recovery Factor',               es:'Recovery Factor' },
   'lab.weights.slope':         { fr:'Equity Slope',                        en:'Equity Slope',                  es:'Pendiente de la equity' },
-  'lab.weights.cons':          { fr:'Consistence / StabilitÃ©',             en:'Consistency / Stability',       es:'Consistencia / Estabilidad' },
-  'lab.weights.exp':           { fr:'EspÃ©rance (Expectancy)',              en:'Expectancy',                    es:'Esperanza (Expectancy)' },
-  'lab.weights.ret':           { fr:'Return / pÃ©riode (%)',                en:'Return / period (%)',           es:'Retorno / perÃ­odo (%)' },
+  'lab.weights.cons':          { fr:'Consistence / Stabilité',             en:'Consistency / Stability',       es:'Consistencia / Estabilidad' },
+  'lab.weights.exp':           { fr:'Espérance (Expectancy)',              en:'Expectancy',                    es:'Esperanza (Expectancy)' },
+  'lab.weights.ret':           { fr:'Return / période (%)',                en:'Return / period (%)',           es:'Retorno / período (%)' },
   'lab.weights.infoPrefix':    { fr:'Infos',                               en:'Info',                          es:'Info' },
   'lab.weights.totalPrefix':   { fr:'Total:',                              en:'Total:',                        es:'Total:' },
   'lab.weights.remainingPrefix': { fr:'Reste:',                            en:'Remaining:',                    es:'Restante:' },
 'lab.weights.pointsSuffix':  { fr:'pts',                                 en:'pts',                           es:'pts' },
 
   // Detail / analysis modal
-  'detail.title':          { fr:'Analyse stratÃ©gie',                 en:'Strategy analysis',                 es:'AnÃ¡lisis de estrategia' },
+  'detail.title':          { fr:'Analyse stratégie',                 en:'Strategy analysis',                 es:'Análisis de estrategia' },
   'detail.conf.capital':   { fr:'Capital initial',                   en:'Initial capital',                   es:'Capital inicial' },
   'detail.conf.fee':       { fr:'Frais (%)',                         en:'Fees (%)',                          es:'Comisiones (%)' },
   'detail.conf.lev':       { fr:'Levier (x)',                         en:'Leverage (x)',                      es:'Apalancamiento (x)' },
   'detail.conf.apply':     { fr:'Appliquer',                          en:'Apply',                             es:'Aplicar' },
-  'detail.conf.note':      { fr:"Ces paramÃ¨tres n'affectent que cette analyse dÃ©taillÃ©e.", en:'These settings affect only this detailed analysis.', es:'Estos parÃ¡metros sÃ³lo afectan a este anÃ¡lisis detallado.' },
+  'detail.conf.note':      { fr:"Ces paramètres n'affectent que cette analyse détaillée.", en:'These settings affect only this detailed analysis.', es:'Estos parámetros sólo afectan a este análisis detallado.' },
 
-  'detail.compare.label':  { fr:'Comparer Ã ',                         en:'Compare to',                        es:'Comparar con' },
+  'detail.compare.label':  { fr:'Comparer à',                         en:'Compare to',                        es:'Comparar con' },
   'detail.compare.source.heaven':   { fr:'Heaven (config actuelle)',  en:'Heaven (current config)',           es:'Heaven (config actual)' },
-  'detail.compare.source.palmares': { fr:'PalmarÃ¨s',                  en:'Leaderboard',                       es:'PalmarÃ©s' },
+  'detail.compare.source.palmares': { fr:'Palmarès',                  en:'Leaderboard',                       es:'Palmarés' },
   'detail.compare.pair':   { fr:'Pair',                               en:'Pair',                              es:'Par' },
   'detail.compare.tf':     { fr:'TF',                                 en:'TF',                                es:'TF' },
   'detail.compare.profile':{ fr:'Profil',                             en:'Profile',                           es:'Perfil' },
-  'detail.compare.strategy':{ fr:'StratÃ©gie',                          en:'Strategy',                          es:'Estrategia' },
+  'detail.compare.strategy':{ fr:'Stratégie',                          en:'Strategy',                          es:'Estrategia' },
   'detail.compare.apply':  { fr:'Appliquer',                          en:'Apply',                             es:'Aplicar' },
 
-  'detail.section.radar.title':   { fr:'Radar critÃ¨res',              en:'Criteria radar',                    es:'Radar de criterios' },
-  'detail.section.radar.desc':    { fr:'Vue synthÃ©tique des principaux critÃ¨res (0â€“100). Permet de repÃ©rer d\'un coup d\'Å“il les forces et faiblesses globales de la stratÃ©gie.', en:'Synthetic view of the main criteria (0â€“100). Lets you spot strengths and weaknesses of the strategy at a glance.', es:'Vista sintÃ©tica de los criterios principales (0â€“100). Permite ver de un vistazo los puntos fuertes y dÃ©biles de la estrategia.' },
+  'detail.section.radar.title':   { fr:'Radar critères',              en:'Criteria radar',                    es:'Radar de criterios' },
+  'detail.section.radar.desc':    { fr:'Vue synthétique des principaux critères (0–100). Permet de repérer d\'un coup d\'œil les forces et faiblesses globales de la stratégie.', en:'Synthetic view of the main criteria (0–100). Lets you spot strengths and weaknesses of the strategy at a glance.', es:'Vista sintética de los criterios principales (0–100). Permite ver de un vistazo los puntos fuertes y débiles de la estrategia.' },
 
-  'detail.section.eq.title':      { fr:'Ã‰quity',                       en:'Equity',                            es:'Equity' },
-  'detail.section.eq.desc':       { fr:'Ã‰volution du capital dans le temps. Cherchez une courbe rÃ©guliÃ¨re avec des phases de baisse limitÃ©es et un profil compatible avec votre tolÃ©rance au risque.', en:'Evolution of equity over time. Look for a smooth curve with limited drawdown phases and a risk profile matching your tolerance.', es:'EvoluciÃ³n del capital en el tiempo. Busque una curva regular con fases de caÃ­da limitadas y un perfil acorde con su tolerancia al riesgo.' },
+  'detail.section.eq.title':      { fr:'Équity',                       en:'Equity',                            es:'Equity' },
+  'detail.section.eq.desc':       { fr:'Évolution du capital dans le temps. Cherchez une courbe régulière avec des phases de baisse limitées et un profil compatible avec votre tolérance au risque.', en:'Evolution of equity over time. Look for a smooth curve with limited drawdown phases and a risk profile matching your tolerance.', es:'Evolución del capital en el tiempo. Busque una curva regular con fases de caída limitadas y un perfil acorde con su tolerancia al riesgo.' },
 
   'detail.section.dd.title':      { fr:'Drawdown absolu',              en:'Absolute drawdown',                 es:'Drawdown absoluto' },
-  'detail.section.dd.desc':       { fr:"Taille des creux en dollars. Permet d'identifier les pires pÃ©riodes de pertes et de vÃ©rifier qu'elles restent acceptables pour le capital engagÃ©.", en:'Size of equity dips in currency. Helps to identify the worst loss periods and check they remain acceptable for the capital at risk.', es:'TamaÃ±o de los baches en dinero. Permite identificar los peores periodos de pÃ©rdidas y comprobar que siguen siendo aceptables para el capital comprometido.' },
+  'detail.section.dd.desc':       { fr:"Taille des creux en dollars. Permet d'identifier les pires périodes de pertes et de vérifier qu'elles restent acceptables pour le capital engagé.", en:'Size of equity dips in currency. Helps to identify the worst loss periods and check they remain acceptable for the capital at risk.', es:'Tamaño de los baches en dinero. Permite identificar los peores periodos de pérdidas y comprobar que siguen siendo aceptables para el capital comprometido.' },
 
   'detail.section.under.title':   { fr:'Underwater (drawdown %)',      en:'Underwater (drawdown %)',           es:'Underwater (drawdown %)' },
-  'detail.section.under.desc':    { fr:'Drawdown en pourcentage du capital. Utile pour comparer le risque relatif entre stratÃ©gies ou paramÃ¨tres sur des capitaux diffÃ©rents.', en:'Drawdown as a percentage of equity. Useful to compare relative risk between strategies or parameter sets on different account sizes.', es:'Drawdown en porcentaje del capital. Ãštil para comparar el riesgo relativo entre estrategias o parÃ¡metros en distintos capitales.' },
+  'detail.section.under.desc':    { fr:'Drawdown en pourcentage du capital. Utile pour comparer le risque relatif entre stratégies ou paramètres sur des capitaux différents.', en:'Drawdown as a percentage of equity. Useful to compare relative risk between strategies or parameter sets on different account sizes.', es:'Drawdown en porcentaje del capital. Útil para comparar el riesgo relativo entre estrategias o parámetros en distintos capitales.' },
 
-  'detail.section.hist.title':    { fr:'Distribution des rendements',  en:'Return distribution',               es:'DistribuciÃ³n de rendimientos' },
-  'detail.section.hist.desc':     { fr:"Histogramme des retours par trade. Recherchez une queue de pertes limitÃ©e et une queue de gains Ã©tendue, signe d'un bon Ã©quilibre risque/rendement.", en:'Histogram of returns per trade. Look for a limited loss tail and a wide gain tail: a sign of a good risk/reward profile.', es:'Histograma de retornos por operaciÃ³n. Busque una cola de pÃ©rdidas limitada y una cola de ganancias amplia: seÃ±al de un buen equilibrio riesgo/beneficio.' },
+  'detail.section.hist.title':    { fr:'Distribution des rendements',  en:'Return distribution',               es:'Distribución de rendimientos' },
+  'detail.section.hist.desc':     { fr:"Histogramme des retours par trade. Recherchez une queue de pertes limitée et une queue de gains étendue, signe d'un bon équilibre risque/rendement.", en:'Histogram of returns per trade. Look for a limited loss tail and a wide gain tail: a sign of a good risk/reward profile.', es:'Histograma de retornos por operación. Busque una cola de pérdidas limitada y una cola de ganancias amplia: señal de un buen equilibrio riesgo/beneficio.' },
 
-  'detail.section.eff.title':     { fr:'EfficacitÃ© de la stratÃ©gie',   en:'Strategy efficiency',               es:'Eficiencia de la estrategia' },
-  'detail.section.eff.desc':      { fr:"Barres normalisÃ©es (Win%, R:R, efficacitÃ©, temps en marchÃ©, frÃ©quence). Permet de voir en un clin d'Å“il les composantes fortes et celles Ã  optimiser.", en:'Normalised bars (Win%, R:R, efficiency, time in market, frequency). Shows at a glance which components are strong and which need work.', es:'Barras normalizadas (Win%, R:R, eficiencia, tiempo en mercado, frecuencia). Permite ver de un vistazo quÃ© componentes son fuertes y cuÃ¡les optimizar.' },
+  'detail.section.eff.title':     { fr:'Efficacité de la stratégie',   en:'Strategy efficiency',               es:'Eficiencia de la estrategia' },
+  'detail.section.eff.desc':      { fr:"Barres normalisées (Win%, R:R, efficacité, temps en marché, fréquence). Permet de voir en un clin d'œil les composantes fortes et celles à optimiser.", en:'Normalised bars (Win%, R:R, efficiency, time in market, frequency). Shows at a glance which components are strong and which need work.', es:'Barras normalizadas (Win%, R:R, eficiencia, tiempo en mercado, frecuencia). Permite ver de un vistazo qué componentes son fuertes y cuáles optimizar.' },
 
-  'detail.section.robust.title':  { fr:'ComplexitÃ© & Robustesse',      en:'Complexity & robustness',           es:'Complejidad y robustez' },
-  'detail.section.robust.desc':   { fr:"Mesure le compromis entre nombre de paramÃ¨tres actifs et robustesse globale. IdÃ©alement, viser une robustesse Ã©levÃ©e avec une complexitÃ© raisonnable.", en:'Measures the trade-off between number of active parameters and overall robustness. Ideally aim for high robustness with reasonable complexity.', es:'Mide el compromiso entre nÃºmero de parÃ¡metros activos y robustez global. Idealmente, buscar alta robustez con complejidad razonable.' },
+  'detail.section.robust.title':  { fr:'Complexité & Robustesse',      en:'Complexity & robustness',           es:'Complejidad y robustez' },
+  'detail.section.robust.desc':   { fr:"Mesure le compromis entre nombre de paramètres actifs et robustesse globale. Idéalement, viser une robustesse élevée avec une complexité raisonnable.", en:'Measures the trade-off between number of active parameters and overall robustness. Ideally aim for high robustness with reasonable complexity.', es:'Mide el compromiso entre número de parámetros activos y robustez global. Idealmente, buscar alta robustez con complejidad razonable.' },
 
-  'detail.section.summary.title': { fr:'Commentaire & analyse',        en:'Commentary & analysis',             es:'Comentario y anÃ¡lisis' },
-  'detail.section.summary.desc':  { fr:"SynthÃ¨se narrative de la stratÃ©gie et de sa comparÃ©e. Ã€ lire pour comprendre le profil de risque/rendement, les axes d'amÃ©lioration, et l'impact du slippage rÃ©el sur la performance.", en:'Narrative summary of the strategy and its comparison. Read to understand risk/return profile, improvement axes and the impact of real slippage on performance.', es:'SÃ­ntesis narrativa de la estrategia y su comparativa. Sirve para entender el perfil riesgo/rendimiento, las vÃ­as de mejora y el impacto del slippage real en el rendimiento.' },
+  'detail.section.summary.title': { fr:'Commentaire & analyse',        en:'Commentary & analysis',             es:'Comentario y análisis' },
+  'detail.section.summary.desc':  { fr:"Synthèse narrative de la stratégie et de sa comparée. À lire pour comprendre le profil de risque/rendement, les axes d'amélioration, et l'impact du slippage réel sur la performance.", en:'Narrative summary of the strategy and its comparison. Read to understand risk/return profile, improvement axes and the impact of real slippage on performance.', es:'Síntesis narrativa de la estrategia y su comparativa. Sirve para entender el perfil riesgo/rendimiento, las vías de mejora y el impacto del slippage real en el rendimiento.' },
 
   'detail.slip.label':      { fr:'Slippage (bps)',                    en:'Slippage (bps)',                    es:'Slippage (pbs)' },
   'detail.slip.apply':      { fr:'Appliquer',                          en:'Apply',                             es:'Aplicar' },
   'detail.slip.infoTitle':  { fr:'Infos slippage',                     en:'Slippage info',                     es:'Info de slippage' },
-  'detail.slip.infoText':   { fr:"Le slippage (bps) ajoute un coÃ»t d'exÃ©cution sur chaque entrÃ©e/sortie (1 bps = 0,01%). Cela permet de voir comment PF, Win% et l'expectancy rÃ©agissent quand on tient compte du spread/slippage rÃ©el.",
+  'detail.slip.infoText':   { fr:"Le slippage (bps) ajoute un coût d'exécution sur chaque entrée/sortie (1 bps = 0,01%). Cela permet de voir comment PF, Win% et l'expectancy réagissent quand on tient compte du spread/slippage réel.",
                               en:'Slippage (bps) adds an execution cost on each entry/exit (1 bps = 0.01%). This lets you see how PF, Win% and expectancy react when you take real spread/slippage into account.',
-                              es:'El slippage (pbs) aÃ±ade un coste de ejecuciÃ³n en cada entrada/salida (1 pbs = 0,01%). Permite ver cÃ³mo reaccionan PF, Win% y la expectancy cuando se tiene en cuenta el spread/slippage real.' },
+                              es:'El slippage (pbs) añade un coste de ejecución en cada entrada/salida (1 pbs = 0,01%). Permite ver cómo reaccionan PF, Win% y la expectancy cuando se tiene en cuenta el spread/slippage real.' },
 
   'detail.section.ci.title':  { fr:'IC (bootstrap 95%)',               en:'CI (bootstrap 95%)',                es:'IC (bootstrap 95 %)' },
-  'detail.section.ci.desc':   { fr:"Intervalles de confiance estimÃ©s par bootstrap. Permettent de visualiser l'incertitude sur Win%, PF et expectancy plutÃ´t que de se fier Ã  un seul chiffre.", en:'Confidence intervals estimated via bootstrap. Visualises uncertainty on Win%, PF and expectancy instead of relying on a single number.', es:'Intervalos de confianza estimados por bootstrap. Permiten visualizar la incertidumbre sobre Win%, PF y expectancy en lugar de basarse en un Ãºnico valor.' },
+  'detail.section.ci.desc':   { fr:"Intervalles de confiance estimés par bootstrap. Permettent de visualiser l'incertitude sur Win%, PF et expectancy plutôt que de se fier à un seul chiffre.", en:'Confidence intervals estimated via bootstrap. Visualises uncertainty on Win%, PF and expectancy instead of relying on a single number.', es:'Intervalos de confianza estimados por bootstrap. Permiten visualizar la incertidumbre sobre Win%, PF y expectancy en lugar de basarse en un único valor.' },
 
-  'detail.section.rollpf.title': { fr:"Rolling PF (fenÃªtre 30)",      en:'Rolling PF (window 30)',            es:'Rolling PF (ventana 30)' },
-  'detail.section.rollpf.desc':  { fr:"Profit factor calculÃ© sur une fenÃªtre glissante. Sert Ã  dÃ©tecter les phases oÃ¹ la stratÃ©gie passe durablement sous PFÂ 1 (non rentable).", en:'Profit factor computed on a rolling window. Used to detect phases where the strategy stays below PF 1 (unprofitable).', es:'Profit factor calculado sobre una ventana deslizante. Sirve para detectar fases en las que la estrategia se mantiene por debajo de PF 1 (no rentable).' },
+  'detail.section.rollpf.title': { fr:"Rolling PF (fenêtre 30)",      en:'Rolling PF (window 30)',            es:'Rolling PF (ventana 30)' },
+  'detail.section.rollpf.desc':  { fr:"Profit factor calculé sur une fenêtre glissante. Sert à détecter les phases où la stratégie passe durablement sous PF 1 (non rentable).", en:'Profit factor computed on a rolling window. Used to detect phases where the strategy stays below PF 1 (unprofitable).', es:'Profit factor calculado sobre una ventana deslizante. Sirve para detectar fases en las que la estrategia se mantiene por debajo de PF 1 (no rentable).' },
 
-  'detail.section.rollwin.title': { fr:'Rolling Win% (fenÃªtre 30)',    en:'Rolling Win% (window 30)',          es:'Rolling Win% (ventana 30)' },
-  'detail.section.rollwin.desc':  { fr:'Taux de rÃ©ussite glissant. Met en Ã©vidence les pÃ©riodes oÃ¹ la stratÃ©gie dÃ©croche ou s\'amÃ©liore fortement.', en:'Rolling win rate. Highlights periods where the strategy degrades or improves significantly.', es:'Tasa de acierto deslizante. Resalta los periodos en los que la estrategia empeora o mejora claramente.' },
+  'detail.section.rollwin.title': { fr:'Rolling Win% (fenêtre 30)',    en:'Rolling Win% (window 30)',          es:'Rolling Win% (ventana 30)' },
+  'detail.section.rollwin.desc':  { fr:'Taux de réussite glissant. Met en évidence les périodes où la stratégie décroche ou s\'améliore fortement.', en:'Rolling win rate. Highlights periods where the strategy degrades or improves significantly.', es:'Tasa de acierto deslizante. Resalta los periodos en los que la estrategia empeora o mejora claramente.' },
 
-  'detail.section.rollrr.title':  { fr:'Rolling Avg R:R (fenÃªtre 30)', en:'Rolling Avg R:R (window 30)',       es:'Rolling Avg R:R (ventana 30)' },
-  'detail.section.rollrr.desc':   { fr:'R:R moyen sur 30 positions. Permet de voir si les objectifs deviennent trop courts ou trop ambitieux dans certains rÃ©gimes.', en:'Average R:R over 30 trades. Shows whether targets become too tight or too ambitious in some regimes.', es:'R:R medio sobre 30 posiciones. Permite ver si los objetivos se vuelven demasiado cortos o demasiado ambiciosos en ciertos regÃ­menes.' },
+  'detail.section.rollrr.title':  { fr:'Rolling Avg R:R (fenêtre 30)', en:'Rolling Avg R:R (window 30)',       es:'Rolling Avg R:R (ventana 30)' },
+  'detail.section.rollrr.desc':   { fr:'R:R moyen sur 30 positions. Permet de voir si les objectifs deviennent trop courts ou trop ambitieux dans certains régimes.', en:'Average R:R over 30 trades. Shows whether targets become too tight or too ambitious in some regimes.', es:'R:R medio sobre 30 posiciones. Permite ver si los objetivos se vuelven demasiado cortos o demasiado ambiciosos en ciertos regímenes.' },
 
-  'detail.section.rollexp.title': { fr:'Rolling Expectancy (fenÃªtre 30)', en:'Rolling Expectancy (window 30)',   es:'Rolling Expectancy (ventana 30)' },
-  'detail.section.rollexp.desc':  { fr:'Expectancy par trade sur fenÃªtre glissante. Ã€ utiliser pour repÃ©rer les zones temporelles oÃ¹ la stratÃ©gie devient nÃ©gative.', en:'Expectancy per trade on a rolling window. Use it to spot time zones where the strategy turns negative.', es:'Expectancy por operaciÃ³n en ventana deslizante. Ãšselo para detectar zonas temporales donde la estrategia se vuelve negativa.' },
+  'detail.section.rollexp.title': { fr:'Rolling Expectancy (fenêtre 30)', en:'Rolling Expectancy (window 30)',   es:'Rolling Expectancy (ventana 30)' },
+  'detail.section.rollexp.desc':  { fr:'Expectancy par trade sur fenêtre glissante. À utiliser pour repérer les zones temporelles où la stratégie devient négative.', en:'Expectancy per trade on a rolling window. Use it to spot time zones where the strategy turns negative.', es:'Expectancy por operación en ventana deslizante. Úselo para detectar zonas temporales donde la estrategia se vuelve negativa.' },
 
-  'detail.section.dur.title':     { fr:'DurÃ©e des trades',             en:'Trade duration',                    es:'DuraciÃ³n de las operaciones' },
-  'detail.section.dur.desc':      { fr:"RÃ©partition de la durÃ©e des positions. VÃ©rifiez que la stratÃ©gie correspond bien Ã  votre horizon de temps (scalping, swing, positionnel...).", en:'Distribution of trade durations. Check that the strategy matches your time horizon (scalping, swing, position...).', es:'DistribuciÃ³n de la duraciÃ³n de las posiciones. Compruebe que la estrategia se ajusta a su horizonte temporal (scalping, swing, posiciÃ³n...).' },
+  'detail.section.dur.title':     { fr:'Durée des trades',             en:'Trade duration',                    es:'Duración de las operaciones' },
+  'detail.section.dur.desc':      { fr:"Répartition de la durée des positions. Vérifiez que la stratégie correspond bien à votre horizon de temps (scalping, swing, positionnel...).", en:'Distribution of trade durations. Check that the strategy matches your time horizon (scalping, swing, position...).', es:'Distribución de la duración de las posiciones. Compruebe que la estrategia se ajusta a su horizonte temporal (scalping, swing, posición...).' },
 
-  'detail.section.streaks.title': { fr:'SÃ©quences victoires/dÃ©faites', en:'Win/loss streaks',                  es:'Rachas de victorias/derrotas' },
-  'detail.section.streaks.desc':  { fr:'Distribution des sÃ©ries de gains et de pertes. Met en lumiÃ¨re la possibilitÃ© de longues sÃ©ries perdantes Ã  supporter psychologiquement.', en:'Distribution of winning and losing streaks. Highlights the possibility of long losing streaks to withstand psychologically.', es:'DistribuciÃ³n de rachas de ganancias y pÃ©rdidas. Pone de relieve la posibilidad de largas rachas perdedoras que hay que soportar psicolÃ³gicamente.' },
+  'detail.section.streaks.title': { fr:'Séquences victoires/défaites', en:'Win/loss streaks',                  es:'Rachas de victorias/derrotas' },
+  'detail.section.streaks.desc':  { fr:'Distribution des séries de gains et de pertes. Met en lumière la possibilité de longues séries perdantes à supporter psychologiquement.', en:'Distribution of winning and losing streaks. Highlights the possibility of long losing streaks to withstand psychologically.', es:'Distribución de rachas de ganancias y pérdidas. Pone de relieve la posibilidad de largas rachas perdedoras que hay que soportar psicológicamente.' },
 
-  'detail.section.ls.title':      { fr:'Distribution retours â€” Long vs Short', en:'Return distribution â€” Long vs Short', es:'DistribuciÃ³n de retornos â€” Long vs Short' },
-  'detail.section.ls.desc':       { fr:"Compare la distribution des performances Long et Short. IdÃ©al pour voir si un cÃ´tÃ© du marchÃ© porte l'essentiel de la performance.", en:'Compares the distribution of Long and Short performance. Ideal to see if one side of the market carries most of the performance.', es:'Compara la distribuciÃ³n del rendimiento Long y Short. Ideal para ver si un lado del mercado soporta la mayor parte del rendimiento.' },
+  'detail.section.ls.title':      { fr:'Distribution retours — Long vs Short', en:'Return distribution — Long vs Short', es:'Distribución de retornos — Long vs Short' },
+  'detail.section.ls.desc':       { fr:"Compare la distribution des performances Long et Short. Idéal pour voir si un côté du marché porte l'essentiel de la performance.", en:'Compares the distribution of Long and Short performance. Ideal to see if one side of the market carries most of the performance.', es:'Compara la distribución del rendimiento Long y Short. Ideal para ver si un lado del mercado soporta la mayor parte del rendimiento.' },
 
   'detail.section.mae.title':     { fr:'MAE/MFE (excursions en R)',    en:'MAE/MFE (excursions in R)',         es:'MAE/MFE (excursiones en R)' },
-  'detail.section.mae.desc':      { fr:"Dispersion des excursions maximales en R (risque). Sert Ã  calibrer TP/SL et trailing en fonction de ce que le marchÃ© offre rÃ©ellement.", en:'Spread of maximum excursions in R (risk). Helps to calibrate TP/SL and trailing according to what the market actually offers.', es:'DispersiÃ³n de las excursiones mÃ¡ximas en R (riesgo). Sirve para calibrar TP/SL y trailing segÃºn lo que realmente ofrece el mercado.' },
+  'detail.section.mae.desc':      { fr:"Dispersion des excursions maximales en R (risque). Sert à calibrer TP/SL et trailing en fonction de ce que le marché offre réellement.", en:'Spread of maximum excursions in R (risk). Helps to calibrate TP/SL and trailing according to what the market actually offers.', es:'Dispersión de las excursiones máximas en R (riesgo). Sirve para calibrar TP/SL y trailing según lo que realmente ofrece el mercado.' },
 
-  'detail.section.weekly.title':  { fr:'SaisonnalitÃ© â€” Retours hebdomadaires (%)', en:'Seasonality â€” Weekly returns (%)', es:'Estacionalidad â€” Retornos semanales (%)' },
-  'detail.section.weekly.desc':   { fr:"Carte des retours semaine par semaine. Ã€ utiliser pour repÃ©rer les pÃ©riodes structurellement favorables ou dÃ©favorables Ã  la stratÃ©gie.", en:'Map of returns week by week. Use it to spot periods structurally favourable or unfavourable to the strategy.', es:'Mapa de retornos semana a semana. Ãšselo para detectar periodos estructuralmente favorables o desfavorables para la estrategia.' },
+  'detail.section.weekly.title':  { fr:'Saisonnalité — Retours hebdomadaires (%)', en:'Seasonality — Weekly returns (%)', es:'Estacionalidad — Retornos semanales (%)' },
+  'detail.section.weekly.desc':   { fr:"Carte des retours semaine par semaine. À utiliser pour repérer les périodes structurellement favorables ou défavorables à la stratégie.", en:'Map of returns week by week. Use it to spot periods structurally favourable or unfavourable to the strategy.', es:'Mapa de retornos semana a semana. Úselo para detectar periodos estructuralmente favorables o desfavorables para la estrategia.' },
 
-  'detail.section.dow.title':     { fr:'SaisonnalitÃ© â€” par jour de semaine (%)', en:'Seasonality â€” by weekday (%)', es:'Estacionalidad â€” por dÃ­a de la semana (%)' },
-  'detail.section.dow.desc':      { fr:"Retour moyen par jour de la semaine. Sert Ã  filtrer d'Ã©ventuels jours structurellement faibles ou instables.", en:'Average return per weekday. Used to filter structurally weak or unstable days.', es:'Retorno medio por dÃ­a de la semana. Sirve para filtrar dÃ­as estructuralmente dÃ©biles o inestables.' },
+  'detail.section.dow.title':     { fr:'Saisonnalité — par jour de semaine (%)', en:'Seasonality — by weekday (%)', es:'Estacionalidad — por día de la semana (%)' },
+  'detail.section.dow.desc':      { fr:"Retour moyen par jour de la semaine. Sert à filtrer d'éventuels jours structurellement faibles ou instables.", en:'Average return per weekday. Used to filter structurally weak or unstable days.', es:'Retorno medio por día de la semana. Sirve para filtrar días estructuralmente débiles o inestables.' },
 
-  'detail.section.dowHour.title': { fr:'SaisonnalitÃ© â€” Jour Ã— Heure (retours %)', en:'Seasonality â€” Day Ã— Hour (returns %)', es:'Estacionalidad â€” DÃ­a Ã— Hora (retornos %)' },
-  'detail.section.dowHour.desc':  { fr:'Heatmap jour Ã— heure. IdÃ©ale pour identifier les crÃ©neaux horaires oÃ¹ la stratÃ©gie surperforme ou sous-performe.', en:'Day Ã— hour heatmap. Ideal to identify time slots where the strategy overâ€‘ or underperforms.', es:'Heatmap dÃ­a Ã— hora. Ideal para identificar franjas horarias en las que la estrategia sobreâ€‘o infraâ€‘rinde.' },
+  'detail.section.dowHour.title': { fr:'Saisonnalité — Jour × Heure (retours %)', en:'Seasonality — Day × Hour (returns %)', es:'Estacionalidad — Día × Hora (retornos %)' },
+  'detail.section.dowHour.desc':  { fr:'Heatmap jour × heure. Idéale pour identifier les créneaux horaires où la stratégie surperforme ou sous-performe.', en:'Day × hour heatmap. Ideal to identify time slots where the strategy over‑ or underperforms.', es:'Heatmap día × hora. Ideal para identificar franjas horarias en las que la estrategia sobre‑o infra‑rinde.' },
 
-  'detail.section.dowHourLong.title':  { fr:'Jour Ã— Heure â€” Long seulement', en:'Day Ã— Hour â€” Long only',        es:'DÃ­a Ã— Hora â€” sÃ³lo Long' },
-  'detail.section.dowHourLong.desc':   { fr:'MÃªme carte jour Ã— heure mais filtrÃ©e sur les positions Long. Permet de voir oÃ¹ la jambe acheteuse est rÃ©ellement efficace.', en:'Same day Ã— hour map but filtered on Long positions. Shows where the long leg is actually effective.', es:'Mismo mapa dÃ­a Ã— hora pero filtrado por posiciones Long. Muestra dÃ³nde la pata compradora es realmente eficaz.' },
+  'detail.section.dowHourLong.title':  { fr:'Jour × Heure — Long seulement', en:'Day × Hour — Long only',        es:'Día × Hora — sólo Long' },
+  'detail.section.dowHourLong.desc':   { fr:'Même carte jour × heure mais filtrée sur les positions Long. Permet de voir où la jambe acheteuse est réellement efficace.', en:'Same day × hour map but filtered on Long positions. Shows where the long leg is actually effective.', es:'Mismo mapa día × hora pero filtrado por posiciones Long. Muestra dónde la pata compradora es realmente eficaz.' },
 
-  'detail.section.dowHourShort.title': { fr:'Jour Ã— Heure â€” Short seulement', en:'Day Ã— Hour â€” Short only',      es:'DÃ­a Ã— Hora â€” sÃ³lo Short' },
-  'detail.section.dowHourShort.desc':  { fr:'Idem pour les positions Short. Utile pour voir si la jambe vendeuse est opportuniste ou trop fragile sur certains crÃ©neaux.', en:'Same for Short positions. Useful to see whether the short leg is opportunistic or too fragile in some time slots.', es:'Ãdem para las posiciones Short. Ãštil para ver si la pata vendedora es oportunista o demasiado frÃ¡gil en ciertos tramos horarios.' },
+  'detail.section.dowHourShort.title': { fr:'Jour × Heure — Short seulement', en:'Day × Hour — Short only',      es:'Día × Hora — sólo Short' },
+  'detail.section.dowHourShort.desc':  { fr:'Idem pour les positions Short. Utile pour voir si la jambe vendeuse est opportuniste ou trop fragile sur certains créneaux.', en:'Same for Short positions. Useful to see whether the short leg is opportunistic or too fragile in some time slots.', es:'Ídem para las posiciones Short. Útil para ver si la pata vendedora es oportunista o demasiado frágil en ciertos tramos horarios.' },
 
-  'detail.section.wf.title':      { fr:'Walk-forward â€” splits temporels', en:'Walk-forward â€” time splits',     es:'Walk-forward â€” splits temporales' },
-  'detail.section.wf.desc':       { fr:'Performance par segment temporel. Sert Ã  vÃ©rifier que la stratÃ©gie reste exploitable hors Ã©chantillon et ne dÃ©pend pas d\'une seule pÃ©riode.', en:'Performance by time segment. Checks that the strategy remains usable out-of-sample and does not rely on a single period.', es:'Rendimiento por segmento temporal. Sirve para comprobar que la estrategia sigue siendo explotable fuera de muestra y no depende de un solo periodo.' },
+  'detail.section.wf.title':      { fr:'Walk-forward — splits temporels', en:'Walk-forward — time splits',     es:'Walk-forward — splits temporales' },
+  'detail.section.wf.desc':       { fr:'Performance par segment temporel. Sert à vérifier que la stratégie reste exploitable hors échantillon et ne dépend pas d\'une seule période.', en:'Performance by time segment. Checks that the strategy remains usable out-of-sample and does not rely on a single period.', es:'Rendimiento por segmento temporal. Sirve para comprobar que la estrategia sigue siendo explotable fuera de muestra y no depende de un solo periodo.' },
 
-  'detail.section.regime.title':  { fr:'RÃ©gimes (Trend Ã— VolatilitÃ©)',  en:'Regimes (Trend Ã— Volatility)',    es:'RegÃ­menes (Tendencia Ã— Volatilidad)' },
-  'detail.section.regime.desc':   { fr:'PF par combinaison de tendance et de volatilitÃ©. Identifie clairement les rÃ©gimes de marchÃ© oÃ¹ la stratÃ©gie fonctionne bien ou mal.', en:'PF by combination of trend and volatility. Clearly identifies market regimes where the strategy works well or poorly.', es:'PF por combinaciÃ³n de tendencia y volatilidad. Identifica claramente los regÃ­menes de mercado donde la estrategia funciona bien o mal.' },
+  'detail.section.regime.title':  { fr:'Régimes (Trend × Volatilité)',  en:'Regimes (Trend × Volatility)',    es:'Regímenes (Tendencia × Volatilidad)' },
+  'detail.section.regime.desc':   { fr:'PF par combinaison de tendance et de volatilité. Identifie clairement les régimes de marché où la stratégie fonctionne bien ou mal.', en:'PF by combination of trend and volatility. Clearly identifies market regimes where the strategy works well or poorly.', es:'PF por combinación de tendencia y volatilidad. Identifica claramente los regímenes de mercado donde la estrategia funciona bien o mal.' },
 
-  'detail.section.pareto.title':  { fr:'Pareto â€” P&L vs Max DD (PalmarÃ¨s)', en:'Pareto â€” P&L vs Max DD (Leaderboard)', es:'Pareto â€” P&L vs Max DD (PalmarÃ©s)' },
-  'detail.section.pareto.desc':   { fr:'Nuage P&L vs drawdown. Permet de comparer visuellement le compromis rendement/risque de la stratÃ©gie par rapport au PalmarÃ¨s.', en:'P&L vs drawdown scatter plot. Visually compares the strategy risk/return trade-off against the leaderboard.', es:'Nube P&L vs drawdown. Permite comparar visualmente el compromiso rendimiento/riesgo de la estrategia frente al PalmarÃ©s.' },
+  'detail.section.pareto.title':  { fr:'Pareto — P&L vs Max DD (Palmarès)', en:'Pareto — P&L vs Max DD (Leaderboard)', es:'Pareto — P&L vs Max DD (Palmarés)' },
+  'detail.section.pareto.desc':   { fr:'Nuage P&L vs drawdown. Permet de comparer visuellement le compromis rendement/risque de la stratégie par rapport au Palmarès.', en:'P&L vs drawdown scatter plot. Visually compares the strategy risk/return trade-off against the leaderboard.', es:'Nube P&L vs drawdown. Permite comparar visualmente el compromiso rendimiento/riesgo de la estrategia frente al Palmarés.' },
 
-  'detail.section.mc.title':      { fr:"Monte Carlo â€” Ã©ventail d'Ã©quity (bootstrap trades)", en:'Monte Carlo â€” equity fan (trade bootstrap)', es:'Monte Carlo â€” abanico de equity (bootstrap de trades)' },
-  'detail.section.mc.desc':       { fr:"Simulation alÃ©atoire de l'ordre des trades. Montre la dispersion possible des trajectoires d'Ã©quity Ã  partir du mÃªme historique de trades.", en:'Random simulation of trade order. Shows the possible dispersion of equity paths from the same trade history.', es:'SimulaciÃ³n aleatoria del orden de las operaciones. Muestra la posible dispersiÃ³n de trayectorias de equity a partir del mismo histÃ³rico de operaciones.' },
+  'detail.section.mc.title':      { fr:"Monte Carlo — éventail d'équity (bootstrap trades)", en:'Monte Carlo — equity fan (trade bootstrap)', es:'Monte Carlo — abanico de equity (bootstrap de trades)' },
+  'detail.section.mc.desc':       { fr:"Simulation aléatoire de l'ordre des trades. Montre la dispersion possible des trajectoires d'équity à partir du même historique de trades.", en:'Random simulation of trade order. Shows the possible dispersion of equity paths from the same trade history.', es:'Simulación aleatoria del orden de las operaciones. Muestra la posible dispersión de trayectorias de equity a partir del mismo histórico de operaciones.' },
 
-  'detail.section.qq.title':      { fr:'QQ-Plot (retours normalisÃ©s)', en:'QQ-Plot (normalised returns)',      es:'QQ-Plot (retornos normalizados)' },
-  'detail.section.qq.desc':       { fr:'Compare la distribution des rendements Ã  une loi normale. Sert Ã  repÃ©rer des queues Ã©paisses ou des asymÃ©tries importantes.', en:'Compares the return distribution to a normal law. Used to detect fat tails or strong asymmetries.', es:'Compara la distribuciÃ³n de los retornos con una normal. Sirve para detectar colas gruesas o asimetrÃ­as importantes.' },
+  'detail.section.qq.title':      { fr:'QQ-Plot (retours normalisés)', en:'QQ-Plot (normalised returns)',      es:'QQ-Plot (retornos normalizados)' },
+  'detail.section.qq.desc':       { fr:'Compare la distribution des rendements à une loi normale. Sert à repérer des queues épaisses ou des asymétries importantes.', en:'Compares the return distribution to a normal law. Used to detect fat tails or strong asymmetries.', es:'Compara la distribución de los retornos con una normal. Sirve para detectar colas gruesas o asimetrías importantes.' },
 
-  'detail.section.acf.title':     { fr:'AutocorrÃ©lation (lags)',       en:'Autocorrelation (lags)',            es:'AutocorrelaciÃ³n (lags)' },
-  'detail.section.acf.desc':      { fr:'AutocorrÃ©lation des rendements sur plusieurs lags. Permet de voir s\'il existe un clustering de gains/pertes ou des dÃ©pendances exploitables.', en:'Autocorrelation of returns over several lags. Shows whether there is clustering of gains/losses or exploitable dependencies.', es:'AutocorrelaciÃ³n de retornos en varios lags. Permite ver si existe agrupaciÃ³n de ganancias/pÃ©rdidas o dependencias explotables.' },
+  'detail.section.acf.title':     { fr:'Autocorrélation (lags)',       en:'Autocorrelation (lags)',            es:'Autocorrelación (lags)' },
+  'detail.section.acf.desc':      { fr:'Autocorrélation des rendements sur plusieurs lags. Permet de voir s\'il existe un clustering de gains/pertes ou des dépendances exploitables.', en:'Autocorrelation of returns over several lags. Shows whether there is clustering of gains/losses or exploitable dependencies.', es:'Autocorrelación de retornos en varios lags. Permite ver si existe agrupación de ganancias/pérdidas o dependencias explotables.' },
 
   // Trades & evaluations modals
-  'strat.modal.title':      { fr:'DÃ©tails stratÃ©gie',                 en:'Strategy details',                  es:'Detalles de la estrategia' },
-  'strat.table.crit':       { fr:'CritÃ¨re',                           en:'Criterion',                        es:'Criterio' },
+  'strat.modal.title':      { fr:'Détails stratégie',                 en:'Strategy details',                  es:'Detalles de la estrategia' },
+  'strat.table.crit':       { fr:'Critère',                           en:'Criterion',                        es:'Criterio' },
   'strat.table.score':      { fr:'Note / 100',                        en:'Score / 100',                      es:'Nota / 100' },
   'strat.table.value':      { fr:'Valeur',                            en:'Value',                            es:'Valor' },
 
@@ -350,21 +350,21 @@ const I18N = {
   'trades.table.time':      { fr:'Horaire',                           en:'Time',                             es:'Hora' },
   'trades.table.equity':    { fr:'Capital',                           en:'Equity',                           es:'Capital' },
   'trades.table.trade':     { fr:'Trade',                             en:'Trade',                            es:'Trade' },
-  'trades.table.qty':       { fr:'QuantitÃ©',                          en:'Quantity',                         es:'Cantidad' },
-  'trades.table.entry':     { fr:'Prix entrÃ©e',                       en:'Entry price',                      es:'Precio de entrada' },
+  'trades.table.qty':       { fr:'Quantité',                          en:'Quantity',                         es:'Cantidad' },
+  'trades.table.entry':     { fr:'Prix entrée',                       en:'Entry price',                      es:'Precio de entrada' },
   'trades.table.exit':      { fr:'Prix sortie',                       en:'Exit price',                       es:'Precio de salida' },
   'trades.table.fee':       { fr:'Frais',                             en:'Fees',                             es:'Comisiones' },
   'trades.table.pnl':       { fr:'P&L',                               en:'P&L',                              es:'P&L' },
-  'trades.table.duration':  { fr:'DurÃ©e',                             en:'Duration',                         es:'DuraciÃ³n' },
+  'trades.table.duration':  { fr:'Durée',                             en:'Duration',                         es:'Duración' },
  
-  'evals.modal.title':      { fr:'DÃ©tails des Ã©valuations',           en:'Evaluation details',               es:'Detalles de las evaluaciones' },
+  'evals.modal.title':      { fr:'Détails des évaluations',           en:'Evaluation details',               es:'Detalles de las evaluaciones' },
  
-  'detail.error':           { fr:'Erreur analyse',                    en:'Analysis error',                   es:'Error de anÃ¡lisis' },
+  'detail.error':           { fr:'Erreur analyse',                    en:'Analysis error',                   es:'Error de análisis' },
  
   // Common generic UI
   'common.save':            { fr:'Enregistrer',                        en:'Save',                             es:'Guardar' },
   'common.load':            { fr:'Charger',                            en:'Load',                             es:'Cargar' },
-  'common.reset':           { fr:'RÃ©initialiser',                      en:'Reset',                            es:'Reiniciar' },
+  'common.reset':           { fr:'Réinitialiser',                      en:'Reset',                            es:'Reiniciar' },
   'common.delete':          { fr:'Supprimer',                          en:'Delete',                           es:'Eliminar' },
   'common.cancel':          { fr:'Annuler',                            en:'Cancel',                           es:'Cancelar' },
   'common.name':            { fr:'Nom',                                en:'Name',                             es:'Nombre' },
@@ -373,30 +373,30 @@ const I18N = {
   'ema.modal.title':        { fr:'EMA / MA',                           en:'EMA / MA',                         es:'EMA / MA' },
  
   // Backtest progress modal
-  'bt.progress.title':        { fr:'Simulation',                        en:'Simulation',                       es:'SimulaciÃ³n' },
-  'bt.progress.initShort':    { fr:'PrÃ©paration...',                    en:'Preparing...',                     es:'PreparaciÃ³n...' },
-  'bt.progress.trainingShort':{ fr:'EntraÃ®nement...',                   en:'Training...',                      es:'Entrenamiento...' },
-  'bt.progress.globalInit':   { fr:'Global: 0% (0/0) â€” ETA â€”',          en:'Global: 0% (0/0) â€” ETA â€”',         es:'Global: 0% (0/0) â€” ETA â€”' },
+  'bt.progress.title':        { fr:'Simulation',                        en:'Simulation',                       es:'Simulación' },
+  'bt.progress.initShort':    { fr:'Préparation...',                    en:'Preparing...',                     es:'Preparación...' },
+  'bt.progress.trainingShort':{ fr:'Entraînement...',                   en:'Training...',                      es:'Entrenamiento...' },
+  'bt.progress.globalInit':   { fr:'Global: 0% (0/0) — ETA —',          en:'Global: 0% (0/0) — ETA —',         es:'Global: 0% (0/0) — ETA —' },
   'bt.progress.btn.pause':    { fr:'Pause',                             en:'Pause',                            es:'Pausa' },
   'bt.progress.btn.stop':     { fr:'Stop',                              en:'Stop',                             es:'Stop' },
-  'bt.progress.btn.details':  { fr:'DÃ©tails',                           en:'Details',                          es:'Detalles' },
+  'bt.progress.btn.details':  { fr:'Détails',                           en:'Details',                          es:'Detalles' },
   'bt.progress.btn.export':   { fr:'Exporter CSV',                      en:'Export CSV',                       es:'Exportar CSV' },
   'bt.progress.btn.cancel':   { fr:'Annuler',                           en:'Cancel',                           es:'Cancelar' },
   'bt.progress.pauseTitle':   { fr:'Mettre en pause/Reprendre',         en:'Pause/Resume',                     es:'Pausar/Reanudar' },
-  'bt.progress.stopTitle':    { fr:'ArrÃªter',                           en:'Stop',                             es:'Detener' },
-  'bt.progress.detailsTitle': { fr:'Afficher la liste complÃ¨te des Ã©valuations', en:'Show full evaluations list', es:'Mostrar la lista completa de evaluaciones' },
-  'bt.progress.exportTitle':  { fr:'Exporter les Ã©valuations en CSV',   en:'Export evaluations to CSV',        es:'Exportar evaluaciones a CSV' },
+  'bt.progress.stopTitle':    { fr:'Arrêter',                           en:'Stop',                             es:'Detener' },
+  'bt.progress.detailsTitle': { fr:'Afficher la liste complète des évaluations', en:'Show full evaluations list', es:'Mostrar la lista completa de evaluaciones' },
+  'bt.progress.exportTitle':  { fr:'Exporter les évaluations en CSV',   en:'Export evaluations to CSV',        es:'Exportar evaluaciones a CSV' },
   'bt.progress.globalLabel':  { fr:'Global',                            en:'Global',                           es:'Global' },
   'bt.progress.etaLabel':     { fr:'ETA',                               en:'ETA',                              es:'ETA' },
   'bt.progress.quotaPrefix':  { fr:'Quota:',                            en:'Quota:',                           es:'Cuota:' },
  
   // Detail / analysis progress
-  'detail.progress':          { fr:'Analyse stratÃ©gie...',              en:'Strategy analysis...',             es:'AnÃ¡lisis de estrategia...' },
+  'detail.progress':          { fr:'Analyse stratégie...',              en:'Strategy analysis...',             es:'Análisis de estrategia...' },
  
   // Backtest settings modal (header & footer)
-'bt.modal.title':           { fr:'ParamÃ¨tres de simulation',          en:'Simulation settings',              es:'ParÃ¡metros de simulaciÃ³n' },
-  'bt.modal.general.legend':  { fr:'GÃ©nÃ©ral',                           en:'General',                          es:'General' },
-  'bt.modal.period.legend':   { fr:'PÃ©riode',                           en:'Period',                           es:'PerÃ­odo' },
+'bt.modal.title':           { fr:'Paramètres de simulation',          en:'Simulation settings',              es:'Parámetros de simulación' },
+  'bt.modal.general.legend':  { fr:'Général',                           en:'General',                          es:'General' },
+  'bt.modal.period.legend':   { fr:'Période',                           en:'Period',                           es:'Período' },
   'bt.modal.startCap':        { fr:'Capital initial',                   en:'Initial capital',                  es:'Capital inicial' },
   'bt.modal.fee':             { fr:'Frais (%)',                         en:'Fees (%)',                         es:'Comisiones (%)' },
   'bt.modal.lev':             { fr:'Levier (x)',                         en:'Leverage (x)',                     es:'Apalancamiento (x)' },
@@ -405,43 +405,43 @@ const I18N = {
   'bt.modal.base.initial':    { fr:'Capital initial',                   en:'Initial capital',                  es:'Capital inicial' },
   'bt.modal.base.equity':     { fr:'Capital variable',                  en:'Variable equity',                  es:'Capital variable' },
  
-  'bt.modal.range.visible':   { fr:'PÃ©riode visible',                   en:'Visible period',                   es:'PerÃ­odo visible' },
-  'bt.modal.range.all':       { fr:"Tout l'historique",               en:'Full history',                     es:'Todo el histÃ³rico' },
+  'bt.modal.range.visible':   { fr:'Période visible',                   en:'Visible period',                   es:'Período visible' },
+  'bt.modal.range.all':       { fr:"Tout l'historique",               en:'Full history',                     es:'Todo el histórico' },
   'bt.modal.range.dates':     { fr:'Dates',                             en:'Dates',                            es:'Fechas' },
   'bt.modal.range.from':      { fr:'De',                                en:'From',                             es:'Desde' },
-  'bt.modal.range.to':        { fr:'Ã€',                                 en:'To',                               es:'Hasta' },
-  'bt.modal.range.note':      { fr:'Les dates sont interprÃ©tÃ©es dans votre fuseau horaire local.', en:'Dates are interpreted in your local time zone.', es:'Las fechas se interpretan en tu zona horaria local.' },
+  'bt.modal.range.to':        { fr:'À',                                 en:'To',                               es:'Hasta' },
+  'bt.modal.range.note':      { fr:'Les dates sont interprétées dans votre fuseau horaire local.', en:'Dates are interpreted in your local time zone.', es:'Las fechas se interpretan en tu zona horaria local.' },
  
-  'bt.modal.opt.legend':      { fr:'Optimisation (utiliser le Lab)',    en:'Optimisation (use Lab)',           es:'OptimizaciÃ³n (usar Lab)' },
-  'bt.modal.opt.note':        { fr:"Optimise sur l'intervalle actuel (sÃ©lectionne 1m/5m/15m en haut).", en:'Optimises over the current interval (select 1m/5m/15m above).', es:'Optimiza sobre el intervalo actual (selecciona 1m/5m/15m arriba).' },
-  'bt.modal.opt.strategy':    { fr:'StratÃ©gie',                         en:'Strategy',                         es:'Estrategia' },
+  'bt.modal.opt.legend':      { fr:'Optimisation (utiliser le Lab)',    en:'Optimisation (use Lab)',           es:'Optimización (usar Lab)' },
+  'bt.modal.opt.note':        { fr:"Optimise sur l'intervalle actuel (sélectionne 1m/5m/15m en haut).", en:'Optimises over the current interval (select 1m/5m/15m above).', es:'Optimiza sobre el intervalo actual (selecciona 1m/5m/15m arriba).' },
+  'bt.modal.opt.strategy':    { fr:'Stratégie',                         en:'Strategy',                         es:'Estrategia' },
   'bt.modal.opt.strategy.grid':   { fr:'Grille',                        en:'Grid',                             es:'Grid' },
-  'bt.modal.opt.strategy.random': { fr:'AlÃ©atoire',                     en:'Random',                           es:'Aleatorio' },
-  'bt.modal.opt.strategy.ea':     { fr:'Ã‰volutionnaire',                en:'Evolutionary',                     es:'Evolutivo' },
+  'bt.modal.opt.strategy.random': { fr:'Aléatoire',                     en:'Random',                           es:'Aleatorio' },
+  'bt.modal.opt.strategy.ea':     { fr:'Évolutionnaire',                en:'Evolutionary',                     es:'Evolutivo' },
   'bt.modal.opt.strategy.bayes':  { fr:'Bayes (EDA)',                   en:'Bayes (EDA)',                      es:'Bayes (EDA)' },
   'bt.modal.opt.tf':          { fr:'TF',                                en:'TF',                               es:'TF' },
   'bt.modal.opt.profile':     { fr:'Profil',                            en:'Profile',                          es:'Perfil' },
-  'bt.modal.opt.profile.safe':{ fr:'SÃ»re',                              en:'Safe',                             es:'Segura' },
-  'bt.modal.opt.profile.bal': { fr:'BalancÃ©e',                          en:'Balanced',                         es:'Balanceada' },
+  'bt.modal.opt.profile.safe':{ fr:'Sûre',                              en:'Safe',                             es:'Segura' },
+  'bt.modal.opt.profile.bal': { fr:'Balancée',                          en:'Balanced',                         es:'Balanceada' },
   'bt.modal.opt.profile.agg': { fr:'Agressive',                         en:'Aggressive',                       es:'Agresiva' },
-  'bt.modal.opt.maxComb':     { fr:'Max combinaisons',                  en:'Max combinations',                 es:'MÃ¡x combinaciones' },
+  'bt.modal.opt.maxComb':     { fr:'Max combinaisons',                  en:'Max combinations',                 es:'Máx combinaciones' },
   'bt.modal.opt.topN':        { fr:'Top N',                             en:'Top N',                            es:'Top N' },
  
-  'bt.modal.opt.modesLabel':  { fr:"Modes d'entrÃ©e:",                  en:'Entry modes:',                     es:'Modos de entrada:' },
+  'bt.modal.opt.modesLabel':  { fr:"Modes d'entrée:",                  en:'Entry modes:',                     es:'Modos de entrada:' },
   'bt.modal.opt.mode.original':{ fr:'Original',                         en:'Original',                         es:'Original' },
   'bt.modal.opt.mode.fib':    { fr:'Fib Retracement',                   en:'Fib Retracement',                  es:'Fib Retracement' },
   'bt.modal.opt.mode.both':   { fr:'Both',                              en:'Both',                             es:'Ambos' },
-  'bt.modal.opt.usePriorTitle':{ fr:"Utiliser les rÃ©sultats historiques (mÃªme symbole+TF) comme prior pour l'optimisation", en:'Use historical results (same symbol+TF) as prior for optimisation', es:'Usar resultados histÃ³ricos (mismo sÃ­mbolo+TF) como prior para la optimizaciÃ³n' },
+  'bt.modal.opt.usePriorTitle':{ fr:"Utiliser les résultats historiques (même symbole+TF) comme prior pour l'optimisation", en:'Use historical results (same symbol+TF) as prior for optimisation', es:'Usar resultados históricos (mismo símbolo+TF) como prior para la optimización' },
   'bt.modal.opt.usePrior':    { fr:'Prior TF',                          en:'TF prior',                         es:'Prior TF' },
  
   'bt.modal.opt.nolEn':       { fr:'NOL',                               en:'NOL',                              es:'NOL' },
-  'bt.modal.opt.prdEn':       { fr:'PÃ©riode (prd)',                     en:'Period (prd)',                     es:'PerÃ­odo (prd)' },
+  'bt.modal.opt.prdEn':       { fr:'Période (prd)',                     en:'Period (prd)',                     es:'Período (prd)' },
   'bt.modal.opt.slEn':        { fr:'SL initial %',                      en:'Initial SL %',                     es:'SL inicial %' },
   'bt.modal.opt.beBarsEn':    { fr:'Bars to BE',                        en:'Bars to BE',                       es:'Barras a BE' },
   'bt.modal.opt.beLockEn':    { fr:'Lock % move',                        en:'Lock % move',                      es:'Lock % movimiento' },
   'bt.modal.opt.emaLenEn':    { fr:'EMA len',                           en:'EMA len',                          es:'EMA len' },
-  'bt.modal.opt.min':         { fr:'Min',                               en:'Min',                              es:'MÃ­n' },
-  'bt.modal.opt.max':         { fr:'Max',                               en:'Max',                              es:'MÃ¡x' },
+  'bt.modal.opt.min':         { fr:'Min',                               en:'Min',                              es:'Mín' },
+  'bt.modal.opt.max':         { fr:'Max',                               en:'Max',                              es:'Máx' },
   'bt.modal.opt.step':        { fr:'Pas',                               en:'Step',                             es:'Paso' },
  
   'bt.modal.opt.ea.pop':      { fr:'EA: Pop',                           en:'EA: Pop',                          es:'EA: Pop' },
@@ -456,15 +456,15 @@ const I18N = {
   'bt.modal.opt.bayes.resume':{ fr:'Resume',                            en:'Resume',                           es:'Resume' },
  
   'bt.modal.opt.tpFibEn':     { fr:'Optimiser TP (Fib)',                en:'Optimise TP (Fib)',                es:'Optimizar TP (Fib)' },
-  'bt.modal.opt.tpCount':     { fr:'Nb TP',                             en:'# TP',                             es:'NÂº TP' },
-  'bt.modal.opt.tpFibNote':   { fr:'Les ratios sÃ©lectionnÃ©s seront affectÃ©s aux TP1..TPn (ordre croissant)', en:'Selected ratios are assigned to TP1..TPn (ascending order)', es:'Los ratios seleccionados se asignan a TP1..TPn (orden ascendente)' },
+  'bt.modal.opt.tpCount':     { fr:'Nb TP',                             en:'# TP',                             es:'Nº TP' },
+  'bt.modal.opt.tpFibNote':   { fr:'Les ratios sélectionnés seront affectés aux TP1..TPn (ordre croissant)', en:'Selected ratios are assigned to TP1..TPn (ascending order)', es:'Los ratios seleccionados se asignan a TP1..TPn (orden ascendente)' },
   'bt.modal.opt.tpPctEn':     { fr:'Optimiser TP (Percent)',            en:'Optimise TP (Percent)',            es:'Optimizar TP (Percent)' },
-  'bt.modal.opt.tpMinPct':    { fr:'Min %',                             en:'Min %',                            es:'MÃ­n %' },
-  'bt.modal.opt.tpMaxPct':    { fr:'Max %',                             en:'Max %',                            es:'MÃ¡x %' },
+  'bt.modal.opt.tpMinPct':    { fr:'Min %',                             en:'Min %',                            es:'Mín %' },
+  'bt.modal.opt.tpMaxPct':    { fr:'Max %',                             en:'Max %',                            es:'Máx %' },
   'bt.modal.opt.tpStepPct':   { fr:'Pas %',                             en:'Step %',                           es:'Paso %' },
-  'bt.modal.opt.allocEn':     { fr:'Optimiser rÃ©partition (%)',         en:'Optimise allocation (%)',          es:'Optimizar reparto (%)' },
+  'bt.modal.opt.allocEn':     { fr:'Optimiser répartition (%)',         en:'Optimise allocation (%)',          es:'Optimizar reparto (%)' },
   'bt.modal.opt.allocStep':   { fr:'Pas',                               en:'Step',                             es:'Paso' },
-  'bt.modal.opt.allocMaxPat': { fr:'Max patterns',                      en:'Max patterns',                     es:'Patrones mÃ¡x' },
+  'bt.modal.opt.allocMaxPat': { fr:'Max patterns',                      en:'Max patterns',                     es:'Patrones máx' },
  
   'bt.modal.btn.cancel':      { fr:'Annuler',                           en:'Cancel',                           es:'Cancelar' },
   'bt.modal.btn.optimize':    { fr:'Optimiser',                         en:'Optimize',                         es:'Optimizar' },
@@ -477,39 +477,39 @@ const I18N = {
   'live.mode.real':           { fr:'Live trading',                      en:'Live trading',                     es:'Live trading' },
   'live.wallet.legend':       { fr:'Wallet',                            en:'Wallet',                           es:'Wallet' },
   'live.wallet.label':        { fr:'Portefeuille',                      en:'Portfolio',                        es:'Cartera' },
-  'live.wallet.newOption':    { fr:'+ Nouveau portefeuilleâ€¦',           en:'+ New portfolioâ€¦',                 es:'+ Nuevo portafolioâ€¦' },
+  'live.wallet.newOption':    { fr:'+ Nouveau portefeuille…',           en:'+ New portfolio…',                 es:'+ Nuevo portafolio…' },
   'live.wallet.nameLabel':    { fr:'Nom',                               en:'Name',                             es:'Nombre' },
-  'live.params.legend':       { fr:'ParamÃ¨tres (paper)',                en:'Settings (paper)',                 es:'ParÃ¡metros (paper)' },
+  'live.params.legend':       { fr:'Paramètres (paper)',                en:'Settings (paper)',                 es:'Parámetros (paper)' },
   'live.params.startCap':     { fr:'Capital initial',                   en:'Initial capital',                  es:'Capital inicial' },
   'live.params.fee':          { fr:'Frais (%)',                         en:'Fees (%)',                         es:'Comisiones (%)' },
   'live.params.lev':          { fr:'Levier (x)',                         en:'Leverage (x)',                     es:'Apalancamiento (x)' },
-  'live.tf.legend':           { fr:'TF & StratÃ©gie',                    en:'TF & Strategy',                    es:'TF y Estrategia' },
+  'live.tf.legend':           { fr:'TF & Stratégie',                    en:'TF & Strategy',                    es:'TF y Estrategia' },
   'live.tf.label':            { fr:'TF',                                en:'TF',                               es:'TF' },
   'live.tf.source.heaven':    { fr:'Heaven',                            en:'Heaven',                           es:'Heaven' },
-  'live.tf.source.palmares':  { fr:'PalmarÃ¨s',                          en:'Leaderboard',                      es:'PalmarÃ©s' },
-  'live.tf.strategyLabel':    { fr:'StratÃ©gie',                         en:'Strategy',                         es:'Estrategia' },
-  'live.footer.stop':         { fr:'ArrÃªter',                           en:'Stop',                             es:'Detener' },
+  'live.tf.source.palmares':  { fr:'Palmarès',                          en:'Leaderboard',                      es:'Palmarés' },
+  'live.tf.strategyLabel':    { fr:'Stratégie',                         en:'Strategy',                         es:'Estrategia' },
+  'live.footer.stop':         { fr:'Arrêter',                           en:'Stop',                             es:'Detener' },
   'live.footer.start':        { fr:'Lancer',                            en:'Start',                            es:'Iniciar' },
  
   // Heaven / LBC presets footer
   'heaven.supa.namePlaceholder': { fr:'Nom',                             en:'Name',                             es:'Nombre' },
  
   // Lab / training status messages
-  'status.palmaresUpdated':   { fr:'PalmarÃ¨s mis Ã  jour',               en:'Leaderboard updated',              es:'PalmarÃ©s actualizado' },
-  'status.improveDone':       { fr:'AmÃ©lioration terminÃ©e',             en:'Improvement completed',           es:'Mejora terminada' },
-  'status.trainingError':     { fr:'Erreur entraÃ®nement',               en:'Training error',                  es:'Error de entrenamiento' },
+  'status.palmaresUpdated':   { fr:'Palmarès mis à jour',               en:'Leaderboard updated',              es:'Palmarés actualizado' },
+  'status.improveDone':       { fr:'Amélioration terminée',             en:'Improvement completed',           es:'Mejora terminada' },
+  'status.trainingError':     { fr:'Erreur entraînement',               en:'Training error',                  es:'Error de entrenamiento' },
 };
 let __uiLang = (function(){
   try{
     const s = localStorage.getItem('ui:lang');
-    if(s && SUPPORTED_LANGS.indexOf(s) !== -1) {return s;}
+    if(s && SUPPORTED_LANGS.indexOf(s) !== -1) return s;
   }catch(_){ }
   return 'fr';
 })();
 function currentLang(){ return __uiLang; }
 function setLang(lang, persist){
   try{
-    if(SUPPORTED_LANGS.indexOf(lang) === -1) {lang = 'fr';}
+    if(SUPPORTED_LANGS.indexOf(lang) === -1) lang = 'fr';
     __uiLang = lang;
     if(persist!==false){ try{ localStorage.setItem('ui:lang', lang); }catch(_){ } }
     try{ document.documentElement.lang = lang; }catch(_){ }
@@ -517,9 +517,9 @@ function setLang(lang, persist){
     try{ updateLangBtn(); }catch(_){ }
     try{ applyI18nToDom(); }catch(_){ }
     // Refresh key dynamic sections so texts follow the new language
-    try{ if(typeof updateBarsInfo==='function') {updateBarsInfo();} }catch(_){ }
-    try{ if(typeof updateCutoffBadge==='function') {updateCutoffBadge();} }catch(_){ }
-    try{ if(typeof renderLabFromStorage==='function') {renderLabFromStorage();} }catch(_){ }
+    try{ if(typeof updateBarsInfo==='function') updateBarsInfo(); }catch(_){ }
+    try{ if(typeof updateCutoffBadge==='function') updateCutoffBadge(); }catch(_){ }
+    try{ if(typeof renderLabFromStorage==='function') renderLabFromStorage(); }catch(_){ }
   }catch(_){ }
 }
 function cycleLang(){
@@ -530,7 +530,7 @@ function cycleLang(){
 function t(key){
   try{
     const entry = I18N[key];
-    if(!entry) {return key;}
+    if(!entry) return key;
     return entry[__uiLang] || entry.fr || key;
   }catch(_){ return key; }
 }
@@ -540,36 +540,36 @@ function applyI18nToDom(){
     nodes.forEach(el=>{
       try{
         const k = el.getAttribute('data-i18n');
-        if(!k) {return;}
+        if(!k) return;
         const txt = t(k);
-        if(txt!=null) {el.textContent = txt;}
+        if(txt!=null) el.textContent = txt;
       }catch(_){ }
     });
     const titleNodes = document.querySelectorAll('[data-i18n-title]');
     titleNodes.forEach(el=>{
       try{
         const k = el.getAttribute('data-i18n-title');
-        if(!k) {return;}
+        if(!k) return;
         const txt = t(k);
-        if(txt!=null) {el.setAttribute('title', txt);}
+        if(txt!=null) el.setAttribute('title', txt);
       }catch(_){ }
     });
     const phNodes = document.querySelectorAll('[data-i18n-placeholder]');
     phNodes.forEach(el=>{
       try{
         const k = el.getAttribute('data-i18n-placeholder');
-        if(!k) {return;}
+        if(!k) return;
         const txt = t(k);
-        if(txt!=null) {el.setAttribute('placeholder', txt);}
+        if(txt!=null) el.setAttribute('placeholder', txt);
       }catch(_){ }
     });
     const ariaNodes = document.querySelectorAll('[data-i18n-aria-label]');
     ariaNodes.forEach(el=>{
       try{
         const k = el.getAttribute('data-i18n-aria-label');
-        if(!k) {return;}
+        if(!k) return;
         const txt = t(k);
-        if(txt!=null) {el.setAttribute('aria-label', txt);}
+        if(txt!=null) el.setAttribute('aria-label', txt);
       }catch(_){ }
     });
   }catch(_){ }
@@ -577,7 +577,7 @@ function applyI18nToDom(){
 function updateLangBtn(){
   try{
     const btn = document.getElementById('langToggle');
-    if(!btn) {return;}
+    if(!btn) return;
     const key = __uiLang==='fr' ? 'ui.lang.btn.fr' : (__uiLang==='en' ? 'ui.lang.btn.en' : 'ui.lang.btn.es');
     btn.textContent = t(key);
     btn.title = t('ui.lang.btnTitle');
@@ -590,9 +590,9 @@ try{ window.BOTRADE_LANG = { currentLang, setLang, cycleLang, t }; }catch(_){ }
 // --- Lab: Entrainer (AI surrogate) ---
 
 
-// --- Lab: lecture et palmarÃ¨s (localStorage) ---
+// --- Lab: lecture et palmarès (localStorage) ---
 const labTBody = document.getElementById('labTBody'); const labSummaryEl=document.getElementById('labSummary'); const labTFSelect=document.getElementById('labTFSelect');
-// TF d'exÃ©cution du Lab: restitue la derniÃ¨re valeur utilisÃ©e
+// TF d'exécution du Lab: restitue la dernière valeur utilisée
 const labSymbolSelect=document.getElementById('labSymbolSelect');
 const labProfileEl=document.getElementById('labProfile');
 const labSortModeEl=document.getElementById('labSortMode');
@@ -606,38 +606,38 @@ function writeLabStorage(sym, tf, arr){ try{ localStorage.setItem(labKey(sym,tf)
 function palmaresKey(sym, tf){ return `lab:palmares:${sym}:${tf}`; }
 function readPalmares(sym, tf){ try{ const s=localStorage.getItem(palmaresKey(sym,tf)); return s? JSON.parse(s): []; }catch(_){ return []; } }
 function writePalmares(sym, tf, arr){ try{ localStorage.setItem(palmaresKey(sym,tf), JSON.stringify(arr)); localStorage.setItem(`lab:palmares:ts:${sym}:${tf}`, String(Date.now())); }catch(_){} }
-function paramsKey(p){ if(!p) {return '';} const o={ nol:p.nol, prd:p.prd, slInitPct:p.slInitPct, beAfterBars:p.beAfterBars, beLockPct:p.beLockPct, emaLen:p.emaLen, entryMode:p.entryMode, useFibRet:!!p.useFibRet, confirmMode:p.confirmMode, ent382:!!p.ent382, ent500:!!p.ent500, ent618:!!p.ent618, ent786:!!p.ent786, tp: Array.isArray(p.tp)? p.tp.slice(0,10): [] }; return JSON.stringify(o); }
-// Dictionnaires (Ã©chantillons)
-const DICT_FR=["Ã©toile","forÃªt","riviÃ¨re","montagne","ocÃ©an","tempÃªte","harmonie","nuage","pluie","lueur","zÃ¨bre","quartz","vallÃ©e","soleil","dÃ©luge","orage","saphir","primevÃ¨re","cendre","ivoire"];
+function paramsKey(p){ if(!p) return ''; const o={ nol:p.nol, prd:p.prd, slInitPct:p.slInitPct, beAfterBars:p.beAfterBars, beLockPct:p.beLockPct, emaLen:p.emaLen, entryMode:p.entryMode, useFibRet:!!p.useFibRet, confirmMode:p.confirmMode, ent382:!!p.ent382, ent500:!!p.ent500, ent618:!!p.ent618, ent786:!!p.ent786, tp: Array.isArray(p.tp)? p.tp.slice(0,10): [] }; return JSON.stringify(o); }
+// Dictionnaires (échantillons)
+const DICT_FR=["étoile","forêt","rivière","montagne","océan","tempête","harmonie","nuage","pluie","lueur","zèbre","quartz","vallée","soleil","déluge","orage","saphir","primevère","cendre","ivoire"];
 const DICT_EN=["river","stone","oak","ember","nova","zenith","aurora","lunar","solar","atlas","odyssey","phoenix","falcon","drake","comet","orbit","vertex","harbor","willow","meadow"];
-const DICT_ES=["rÃ­o","piedra","roble","brasa","nube","estrella","luna","sol","mar","tierra","tormenta","sierra","valle","bosque","isla","puerto","Ã¡guila","toro","lince","cometa"];
-const DICT_PL=["rzeka","kamieÅ„","dÄ…b","iskra","gwiazda","ksiÄ™Å¼yc","sÅ‚oÅ„ce","morze","ziemia","wiatr","burza","las","pustynia","wyspa","orzeÅ‚","Å¼ubr","ryÅ›","kometa","polana","dolina"];
+const DICT_ES=["río","piedra","roble","brasa","nube","estrella","luna","sol","mar","tierra","tormenta","sierra","valle","bosque","isla","puerto","águila","toro","lince","cometa"];
+const DICT_PL=["rzeka","kamień","dąb","iskra","gwiazda","księżyc","słońce","morze","ziemia","wiatr","burza","las","pustynia","wyspa","orzeł","żubr","ryś","kometa","polana","dolina"];
 function randomName(){ const dicts=[DICT_FR,DICT_EN,DICT_ES,DICT_PL]; const d=dicts[Math.floor(Math.random()*dicts.length)]; return d[Math.floor(Math.random()*d.length)]; }
 function uniqueNameFor(sym, tf, base){ const pal=readPalmares(sym, tf); const names=new Set(pal.map(x=>x.name)); let n=base; let k=2; while(names.has(n)){ n=base+"-"+k; k++; } return n; }
 async function renderLabFromStorage(){
   const tf = labTFSelect? labTFSelect.value: (intervalSelect? intervalSelect.value:''), sym=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol;
   const profSel = (document.getElementById('labProfile') && document.getElementById('labProfile').value) || (localStorage.getItem('labWeightsProfile')||'balancee');
-  // Mode de tri: score (par dÃ©faut) ou P&L net
+  // Mode de tri: score (par défaut) ou P&L net
   let sortMode='score';
   try{
     sortMode = (labSortModeEl && labSortModeEl.value) || localStorage.getItem('lab:sortMode') || 'score';
   }catch(_){ sortMode='score'; }
   try{
     if(labSortModeEl){
-      if(!labSortModeEl.value) {labSortModeEl.value = sortMode;}
+      if(!labSortModeEl.value) labSortModeEl.value = sortMode;
       if(labSortModeEl.value !== sortMode){ labSortModeEl.value = sortMode; }
     }
     localStorage.setItem('lab:sortMode', sortMode);
   }catch(_){ }
   let arr=[]; let source='local';
-  // Si Supabase est configurÃ©, on lit UNIQUEMENT Supabase pour le palmarÃ¨s
+  // Si Supabase est configuré, on lit UNIQUEMENT Supabase pour le palmarès
   if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchPalmares==='function'){
     try{
       const supaArr = await SUPA.fetchPalmares(sym, tf, 25, profSel, sortMode);
       if(Array.isArray(supaArr)) { arr = supaArr; source='Supabase'; }
     }catch(_){ /* en cas d'erreur Supabase, on laisse arr = [] */ }
   } else {
-    // Fallback local uniquement si Supabase n'est pas configurÃ©
+    // Fallback local uniquement si Supabase n'est pas configuré
     arr = readPalmares(sym, tf) || []; source='local';
   }
   window.labPalmaresCache = Array.isArray(arr)? arr.slice() : [];
@@ -646,9 +646,9 @@ async function renderLabFromStorage(){
   const symWord = t('lab.palmares.symbol');
   const tfWord = t('lab.palmares.tf');
   if(labSummaryEl){
-    const sortSuffix = sortMode==='pnl' ? ' â€¢ tri: P&L' : ' â€¢ tri: Score';
+    const sortSuffix = sortMode==='pnl' ? ' • tri: P&L' : ' • tri: Score';
     labSummaryEl.textContent = arr.length
-      ? `${prefix} ${arr.length} ${stratsWord} (${symWord} ${symbolToDisplay(sym)} â€¢ ${tfWord} ${tf}) â€” ${source}${sortSuffix}`
+      ? `${prefix} ${arr.length} ${stratsWord} (${symWord} ${symbolToDisplay(sym)} • ${tfWord} ${tf}) — ${source}${sortSuffix}`
       : t('lab.palmares.empty');
   }
   if(!labTBody){ return; }
@@ -660,7 +660,7 @@ async function renderLabFromStorage(){
     if(sortMode==='pnl'){
       const pnlB = Number(stB.totalPnl||0);
       const pnlA = Number(stA.totalPnl||0);
-      if(pnlB!==pnlA) {return pnlB-pnlA;}
+      if(pnlB!==pnlA) return pnlB-pnlA;
     }
     const sB = (Number.isFinite(b&&b.score)) ? Number(b.score) : scoreResult(stB, weights);
     const sA = (Number.isFinite(a&&a.score)) ? Number(a.score) : scoreResult(stA, weights);
@@ -684,26 +684,26 @@ rows.push(`
   <td>${idx}</td>
   <td>${pairDisp}</td>
   <td>${tfDisp}</td>
-  <td style="text-align:left">${(r.name||'â€”')}</td>
+  <td style="text-align:left">${(r.name||'—')}</td>
   <td>${(r.gen||1)}</td>
   <td style="text-align:left">${paramsStr}</td>
   <td>${raw.toFixed(2)}</td>
-  <td title="brut: ${raw.toFixed(2)} â€¢ pÃ©nalitÃ©: ${penalty.toFixed(2)}">${robust.toFixed(2)}</td>
+  <td title="brut: ${raw.toFixed(2)} • pénalité: ${penalty.toFixed(2)}">${robust.toFixed(2)}</td>
   <td>${pf.toFixed(2)}</td>
   <td>${pnl.toFixed(0)}</td>
   <td>${eq1.toFixed(0)}</td>
   <td>${cnt}</td>
   <td>${wr.toFixed(1)}</td>
-  <td>${Number.isFinite(rr)? rr.toFixed(2): 'â€”'}</td>
+  <td>${Number.isFinite(rr)? rr.toFixed(2): '—'}</td>
   <td>${mdd.toFixed(0)}</td>
   <td style=\"white-space:nowrap;\"><button class=\"btn\" data-action=\"detail\" data-idx=\"${idx-1}\">${detailLabel}</button> <button class=\"btn\" data-action=\"apply\" data-idx=\"${idx-1}\" title=\"${applyTitle}\">${applyLabel}</button></td>
 </tr>`);
     idx++;
   }
   labTBody.innerHTML = rows.join('');
-  // Wire actions on palmarÃ¨s rows (DÃ©tail / Appliquer)
+  // Wire actions on palmarès rows (Détail / Appliquer)
   if(!labTBody.dataset || labTBody.dataset.wiredDetail!=="1"){
-    labTBody.addEventListener('click', (ev)=>{ try{ const t=ev && ev.target; const btn = t && t.closest && t.closest('button[data-action]'); if(!btn) {return;} const act=(btn.getAttribute('data-action')||'').toLowerCase(); if(act==='detail'){ handleLabDetailClick(ev); } else if(act==='apply'){ handleLabApplyClick(ev); } }catch(e){ __labDetailLog('tbody handler error: '+(e&&e.message?e.message:e)); } });
+    labTBody.addEventListener('click', (ev)=>{ try{ const t=ev && ev.target; const btn = t && t.closest && t.closest('button[data-action]'); if(!btn) return; const act=(btn.getAttribute('data-action')||'').toLowerCase(); if(act==='detail'){ handleLabDetailClick(ev); } else if(act==='apply'){ handleLabApplyClick(ev); } }catch(e){ __labDetailLog('tbody handler error: '+(e&&e.message?e.message:e)); } });
     labTBody.dataset.wiredDetail='1';
     __labDetailLog('tbody wired');
   }
@@ -717,16 +717,16 @@ function __labDetailLog(msg){
 // Ensure simple modal exists (create on the fly if missing)
 function ensureLabSimpleModal(){
   let el=document.getElementById('labSimpleDetailModal');
-  if(el) {return el;}
+  if(el) return el;
   try{
     el=document.createElement('div'); el.id='labSimpleDetailModal'; el.className='modal hidden'; el.setAttribute('aria-hidden','true');
     const backdrop=document.createElement('div'); backdrop.className='modal-backdrop'; backdrop.dataset.close='1'; el.appendChild(backdrop);
     const content=document.createElement('div'); content.className='modal-content small'; content.style.maxWidth='600px'; el.appendChild(content);
     const header=document.createElement('div'); header.className='modal-header'; content.appendChild(header);
-    const h2=document.createElement('h2'); h2.textContent='DÃ©tail stratÃ©gie'; header.appendChild(h2);
-    const close=document.createElement('button'); close.id='labSimpleDetailClose'; close.className='icon-btn'; close.setAttribute('aria-label','Fermer'); close.textContent='Ã—'; header.appendChild(close);
+    const h2=document.createElement('h2'); h2.textContent='Détail stratégie'; header.appendChild(h2);
+    const close=document.createElement('button'); close.id='labSimpleDetailClose'; close.className='icon-btn'; close.setAttribute('aria-label','Fermer'); close.textContent='×'; header.appendChild(close);
     const bodyWrap=document.createElement('div'); bodyWrap.className='modal-body'; content.appendChild(bodyWrap);
-    const body=document.createElement('div'); body.id='labSimpleDetailBody'; body.style.color='var(--muted)'; body.textContent='â€”'; bodyWrap.appendChild(body);
+    const body=document.createElement('div'); body.id='labSimpleDetailBody'; body.style.color='var(--muted)'; body.textContent='—'; bodyWrap.appendChild(body);
     document.body.appendChild(el);
     // wire close
     close.addEventListener('click', ()=> closeModalEl(el));
@@ -738,19 +738,19 @@ function ensureLabSimpleModal(){
 function handleLabDetailClick(ev){
   let t = ev && ev.target;
   __labDetailLog('click start; target='+(t&&t.tagName)+' id='+(t&&t.id)+' class='+(t&&t.className));
-  if(t && t.nodeType === 3 && t.parentElement) {t = t.parentElement;}
+  if(t && t.nodeType === 3 && t.parentElement) t = t.parentElement;
   let btn = null;
-  if(t && typeof t.closest === 'function') {btn = t.closest('button[data-action=\"detail\"]');}
+  if(t && typeof t.closest === 'function') btn = t.closest('button[data-action=\"detail\"]');
   if(!btn){ return; }
   const idxStr = (btn && btn.getAttribute && btn.getAttribute('data-idx')) || (btn && btn.dataset && btn.dataset.idx);
   const idx = Math.max(0, parseInt(idxStr||'0',10));
   __labDetailLog('detail button found; idx='+idx);
   try{
-    // DÃ©terminer si le clic vient du palmarÃ¨s global ou du Lab
+    // Déterminer si le clic vient du palmarès global ou du Lab
     let isGlobal = false;
     try{
       const gBody = document.getElementById('globalPalTBody');
-      if(gBody && gBody.contains(btn)) {isGlobal = true;}
+      if(gBody && gBody.contains(btn)) isGlobal = true;
     }catch(_){ isGlobal = false; }
 
     let arr = [];
@@ -768,30 +768,30 @@ function handleLabDetailClick(ev){
     const item = arr[idx] || null;
     if(!item){ __labDetailLog('no item for idx'); return; }
 
-    // Symbol/TF: si disponibles sur l'item (palmarÃ¨s global), sinon on retombe sur les sÃ©lecteurs Lab
+    // Symbol/TF: si disponibles sur l'item (palmarès global), sinon on retombe sur les sélecteurs Lab
     const tfNow = (item && item.tf) || (labTFSelect? labTFSelect.value : (intervalSelect? intervalSelect.value:''));
     const symSel = (item && item.symbol) || (labSymbolSelect&&labSymbolSelect.value) || currentSymbol;
 
     __labDetailLog('running backtest (full period) for '+(item.name||'strat'));
-    // Lance l'analyse dÃ©taillÃ©e (pÃ©riode complÃ¨te)
+    // Lance l'analyse détaillée (période complète)
     openLabStrategyDetail(item, { symbol: symSel, tf: tfNow, full: true });
     if(ev){ try{ ev.stopPropagation(); ev.preventDefault(); }catch(_){ } }
   }catch(e){ __labDetailLog('error: '+(e&&e.message?e.message:e)); }
 }
 function handleLabApplyClick(ev){
   let t = ev && ev.target;
-  if(t && t.nodeType === 3 && t.parentElement) {t = t.parentElement;}
+  if(t && t.nodeType === 3 && t.parentElement) t = t.parentElement;
   let btn = null;
-  if(t && typeof t.closest === 'function') {btn = t.closest('button[data-action=\"apply\"]');}
+  if(t && typeof t.closest === 'function') btn = t.closest('button[data-action=\"apply\"]');
   if(!btn){ return; }
   const idxStr = (btn && btn.getAttribute && btn.getAttribute('data-idx')) || (btn && btn.dataset && btn.dataset.idx);
   const idx = Math.max(0, parseInt(idxStr||'0',10));
   try{
-    // MÃªme logique que pour le dÃ©tail: choisir la bonne source (Lab ou global)
+    // Même logique que pour le détail: choisir la bonne source (Lab ou global)
     let isGlobal = false;
     try{
       const gBody = document.getElementById('globalPalTBody');
-      if(gBody && gBody.contains(btn)) {isGlobal = true;}
+      if(gBody && gBody.contains(btn)) isGlobal = true;
     }catch(_){ isGlobal = false; }
 
     let arr = [];
@@ -816,17 +816,17 @@ function handleLabApplyClick(ev){
   }catch(e){ setStatus(t('status.applyError')); }
 }
 
-// --- Global palmarÃ¨s (tous symboles / TF) ---
+// --- Global palmarès (tous symboles / TF) ---
 function profileDisplayName(code){
   try{
-    if(!code) {return 'â€”';}
+    if(!code) return '—';
     let key = null;
     const c = String(code).toLowerCase();
-    if(c==='sure' || c==='safe') {key = 'lab.weights.profile.safe';}
-    else if(c==='balancee' || c==='balanced') {key = 'lab.weights.profile.bal';}
-    else if(c==='agressive' || c==='aggressive') {key = 'lab.weights.profile.agg';}
+    if(c==='sure' || c==='safe') key = 'lab.weights.profile.safe';
+    else if(c==='balancee' || c==='balanced') key = 'lab.weights.profile.bal';
+    else if(c==='agressive' || c==='aggressive') key = 'lab.weights.profile.agg';
     return key ? t(key) : code;
-  }catch(_){ return code || 'â€”'; }
+  }catch(_){ return code || '—'; }
 }
 const globalPalBtn = document.getElementById('globalPalmaresBtn');
 const globalPalModalEl = document.getElementById('globalPalmaresModal');
@@ -843,18 +843,18 @@ let __globalPalmaresData = [];
 async function loadGlobalPalmares(){
   let prof = 'balancee';
   try{
-    if(typeof currentProfileName==='function') {prof = currentProfileName();}
-    else {prof = localStorage.getItem('labWeightsProfile') || 'balancee';}
+    if(typeof currentProfileName==='function') prof = currentProfileName();
+    else prof = localStorage.getItem('labWeightsProfile') || 'balancee';
   }catch(_){ prof = 'balancee'; }
   const weights = getWeights(prof);
-  // Scope: vue groupÃ©e ou Top 25 global
+  // Scope: vue groupée ou Top 25 global
   let scope = 'grouped';
   try{
     scope = (globalPalScopeEl && globalPalScopeEl.value) || localStorage.getItem('globalPal:scope') || 'grouped';
   }catch(_){ scope = 'grouped'; }
   try{
     if(globalPalScopeEl){
-      if(!globalPalScopeEl.value) {globalPalScopeEl.value = scope;}
+      if(!globalPalScopeEl.value) globalPalScopeEl.value = scope;
       if(globalPalScopeEl.value !== scope){ globalPalScopeEl.value = scope; }
     }
     localStorage.setItem('globalPal:scope', scope);
@@ -866,12 +866,12 @@ async function loadGlobalPalmares(){
   }catch(_){ sortMode = 'score'; }
   try{
     if(globalPalSortEl){
-      if(!globalPalSortEl.value) {globalPalSortEl.value = sortMode;}
+      if(!globalPalSortEl.value) globalPalSortEl.value = sortMode;
       if(globalPalSortEl.value !== sortMode){ globalPalSortEl.value = sortMode; }
     }
     localStorage.setItem('globalPal:sortMode', sortMode);
   }catch(_){ }
-  // Limite SQL: Top 25 global vs vue groupÃ©e plus large
+  // Limite SQL: Top 25 global vs vue groupée plus large
   const sqlLimit = (scope === 'top25') ? 25 : 200;
   let items = [];
   if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchGlobalPalmares==='function'){
@@ -906,15 +906,15 @@ async function loadGlobalPalmares(){
     const syms = [];
     try{
       if(symbolSelect && symbolSelect.options && symbolSelect.options.length){
-        for(let i=0;i<symbolSelect.options.length;i++){ const v=symbolSelect.options[i].value; if(v) {syms.push(v);} }
+        for(let i=0;i<symbolSelect.options.length;i++){ const v=symbolSelect.options[i].value; if(v) syms.push(v); }
       }
     }catch(_){ }
-    if(!syms.length){ try{ if(currentSymbol) {syms.push(currentSymbol);} }catch(_){ } }
+    if(!syms.length){ try{ if(currentSymbol) syms.push(currentSymbol); }catch(_){ } }
     let tfs = [];
     try{
       const sel = labTFSelect || document.getElementById('labTFSelect');
       if(sel && sel.options && sel.options.length){
-        for(let i=0;i<sel.options.length;i++){ const v=sel.options[i].value; if(v) {tfs.push(v);} }
+        for(let i=0;i<sel.options.length;i++){ const v=sel.options[i].value; if(v) tfs.push(v); }
       }
     }catch(_){ }
     if(!tfs.length){ tfs = ['1m','5m','15m','1h','4h','1d']; }
@@ -923,7 +923,7 @@ async function loadGlobalPalmares(){
       for(const tf of tfs){
         let arr=[];
         try{ arr = readPalmares(sym, tf) || []; }catch(_){ arr=[]; }
-        if(!Array.isArray(arr) || !arr.length) {continue;}
+        if(!Array.isArray(arr) || !arr.length) continue;
         for(const r of arr){
           const st = r.res || {};
           const raw = scoreResult(st, weights);
@@ -965,9 +965,9 @@ function populateGlobalPalmaresFilters(){
     const tfs = new Set();
     const profs = new Set();
     for(const it of arr){
-      if(it && it.symbol) {syms.add(it.symbol);}
-      if(it && it.tf) {tfs.add(it.tf);}
-      if(it && it.profile) {profs.add(it.profile);}
+      if(it && it.symbol) syms.add(it.symbol);
+      if(it && it.tf) tfs.add(it.tf);
+      if(it && it.profile) profs.add(it.profile);
     }
     let selSym = ALL, selTF = ALL, selProf = ALL;
     try{
@@ -983,7 +983,7 @@ function populateGlobalPalmaresFilters(){
         opts.push(`<option value="${sym}">${disp}</option>`);
       });
       globalPalSymbolFilterEl.innerHTML = opts.join('');
-      try{ if(selSym && selSym!==ALL) {globalPalSymbolFilterEl.value = selSym;} }catch(_){ }
+      try{ if(selSym && selSym!==ALL) globalPalSymbolFilterEl.value = selSym; }catch(_){ }
     }
 
     if(globalPalTFFilterEl){
@@ -992,7 +992,7 @@ function populateGlobalPalmaresFilters(){
         opts.push(`<option value="${tf}">${tf}</option>`);
       });
       globalPalTFFilterEl.innerHTML = opts.join('');
-      try{ if(selTF && selTF!==ALL) {globalPalTFFilterEl.value = selTF;} }catch(_){ }
+      try{ if(selTF && selTF!==ALL) globalPalTFFilterEl.value = selTF; }catch(_){ }
     }
 
     if(globalPalProfileFilterEl){
@@ -1002,39 +1002,39 @@ function populateGlobalPalmaresFilters(){
         opts.push(`<option value="${code}">${disp}</option>`);
       });
       globalPalProfileFilterEl.innerHTML = opts.join('');
-      try{ if(selProf && selProf!==ALL) {globalPalProfileFilterEl.value = selProf;} }catch(_){ }
+      try{ if(selProf && selProf!==ALL) globalPalProfileFilterEl.value = selProf; }catch(_){ }
     }
   }catch(_){ }
 }
 
 function renderGlobalPalmares(){
-  if(!globalPalTBody) {return;}
+  if(!globalPalTBody) return;
   const ALL = '__all__';
   let arr = Array.isArray(__globalPalmaresData)? __globalPalmaresData : [];
 
   // Appliquer les filtres (pair / TF / profil)
   try{
     let selSym = ALL, selTF = ALL, selProf = ALL;
-    if(globalPalSymbolFilterEl) {selSym = globalPalSymbolFilterEl.value || ALL;}
-    if(globalPalTFFilterEl) {selTF = globalPalTFFilterEl.value || ALL;}
-    if(globalPalProfileFilterEl) {selProf = globalPalProfileFilterEl.value || ALL;}
+    if(globalPalSymbolFilterEl) selSym = globalPalSymbolFilterEl.value || ALL;
+    if(globalPalTFFilterEl) selTF = globalPalTFFilterEl.value || ALL;
+    if(globalPalProfileFilterEl) selProf = globalPalProfileFilterEl.value || ALL;
     arr = arr.filter(it=>{
-      if(!it) {return false;}
-      if(selSym!==ALL && it.symbol && it.symbol!==selSym) {return false;}
-      if(selTF!==ALL && it.tf && it.tf!==selTF) {return false;}
-      if(selProf!==ALL && it.profile && it.profile!==selProf) {return false;}
+      if(!it) return false;
+      if(selSym!==ALL && it.symbol && it.symbol!==selSym) return false;
+      if(selTF!==ALL && it.tf && it.tf!==selTF) return false;
+      if(selProf!==ALL && it.profile && it.profile!==selProf) return false;
       return true;
     });
   }catch(_){ }
 
-  // Scope: vue groupÃ©e (par paire/TF) ou Top 25 global toutes paires confondues
+  // Scope: vue groupée (par paire/TF) ou Top 25 global toutes paires confondues
   let scope = 'grouped';
   try{
     scope = (globalPalScopeEl && globalPalScopeEl.value) || localStorage.getItem('globalPal:scope') || 'grouped';
   }catch(_){ scope = 'grouped'; }
   try{
     if(globalPalScopeEl){
-      if(!globalPalScopeEl.value) {globalPalScopeEl.value = scope;}
+      if(!globalPalScopeEl.value) globalPalScopeEl.value = scope;
       if(globalPalScopeEl.value !== scope){ globalPalScopeEl.value = scope; }
     }
     localStorage.setItem('globalPal:scope', scope);
@@ -1046,7 +1046,7 @@ function renderGlobalPalmares(){
   }catch(_){ sortMode='score'; }
   try{
     if(globalPalSortEl){
-      if(!globalPalSortEl.value) {globalPalSortEl.value = sortMode;}
+      if(!globalPalSortEl.value) globalPalSortEl.value = sortMode;
       if(globalPalSortEl.value !== sortMode){ globalPalSortEl.value = sortMode; }
     }
     localStorage.setItem('globalPal:sortMode', sortMode);
@@ -1054,7 +1054,7 @@ function renderGlobalPalmares(){
 
   if(!arr.length){
     globalPalTBody.innerHTML = `<tr><td colspan=\"15\">${t('lab.table.noData')}</td></tr>`;
-    if(globalPalSummaryEl) {globalPalSummaryEl.textContent = t('lab.palmares.empty');}
+    if(globalPalSummaryEl) globalPalSummaryEl.textContent = t('lab.palmares.empty');
     return;
   }
 
@@ -1071,29 +1071,29 @@ function renderGlobalPalmares(){
 
     switch(sortMode){
       case 'pnl':
-        if(bPnl !== aPnl) {return bPnl - aPnl;}
+        if(bPnl !== aPnl) return bPnl - aPnl;
         return bRob - aRob;
       case 'raw':
-        if(bRaw !== aRaw) {return bRaw - aRaw;}
+        if(bRaw !== aRaw) return bRaw - aRaw;
         return bRob - aRob;
       case 'pf':
-        if(bPF !== aPF) {return bPF - aPF;}
+        if(bPF !== aPF) return bPF - aPF;
         return bRob - aRob;
       case 'eq':
-        if(bEq !== aEq) {return bEq - aEq;}
+        if(bEq !== aEq) return bEq - aEq;
         return bRob - aRob;
       case 'win':
-        if(bWr !== aWr) {return bWr - aWr;}
+        if(bWr !== aWr) return bWr - aWr;
         return bRob - aRob;
       case 'rr':
-        if(bRR !== aRR) {return bRR - aRR;}
+        if(bRR !== aRR) return bRR - aRR;
         return bRob - aRob;
       case 'dd':
         // Pour DD, "meilleur" = drawdown plus faible
-        if(aDD !== bDD) {return aDD - bDD;}
+        if(aDD !== bDD) return aDD - bDD;
         return bRob - aRob;
       default: // score robuste
-        if(bRob !== aRob) {return bRob - aRob;}
+        if(bRob !== aRob) return bRob - aRob;
         return bRaw - aRaw;
     }
   });
@@ -1116,7 +1116,7 @@ function renderGlobalPalmares(){
   <td>${pair}</td>
   <td>${tfDisp}</td>
   <td>${prof}</td>
-  <td style=\"text-align:left\">${(it.name||'â€”')}</td>
+  <td style=\"text-align:left\">${(it.name||'—')}</td>
   <td>${it.gen!=null? it.gen:1}</td>
   <td>${Number(it.scoreRaw||0).toFixed(2)}</td>
   <td>${Number(it.scoreRobust||0).toFixed(2)}</td>
@@ -1124,34 +1124,34 @@ function renderGlobalPalmares(){
   <td>${Number(it.eq1||0).toFixed(0)}</td>
   <td>${Number(it.cnt||0)}</td>
   <td>${Number(it.wr||0).toFixed(1)}</td>
-  <td>${Number.isFinite(it.rr)? Number(it.rr).toFixed(2): 'â€”'}</td>
+  <td>${Number.isFinite(it.rr)? Number(it.rr).toFixed(2): '—'}</td>
   <td>${Number(it.mdd||0).toFixed(0)}</td>
   <td style=\"white-space:nowrap;\"><button class=\"btn\" data-action=\"detail\" data-idx=\"${idx-1}\">${detailLabel}</button> <button class=\"btn\" data-action=\"apply\" data-idx=\"${idx-1}\" title=\"${applyTitle}\">${applyLabel}</button></td>
 </tr>`);
-    if(scope !== 'top25' && idx>=200) {break;}
+    if(scope !== 'top25' && idx>=200) break;
     idx++;
   }
   globalPalTBody.innerHTML = rows.join('');
   if(globalPalSummaryEl){
     let sortSuffix = '';
     switch(sortMode){
-      case 'raw': sortSuffix = ' â€¢ tri: Score brut'; break;
-      case 'pnl': sortSuffix = ' â€¢ tri: P&L'; break;
-      case 'pf': sortSuffix = ' â€¢ tri: PF'; break;
-      case 'eq': sortSuffix = ' â€¢ tri: Cap. finale'; break;
-      case 'win': sortSuffix = ' â€¢ tri: Win%'; break;
-      case 'rr': sortSuffix = ' â€¢ tri: Avg RR'; break;
-      case 'dd': sortSuffix = ' â€¢ tri: Max DD'; break;
-      default: sortSuffix = ' â€¢ tri: Score robuste'; break;
+      case 'raw': sortSuffix = ' • tri: Score brut'; break;
+      case 'pnl': sortSuffix = ' • tri: P&L'; break;
+      case 'pf': sortSuffix = ' • tri: PF'; break;
+      case 'eq': sortSuffix = ' • tri: Cap. finale'; break;
+      case 'win': sortSuffix = ' • tri: Win%'; break;
+      case 'rr': sortSuffix = ' • tri: Avg RR'; break;
+      case 'dd': sortSuffix = ' • tri: Max DD'; break;
+      default: sortSuffix = ' • tri: Score robuste'; break;
     }
     const scopeLabel = (scope === 'top25') ? 'Top 25 global' : 'global';
-    globalPalSummaryEl.textContent = `${t('lab.palmares.prefix')} ${arr.length} ${t('lab.palmares.strats')} â€” ${scopeLabel}${sortSuffix}`;
+    globalPalSummaryEl.textContent = `${t('lab.palmares.prefix')} ${arr.length} ${t('lab.palmares.strats')} — ${scopeLabel}${sortSuffix}`;
   }
 }
 
 if(globalPalBtn && (!globalPalBtn.dataset || globalPalBtn.dataset.wired!=="1")){
   globalPalBtn.addEventListener('click', async ()=>{ try{ openModalEl(globalPalModalEl); await loadGlobalPalmares(); }catch(_){ } });
-  if(!globalPalBtn.dataset) {globalPalBtn.dataset={};}
+  if(!globalPalBtn.dataset) globalPalBtn.dataset={};
   globalPalBtn.dataset.wired='1';
 }
 if(globalPalCloseBtn){ globalPalCloseBtn.addEventListener('click', ()=> closeModalEl(globalPalModalEl)); }
@@ -1167,7 +1167,7 @@ if(globalPalSortEl && (!globalPalSortEl.dataset || globalPalSortEl.dataset.wired
       }
     }catch(_){ }
   });
-  if(!globalPalSortEl.dataset) {globalPalSortEl.dataset={};}
+  if(!globalPalSortEl.dataset) globalPalSortEl.dataset={};
   globalPalSortEl.dataset.wired='1';
 }
 if(globalPalSymbolFilterEl && (!globalPalSymbolFilterEl.dataset || globalPalSymbolFilterEl.dataset.wired!=="1")){
@@ -1178,7 +1178,7 @@ if(globalPalSymbolFilterEl && (!globalPalSymbolFilterEl.dataset || globalPalSymb
       renderGlobalPalmares();
     }catch(_){ }
   });
-  if(!globalPalSymbolFilterEl.dataset) {globalPalSymbolFilterEl.dataset={};}
+  if(!globalPalSymbolFilterEl.dataset) globalPalSymbolFilterEl.dataset={};
   globalPalSymbolFilterEl.dataset.wired='1';
 }
 if(globalPalTFFilterEl && (!globalPalTFFilterEl.dataset || globalPalTFFilterEl.dataset.wired!=="1")){
@@ -1189,7 +1189,7 @@ if(globalPalTFFilterEl && (!globalPalTFFilterEl.dataset || globalPalTFFilterEl.d
       renderGlobalPalmares();
     }catch(_){ }
   });
-  if(!globalPalTFFilterEl.dataset) {globalPalTFFilterEl.dataset={};}
+  if(!globalPalTFFilterEl.dataset) globalPalTFFilterEl.dataset={};
   globalPalTFFilterEl.dataset.wired='1';
 }
 if(globalPalProfileFilterEl && (!globalPalProfileFilterEl.dataset || globalPalProfileFilterEl.dataset.wired!=="1")){
@@ -1200,7 +1200,7 @@ if(globalPalProfileFilterEl && (!globalPalProfileFilterEl.dataset || globalPalPr
       renderGlobalPalmares();
     }catch(_){ }
   });
-  if(!globalPalProfileFilterEl.dataset) {globalPalProfileFilterEl.dataset={};}
+  if(!globalPalProfileFilterEl.dataset) globalPalProfileFilterEl.dataset={};
   globalPalProfileFilterEl.dataset.wired='1';
 }
 if(globalPalScopeEl && (!globalPalScopeEl.dataset || globalPalScopeEl.dataset.wired!=="1")){
@@ -1215,27 +1215,27 @@ if(globalPalScopeEl && (!globalPalScopeEl.dataset || globalPalScopeEl.dataset.wi
       }
     }catch(_){ }
   });
-  if(!globalPalScopeEl.dataset) {globalPalScopeEl.dataset={};}
+  if(!globalPalScopeEl.dataset) globalPalScopeEl.dataset={};
   globalPalScopeEl.dataset.wired='1';
 }
-// DÃ©lÃ©gation des clics DÃ©tail / Appliquer sur le palmarÃ¨s global en rÃ©utilisant les handlers du Lab
+// Délégation des clics Détail / Appliquer sur le palmarès global en réutilisant les handlers du Lab
 if(globalPalTBody && (!globalPalTBody.dataset || globalPalTBody.dataset.wiredDetail!=="1")){
   globalPalTBody.addEventListener('click', (ev)=>{
     try{
       const t=ev && ev.target;
       const btn = t && t.closest && t.closest('button[data-action]');
-      if(!btn) {return;}
+      if(!btn) return;
       const act=(btn.getAttribute('data-action')||'').toLowerCase();
-      if(act==='detail') {handleLabDetailClick(ev);}
-      else if(act==='apply') {handleLabApplyClick(ev);}
+      if(act==='detail') handleLabDetailClick(ev);
+      else if(act==='apply') handleLabApplyClick(ev);
     }catch(_){ }
   });
-  if(!globalPalTBody.dataset) {globalPalTBody.dataset={};}
+  if(!globalPalTBody.dataset) globalPalTBody.dataset={};
   globalPalTBody.dataset.wiredDetail='1';
 }
 
 
-/* Chart BTC/USDC avec Lightweight Charts + donnÃ©es Binance + UI Heaven/Lab/Backtest/EMA (restaurÃ©) */
+/* Chart BTC/USDC avec Lightweight Charts + données Binance + UI Heaven/Lab/Backtest/EMA (restauré) */
 
 // --- Elements de base ---
 let container = document.getElementById('chart');
@@ -1245,7 +1245,7 @@ const symbolSelect = document.getElementById('symbol');
 // Ensure Lab pair list mirrors chart symbol list (options only, selection stays independent)
 function syncLabSymbolListFromChart(){
   try{
-    if(!labSymbolSelect || !symbolSelect) {return;}
+    if(!labSymbolSelect || !symbolSelect) return;
     let saved=null; try{ saved = localStorage.getItem('lab:sym'); }catch(_){ saved=null; }
     const prefer = saved || labSymbolSelect.value || (symbolSelect && symbolSelect.value) || '';
     labSymbolSelect.innerHTML = symbolSelect.innerHTML;
@@ -1264,19 +1264,19 @@ const gotoEndBtn = document.getElementById('gotoEndBtn');
 // Status: main + background indicator
 let __statusMain = '';
 let __statusBg = '';
-function setStatus(msg){ __statusMain = msg || ''; if(statusEl){ statusEl.textContent = __statusMain + (__statusBg ? (' â€¢ '+__statusBg) : ''); } }
-function setBgStatus(msg){ __statusBg = msg || ''; if(statusEl){ statusEl.textContent = __statusMain + (__statusBg ? (' â€¢ '+__statusBg) : ''); } }
+function setStatus(msg){ __statusMain = msg || ''; if(statusEl){ statusEl.textContent = __statusMain + (__statusBg ? (' • '+__statusBg) : ''); } }
+function setBgStatus(msg){ __statusBg = msg || ''; if(statusEl){ statusEl.textContent = __statusMain + (__statusBg ? (' • '+__statusBg) : ''); } }
 // Bars info indicator
 const barsInfoEl = document.getElementById('barsInfo');
 function updateBarsInfo(){
   try{
-    if(!barsInfoEl) {return;}
-    // Base complÃ¨te (aprÃ¨s Ã©ventuel cutoff live), utilisÃ©e aussi par le Lab/BT
+    if(!barsInfoEl) return;
+    // Base complète (après éventuel cutoff live), utilisée aussi par le Lab/BT
     const base = __baseAfterCutoff();
     const loaded = Array.isArray(base)? base.length : 0;
     const fmt=(n)=>{
-      if(n>=1000000) {return (n/1000000).toFixed(1).replace(/\.0$/,'')+'m';}
-      if(n>=1000) {return (n/1000).toFixed(0)+'k';}
+      if(n>=1000000) return (n/1000000).toFixed(1).replace(/\.0$/,'')+'m';
+      if(n>=1000) return (n/1000).toFixed(0)+'k';
       return String(n);
     };
     if(!loaded){
@@ -1291,7 +1291,7 @@ function updateBarsInfo(){
     }catch(_){
       since = String(oldest.time||'');
     }
-    // Affiche uniquement le nombre total de bougies chargÃ©es + date de la plus ancienne
+    // Affiche uniquement le nombre total de bougies chargées + date de la plus ancienne
     barsInfoEl.textContent = `${t('chart.bars.prefix')} ${fmt(loaded)} (${since})`;
   }catch(_){ }
 }
@@ -1304,51 +1304,51 @@ const supaUrlInp = document.getElementById('supaUrl');
 const supaAnonInp = document.getElementById('supaAnon');
 const supaMsgEl = document.getElementById('supaMsg');
 
-function setBtTitle(text){ try{ const h=btProgressEl && btProgressEl.querySelector('.modal-header h2'); if(h) {h.textContent = text||'Simulation';} }catch(_){ } }
+function setBtTitle(text){ try{ const h=btProgressEl && btProgressEl.querySelector('.modal-header h2'); if(h) h.textContent = text||'Simulation'; }catch(_){ } }
 
 let __lastLabTested = [];
 function formatParamsBrief(p){ try{ return JSON.stringify(p||{}, (k,v)=> (typeof v==='number' && !isFinite(v)? null : v)); }catch(_){ return ''; } }
 function formatParamsPretty(p){ try{
-  const core = `nol=${p.nol} â€¢ prd=${p.prd} â€¢ SL init=${p.slInitPct}% â€¢ BE=${p.beAfterBars}/${p.beLockPct}% â€¢ EMA=${p.emaLen}`;
+  const core = `nol=${p.nol} • prd=${p.prd} • SL init=${p.slInitPct}% • BE=${p.beAfterBars}/${p.beLockPct}% • EMA=${p.emaLen}`;
   const entFlags = [p.ent382?'382':null,p.ent500?'500':null,p.ent618?'618':null,p.ent786?'786':null].filter(Boolean).join('/');
-  const entry = `EntrÃ©e: mode=${p.entryMode||'Both'} â€¢ FibRet=${p.useFibRet? 'Oui':'Non'} â€¢ Confirm=${p.confirmMode||'Bounce'}${entFlags? ' â€¢ Ent='+entFlags:''}`;
+  const entry = `Entrée: mode=${p.entryMode||'Both'} • FibRet=${p.useFibRet? 'Oui':'Non'} • Confirm=${p.confirmMode||'Bounce'}${entFlags? ' • Ent='+entFlags:''}`;
   const tpArr=(Array.isArray(p.tp)? p.tp.slice(0,10):[]);
   const slArr=(Array.isArray(p.sl)? p.sl.slice(0,10):[]);
   
-  // TP ladder dÃ©taillÃ©: type, beOn, trail per TP, attached SL per TP
+  // TP ladder détaillé: type, beOn, trail per TP, attached SL per TP
   const tpDetails = tpArr.length? tpArr.map((t,idx)=>{
     const typ=t.type||'Fib';
     let base = '';
-    if(typ==='Fib') {base=`F:${t.fib}`;}
-    else if(typ==='Percent') {base=`P:${t.pct}%`;}
-    else if(typ==='EMA') {base=`E:${t.emaLen}`;}
-    else {base=typ;}
+    if(typ==='Fib') base=`F:${t.fib}`;
+    else if(typ==='Percent') base=`P:${t.pct}%`;
+    else if(typ==='EMA') base=`E:${t.emaLen}`;
+    else base=typ;
     const extras=[];
-    if(t.beOn) {extras.push('BE');}
+    if(t.beOn) extras.push('BE');
     if(t.trail && t.trail.mode){
       const tm = t.trail.mode;
-      if(tm==='be') {extras.push('Trail:BE');}
-      else if(tm==='prev') {extras.push('Trail:Prev');}
-      else if(tm==='ema') {extras.push(`Trail:EMA${t.trail.emaLen||''}`);}
-      else if(tm==='percent') {extras.push(`Trail:${t.trail.pct||0}%`);}
+      if(tm==='be') extras.push('Trail:BE');
+      else if(tm==='prev') extras.push('Trail:Prev');
+      else if(tm==='ema') extras.push(`Trail:EMA${t.trail.emaLen||''}`);
+      else if(tm==='percent') extras.push(`Trail:${t.trail.pct||0}%`);
     }
     if(t.sl){
       const slTyp=t.sl.type||'Percent';
       let slLabel='';
-      if(slTyp==='Fib') {slLabel=`SL:F${t.sl.fib||0}`;}
-      else if(slTyp==='Percent') {slLabel=`SL:${t.sl.pct||0}%`;}
-      else if(slTyp==='EMA') {slLabel=`SL:EMA${t.sl.emaLen||0}`;}
-      if(slLabel) {extras.push(slLabel);}
+      if(slTyp==='Fib') slLabel=`SL:F${t.sl.fib||0}`;
+      else if(slTyp==='Percent') slLabel=`SL:${t.sl.pct||0}%`;
+      else if(slTyp==='EMA') slLabel=`SL:EMA${t.sl.emaLen||0}`;
+      if(slLabel) extras.push(slLabel);
       if(t.sl.trail && t.sl.trail.mode){
         const stm=t.sl.trail.mode;
-        if(stm==='ema') {extras.push(`SLTr:EMA${t.sl.trail.emaLen||''}`);}
-        else if(stm==='percent') {extras.push(`SLTr:${t.sl.trail.pct||0}%`);}
+        if(stm==='ema') extras.push(`SLTr:EMA${t.sl.trail.emaLen||''}`);
+        else if(stm==='percent') extras.push(`SLTr:${t.sl.trail.pct||0}%`);
       }
     }
     return `TP${idx+1}=${base}${extras.length? ' ('+extras.join(', ')+')':''}}`;
-  }).join(' ; ') : 'â€”';
+  }).join(' ; ') : '—';
   
-  const slStr = slArr.length? slArr.map(t=>{ const typ=t.type||'Percent'; if(typ==='Fib') {return `F:${t.fib}`;} if(typ==='Percent') {return `P:${t.pct}%`;} if(typ==='EMA') {return `E:${t.emaLen}`;} return typ; }).join(' ; ') : 'â€”';
+  const slStr = slArr.length? slArr.map(t=>{ const typ=t.type||'Percent'; if(typ==='Fib') return `F:${t.fib}`; if(typ==='Percent') return `P:${t.pct}%`; if(typ==='EMA') return `E:${t.emaLen}`; return typ; }).join(' ; ') : '—';
   const tpLine = `TP: ${tpDetails}`;
   const slLine = `SL ladder: ${slStr}`;
   
@@ -1361,21 +1361,21 @@ function formatParamsPretty(p){ try{
   
   // TP compound & closeAllLast
   const optLine = [];
-  if(typeof p.tpCompound==='boolean') {optLine.push(`Compound=${p.tpCompound?'On':'Off'}`);}
-  if(typeof p.tpCloseAllLast==='boolean') {optLine.push(`CloseAllLast=${p.tpCloseAllLast?'On':'Off'}`);}
-  const optStr = optLine.length? optLine.join(' â€¢ '):'';
+  if(typeof p.tpCompound==='boolean') optLine.push(`Compound=${p.tpCompound?'On':'Off'}`);
+  if(typeof p.tpCloseAllLast==='boolean') optLine.push(`CloseAllLast=${p.tpCloseAllLast?'On':'Off'}`);
+  const optStr = optLine.length? optLine.join(' • '):'';
   
   return `<div>${core}</div><div>${entry}</div><div>${tpLine}</div><div>${slLine}</div>${capLine? ('<div>'+capLine+'</div>'):''}${optStr? ('<div>'+optStr+'</div>'):''}`;
 }catch(_){ return ''; } }
-function openEvalsModal(sym, tf){ try{ const tb=document.getElementById('evalsTBody'); const ctxEl=document.getElementById('evalsCtx'); if(!tb) {return;} const arr = Array.isArray(__lastLabTested)? __lastLabTested.slice(): []; const rows=[]; let idx=1; const sorted=arr.slice().sort((a,b)=> (b.score||0)-(a.score||0)); for(const it of sorted){ const st=it.metrics||it.res||{}; rows.push(`<tr><td>${idx}</td><td>${(it.score!=null? it.score.toFixed(2): 'â€”')}</td><td>${(st.profitFactor===Infinity?'âˆž':(st.profitFactor||0).toFixed(2))}</td><td>${(st.totalPnl||0).toFixed(0)}</td><td>${st.tradesCount||0}</td><td>${(st.winrate||0).toFixed(1)}</td><td>${(Number.isFinite(st.avgRR)? st.avgRR.toFixed(2):'â€”')}</td><td style=\"text-align:left; white-space:normal; line-height:1.2;\">${formatParamsPretty(it.params||{})}</td></tr>`); idx++; }
-  tb.innerHTML = rows.length? rows.join('') : '<tr><td colspan="8">â€”</td></tr>'; if(ctxEl) {ctxEl.textContent = `${symbolToDisplay(sym)} â€¢ ${tf} â€” ${arr.length} Ã©valuations`;} openModalEl(document.getElementById('evalsModal')); }catch(_){ }
+function openEvalsModal(sym, tf){ try{ const tb=document.getElementById('evalsTBody'); const ctxEl=document.getElementById('evalsCtx'); if(!tb) return; const arr = Array.isArray(__lastLabTested)? __lastLabTested.slice(): []; const rows=[]; let idx=1; const sorted=arr.slice().sort((a,b)=> (b.score||0)-(a.score||0)); for(const it of sorted){ const st=it.metrics||it.res||{}; rows.push(`<tr><td>${idx}</td><td>${(it.score!=null? it.score.toFixed(2): '—')}</td><td>${(st.profitFactor===Infinity?'∞':(st.profitFactor||0).toFixed(2))}</td><td>${(st.totalPnl||0).toFixed(0)}</td><td>${st.tradesCount||0}</td><td>${(st.winrate||0).toFixed(1)}</td><td>${(Number.isFinite(st.avgRR)? st.avgRR.toFixed(2):'—')}</td><td style=\"text-align:left; white-space:normal; line-height:1.2;\">${formatParamsPretty(it.params||{})}</td></tr>`); idx++; }
+  tb.innerHTML = rows.length? rows.join('') : '<tr><td colspan="8">—</td></tr>'; if(ctxEl) ctxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — ${arr.length} évaluations`; openModalEl(document.getElementById('evalsModal')); }catch(_){ }
 }
 function exportEvalsCSV(){
   try{
     const arr=Array.isArray(__lastLabTested)? __lastLabTested: [];
     if(!arr.length){ setStatus(t('status.noEval')); return; }
     const DL = ';';
-    function esc(v){ let s = (v==null? '': String(v)); if(s.includes('"')) {s=s.replace(/"/g,'""');} if(s.includes(DL) || s.includes('\n')) {s='"'+s+'"';} return s; }
+    function esc(v){ let s = (v==null? '': String(v)); if(s.includes('"')) s=s.replace(/"/g,'""'); if(s.includes(DL) || s.includes('\n')) s='"'+s+'"'; return s; }
     function tpColsHdr(){ const cols=[]; for(let i=1;i<=10;i++){ cols.push(`TP${i}_type`,`TP${i}_val`,`TP${i}_qty`,`TP${i}_beOn`,`TP${i}_trail_mode`,`TP${i}_trail_emaLen`,`TP${i}_trail_pct`,`TP${i}_SL_type`,`TP${i}_SL_val`,`TP${i}_SL_trail_mode`,`TP${i}_SL_trail_emaLen`,`TP${i}_SL_trail_pct`); } return cols; }
     function slColsHdr(){ const cols=[]; for(let i=1;i<=10;i++){ cols.push(`SL${i}_type`,`SL${i}_val`,`SL${i}_trail_mode`,`SL${i}_trail_emaLen`,`SL${i}_trail_pct`); } return cols; }
     const baseHdr = [
@@ -1385,7 +1385,7 @@ function exportEvalsCSV(){
       'tpCompound','tpCloseAllLast','tp1R'
     ];
     const header = baseHdr.concat(tpColsHdr()).concat(['slEnable']).concat(slColsHdr());
-    const lines = ['\uFEFF'+header.join(DL)];
+    let lines = ['\uFEFF'+header.join(DL)];
     for(const it of arr){
       const st=it.metrics||it.res||{}; const p=it.params||{};
       const row=[];
@@ -1420,7 +1420,7 @@ function exportEvalsCSV(){
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`evals_${currentSymbol}_${(labTFSelect&&labTFSelect.value)||currentInterval}.csv`; a.click();
   }catch(_){ }
 }
-function symbolToDisplay(sym){ if(!sym) {return 'â€”';} return sym.endsWith('USDC')? sym.slice(0,-4)+'/USDC' : sym; }
+function symbolToDisplay(sym){ if(!sym) return '—'; return sym.endsWith('USDC')? sym.slice(0,-4)+'/USDC' : sym; }
 function updateTitle(sym){ if(titleEl){ titleEl.textContent = symbolToDisplay(sym); } }
 function updateWatermark(){ try{ chart.applyOptions({ watermark: { visible:true, color: isDark()? 'rgba(229,231,235,0.20)' : 'rgba(17,24,39,0.12)', text: symbolToDisplay(currentSymbol), fontSize:34, horzAlign:'left', vertAlign:'top' } }); }catch(_){ } }
 
@@ -1456,10 +1456,10 @@ const chart = LightweightCharts.createChart(container, {
 });
 const candleSeries = chart.addCandlestickSeries({ upColor:'#26a69a', downColor:'#ef5350', borderUpColor:'#26a69a', borderDownColor:'#ef5350', wickUpColor:'#26a69a', wickDownColor:'#ef5350' });
 // Cutoff badge (display start time) + toggle actions (clear/restore)
-function ensureCutoffBadge(){ try{ let el=document.getElementById('chartCutoff'); if(el) {return el;} if(!container) {return null;} el=document.createElement('div'); el.id='chartCutoff'; el.style.position='absolute'; el.style.right='8px'; el.style.top='8px'; el.style.bottom='auto'; el.style.zIndex='120'; el.style.background= isDark()? 'rgba(17,24,39,0.75)' : 'rgba(255,255,255,0.85)'; el.style.color= isDark()? '#e5e7eb':'#111827'; el.style.border= isDark()? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(0,0,0,0.12)'; el.style.borderRadius='8px'; el.style.padding='4px 8px'; el.style.fontSize='12px'; el.style.display='flex'; el.style.alignItems='center'; el.style.gap='6px'; el.style.backdropFilter='saturate(1.1) blur(6px)'; el.innerHTML = '<span id="chartCutoffText" style="pointer-events:none;"></span><button id="chartCutoffRestore" class="btn" style="font-size:12px; padding:2px 6px; display:none;" title="Afficher depuis le lancement">Depuis lancement</button><button id="chartCutoffClear" class="btn" style="font-size:12px; padding:2px 6px; display:none;" title="Afficher tout l\'historique">Tout l\'historique</button>'; el.style.display='none'; container.appendChild(el); const btnClear=document.getElementById('chartCutoffClear'); const btnRestore=document.getElementById('chartCutoffRestore'); if(btnClear){ btnClear.addEventListener('click', ()=>{ try{ delete window.__liveChartMinTimeSec; closeWs(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval)); updateCutoffBadge(); }catch(_){ } }); } if(btnRestore){ btnRestore.addEventListener('click', ()=>{ try{ if(typeof window.__liveChartMinTimeBaseSec==='number' && isFinite(window.__liveChartMinTimeBaseSec)){ window.__liveChartMinTimeSec = window.__liveChartMinTimeBaseSec; closeWs(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval)); updateCutoffBadge(); } }catch(_){ } }); } return el; }catch(_){ return null; } }
-function updateCutoffBadge(){ try{ const el=ensureCutoffBadge(); if(!el) {return;} // Hide completely when Live UI is hidden
+function ensureCutoffBadge(){ try{ let el=document.getElementById('chartCutoff'); if(el) return el; if(!container) return null; el=document.createElement('div'); el.id='chartCutoff'; el.style.position='absolute'; el.style.right='8px'; el.style.top='8px'; el.style.bottom='auto'; el.style.zIndex='120'; el.style.background= isDark()? 'rgba(17,24,39,0.75)' : 'rgba(255,255,255,0.85)'; el.style.color= isDark()? '#e5e7eb':'#111827'; el.style.border= isDark()? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(0,0,0,0.12)'; el.style.borderRadius='8px'; el.style.padding='4px 8px'; el.style.fontSize='12px'; el.style.display='flex'; el.style.alignItems='center'; el.style.gap='6px'; el.style.backdropFilter='saturate(1.1) blur(6px)'; el.innerHTML = '<span id="chartCutoffText" style="pointer-events:none;"></span><button id="chartCutoffRestore" class="btn" style="font-size:12px; padding:2px 6px; display:none;" title="Afficher depuis le lancement">Depuis lancement</button><button id="chartCutoffClear" class="btn" style="font-size:12px; padding:2px 6px; display:none;" title="Afficher tout l\'historique">Tout l\'historique</button>'; el.style.display='none'; container.appendChild(el); const btnClear=document.getElementById('chartCutoffClear'); const btnRestore=document.getElementById('chartCutoffRestore'); if(btnClear){ btnClear.addEventListener('click', ()=>{ try{ delete window.__liveChartMinTimeSec; closeWs(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval)); updateCutoffBadge(); }catch(_){ } }); } if(btnRestore){ btnRestore.addEventListener('click', ()=>{ try{ if(typeof window.__liveChartMinTimeBaseSec==='number' && isFinite(window.__liveChartMinTimeBaseSec)){ window.__liveChartMinTimeSec = window.__liveChartMinTimeBaseSec; closeWs(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval)); updateCutoffBadge(); } }catch(_){ } }); } return el; }catch(_){ return null; } }
+function updateCutoffBadge(){ try{ const el=ensureCutoffBadge(); if(!el) return; // Hide completely when Live UI is hidden
   if(window.__liveUiHidden){ el.style.display='none'; return; }
-  const txt=document.getElementById('chartCutoffText'); const bClear=document.getElementById('chartCutoffClear'); const bRestore=document.getElementById('chartCutoffRestore'); const tSec=Number(window.__liveChartMinTimeSec); const base=Number(window.__liveChartMinTimeBaseSec); if(Number.isFinite(tSec) && tSec>0){ const d=new Date(tSec*1000); if(txt) {txt.textContent = `${t('chart.cutoff.from')} ${d.toLocaleString()}`;} if(bClear) {bClear.style.display='inline-block';} if(bRestore) {bRestore.style.display='none';} el.style.display='flex'; } else if(Number.isFinite(base) && base>0){ if(txt) {txt.textContent = t('chart.cutoff.full');} if(bClear) {bClear.style.display='none';} if(bRestore) {bRestore.style.display='inline-block';} el.style.display='flex'; } else { el.style.display='none'; } }catch(_){ } }
+  const txt=document.getElementById('chartCutoffText'); const bClear=document.getElementById('chartCutoffClear'); const bRestore=document.getElementById('chartCutoffRestore'); const tSec=Number(window.__liveChartMinTimeSec); const base=Number(window.__liveChartMinTimeBaseSec); if(Number.isFinite(tSec) && tSec>0){ const d=new Date(tSec*1000); if(txt) txt.textContent = `${t('chart.cutoff.from')} ${d.toLocaleString()}`; if(bClear) bClear.style.display='inline-block'; if(bRestore) bRestore.style.display='none'; el.style.display='flex'; } else if(Number.isFinite(base) && base>0){ if(txt) txt.textContent = t('chart.cutoff.full'); if(bClear) bClear.style.display='none'; if(bRestore) bRestore.style.display='inline-block'; el.style.display='flex'; } else { el.style.display='none'; } }catch(_){ } }
 // Flexible right space control
 try{
   const RIGHT_OFF_KEY='chart:rightOffset';
@@ -1470,10 +1470,10 @@ try{
   }
   // Apply stored value at startup (overrides default option if needed)
   setRightOffset(__rightOff);
-  // Ctrl+Molette (wheel) pour ajuster l'espace Ã  droite dynamiquement
+  // Ctrl+Molette (wheel) pour ajuster l'espace à droite dynamiquement
   if(container){ container.addEventListener('wheel', (e)=>{ try{ if(e && e.ctrlKey){ e.preventDefault(); setRightOffset(__rightOff + (e.deltaY<0? 1:-1)); } }catch(_){ } }, { passive:false }); }
-  // Raccourcis: Alt+FlÃ¨che â†’ / â†
-  window.addEventListener('keydown', (e)=>{ try{ if(!e || !e.altKey) {return;} if(e.key==='ArrowRight'){ e.preventDefault(); setRightOffset(__rightOff+1); } else if(e.key==='ArrowLeft'){ e.preventDefault(); setRightOffset(__rightOff-1); } }catch(_){ } });
+  // Raccourcis: Alt+Flèche → / ←
+  window.addEventListener('keydown', (e)=>{ try{ if(!e || !e.altKey) return; if(e.key==='ArrowRight'){ e.preventDefault(); setRightOffset(__rightOff+1); } else if(e.key==='ArrowLeft'){ e.preventDefault(); setRightOffset(__rightOff-1); } }catch(_){ } });
 }catch(_){ }
 const zzUpSeries = chart.addLineSeries({ color: '#00ff00', lineWidth: 2, priceScaleId: 'right' });
 const zzDnSeries = chart.addLineSeries({ color: '#ff0000', lineWidth: 2, priceScaleId: 'right' });
@@ -1482,8 +1482,8 @@ let heavenCloseLine=null, heavenTrendLine=null; let heavenTPPriceLines=[];
 let tpHitMarkers=[];
 function clearTPHitMarkers(){ tpHitMarkers=[]; }
 // Routing for multi-wallet live markers
-const __mkRoutingSession=null;
-function __pushMarkerToSession(sess, m){ try{ if(!sess) {return;} if(!sess.markers) {sess.markers={ entries:[], tps:[], sls:[], bes:[] };} const arr = (m.shape==='circle')? sess.markers.tps : (m.shape==='cross')? sess.markers.sls : (m.shape==='square')? sess.markers.bes : sess.markers.entries; arr.push(m); }catch(_){ } }
+let __mkRoutingSession=null;
+function __pushMarkerToSession(sess, m){ try{ if(!sess) return; if(!sess.markers) sess.markers={ entries:[], tps:[], sls:[], bes:[] }; const arr = (m.shape==='circle')? sess.markers.tps : (m.shape==='cross')? sess.markers.sls : (m.shape==='square')? sess.markers.bes : sess.markers.entries; arr.push(m); }catch(_){ } }
 function addTPHitMarker(time, dir){ try{ const col = dir==='long'? '#10b981' : '#ef4444'; const m={ time, position: dir==='long'?'aboveBar':'belowBar', color: col, shape:'circle' }; if(__mkRoutingSession){ __pushMarkerToSession(__mkRoutingSession, m); } else { tpHitMarkers.push(m); } }catch(_){ } }
 // SL hit markers (crosses)
 let slHitMarkers=[];
@@ -1504,7 +1504,7 @@ const ema34Series = chart.addLineSeries({ color:'#ffa500', lineWidth: 1, priceSc
 const ema55Series = chart.addLineSeries({ color:'#ef4444', lineWidth: 1, priceScaleId: 'right' });
 const ema200Series = chart.addLineSeries({ color: isDark() ? '#9ca3af' : '#111827', lineWidth: 1, priceScaleId: 'right' });
 
-function refreshThemeOnChart(){ try{ if(!chart) {return;} chart.applyOptions({ layout: { background: { color: isDark() ? '#0b0f1a' : '#ffffff' }, textColor: isDark() ? '#e5e7eb' : '#111827' }, grid: { vertLines: { color: isDark() ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)' }, horzLines: { color: isDark() ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)' } }, watermark: { color: isDark() ? 'rgba(229,231,235,0.20)' : 'rgba(17,24,39,0.12)' }, rightPriceScale: { borderColor: isDark() ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)' }, timeScale: { borderColor: isDark() ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)' } }); ema200Series.applyOptions({ color: isDark() ? '#9ca3af' : '#111827' }); updateWatermark(); updateCutoffBadge(); }catch(_){ } }
+function refreshThemeOnChart(){ try{ if(!chart) return; chart.applyOptions({ layout: { background: { color: isDark() ? '#0b0f1a' : '#ffffff' }, textColor: isDark() ? '#e5e7eb' : '#111827' }, grid: { vertLines: { color: isDark() ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)' }, horzLines: { color: isDark() ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)' } }, watermark: { color: isDark() ? 'rgba(229,231,235,0.20)' : 'rgba(17,24,39,0.12)' }, rightPriceScale: { borderColor: isDark() ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)' }, timeScale: { borderColor: isDark() ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)' } }); ema200Series.applyOptions({ color: isDark() ? '#9ca3af' : '#111827' }); updateWatermark(); updateCutoffBadge(); }catch(_){ } }
 
 try{
   const themeBtn=document.getElementById('themeToggle');
@@ -1542,21 +1542,21 @@ let __currentBarsMaxApi = 0;      // best estimate of max bars available via API
 
 function __baseAfterCutoff(){ let base=candlesAll||[]; if(typeof window.__liveChartMinTimeSec==='number' && isFinite(window.__liveChartMinTimeSec)){ base = base.filter(b=> b.time >= window.__liveChartMinTimeSec); } return base; }
 function applyDisplayFromAll(){ const base=__baseAfterCutoff(); candles = base.length>DISPLAY_MAX_BARS? base.slice(-DISPLAY_MAX_BARS) : base.slice(); updateBarsInfo(); }
-function expandDisplayLeftIfNear(range){ try{ const base=__baseAfterCutoff(); if(!Array.isArray(candles)||!candles.length||!Array.isArray(base)||!base.length) {return;} if(!range||typeof range.from!=='number') {return;} if(range.from>2) {return;} const first=candles[0]; const idx=base.findIndex(b=> b.time===first.time); if(idx>0){ const newStart=Math.max(0, idx - DISPLAY_PAD_BARS); const newSlice = base.slice(newStart, Math.min(base.length, newStart + DISPLAY_MAX_BARS)); candles = newSlice; candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge(); } }catch(_){ } }
+function expandDisplayLeftIfNear(range){ try{ const base=__baseAfterCutoff(); if(!Array.isArray(candles)||!candles.length||!Array.isArray(base)||!base.length) return; if(!range||typeof range.from!=='number') return; if(range.from>2) return; const first=candles[0]; const idx=base.findIndex(b=> b.time===first.time); if(idx>0){ const newStart=Math.max(0, idx - DISPLAY_PAD_BARS); const newSlice = base.slice(newStart, Math.min(base.length, newStart + DISPLAY_MAX_BARS)); candles = newSlice; candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge(); } }catch(_){ } }
 
 function klinesCacheKey(symbol, interval){ return `klines:${symbol}:${interval}`; }
-function loadKlinesFromCache(symbol, interval){ try{ const s=localStorage.getItem(klinesCacheKey(symbol, interval)); if(!s) {return [];} const arr=JSON.parse(s); if(Array.isArray(arr) && arr.length && arr[0].time){ return arr; } }catch(_){ } return []; }
-function saveKlinesToCache(symbol, interval, arr){ try{ if(!Array.isArray(arr)||!arr.length) {return;} const slim = arr.slice(-CACHE_SAVE_BARS); localStorage.setItem(klinesCacheKey(symbol, interval), JSON.stringify(slim)); }catch(_){ } }
+function loadKlinesFromCache(symbol, interval){ try{ const s=localStorage.getItem(klinesCacheKey(symbol, interval)); if(!s) return []; const arr=JSON.parse(s); if(Array.isArray(arr) && arr.length && arr[0].time){ return arr; } }catch(_){ } return []; }
+function saveKlinesToCache(symbol, interval, arr){ try{ if(!Array.isArray(arr)||!arr.length) return; const slim = arr.slice(-CACHE_SAVE_BARS); localStorage.setItem(klinesCacheKey(symbol, interval), JSON.stringify(slim)); }catch(_){ } }
 
 // In-memory per-(symbol,interval) cache to avoid full reloads on TF/pair switches
 const MAX_MEM_SERIES = 6;                          // max distinct (sym,TF) in RAM
 const MAX_MEM_BARS_PER_SERIES = LIVE_MAX_BARS;     // cap per series (align with live)
-const __memSeries = new Map();                       // key -> { bars, maxApi, lastUsed }
+let __memSeries = new Map();                       // key -> { bars, maxApi, lastUsed }
 
 function memKey(symbol, interval){ return `${symbol}:${interval}`; }
 function saveMemSeries(symbol, interval, bars, maxApi){
   try{
-    if(!Array.isArray(bars) || !bars.length) {return;}
+    if(!Array.isArray(bars) || !bars.length) return;
     const key = memKey(symbol, interval);
     const trimmed = bars.length>MAX_MEM_BARS_PER_SERIES? bars.slice(-MAX_MEM_BARS_PER_SERIES) : bars.slice();
     const rec = { bars: trimmed, maxApi: (Number.isFinite(maxApi)? maxApi : trimmed.length), lastUsed: Date.now() };
@@ -1567,7 +1567,7 @@ function saveMemSeries(symbol, interval, bars, maxApi){
         const ts=v&&v.lastUsed||0;
         if(ts<oldestTs){ oldestTs=ts; oldestKey=k; }
       }
-      if(oldestKey!=null) {__memSeries.delete(oldestKey);}
+      if(oldestKey!=null) __memSeries.delete(oldestKey);
     }
   }catch(_){ }
 }
@@ -1575,7 +1575,7 @@ function loadMemSeries(symbol, interval){
   try{
     const key = memKey(symbol, interval);
     const v = __memSeries.get(key);
-    if(!v || !Array.isArray(v.bars) || !v.bars.length) {return null;}
+    if(!v || !Array.isArray(v.bars) || !v.bars.length) return null;
     v.lastUsed = Date.now();
     return { bars: v.bars.slice(), maxApi: (Number.isFinite(v.maxApi)? v.maxApi : v.bars.length) };
   }catch(_){ return null; }
@@ -1583,8 +1583,8 @@ function loadMemSeries(symbol, interval){
 
 // --- FX: USDC -> EUR via Binance (EURUSDC)
 let __usdcEurRate = null; let __usdcEurRateTs = 0;
-function getUsdcEurRate(){ if(__usdcEurRate && (Date.now()-__usdcEurRateTs)<5*60*1000) {return __usdcEurRate;} const v=Number(localStorage.getItem('usdc:eurRate')); if(Number.isFinite(v)&&v>0) {return v;} return (__usdcEurRate!=null? __usdcEurRate : 0.93); }
-async function refreshUsdcEurRate(force=false){ const now=Date.now(); if(!force && __usdcEurRate && (now-__usdcEurRateTs)<5*60*1000) {return __usdcEurRate;} try{ const res=await fetch('https://api.binance.com/api/v3/ticker/price?symbol=EURUSDC'); if(res.ok){ const d=await res.json(); const p=Number(d&&d.price); if(Number.isFinite(p)&&p>0){ __usdcEurRate = 1/p; __usdcEurRateTs = now; try{ localStorage.setItem('usdc:eurRate', String(__usdcEurRate)); localStorage.setItem('usdc:eurRateTs', String(__usdcEurRateTs)); }catch(_){ } return __usdcEurRate; } } }catch(_){ }
+function getUsdcEurRate(){ if(__usdcEurRate && (Date.now()-__usdcEurRateTs)<5*60*1000) return __usdcEurRate; const v=Number(localStorage.getItem('usdc:eurRate')); if(Number.isFinite(v)&&v>0) return v; return (__usdcEurRate!=null? __usdcEurRate : 0.93); }
+async function refreshUsdcEurRate(force=false){ const now=Date.now(); if(!force && __usdcEurRate && (now-__usdcEurRateTs)<5*60*1000) return __usdcEurRate; try{ const res=await fetch('https://api.binance.com/api/v3/ticker/price?symbol=EURUSDC'); if(res.ok){ const d=await res.json(); const p=Number(d&&d.price); if(Number.isFinite(p)&&p>0){ __usdcEurRate = 1/p; __usdcEurRateTs = now; try{ localStorage.setItem('usdc:eurRate', String(__usdcEurRate)); localStorage.setItem('usdc:eurRateTs', String(__usdcEurRateTs)); }catch(_){ } return __usdcEurRate; } } }catch(_){ }
   try{ const res2=await fetch('https://api.binance.com/api/v3/ticker/price?symbol=EURUSDT'); if(res2.ok){ const d2=await res2.json(); const p2=Number(d2&&d2.price); if(Number.isFinite(p2)&&p2>0){ __usdcEurRate = 1/p2; __usdcEurRateTs = now; try{ localStorage.setItem('usdc:eurRate', String(__usdcEurRate)); localStorage.setItem('usdc:eurRateTs', String(__usdcEurRateTs)); }catch(_){ } return __usdcEurRate; } } }catch(_){ }
   const saved=Number(localStorage.getItem('usdc:eurRate')); if(Number.isFinite(saved)&&saved>0){ __usdcEurRate=saved; __usdcEurRateTs=Number(localStorage.getItem('usdc:eurRateTs'))||0; return __usdcEurRate; }
   __usdcEurRate=0.93; __usdcEurRateTs=now; return __usdcEurRate; }
@@ -1596,17 +1596,17 @@ async function fetchKlinesBatch(symbol, interval, limit=BATCH_LIMIT, endTimeMs){
   u.searchParams.set('symbol', symbol);
   u.searchParams.set('interval', interval);
   u.searchParams.set('limit', String(limit));
-  if(endTimeMs) {u.searchParams.set('endTime', String(endTimeMs));}
-  const res = await fetch(u.toString()); if(!res.ok) {throw new Error('HTTP '+res.status);}
+  if(endTimeMs) u.searchParams.set('endTime', String(endTimeMs));
+  const res = await fetch(u.toString()); if(!res.ok) throw new Error('HTTP '+res.status);
   const raw = await res.json();
   const mapped = raw.map(k=>({ time: Math.floor(k[0]/1000), open:+k[1], high:+k[2], low:+k[3], close:+k[4] }));
   mapped.sort((a,b)=> a.time-b.time); return mapped;
 }
-async function fetchAllKlines(symbol, interval, max=API_MAX_BARS){ let all=[]; let cursor=Date.now(); while(all.length<max){ setStatus(`${t('status.loading')} (${all.length}+)`); const need=Math.min(BATCH_LIMIT, max-all.length); const batch=await fetchKlinesBatch(symbol, interval, need, cursor); if(!batch.length) {break;} all=batch.concat(all); if(batch.length<need) {break;} cursor=batch[0].time*1000 - 1; } return all.slice(-max); }
+async function fetchAllKlines(symbol, interval, max=API_MAX_BARS){ let all=[]; let cursor=Date.now(); while(all.length<max){ setStatus(`${t('status.loading')} (${all.length}+)`); const need=Math.min(BATCH_LIMIT, max-all.length); const batch=await fetchKlinesBatch(symbol, interval, need, cursor); if(!batch.length) break; all=batch.concat(all); if(batch.length<need) break; cursor=batch[0].time*1000 - 1; } return all.slice(-max); }
 
 async function backgroundExtendKlines(symbol, interval, token){
   try{
-    if(!Array.isArray(candlesAll) || !candlesAll.length) {return;}
+    if(!Array.isArray(candlesAll) || !candlesAll.length) return;
     let earliest = candlesAll[0]?.time;
     let cursor = (earliest? earliest*1000 - 1 : Date.now());
     let total = candlesAll.length;
@@ -1618,7 +1618,7 @@ async function backgroundExtendKlines(symbol, interval, token){
       }
       const need = Math.min(BATCH_LIMIT, BG_MAX_BARS - total);
       const batch = await fetchKlinesBatch(symbol, interval, need, cursor);
-      if(!batch.length) {break;}
+      if(!batch.length) break;
       let filtered = batch.filter(b=> b.time < (earliest||Infinity));
       // Enforce minimal time cutoff
       if(typeof window.__liveChartMinTimeSec==='number' && isFinite(window.__liveChartMinTimeSec)){
@@ -1636,7 +1636,7 @@ async function backgroundExtendKlines(symbol, interval, token){
 try{ applyDisplayFromAll(); candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge(); updateBarsInfo(); }catch(_){ }
         lastUiUpdate = now;
       }
-      if(batch.length < need) {break;}
+      if(batch.length < need) break;
       await new Promise(r=> setTimeout(r, 0));
     }
     if(token === __bgLoadToken){
@@ -1651,7 +1651,7 @@ try{ applyDisplayFromAll(); candleSeries.setData(candles); updateEMAs(); renderL
 
 function closeWs(){ try{ if(ws){ ws.onopen=ws.onmessage=ws.onerror=ws.onclose=null; ws.close(); } }catch(_){} ws=null; }
 function wsUrl(symbol, interval){ return `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_${interval}`; }
-function openWs(symbol, interval){ closeWs(); try{ ws=new WebSocket(wsUrl(symbol, interval)); }catch(e){ setStatus(t('status.wsError')); return; } ws.onopen=()=> setStatus(t('status.live')); ws.onmessage=(ev)=>{ try{ const msg=JSON.parse(ev.data); const k=(msg&&msg.k)||(msg&&msg.data&&msg.data.k); if(!k) {return;} const bar={ time:Math.floor(k.t/1000), open:+k.o, high:+k.h, low:+k.l, close:+k.c }; const lastAll=candlesAll[candlesAll.length-1]; if(lastAll && bar.time===lastAll.time){ candlesAll[candlesAll.length-1]=bar; } else if(!lastAll || bar.time>lastAll.time){ candlesAll.push(bar); if(candlesAll.length>LIVE_MAX_BARS) {candlesAll=candlesAll.slice(-LIVE_MAX_BARS);} }
+function openWs(symbol, interval){ closeWs(); try{ ws=new WebSocket(wsUrl(symbol, interval)); }catch(e){ setStatus(t('status.wsError')); return; } ws.onopen=()=> setStatus(t('status.live')); ws.onmessage=(ev)=>{ try{ const msg=JSON.parse(ev.data); const k=(msg&&msg.k)||(msg&&msg.data&&msg.data.k); if(!k) return; const bar={ time:Math.floor(k.t/1000), open:+k.o, high:+k.h, low:+k.l, close:+k.c }; const lastAll=candlesAll[candlesAll.length-1]; if(lastAll && bar.time===lastAll.time){ candlesAll[candlesAll.length-1]=bar; } else if(!lastAll || bar.time>lastAll.time){ candlesAll.push(bar); if(candlesAll.length>LIVE_MAX_BARS) candlesAll=candlesAll.slice(-LIVE_MAX_BARS); }
 applyDisplayFromAll(); candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge(); updateBarsInfo(); if(typeof anyLiveActive==='function' && anyLiveActive()){ try{ multiLiveOnBar(bar); }catch(_){ } } else if(liveSession && liveSession.active){ try{ liveOnBar(bar); }catch(_){ } }
     }catch(_){ } }; ws.onerror=()=> setStatus(t('status.wsError')); ws.onclose=()=> {/* keep silent */}; }
 async function load(symbol, interval){
@@ -1697,7 +1697,7 @@ if(cached && cached.length){
 if(intervalSelect){ intervalSelect.addEventListener('change', ()=>{ currentInterval=intervalSelect.value; try{ localStorage.setItem('chart:tf', currentInterval); }catch(_){} updateWatermark(); closeWs(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval)); }); }
 if(symbolSelect){ symbolSelect.addEventListener('change', ()=>{ currentSymbol=symbolSelect.value; updateTitle(currentSymbol); updateWatermark(); closeWs(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval)); }); }
 if(gotoEndBtn){ gotoEndBtn.addEventListener('click', ()=>{ try{ const v=(window.__rightOff|0)||10; chart.timeScale().scrollToPosition(v, false); }catch(_){ } }); }
-updateTitle(currentSymbol); updateWatermark(); load(currentSymbol, currentInterval).then(async ()=>{ openWs(currentSymbol, currentInterval); try{ populateHeavenTFOptions(); await populateHeavenLoadOptions(); await applyBestPalmaresDefaultOnLaunch(); }catch(_){ } });
+updateTitle(currentSymbol); updateWatermark(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval));
 // Ensure Lab advanced UI and risk UI are wired from startup as well (idempotent)
 try{ setupLabAdvUI(); setupLabRiskUI(); }catch(_){ }
 // Unconditional global hook as last-resort safety (independent of init wiring)
@@ -1705,14 +1705,14 @@ try{
   if(!window.__advGlobalHook){
     const __advHandler=(e)=>{
       try{
-        const btn=document.getElementById('labAdvancedToggle'); if(!btn) {return;}
+        const btn=document.getElementById('labAdvancedToggle'); if(!btn) return;
         const t=e.target;
         const isBtn = (t===btn) || (t && t.closest ? t.closest('#labAdvancedToggle') : null);
         if(isBtn){ try{ __toggleLabAdvanced(); }catch(_){ } e.preventDefault(); e.stopPropagation(); return; }
         // Coordinate fallback: if click is within button rect while Lab modal is open, toggle
         const modal=document.getElementById('labModal');
         const open = !!(modal && modal.getAttribute('aria-hidden')==='false' && !modal.classList.contains('hidden'));
-        if(!open) {return;}
+        if(!open) return;
         const r=btn.getBoundingClientRect();
         const x=e.clientX, y=e.clientY;
         if(typeof x==='number' && typeof y==='number' && x>=r.left && x<=r.right && y>=r.top && y<=r.bottom){
@@ -1730,14 +1730,14 @@ try{
 
 // Wire Supabase config button/modal
 (function(){ try{
-  function hideSupaBtn(){ if(supaCfgBtn) {supaCfgBtn.style.display='none';} }
-  function showSupaBtn(){ if(supaCfgBtn) {supaCfgBtn.style.display='';} }
+  function hideSupaBtn(){ if(supaCfgBtn) supaCfgBtn.style.display='none'; }
+  function showSupaBtn(){ if(supaCfgBtn) supaCfgBtn.style.display=''; }
   async function refreshSupaBtn(){ try{
-    if(!supaCfgBtn) {return;}
+    if(!supaCfgBtn) return;
     const source = (window.SUPA && typeof SUPA.configSource==='function')? SUPA.configSource() : 'localStorage';
     const isCfg = (window.SUPA && typeof SUPA.isConfigured==='function')? SUPA.isConfigured() : false;
     const locked = localStorage.getItem('supabase:locked')==='1';
-    if((source==='static' && isCfg) || (locked && isCfg)) {hideSupaBtn();} else {showSupaBtn();}
+    if((source==='static' && isCfg) || (locked && isCfg)) hideSupaBtn(); else showSupaBtn();
   }catch(_){ } }
   if(supaCfgBtn){ supaCfgBtn.addEventListener('click', ()=>{ try{
       if(supaUrlInp){ supaUrlInp.value = (window.SUPABASE_URL||'') || localStorage.getItem('supabase:url') || ''; }
@@ -1746,19 +1746,19 @@ try{
       openModalEl(supaModalEl);
     }catch(_){ } }); }
   if(supaCloseBtn){ supaCloseBtn.addEventListener('click', ()=> closeModalEl(supaModalEl)); }
-  if(supaModalEl){ supaModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) {closeModalEl(supaModalEl);} }); }
+  if(supaModalEl){ supaModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(supaModalEl); }); }
   if(supaSaveBtn){ supaSaveBtn.addEventListener('click', async ()=>{ try{
       const url=(supaUrlInp&&supaUrlInp.value||'').trim(); const anon=(supaAnonInp&&supaAnonInp.value||'').trim();
-      if(!url||!anon){ if(supaMsgEl) {supaMsgEl.textContent=t('supa.urlAnonRequired');} return; }
+      if(!url||!anon){ if(supaMsgEl) supaMsgEl.textContent=t('supa.urlAnonRequired'); return; }
       try{ localStorage.setItem('supabase:url', url); localStorage.setItem('supabase:anon', anon); }catch(_){ }
-      if(supaMsgEl) {supaMsgEl.textContent=t('supa.testing');}
+      if(supaMsgEl) supaMsgEl.textContent=t('supa.testing');
       let ok=false;
       try{ ok = !!(window.SUPA && typeof SUPA.testConnection==='function' ? (await SUPA.testConnection()) : false); }catch(_){ ok=false; }
       if(ok){ try{ localStorage.setItem('supabase:locked','1'); }catch(_){ }
-        if(supaMsgEl) {supaMsgEl.textContent=t('supa.ok');}
+        if(supaMsgEl) supaMsgEl.textContent=t('supa.ok');
         setTimeout(()=>{ closeModalEl(supaModalEl); refreshSupaBtn(); }, 600);
       } else {
-        if(supaMsgEl) {supaMsgEl.textContent=t('supa.fail');}
+        if(supaMsgEl) supaMsgEl.textContent=t('supa.fail');
       }
     }catch(_){ } }); }
   refreshSupaBtn();
@@ -1777,30 +1777,30 @@ const liveStratSrcPalmares=document.getElementById('liveStratSrcPalmares');
 const liveStrategySel=document.getElementById('liveStrategySel');
 const liveStrategyMeta=document.getElementById('liveStrategyMeta');
 
-function populateLiveTFOptions(){ try{ if(!liveTFSelect) {return;} if(intervalSelect && intervalSelect.innerHTML){ liveTFSelect.innerHTML = intervalSelect.innerHTML; } else { const tfs=['1m','5m','15m','1h','4h','1d']; liveTFSelect.innerHTML = tfs.map(tf=>`<option value="${tf}">${tf}</option>`).join(''); }
+function populateLiveTFOptions(){ try{ if(!liveTFSelect) return; if(intervalSelect && intervalSelect.innerHTML){ liveTFSelect.innerHTML = intervalSelect.innerHTML; } else { const tfs=['1m','5m','15m','1h','4h','1d']; liveTFSelect.innerHTML = tfs.map(tf=>`<option value="${tf}">${tf}</option>`).join(''); }
   const saved=localStorage.getItem('live:tf'); if(saved){ try{ liveTFSelect.value=saved; }catch(_){ } }
   if(!liveTFSelect.value){ try{ liveTFSelect.value = (intervalSelect&&intervalSelect.value)||currentInterval||''; }catch(_){ } }
 }catch(_){ } }
-function liveSelectedSource(){ try{ if(liveStratSrcPalmares&&liveStratSrcPalmares.checked) {return 'palmares';} return 'heaven'; }catch(_){ return 'heaven'; } }
-function updateLiveStrategyMeta(){ try{ if(!liveStrategyMeta) {return;} const val=(liveStrategySel&&liveStrategySel.value)||''; const cache=(window.__liveStratCache||{}); const it=(Array.isArray(cache.items)? cache.items.find(x=> String(x.value)===String(val)) : null); if(!val||!it){ liveStrategyMeta.textContent='â€”'; return; } const name=it.name||'â€”'; const sc=(Number.isFinite(it.score)? it.score.toFixed(2): (it.score!=null? String(it.score): 'â€”')); liveStrategyMeta.textContent = `${name} â€” Score ${sc}`; }catch(_){ } }
-async function populateLiveStrategyOptions(){ try{ if(!liveStrategySel) {return;} const sym=(symbolSelect&&symbolSelect.value)||currentSymbol; const tf=(liveTFSelect&&liveTFSelect.value)||((intervalSelect&&intervalSelect.value)||currentInterval)||''; const src=liveSelectedSource(); let items=[]; if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured()){ if(src==='heaven'){ let rows=[]; try{ rows=await SUPA.fetchHeavenStrategies(sym, tf, 50); }catch(_){ rows=[]; }
+function liveSelectedSource(){ try{ if(liveStratSrcPalmares&&liveStratSrcPalmares.checked) return 'palmares'; return 'heaven'; }catch(_){ return 'heaven'; } }
+function updateLiveStrategyMeta(){ try{ if(!liveStrategyMeta) return; const val=(liveStrategySel&&liveStrategySel.value)||''; const cache=(window.__liveStratCache||{}); const it=(Array.isArray(cache.items)? cache.items.find(x=> String(x.value)===String(val)) : null); if(!val||!it){ liveStrategyMeta.textContent='—'; return; } const name=it.name||'—'; const sc=(Number.isFinite(it.score)? it.score.toFixed(2): (it.score!=null? String(it.score): '—')); liveStrategyMeta.textContent = `${name} — Score ${sc}`; }catch(_){ } }
+async function populateLiveStrategyOptions(){ try{ if(!liveStrategySel) return; const sym=(symbolSelect&&symbolSelect.value)||currentSymbol; const tf=(liveTFSelect&&liveTFSelect.value)||((intervalSelect&&intervalSelect.value)||currentInterval)||''; const src=liveSelectedSource(); let items=[]; if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured()){ if(src==='heaven'){ let rows=[]; try{ rows=await SUPA.fetchHeavenStrategies(sym, tf, 50); }catch(_){ rows=[]; }
   // Map to items with score computed from metrics
   const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
   items = (rows||[]).map(r=>({ value:String(r.id), name: (r.name||'(sans nom)'), score: (r.metrics? scoreResult(r.metrics, weights): NaN), params: r.params||{} }));
 } else {
   let arr=[]; try{ arr=await SUPA.fetchPalmares(sym, tf, 25, (localStorage.getItem('labWeightsProfile')||'balancee')); }catch(_){ arr=[]; }
-  items = (arr||[]).map((it,idx)=>({ value:String(it.id||('pal_'+(idx+1))), name: (it.name||`PalmarÃ¨s #${idx+1}`), score: (Number.isFinite(it.score)? it.score : (it.res? scoreResult(it.res, getWeights(localStorage.getItem('labWeightsProfile')||'balancee')): NaN)), params: it.params||{} }));
+  items = (arr||[]).map((it,idx)=>({ value:String(it.id||('pal_'+(idx+1))), name: (it.name||`Palmarès #${idx+1}`), score: (Number.isFinite(it.score)? it.score : (it.res? scoreResult(it.res, getWeights(localStorage.getItem('labWeightsProfile')||'balancee')): NaN)), params: it.params||{} }));
 } } else { items=[]; }
   window.__liveStratCache = { src, items };
-  const opts = ['<option value="">â€”</option>'].concat(items.map(it=> `<option value="${it.value}">${it.name} â€” ${Number.isFinite(it.score)? it.score.toFixed(2): 'â€”'}</option>`));
+  const opts = ['<option value="">—</option>'].concat(items.map(it=> `<option value="${it.value}">${it.name} — ${Number.isFinite(it.score)? it.score.toFixed(2): '—'}</option>`));
   liveStrategySel.innerHTML = opts.join('');
   updateLiveStrategyMeta();
 }catch(_){ } }
 
 (function wireLiveStrategyUI(){ try{
-  if(liveTFSelect && (!liveTFSelect.dataset || liveTFSelect.dataset.wired!=='1')){ liveTFSelect.addEventListener('change', ()=>{ try{ localStorage.setItem('live:tf', liveTFSelect.value||''); }catch(_){ } populateLiveStrategyOptions(); }); if(!liveTFSelect.dataset) {liveTFSelect.dataset={};} liveTFSelect.dataset.wired='1'; }
-  const srcs=[liveStratSrcHeaven, liveStratSrcPalmares]; srcs.forEach(el=>{ try{ if(el && (!el.dataset || el.dataset.wired!=='1')){ el.addEventListener('change', ()=> populateLiveStrategyOptions()); if(!el.dataset) {el.dataset={};} el.dataset.wired='1'; } }catch(_){ } });
-  if(liveStrategySel && (!liveStrategySel.dataset || liveStrategySel.dataset.wired!=='1')){ liveStrategySel.addEventListener('change', updateLiveStrategyMeta); if(!liveStrategySel.dataset) {liveStrategySel.dataset={};} liveStrategySel.dataset.wired='1'; }
+  if(liveTFSelect && (!liveTFSelect.dataset || liveTFSelect.dataset.wired!=='1')){ liveTFSelect.addEventListener('change', ()=>{ try{ localStorage.setItem('live:tf', liveTFSelect.value||''); }catch(_){ } populateLiveStrategyOptions(); }); if(!liveTFSelect.dataset) liveTFSelect.dataset={}; liveTFSelect.dataset.wired='1'; }
+  const srcs=[liveStratSrcHeaven, liveStratSrcPalmares]; srcs.forEach(el=>{ try{ if(el && (!el.dataset || el.dataset.wired!=='1')){ el.addEventListener('change', ()=> populateLiveStrategyOptions()); if(!el.dataset) el.dataset={}; el.dataset.wired='1'; } }catch(_){ } });
+  if(liveStrategySel && (!liveStrategySel.dataset || liveStrategySel.dataset.wired!=='1')){ liveStrategySel.addEventListener('change', updateLiveStrategyMeta); if(!liveStrategySel.dataset) liveStrategySel.dataset={}; liveStrategySel.dataset.wired='1'; }
 } catch(_){ } })();
 
 // Lab inline panels (in Lab modal)
@@ -1809,23 +1809,23 @@ const labAutoLoopEl = document.getElementById('labAutoLoop');
 let __labLastGoal = 'improve';
 function maybeScheduleLabAutoLoop(){
   try{
-    if(typeof btAbort!=='undefined' && btAbort) {return;}
+    if(typeof btAbort!=='undefined' && btAbort) return;
     const autoEl = labAutoLoopEl || document.getElementById('labAutoLoop');
-    if(!autoEl || !autoEl.checked) {return;}
+    if(!autoEl || !autoEl.checked) return;
     const nextGoal = __labLastGoal || 'improve';
     try{
       if(typeof addBtLog==='function'){
-        addBtLog(`Auto-loop: relance dans 1s (${nextGoal==='new'?'nouvelle stratÃ©gie':'entraÃ®ner'})`);
+        addBtLog(`Auto-loop: relance dans 1s (${nextGoal==='new'?'nouvelle stratégie':'entraîner'})`);
       }
     }catch(_){ }
     setTimeout(()=>{
       try{
         const el = labAutoLoopEl || document.getElementById('labAutoLoop');
-        if(!el || !el.checked) {return;}
-        if(typeof btAbort!=='undefined' && btAbort) {return;}
+        if(!el || !el.checked) return;
+        if(typeof btAbort!=='undefined' && btAbort) return;
         try{ window.__labGoalOverride = nextGoal; }catch(_){ }
         const btn = document.getElementById('labRun');
-        if(btn) {btn.click();}
+        if(btn) btn.click();
       }catch(_){ }
     }, 1000);
   }catch(_){ }
@@ -1836,18 +1836,18 @@ const kpiWinEl = document.getElementById('kpiWin');
 const kpiDDEl = document.getElementById('kpiDD');
 const labLogEl = document.getElementById('labLog');
 
-function addLabLog(msg){ try{ if(!labLogEl) {return;} const t=new Date(); const hh=String(t.getHours()).padStart(2,'0'); const mm=String(t.getMinutes()).padStart(2,'0'); const ss=String(t.getSeconds()).padStart(2,'0'); const line=`[${hh}:${mm}:${ss}] ${msg}`; if(labLogEl.textContent==='â€”') {labLogEl.textContent=line;} else {labLogEl.textContent += ("\n"+line);} labLogEl.scrollTop = labLogEl.scrollHeight; }catch(_){ } }
-function updateLabKpis(best){ try{ if(!best||!best.length){ if(kpiScoreEl) {kpiScoreEl.textContent='â€”';} if(kpiPFEl) {kpiPFEl.textContent='â€”';} if(kpiWinEl) {kpiWinEl.textContent='â€”';} if(kpiDDEl) {kpiDDEl.textContent='â€”';} return; } const top=best[0]; const st=top.res||{}; if(kpiScoreEl) {kpiScoreEl.textContent = Number(top.score||0).toFixed(2);} if(kpiPFEl) {kpiPFEl.textContent = (st.profitFactor===Infinity? 'âˆž' : Number(st.profitFactor||0).toFixed(2));} if(kpiWinEl) {kpiWinEl.textContent = Number(st.winrate||0).toFixed(1)+'%';} if(kpiDDEl) {kpiDDEl.textContent = Number(st.maxDDAbs||0).toFixed(0);} }catch(_){ } }
-function updateLabKpiFrom(score, res){ try{ if(kpiScoreEl) {kpiScoreEl.textContent = Number(score||0).toFixed(2);} if(kpiPFEl) {kpiPFEl.textContent = (res.profitFactor===Infinity? 'âˆž' : Number(res.profitFactor||0).toFixed(2));} if(kpiWinEl) {kpiWinEl.textContent = Number(res.winrate||0).toFixed(1)+'%';} if(kpiDDEl) {kpiDDEl.textContent = Number(res.maxDDAbs||0).toFixed(0);} }catch(_){ } }
+function addLabLog(msg){ try{ if(!labLogEl) return; const t=new Date(); const hh=String(t.getHours()).padStart(2,'0'); const mm=String(t.getMinutes()).padStart(2,'0'); const ss=String(t.getSeconds()).padStart(2,'0'); const line=`[${hh}:${mm}:${ss}] ${msg}`; if(labLogEl.textContent==='—') labLogEl.textContent=line; else labLogEl.textContent += ("\n"+line); labLogEl.scrollTop = labLogEl.scrollHeight; }catch(_){ } }
+function updateLabKpis(best){ try{ if(!best||!best.length){ if(kpiScoreEl) kpiScoreEl.textContent='—'; if(kpiPFEl) kpiPFEl.textContent='—'; if(kpiWinEl) kpiWinEl.textContent='—'; if(kpiDDEl) kpiDDEl.textContent='—'; return; } const top=best[0]; const st=top.res||{}; if(kpiScoreEl) kpiScoreEl.textContent = Number(top.score||0).toFixed(2); if(kpiPFEl) kpiPFEl.textContent = (st.profitFactor===Infinity? '∞' : Number(st.profitFactor||0).toFixed(2)); if(kpiWinEl) kpiWinEl.textContent = Number(st.winrate||0).toFixed(1)+'%'; if(kpiDDEl) kpiDDEl.textContent = Number(st.maxDDAbs||0).toFixed(0); }catch(_){ } }
+function updateLabKpiFrom(score, res){ try{ if(kpiScoreEl) kpiScoreEl.textContent = Number(score||0).toFixed(2); if(kpiPFEl) kpiPFEl.textContent = (res.profitFactor===Infinity? '∞' : Number(res.profitFactor||0).toFixed(2)); if(kpiWinEl) kpiWinEl.textContent = Number(res.winrate||0).toFixed(1)+'%'; if(kpiDDEl) kpiDDEl.textContent = Number(res.maxDDAbs||0).toFixed(0); }catch(_){ } }
 
 function labProfileRiskPct(){
   try{
     const el = (typeof labProfileEl!=='undefined' && labProfileEl) ? labProfileEl : document.getElementById('labProfile');
     const prof = (el && el.value) || (localStorage.getItem('labWeightsProfile')||'balancee');
     const p = String(prof||'').toLowerCase();
-    if(p==='sure') {return 8;}        // profil SÃ»re: centre autour de 6â€“8%
-    if(p==='agressive') {return 30;}  // profil Agressive: centre autour de 25â€“30%
-    return 16;                      // profil BalancÃ©e (dÃ©faut ~15â€“20%)
+    if(p==='sure') return 8;        // profil Sûre: centre autour de 6–8%
+    if(p==='agressive') return 30;  // profil Agressive: centre autour de 25–30%
+    return 16;                      // profil Balancée (défaut ~15–20%)
   }catch(_){ return 16; }
 }
 function labProfileRiskRange(){
@@ -1855,8 +1855,8 @@ function labProfileRiskRange(){
     const el = (typeof labProfileEl!=='undefined' && labProfileEl) ? labProfileEl : document.getElementById('labProfile');
     const prof = (el && el.value) || (localStorage.getItem('labWeightsProfile')||'balancee');
     const p = String(prof||'').toLowerCase();
-    if(p==='sure')      {return { min: 2,  max: 12 };}
-    if(p==='agressive') {return { min: 10, max: 45 };}
+    if(p==='sure')      return { min: 2,  max: 12 };
+    if(p==='agressive') return { min: 10, max: 45 };
     return { min: 5, max: 25 };
   }catch(_){ return { min: 5, max: 25 }; }
 }
@@ -1865,7 +1865,7 @@ function readLabRiskConf(){
     const startCap = Math.max(0, parseFloat((document.getElementById('labStartCap')&&document.getElementById('labStartCap').value)||'10000'));
     const fee = Math.max(0, parseFloat((document.getElementById('labFee')&&document.getElementById('labFee').value)||'0.1'));
     const lev = Math.max(1, parseFloat((document.getElementById('labLev')&&document.getElementById('labLev').value)||'1'));
-    // Par dÃ©faut en mode simple (auto), on adapte Max % par trade au profil Lab
+    // Par défaut en mode simple (auto), on adapte Max % par trade au profil Lab
     let maxPct = labProfileRiskPct();
     try{
       const modeEl=document.getElementById('labMaxPctMode');
@@ -1873,9 +1873,9 @@ function readLabRiskConf(){
       const mode=(modeEl&&modeEl.value)||'auto';
       if(mode==='fixed'){
         let v=parseFloat((valEl&&valEl.value)||'0');
-        if(!(v>0)) {v=100;}
-        if(v<0.1) {v=0.1;}
-        if(v>100) {v=100;}
+        if(!(v>0)) v=100;
+        if(v<0.1) v=0.1;
+        if(v>100) v=100;
         maxPct=v;
       }
     }catch(_){ }
@@ -1889,8 +1889,8 @@ function setupLabRiskUI(){
   try{
     const modeEl=document.getElementById('labMaxPctMode');
     const valEl=document.getElementById('labMaxPct');
-    if(!modeEl || !valEl) {return;}
-    if(modeEl.dataset && modeEl.dataset.wired==='1') {return;}
+    if(!modeEl || !valEl) return;
+    if(modeEl.dataset && modeEl.dataset.wired==='1') return;
     function applyState(){
       try{
         const m=modeEl.value||'auto';
@@ -1900,23 +1900,23 @@ function setupLabRiskUI(){
     modeEl.addEventListener('change', ()=>{ try{ applyState(); }catch(_){ } });
     valEl.addEventListener('change', ()=>{ try{
       let v=parseFloat(valEl.value||'0');
-      if(!(v>0)) {v=100;}
-      if(v<0.1) {v=0.1;}
-      if(v>100) {v=100;}
+      if(!(v>0)) v=100;
+      if(v<0.1) v=0.1;
+      if(v>100) v=100;
       valEl.value=String(v);
     }catch(_){ } });
     applyState();
-    if(!modeEl.dataset) {modeEl.dataset={};}
+    if(!modeEl.dataset) modeEl.dataset={};
     modeEl.dataset.wired='1';
   }catch(_){ }
 }
 
-// Compute KPI benchmark: Heaven (current config) vs top PalmarÃ¨s over Lab-selected period
+// Compute KPI benchmark: Heaven (current config) vs top Palmarès over Lab-selected period
 async function computeLabBenchmarkAndUpdate(){
   try{
     const tfSel = (labTFSelect&&labTFSelect.value) || currentInterval;
     const symSel = (labSymbolSelect&&labSymbolSelect.value) || currentSymbol;
-    // Utiliser toutes les bougies chargÃ©es pour le symbole/TF courant, sinon rÃ©utiliser le cache mÃ©moire ou charger l'historique complet via API
+    // Utiliser toutes les bougies chargées pour le symbole/TF courant, sinon réutiliser le cache mémoire ou charger l'historique complet via API
     let bars = null;
     if(tfSel === currentInterval && symSel === currentSymbol){
       bars = __baseAfterCutoff();
@@ -1933,7 +1933,7 @@ async function computeLabBenchmarkAndUpdate(){
         try{ saveMemSeries(symSel, tfSel, bars, bars.length); }catch(_){ }
       }catch(_){ bars = []; }
     }
-    if(!bars || !bars.length){ if(kpiScoreEl) {kpiScoreEl.textContent='â€”';} if(kpiPFEl) {kpiPFEl.textContent='â€”';} if(kpiWinEl) {kpiWinEl.textContent='â€”';} if(kpiDDEl) {kpiDDEl.textContent='â€”';} return; }
+    if(!bars || !bars.length){ if(kpiScoreEl) kpiScoreEl.textContent='—'; if(kpiPFEl) kpiPFEl.textContent='—'; if(kpiWinEl) kpiWinEl.textContent='—'; if(kpiDDEl) kpiDDEl.textContent='—'; return; }
 
     let from=null, to=null;
     const rangeMode=(document.getElementById('labRangeMode')&&document.getElementById('labRangeMode').value)||'visible';
@@ -1957,7 +1957,7 @@ async function computeLabBenchmarkAndUpdate(){
     const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
     const scoreH = scoreResult(resH, weights);
 
-    // Top palmarÃ¨s (robust score if present; otherwise recompute)
+    // Top palmarès (robust score if present; otherwise recompute)
     let palArr = Array.isArray(window.labPalmaresCache)? window.labPalmaresCache.slice() : [];
     if(!palArr.length && window.SUPA && typeof SUPA.fetchPalmares==='function'){
       try{ palArr = await SUPA.fetchPalmares(symSel, tfSel, 1); }catch(_){ palArr=[]; }
@@ -1966,54 +1966,54 @@ async function computeLabBenchmarkAndUpdate(){
     const palRes = palTop&&palTop.res? palTop.res : null;
     const palScore = palTop? (Number.isFinite(palTop.score)? palTop.score : (palRes? scoreResult(palRes, weights): NaN)) : NaN;
 
-    const fmtPF=(v)=> v===Infinity? 'âˆž' : (Number.isFinite(v)? Number(v).toFixed(2) : 'â€”');
-    const scStr = `Heaven: ${scoreH.toFixed(2)} â€¢ PalmarÃ¨s: ${Number.isFinite(palScore)? palScore.toFixed(2): 'â€”'}`;
-    const pfStr = `Heaven: ${fmtPF(resH.profitFactor)} â€¢ PalmarÃ¨s: ${fmtPF(palRes && palRes.profitFactor)}`;
-    const winStr= `Heaven: ${Number(resH.winrate||0).toFixed(1)}% â€¢ PalmarÃ¨s: ${((palRes && Number.isFinite(palRes.winrate))? Number(palRes.winrate).toFixed(1)+'%':'â€”')}`;
-    const ddStr = `Heaven: ${Number(resH.maxDDAbs||0).toFixed(0)} â€¢ PalmarÃ¨s: ${((palRes && Number.isFinite(palRes.maxDDAbs))? Number(palRes.maxDDAbs).toFixed(0):'â€”')}`;
+    const fmtPF=(v)=> v===Infinity? '∞' : (Number.isFinite(v)? Number(v).toFixed(2) : '—');
+    const scStr = `Heaven: ${scoreH.toFixed(2)} • Palmarès: ${Number.isFinite(palScore)? palScore.toFixed(2): '—'}`;
+    const pfStr = `Heaven: ${fmtPF(resH.profitFactor)} • Palmarès: ${fmtPF(palRes && palRes.profitFactor)}`;
+    const winStr= `Heaven: ${Number(resH.winrate||0).toFixed(1)}% • Palmarès: ${((palRes && Number.isFinite(palRes.winrate))? Number(palRes.winrate).toFixed(1)+'%':'—')}`;
+    const ddStr = `Heaven: ${Number(resH.maxDDAbs||0).toFixed(0)} • Palmarès: ${((palRes && Number.isFinite(palRes.maxDDAbs))? Number(palRes.maxDDAbs).toFixed(0):'—')}`;
 
-    if(kpiScoreEl) {kpiScoreEl.textContent = scStr;}
-    if(kpiPFEl) {kpiPFEl.textContent = pfStr;}
-    if(kpiWinEl) {kpiWinEl.textContent = winStr;}
-    if(kpiDDEl) {kpiDDEl.textContent = ddStr;}
+    if(kpiScoreEl) kpiScoreEl.textContent = scStr;
+    if(kpiPFEl) kpiPFEl.textContent = pfStr;
+    if(kpiWinEl) kpiWinEl.textContent = winStr;
+    if(kpiDDEl) kpiDDEl.textContent = ddStr;
   }catch(_){ }
 }
 
-function openModalEl(el){ if(!el) {return;} el.classList.remove('hidden'); el.setAttribute('aria-hidden','false'); try{ const z=String(bumpModalZ()); el.style.zIndex = z; const c=el.querySelector && el.querySelector('.modal-content'); if(c){ c.style.zIndex = String(bumpModalZ()); } }catch(_){ } }
-function closeModalEl(el){ if(!el) {return;} el.classList.add('hidden'); el.setAttribute('aria-hidden','true'); }
+function openModalEl(el){ if(!el) return; el.classList.remove('hidden'); el.setAttribute('aria-hidden','false'); try{ const z=String(bumpModalZ()); el.style.zIndex = z; const c=el.querySelector && el.querySelector('.modal-content'); if(c){ c.style.zIndex = String(bumpModalZ()); } }catch(_){ } }
+function closeModalEl(el){ if(!el) return; el.classList.add('hidden'); el.setAttribute('aria-hidden','true'); }
 if(liveOpenBtn){ liveOpenBtn.addEventListener('click', async ()=>{ try{
   const drawer=document.getElementById('liveDrawer'); const isOpen = !!(drawer && drawer.dataset && drawer.dataset.open==='1');
   if(!isOpen){ // activer: highlight + ouvrir menu
-    if(liveOpenBtn.classList) {liveOpenBtn.classList.add('primary');}
+    if(liveOpenBtn.classList) liveOpenBtn.classList.add('primary');
     window.__liveUiHidden = false;
     ensureLiveDrawer();
     try{ const d=document.getElementById('liveDrawer'); if(d){ d.style.display=''; } }catch(_){ }
     updateLiveDrawerOpen(true); await renderLiveDrawer();
-  } else { // dÃ©sactiver: enlever highlight + fermer menu + restaurer historique complet
-    if(liveOpenBtn.classList) {liveOpenBtn.classList.remove('primary');}
+  } else { // désactiver: enlever highlight + fermer menu + restaurer historique complet
+    if(liveOpenBtn.classList) liveOpenBtn.classList.remove('primary');
     updateLiveDrawerOpen(false);
     try{ const d=document.getElementById('liveDrawer'); if(d){ d.style.display='none'; } }catch(_){ }
-    // Masquer la couche Live cÃ´tÃ© UI, sans couper les connexions headless
+    // Masquer la couche Live côté UI, sans couper les connexions headless
     window.__liveUiHidden = true;
-    // cacher le badge cutoff et rÃ©initialiser cutoff
+    // cacher le badge cutoff et réinitialiser cutoff
     try{ delete window.__liveChartMinTimeSec; delete window.__liveChartMinTimeBaseSec; const b=document.getElementById('chartCutoff'); if(b){ b.style.display='none'; } }catch(_){ }
-    // fermer les fenÃªtres flottantes de live si ouvertes
-    try{ if(typeof closeModalEl==='function'){ if(typeof tradesModalEl!=='undefined' && tradesModalEl) {closeModalEl(tradesModalEl);} if(typeof stratModalEl!=='undefined' && stratModalEl) {closeModalEl(stratModalEl);} } }catch(_){ }
+    // fermer les fenêtres flottantes de live si ouvertes
+    try{ if(typeof closeModalEl==='function'){ if(typeof tradesModalEl!=='undefined' && tradesModalEl) closeModalEl(tradesModalEl); if(typeof stratModalEl!=='undefined' && stratModalEl) closeModalEl(stratModalEl); } }catch(_){ }
     // recharger full historique et relancer Heaven sur tout le chart
     closeWs(); await load(currentSymbol, currentInterval); openWs(currentSymbol, currentInterval); updateCutoffBadge(); renderLBC();
   }
 } catch(_){ } }); }
-if(liveCloseBtn&&liveModalEl) {liveCloseBtn.addEventListener('click', ()=> closeModalEl(liveModalEl));} if(liveModalEl) {liveModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) {closeModalEl(liveModalEl);} });}
-if(labOpenBtn&&labModalEl) {labOpenBtn.addEventListener('click', async ()=>{ try{
+if(liveCloseBtn&&liveModalEl) liveCloseBtn.addEventListener('click', ()=> closeModalEl(liveModalEl)); if(liveModalEl) liveModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(liveModalEl); });
+if(labOpenBtn&&labModalEl) labOpenBtn.addEventListener('click', async ()=>{ try{
   openModalEl(labModalEl);
-  // Aligner le sÃ©lecteur de profil Lab sur le dernier profil de pondÃ©rations utilisÃ©
+  // Aligner le sélecteur de profil Lab sur le dernier profil de pondérations utilisé
   try{
     const storedProf = localStorage.getItem('labWeightsProfile');
     if(labProfileEl && storedProf){ labProfileEl.value = storedProf; }
   }catch(_){ }
   try{ setupLabAdvUI(); setupLabRiskUI(); updateLabAlgoPlaceholders(); }catch(_){ }
-  // Synchronise les pondÃ©rations du profil courant depuis Supabase (si disponible)
-  // et les considÃ¨re comme source de vÃ©ritÃ© (Ã©crase le cache local).
+  // Synchronise les pondérations du profil courant depuis Supabase (si disponible)
+  // et les considère comme source de vérité (écrase le cache local).
   try{
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchLabProfileWeights==='function'){
       const prof = (document.getElementById('labProfile') && document.getElementById('labProfile').value) || (localStorage.getItem('labWeightsProfile')||'balancee');
@@ -2025,10 +2025,10 @@ if(labOpenBtn&&labModalEl) {labOpenBtn.addEventListener('click', async ()=>{ try
   }catch(_){ }
   await renderLabFromStorage();
   await computeLabBenchmarkAndUpdate();
-}catch(_){ } });} if(labCloseBtn&&labModalEl) {labCloseBtn.addEventListener('click', ()=> closeModalEl(labModalEl));} if(labModalEl) {labModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) {closeModalEl(labModalEl);} });}
+}catch(_){ } }); if(labCloseBtn&&labModalEl) labCloseBtn.addEventListener('click', ()=> closeModalEl(labModalEl)); if(labModalEl) labModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(labModalEl); });
 
-if(btOpenBtn&&btModalEl) {btOpenBtn.addEventListener('click', ()=> openModalEl(btModalEl));} if(btCloseBtn&&btModalEl) {btCloseBtn.addEventListener('click', ()=> closeModalEl(btModalEl));} if(btModalEl) {btModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) {closeModalEl(btModalEl);} });}
-if(heavenCfgBtn&&lbcModalEl) {heavenCfgBtn.addEventListener('click', ()=>{ try{ populateHeavenModal(); try{ populateHeavenSupaList(); }catch(__){} try{ populateHeavenTFOptions(); }catch(__){} try{ populateHeavenLoadOptions(); }catch(__){} }catch(_){ } openModalEl(lbcModalEl); });} if(lbcCloseBtn&&lbcModalEl) {lbcCloseBtn.addEventListener('click', ()=> closeModalEl(lbcModalEl));} if(lbcModalEl) {lbcModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) {closeModalEl(lbcModalEl);} });}
+if(btOpenBtn&&btModalEl) btOpenBtn.addEventListener('click', ()=> openModalEl(btModalEl)); if(btCloseBtn&&btModalEl) btCloseBtn.addEventListener('click', ()=> closeModalEl(btModalEl)); if(btModalEl) btModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(btModalEl); });
+if(heavenCfgBtn&&lbcModalEl) heavenCfgBtn.addEventListener('click', ()=>{ try{ populateHeavenModal(); try{ populateHeavenSupaList(); }catch(__){} try{ populateHeavenTFOptions(); }catch(__){} try{ populateHeavenLoadOptions(); }catch(__){} }catch(_){ } openModalEl(lbcModalEl); }); if(lbcCloseBtn&&lbcModalEl) lbcCloseBtn.addEventListener('click', ()=> closeModalEl(lbcModalEl)); if(lbcModalEl) lbcModalEl.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(lbcModalEl); });
 
 // --- Heaven overlay (Line Break + ZigZag + options) ---
 const emaToggleEl = document.getElementById('emaToggle'); const nolEl=document.getElementById('nolInput'); const toggleLBCEl=document.getElementById('toggleLBC');
@@ -2040,8 +2040,8 @@ function normalizeLBCOpts(){
     if(lbcOpts && Object.prototype.hasOwnProperty.call(lbcOpts, 'tpAfterHit')){
       try{ delete lbcOpts.tpAfterHit; }catch(_){ lbcOpts.tpAfterHit=undefined; }
     }
-    if(typeof lbcOpts.tpEnable==='undefined') {lbcOpts.tpEnable=true;}
-    if(!Array.isArray(lbcOpts.tp)) {lbcOpts.tp=[];}
+    if(typeof lbcOpts.tpEnable==='undefined') lbcOpts.tpEnable=true;
+    if(!Array.isArray(lbcOpts.tp)) lbcOpts.tp=[];
     if(typeof lbcOpts.tpCount!=='number' || !Number.isFinite(lbcOpts.tpCount)){
       const n = Array.isArray(lbcOpts.tp) ? lbcOpts.tp.length : 0;
       lbcOpts.tpCount = Math.max(1, Math.min(10, n || 3));
@@ -2052,60 +2052,60 @@ function normalizeLBCOpts(){
 }
 normalizeLBCOpts();
 function saveLBCOpts(){ try{ localStorage.setItem('lbcOptions', JSON.stringify(lbcOpts)); }catch(_){ } }
-function clampTPCount(n){ const v=parseInt(String(n||''),10); if(!Number.isFinite(v)) {return 10;} if(v<1) {return 1;} if(v>10) {return 10;} return v|0; }
+function clampTPCount(n){ const v=parseInt(String(n||''),10); if(!Number.isFinite(v)) return 10; if(v<1) return 1; if(v>10) return 10; return v|0; }
 function applyHeavenTPCountToUI(){
   try{
     const grid=document.getElementById('heavenTPGrid');
     const cntEl=document.getElementById('optTPCount');
-    if(!grid || !cntEl) {return;}
+    if(!grid || !cntEl) return;
     const n=clampTPCount(cntEl.value || lbcOpts.tpCount || 10);
     const blocks=grid.children || [];
     let idx=0;
     for(const el of blocks){
-      if(!(el && el.tagName && el.tagName.toUpperCase()==='DIV')) {continue;}
+      if(!(el && el.tagName && el.tagName.toUpperCase()==='DIV')) continue;
       el.style.display = (idx < n) ? '' : 'none';
       idx++;
     }
   }catch(_){ }
 }
 function populateHeavenModal(){ try{
-  if(typeof optEnabled!=='undefined' && optEnabled) {optEnabled.checked=!!lbcOpts.enabled;}
-  if(typeof optNol!=='undefined' && optNol) {optNol.value=String(lbcOpts.nol);}
-  if(typeof optShowTrend!=='undefined' && optShowTrend) {optShowTrend.checked=!!lbcOpts.showTrend;}
-  if(typeof optTrendUp!=='undefined' && optTrendUp) {optTrendUp.value=lbcOpts.trendUpColor||'#00ff00';}
-  if(typeof optTrendDn!=='undefined' && optTrendDn) {optTrendDn.value=lbcOpts.trendDnColor||'#ff0000';}
-  if(typeof optUseZZDraw!=='undefined' && optUseZZDraw) {optUseZZDraw.checked=!!lbcOpts.useZZDraw;}
-  if(typeof optPrd!=='undefined' && optPrd) {optPrd.value=String(lbcOpts.prd);}
-  if(typeof optSLInitPct!=='undefined' && optSLInitPct) {optSLInitPct.value=String(lbcOpts.slInitPct);}
-  const __optSLEnable=document.getElementById('optSLEnable'); if(__optSLEnable) {__optSLEnable.checked=!!lbcOpts.slEnable;}
-  if(typeof optBEEnable!=='undefined' && optBEEnable) {optBEEnable.checked=!!lbcOpts.beEnable;}
-  if(typeof optBEBars!=='undefined' && optBEBars) {optBEBars.value=String(lbcOpts.beAfterBars);}
-  if(typeof optBELockPct!=='undefined' && optBELockPct) {optBELockPct.value=String(lbcOpts.beLockPct);}
-  if(typeof optEMALen!=='undefined' && optEMALen) {optEMALen.value=String(lbcOpts.emaLen);}
-  if(typeof optShowClose!=='undefined' && optShowClose) {optShowClose.checked=!!lbcOpts.showClose;}
-  const optShowArrows=document.getElementById('optShowArrows'); if(optShowArrows) {optShowArrows.checked=!!lbcOpts.showArrows;}
-  const optUseFibDraw=document.getElementById('optUseFibDraw'); if(optUseFibDraw) {optUseFibDraw.checked=!!lbcOpts.useFibDraw;}
-  const optUseFibDrawTPSL=document.getElementById('optUseFibDrawTPSL'); if(optUseFibDrawTPSL) {optUseFibDrawTPSL.checked=!!lbcOpts.useFibDrawTPSL;}
-  const optUseFibRet=document.getElementById('optUseFibRet'); if(optUseFibRet) {optUseFibRet.checked=!!lbcOpts.useFibRet;}
-  const optConfirmMode=document.getElementById('optConfirmMode'); if(optConfirmMode) {optConfirmMode.value=lbcOpts.confirmMode||'Bounce';}
-  const optEntryModeEl=document.getElementById('optEntryMode'); if(optEntryModeEl) {optEntryModeEl.value=lbcOpts.entryMode||'Both';}
-  const optZZUp=document.getElementById('optZZUp'); if(optZZUp) {optZZUp.value=lbcOpts.zzUp||'#00ff00';}
-  const optZZDn=document.getElementById('optZZDn'); if(optZZDn) {optZZDn.value=lbcOpts.zzDn||'#ff0000';}
-  const optTPEnable=document.getElementById('optTPEnable'); if(optTPEnable) {optTPEnable.checked=!!lbcOpts.tpEnable;}
-  const optTPCompound=document.getElementById('optTPCompound'); if(optTPCompound) {optTPCompound.checked=!!lbcOpts.tpCompound;}
-  const optTPAllLast=document.getElementById('optTPAllLast'); if(optTPAllLast) {optTPAllLast.checked=!!lbcOpts.tpCloseAllLast;}
-  const optArrowOffsetPx=document.getElementById('optArrowOffsetPx'); if(optArrowOffsetPx) {optArrowOffsetPx.value=String((lbcOpts.arrowOffsetPx|0)||0);}
-  const optTPCountEl=document.getElementById('optTPCount'); if(optTPCountEl) {optTPCountEl.value=String(clampTPCount(lbcOpts.tpCount));}
+  if(typeof optEnabled!=='undefined' && optEnabled) optEnabled.checked=!!lbcOpts.enabled;
+  if(typeof optNol!=='undefined' && optNol) optNol.value=String(lbcOpts.nol);
+  if(typeof optShowTrend!=='undefined' && optShowTrend) optShowTrend.checked=!!lbcOpts.showTrend;
+  if(typeof optTrendUp!=='undefined' && optTrendUp) optTrendUp.value=lbcOpts.trendUpColor||'#00ff00';
+  if(typeof optTrendDn!=='undefined' && optTrendDn) optTrendDn.value=lbcOpts.trendDnColor||'#ff0000';
+  if(typeof optUseZZDraw!=='undefined' && optUseZZDraw) optUseZZDraw.checked=!!lbcOpts.useZZDraw;
+  if(typeof optPrd!=='undefined' && optPrd) optPrd.value=String(lbcOpts.prd);
+  if(typeof optSLInitPct!=='undefined' && optSLInitPct) optSLInitPct.value=String(lbcOpts.slInitPct);
+  const __optSLEnable=document.getElementById('optSLEnable'); if(__optSLEnable) __optSLEnable.checked=!!lbcOpts.slEnable;
+  if(typeof optBEEnable!=='undefined' && optBEEnable) optBEEnable.checked=!!lbcOpts.beEnable;
+  if(typeof optBEBars!=='undefined' && optBEBars) optBEBars.value=String(lbcOpts.beAfterBars);
+  if(typeof optBELockPct!=='undefined' && optBELockPct) optBELockPct.value=String(lbcOpts.beLockPct);
+  if(typeof optEMALen!=='undefined' && optEMALen) optEMALen.value=String(lbcOpts.emaLen);
+  if(typeof optShowClose!=='undefined' && optShowClose) optShowClose.checked=!!lbcOpts.showClose;
+  const optShowArrows=document.getElementById('optShowArrows'); if(optShowArrows) optShowArrows.checked=!!lbcOpts.showArrows;
+  const optUseFibDraw=document.getElementById('optUseFibDraw'); if(optUseFibDraw) optUseFibDraw.checked=!!lbcOpts.useFibDraw;
+  const optUseFibDrawTPSL=document.getElementById('optUseFibDrawTPSL'); if(optUseFibDrawTPSL) optUseFibDrawTPSL.checked=!!lbcOpts.useFibDrawTPSL;
+  const optUseFibRet=document.getElementById('optUseFibRet'); if(optUseFibRet) optUseFibRet.checked=!!lbcOpts.useFibRet;
+  const optConfirmMode=document.getElementById('optConfirmMode'); if(optConfirmMode) optConfirmMode.value=lbcOpts.confirmMode||'Bounce';
+  const optEntryModeEl=document.getElementById('optEntryMode'); if(optEntryModeEl) optEntryModeEl.value=lbcOpts.entryMode||'Both';
+  const optZZUp=document.getElementById('optZZUp'); if(optZZUp) optZZUp.value=lbcOpts.zzUp||'#00ff00';
+  const optZZDn=document.getElementById('optZZDn'); if(optZZDn) optZZDn.value=lbcOpts.zzDn||'#ff0000';
+  const optTPEnable=document.getElementById('optTPEnable'); if(optTPEnable) optTPEnable.checked=!!lbcOpts.tpEnable;
+  const optTPCompound=document.getElementById('optTPCompound'); if(optTPCompound) optTPCompound.checked=!!lbcOpts.tpCompound;
+  const optTPAllLast=document.getElementById('optTPAllLast'); if(optTPAllLast) optTPAllLast.checked=!!lbcOpts.tpCloseAllLast;
+  const optArrowOffsetPx=document.getElementById('optArrowOffsetPx'); if(optArrowOffsetPx) optArrowOffsetPx.value=String((lbcOpts.arrowOffsetPx|0)||0);
+  const optTPCountEl=document.getElementById('optTPCount'); if(optTPCountEl) optTPCountEl.value=String(clampTPCount(lbcOpts.tpCount));
 
   // Context for dynamic dropdown labels
   const pivAll=computePivots(candles, Math.max(2, lbcOpts.prd|0));
   const seg=getLastPivotSeg(pivAll); const A=seg?seg.a.price:null, B=seg?seg.b.price:null; const up=seg? (seg.dir==='up'):null; const move=(seg&&A!=null&&B!=null)? Math.abs(B-A):null;
   const fibRatios=[0,0.236,0.382,0.5,0.618,0.786,1.0,1.272,1.382,1.414,1.618,2.0,2.236,2.618,3.0,3.618,4.236,5.0];
-  function rebuildFibSelect(sel, current){ if(!sel) {return;} sel.innerHTML=''; for(const r of fibRatios){ const opt=document.createElement('option'); opt.value=String(r); let label=r.toFixed(3); if(seg && move!=null){ const px = up? (B + move*r) : (B - move*r); if(isFinite(px)) {label += ` â€” ${px.toFixed(2)}`;} }
+  function rebuildFibSelect(sel, current){ if(!sel) return; sel.innerHTML=''; for(const r of fibRatios){ const opt=document.createElement('option'); opt.value=String(r); let label=r.toFixed(3); if(seg && move!=null){ const px = up? (B + move*r) : (B - move*r); if(isFinite(px)) label += ` — ${px.toFixed(2)}`; }
       opt.textContent=label; sel.appendChild(opt); }
     if(current!=null){ sel.value=String(current); } }
-  function emaCandidates(){ const out=[]; const add=(en,len)=>{ if(en && Number.isFinite(len)&&len>0) {out.push(len|0);} }; add(emaOpts.e21&&emaOpts.e21.en, emaOpts.e21&&emaOpts.e21.len); add(emaOpts.e34&&emaOpts.e34.en, emaOpts.e34&&emaOpts.e34.len); add(emaOpts.e55&&emaOpts.e55.en, emaOpts.e55&&emaOpts.e55.len); add(emaOpts.e200&&emaOpts.e200.en, emaOpts.e200&&emaOpts.e200.len); if(!out.length && Number.isFinite(lbcOpts.emaLen)) {out.push(lbcOpts.emaLen|0);} return Array.from(new Set(out)); }
-  function rebuildEmaSelect(sel, current){ if(!sel) {return;} sel.innerHTML=''; const lens=emaCandidates(); for(const len of lens){ const opt=document.createElement('option'); opt.value=String(len); let label=`EMA ${len}`; try{ const ema=emaCalc(candles, Math.max(1, len|0)); const v=ema[ema.length-1]; if(isFinite(v)) {label += ` â€” ${v.toFixed(2)}`;} }catch(_){ }
+  function emaCandidates(){ const out=[]; const add=(en,len)=>{ if(en && Number.isFinite(len)&&len>0) out.push(len|0); }; add(emaOpts.e21&&emaOpts.e21.en, emaOpts.e21&&emaOpts.e21.len); add(emaOpts.e34&&emaOpts.e34.en, emaOpts.e34&&emaOpts.e34.len); add(emaOpts.e55&&emaOpts.e55.en, emaOpts.e55&&emaOpts.e55.len); add(emaOpts.e200&&emaOpts.e200.en, emaOpts.e200&&emaOpts.e200.len); if(!out.length && Number.isFinite(lbcOpts.emaLen)) out.push(lbcOpts.emaLen|0); return Array.from(new Set(out)); }
+  function rebuildEmaSelect(sel, current){ if(!sel) return; sel.innerHTML=''; const lens=emaCandidates(); for(const len of lens){ const opt=document.createElement('option'); opt.value=String(len); let label=`EMA ${len}`; try{ const ema=emaCalc(candles, Math.max(1, len|0)); const v=ema[ema.length-1]; if(isFinite(v)) label += ` — ${v.toFixed(2)}`; }catch(_){ }
       opt.textContent=label; sel.appendChild(opt); }
     if(current!=null){ sel.value=String(current); } }
 function updateTPRow(i, t){
@@ -2114,9 +2114,9 @@ function updateTPRow(i, t){
   const vFib=document.getElementById(`optTP${i}Fib`);
   const vEma=document.getElementById(`optTP${i}Ema`);
   if(tSel){ const typ=tSel.value||'Fib'; // show/hide
-    if(vNum) {vNum.style.display = (typ==='Percent')? '' : 'none';}
-    if(vFib) {vFib.style.display = (typ==='Fib')? '' : 'none';}
-    if(vEma) {vEma.style.display = (typ==='EMA')? '' : 'none';}
+    if(vNum) vNum.style.display = (typ==='Percent')? '' : 'none';
+    if(vFib) vFib.style.display = (typ==='Fib')? '' : 'none';
+    if(vEma) vEma.style.display = (typ==='EMA')? '' : 'none';
     if(typ==='Fib'){ rebuildFibSelect(vFib, (t&&t.fib!=null)? t.fib : (vFib&&vFib.value)); }
     else if(typ==='EMA'){ rebuildEmaSelect(vEma, (t&&t.emaLen!=null)? t.emaLen : (vEma&&vEma.value)); }
   }
@@ -2127,9 +2127,9 @@ function updateTPRow(i, t){
   const sEma=document.getElementById(`optTP${i}SLEma`);
   const st=(t&&t.sl)||{};
   if(sSel){ const styp=sSel.value||'Percent';
-    if(sNum) {sNum.style.display = (styp==='Percent')? '' : 'none';}
-    if(sFib) {sFib.style.display = (styp==='Fib')? '' : 'none';}
-    if(sEma) {sEma.style.display = (styp==='EMA')? '' : 'none';}
+    if(sNum) sNum.style.display = (styp==='Percent')? '' : 'none';
+    if(sFib) sFib.style.display = (styp==='Fib')? '' : 'none';
+    if(sEma) sEma.style.display = (styp==='EMA')? '' : 'none';
     if(styp==='Fib'){ rebuildFibSelect(sFib, (st&&st.fib!=null)? st.fib : (sFib&&sFib.value)); }
     else if(styp==='EMA'){ rebuildEmaSelect(sEma, (st&&st.emaLen!=null)? st.emaLen : (sEma&&sEma.value)); }
   }
@@ -2138,85 +2138,85 @@ function updateTPRow(i, t){
   const trEma=document.getElementById(`optTP${i}TrailEma`);
   const trPct=document.getElementById(`optTP${i}TrailPct`);
   if(trSel){
-    if(trEma) {trEma.style.display = (trSel.value==='ema')? '' : 'none';}
-    if(trPct) {trPct.style.display = (trSel.value==='percent')? '' : 'none';}
+    if(trEma) trEma.style.display = (trSel.value==='ema')? '' : 'none';
+    if(trPct) trPct.style.display = (trSel.value==='percent')? '' : 'none';
     if(trSel.value==='ema'){ rebuildEmaSelect(trEma, (t&&t.trail&&t.trail.emaLen!=null)? t.trail.emaLen : (trEma&&trEma.value)); }
   }
   const slTrSel=document.getElementById(`optTP${i}SLTrailType`);
   const slTrEma=document.getElementById(`optTP${i}SLTrailEma`);
   const slTrPct=document.getElementById(`optTP${i}SLTrailPct`);
   if(slTrSel){
-    if(slTrEma) {slTrEma.style.display = (slTrSel.value==='ema')? '' : 'none';}
-    if(slTrPct) {slTrPct.style.display = (slTrSel.value==='percent')? '' : 'none';}
+    if(slTrEma) slTrEma.style.display = (slTrSel.value==='ema')? '' : 'none';
+    if(slTrPct) slTrPct.style.display = (slTrSel.value==='percent')? '' : 'none';
     if(slTrSel.value==='ema'){ rebuildEmaSelect(slTrEma, (st&&st.trail&&st.trail.emaLen!=null)? st.trail.emaLen : (slTrEma&&slTrEma.value)); }
   }
 }
-  function updateSLRow(i, t){ const tSel=document.getElementById(`optSL${i}Type`); const vNum=document.getElementById(`optSL${i}R`); const vFib=document.getElementById(`optSL${i}Fib`); const vEma=document.getElementById(`optSL${i}Ema`); if(!tSel) {return;} const typ=tSel.value||'Percent';
-    if(vNum) {vNum.style.display = (typ==='Percent')? '' : 'none';} if(vFib) {vFib.style.display = (typ==='Fib')? '' : 'none';} if(vEma) {vEma.style.display = (typ==='EMA')? '' : 'none';} if(typ==='Fib'){ rebuildFibSelect(vFib, (t&&t.fib!=null)? t.fib : (vFib&&vFib.value)); }
+  function updateSLRow(i, t){ const tSel=document.getElementById(`optSL${i}Type`); const vNum=document.getElementById(`optSL${i}R`); const vFib=document.getElementById(`optSL${i}Fib`); const vEma=document.getElementById(`optSL${i}Ema`); if(!tSel) return; const typ=tSel.value||'Percent';
+    if(vNum) vNum.style.display = (typ==='Percent')? '' : 'none'; if(vFib) vFib.style.display = (typ==='Fib')? '' : 'none'; if(vEma) vEma.style.display = (typ==='EMA')? '' : 'none'; if(typ==='Fib'){ rebuildFibSelect(vFib, (t&&t.fib!=null)? t.fib : (vFib&&vFib.value)); }
     else if(typ==='EMA'){ rebuildEmaSelect(vEma, (t&&t.emaLen!=null)? t.emaLen : (vEma&&vEma.value)); } }
 
   const arr=lbcOpts.tp||[];
   for(let i=1;i<=10;i++){
     const t=arr[i-1]||{}; const tSel=document.getElementById(`optTP${i}Type`); const vNum=document.getElementById(`optTP${i}R`); const vFib=document.getElementById(`optTP${i}Fib`); const vEma=document.getElementById(`optTP${i}Ema`); const pPct=document.getElementById(`optTP${i}P`); const qPct=document.getElementById(`optTP${i}Qty`);
     if(tSel){ tSel.value=t.type||'Fib'; }
-    if(vFib && (t.fib!=null)) {vFib.value=String(t.fib);}
-    if(vNum && (t.pct!=null)) {vNum.value=String(t.pct);}
-    if(vEma && (t.emaLen!=null)) {vEma.value=String(t.emaLen);}
-    if(pPct && (t.value!=null)) {pPct.value=String(t.value);}
-    if(qPct && (t.qty!=null)) {qPct.value=String(t.qty);}
+    if(vFib && (t.fib!=null)) vFib.value=String(t.fib);
+    if(vNum && (t.pct!=null)) vNum.value=String(t.pct);
+    if(vEma && (t.emaLen!=null)) vEma.value=String(t.emaLen);
+    if(pPct && (t.value!=null)) pPct.value=String(t.value);
+    if(qPct && (t.qty!=null)) qPct.value=String(t.qty);
     // attached SL & BE per TP
     const st=(t&&t.sl)||{}; const sSel=document.getElementById(`optTP${i}SLType`); const sNum=document.getElementById(`optTP${i}SLR`); const sFib=document.getElementById(`optTP${i}SLFib`); const sEma=document.getElementById(`optTP${i}SLEma`); const beOn=document.getElementById(`optTP${i}BEOn`);
     if(sSel){ sSel.value=st.type||'Percent'; }
-    if(sFib && (st.fib!=null)) {sFib.value=String(st.fib);}
-    if(sNum && (st.pct!=null)) {sNum.value=String(st.pct);}
-    if(sEma && (st.emaLen!=null)) {sEma.value=String(st.emaLen);}
-    if(beOn) {beOn.checked = !!(t && t.beOn);}
+    if(sFib && (st.fib!=null)) sFib.value=String(st.fib);
+    if(sNum && (st.pct!=null)) sNum.value=String(st.pct);
+    if(sEma && (st.emaLen!=null)) sEma.value=String(st.emaLen);
+    if(beOn) beOn.checked = !!(t && t.beOn);
     // per-TP trailing defaults
     const trSel=document.getElementById(`optTP${i}TrailType`);
     const trEma=document.getElementById(`optTP${i}TrailEma`);
     const trPct=document.getElementById(`optTP${i}TrailPct`);
     if(trSel){ trSel.value = (t && t.trail && t.trail.mode) || 'none'; }
-    if(trEma && t && t.trail && (t.trail.emaLen!=null)) {trEma.value = String(t.trail.emaLen);}
-    if(trPct && t && t.trail && (t.trail.pct!=null)) {trPct.value = String(t.trail.pct);}
+    if(trEma && t && t.trail && (t.trail.emaLen!=null)) trEma.value = String(t.trail.emaLen);
+    if(trPct && t && t.trail && (t.trail.pct!=null)) trPct.value = String(t.trail.pct);
     // per-TP SL trailing defaults
     const slTrSel=document.getElementById(`optTP${i}SLTrailType`);
     const slTrEma=document.getElementById(`optTP${i}SLTrailEma`);
     const slTrPct=document.getElementById(`optTP${i}SLTrailPct`);
     if(slTrSel){ slTrSel.value = (st && st.trail && st.trail.mode) || 'none'; }
-    if(slTrEma && st && st.trail && (st.trail.emaLen!=null)) {slTrEma.value = String(st.trail.emaLen);}
-    if(slTrPct && st && st.trail && (st.trail.pct!=null)) {slTrPct.value = String(st.trail.pct);}
+    if(slTrEma && st && st.trail && (st.trail.emaLen!=null)) slTrEma.value = String(st.trail.emaLen);
+    if(slTrPct && st && st.trail && (st.trail.pct!=null)) slTrPct.value = String(st.trail.pct);
     updateTPRow(i, t);
-    if(tSel && (!tSel.dataset || tSel.dataset.wired!=='1')){ tSel.addEventListener('change', ()=> updateTPRow(i, arr[i-1]||{})); if(!tSel.dataset) {tSel.dataset={};} tSel.dataset.wired='1'; }
-    if(sSel && (!sSel.dataset || sSel.dataset.wired!=='1')){ sSel.addEventListener('change', ()=> updateTPRow(i, arr[i-1]||{})); if(!sSel.dataset) {sSel.dataset={};} sSel.dataset.wired='1'; }
-    if(trSel && (!trSel.dataset || trSel.dataset.wired!=='1')){ trSel.addEventListener('change', ()=> updateTPRow(i, arr[i-1]||{})); if(!trSel.dataset) {trSel.dataset={};} trSel.dataset.wired='1'; }
-    if(slTrSel && (!slTrSel.dataset || slTrSel.dataset.wired!=='1')){ slTrSel.addEventListener('change', ()=> updateTPRow(i, arr[i-1]||{})); if(!slTrSel.dataset) {slTrSel.dataset={};} slTrSel.dataset.wired='1'; }
+    if(tSel && (!tSel.dataset || tSel.dataset.wired!=='1')){ tSel.addEventListener('change', ()=> updateTPRow(i, arr[i-1]||{})); if(!tSel.dataset) tSel.dataset={}; tSel.dataset.wired='1'; }
+    if(sSel && (!sSel.dataset || sSel.dataset.wired!=='1')){ sSel.addEventListener('change', ()=> updateTPRow(i, arr[i-1]||{})); if(!sSel.dataset) sSel.dataset={}; sSel.dataset.wired='1'; }
+    if(trSel && (!trSel.dataset || trSel.dataset.wired!=='1')){ trSel.addEventListener('change', ()=> updateTPRow(i, arr[i-1]||{})); if(!trSel.dataset) trSel.dataset={}; trSel.dataset.wired='1'; }
+    if(slTrSel && (!slTrSel.dataset || slTrSel.dataset.wired!=='1')){ slTrSel.addEventListener('change', ()=> updateTPRow(i, arr[i-1]||{})); if(!slTrSel.dataset) slTrSel.dataset={}; slTrSel.dataset.wired='1'; }
   }
   const arrSL=lbcOpts.sl||[];
   for(let i=1;i<=10;i++){
     const t=arrSL[i-1]||{}; const tSel=document.getElementById(`optSL${i}Type`); const vNum=document.getElementById(`optSL${i}R`); const vFib=document.getElementById(`optSL${i}Fib`); const vEma=document.getElementById(`optSL${i}Ema`);
     if(tSel){ tSel.value=t.type||'Percent'; }
-    if(vFib && (t.fib!=null)) {vFib.value=String(t.fib);}
-    if(vNum && (t.pct!=null)) {vNum.value=String(t.pct);}
-    if(vEma && (t.emaLen!=null)) {vEma.value=String(t.emaLen);}
+    if(vFib && (t.fib!=null)) vFib.value=String(t.fib);
+    if(vNum && (t.pct!=null)) vNum.value=String(t.pct);
+    if(vEma && (t.emaLen!=null)) vEma.value=String(t.emaLen);
     updateSLRow(i, t);
-    if(tSel && (!tSel.dataset || tSel.dataset.wired!=='1')){ tSel.addEventListener('change', ()=> updateSLRow(i, arrSL[i-1]||{})); if(!tSel.dataset) {tSel.dataset={};} tSel.dataset.wired='1'; }
+    if(tSel && (!tSel.dataset || tSel.dataset.wired!=='1')){ tSel.addEventListener('change', ()=> updateSLRow(i, arrSL[i-1]||{})); if(!tSel.dataset) tSel.dataset={}; tSel.dataset.wired='1'; }
   }
   applyHeavenTPCountToUI();
 }catch(_){ } }
-if(toggleLBCEl) {toggleLBCEl.checked = !!lbcOpts.enabled;} if(nolEl) {nolEl.value=String(lbcOpts.nol);}
-if(toggleLBCEl) {toggleLBCEl.addEventListener('change', ()=>{ lbcOpts.enabled=!!toggleLBCEl.checked; saveLBCOpts(); renderLBC(); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } });}
-if(nolEl) {nolEl.addEventListener('change', ()=>{ lbcOpts.nol=Math.max(1, parseInt(nolEl.value||'3')); saveLBCOpts(); renderLBC(); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } });}
+if(toggleLBCEl) toggleLBCEl.checked = !!lbcOpts.enabled; if(nolEl) nolEl.value=String(lbcOpts.nol);
+if(toggleLBCEl) toggleLBCEl.addEventListener('change', ()=>{ lbcOpts.enabled=!!toggleLBCEl.checked; saveLBCOpts(); renderLBC(); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } });
+if(nolEl) nolEl.addEventListener('change', ()=>{ lbcOpts.nol=Math.max(1, parseInt(nolEl.value||'3')); saveLBCOpts(); renderLBC(); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } });
 const optArrowOffsetPx=document.getElementById('optArrowOffsetPx'); if(optArrowOffsetPx){ optArrowOffsetPx.addEventListener('change', ()=>{ lbcOpts.arrowOffsetPx=Math.max(0, parseInt(optArrowOffsetPx.value||'0')); saveLBCOpts(); renderLBC(); }); }
 const optTPCountEl=document.getElementById('optTPCount');
 if(optTPCountEl && (!optTPCountEl.dataset || optTPCountEl.dataset.wired!=='1')){
   optTPCountEl.addEventListener('change', ()=>{ try{ applyHeavenTPCountToUI(); }catch(_){ } });
-  if(!optTPCountEl.dataset) {optTPCountEl.dataset={};}
+  if(!optTPCountEl.dataset) optTPCountEl.dataset={};
   optTPCountEl.dataset.wired='1';
 }
 
-function computeLineBreakState(bars, nol){ const n=bars.length; if(!n) {return {trend:[], level:[], flips:[]};} const trend=new Array(n).fill(0); const level=new Array(n).fill(null); const flips=[]; let t=bars[0].close>=bars[0].open?1:-1; const opens=[bars[0].open]; const closes=[bars[0].close]; for(let i=0;i<n;i++){ const c=bars[i].close; if(t===1){ const cnt=Math.min(nol, opens.length); const minUp=Math.min(...opens.slice(0,cnt), ...closes.slice(0,cnt)); if(c<minUp) {t=-1;} if(c>closes[0]||t===-1){ const o=(t===-1? opens[0]:closes[0]); opens.unshift(o); closes.unshift(c); } } else { const cnt=Math.min(nol, opens.length); const maxDn=Math.max(...opens.slice(0,cnt), ...closes.slice(0,cnt)); if(c>maxDn) {t=1;} if(c<closes[0]||t===1){ const o=(t===1? opens[0]:closes[0]); opens.unshift(o); closes.unshift(c); } } trend[i]=t; const cnt2=Math.min(nol, opens.length); const minUp2=Math.min(...opens.slice(0,cnt2), ...closes.slice(0,cnt2)); const maxDn2=Math.max(...opens.slice(0,cnt2), ...closes.slice(0,cnt2)); level[i]=(t===1? minUp2: maxDn2); if(i>0 && trend[i]!==trend[i-1]) {flips.push(i);} } return {trend, level, flips}; }
-function computePivots(bars, prd){ const piv=[]; for(let i=prd;i<bars.length-prd;i++){ let isH=true, isL=true; for(let j=1;j<=prd;j++){ if(!(bars[i].high>bars[i-j].high && bars[i].high>bars[i+j].high)) {isH=false;} if(!(bars[i].low<bars[i-j].low && bars[i].low<bars[i+j].low)) {isL=false;} if(!isH&&!isL) {break;} } if(isH||isL) {piv.push({ idx:i, time:bars[i].time, price: isH? bars[i].high : bars[i].low });} } return piv; }
-function buildHeavenMarkers(bars, lb, pivAll){ const markers=[]; if(!bars||!bars.length) {return markers;} const longCol='#10b981', shortCol='#ef4444'; let pivIdx=-1; function advancePivotIdxTo(i){ while(pivIdx+1<pivAll.length && pivAll[pivIdx+1].idx<=i){ pivIdx++; } } function segAtIdx(){ if(pivIdx>=1){ const a=pivAll[pivIdx-1], b=pivAll[pivIdx]; return { a, b, dir: b.price>a.price?'up':'down' }; } return null; } let pendingFib=null; const useOrig = (lbcOpts.entryMode!=='Fib Retracement'); const useFib = (lbcOpts.useFibRet && lbcOpts.entryMode!=='Original'); for(let i=1;i<bars.length;i++){ advancePivotIdxTo(i); if(useOrig && lb.trend[i]!==lb.trend[i-1]){ const up = lb.trend[i]===1; markers.push({ time: bars[i].time, position: up? 'belowBar':'aboveBar', color: up? longCol:shortCol, shape: up? 'arrowUp':'arrowDown' }); if(useFib){ const seg=segAtIdx(); if(seg){ const A=seg.a.price, B=seg.b.price; const upSeg=seg.dir==='up'; const move=Math.abs(B-A); const levels=[]; if(lbcOpts.ent382) {levels.push(upSeg? (B - move*0.382):(B + move*0.382));} if(lbcOpts.ent500) {levels.push(upSeg? (B - move*0.5):(B + move*0.5));} if(lbcOpts.ent618) {levels.push(upSeg? (B - move*0.618):(B + move*0.618));} if(lbcOpts.ent786) {levels.push(upSeg? (B - move*0.786):(B + move*0.786));} pendingFib={ dir:(up?'long':'short'), levels, mode: lbcOpts.confirmMode||'Bounce' }; } }
+function computeLineBreakState(bars, nol){ const n=bars.length; if(!n) return {trend:[], level:[], flips:[]}; const trend=new Array(n).fill(0); const level=new Array(n).fill(null); const flips=[]; let t=bars[0].close>=bars[0].open?1:-1; let opens=[bars[0].open]; let closes=[bars[0].close]; for(let i=0;i<n;i++){ const c=bars[i].close; if(t===1){ const cnt=Math.min(nol, opens.length); const minUp=Math.min(...opens.slice(0,cnt), ...closes.slice(0,cnt)); if(c<minUp) t=-1; if(c>closes[0]||t===-1){ const o=(t===-1? opens[0]:closes[0]); opens.unshift(o); closes.unshift(c); } } else { const cnt=Math.min(nol, opens.length); const maxDn=Math.max(...opens.slice(0,cnt), ...closes.slice(0,cnt)); if(c>maxDn) t=1; if(c<closes[0]||t===1){ const o=(t===1? opens[0]:closes[0]); opens.unshift(o); closes.unshift(c); } } trend[i]=t; const cnt2=Math.min(nol, opens.length); const minUp2=Math.min(...opens.slice(0,cnt2), ...closes.slice(0,cnt2)); const maxDn2=Math.max(...opens.slice(0,cnt2), ...closes.slice(0,cnt2)); level[i]=(t===1? minUp2: maxDn2); if(i>0 && trend[i]!==trend[i-1]) flips.push(i); } return {trend, level, flips}; }
+function computePivots(bars, prd){ const piv=[]; for(let i=prd;i<bars.length-prd;i++){ let isH=true, isL=true; for(let j=1;j<=prd;j++){ if(!(bars[i].high>bars[i-j].high && bars[i].high>bars[i+j].high)) isH=false; if(!(bars[i].low<bars[i-j].low && bars[i].low<bars[i+j].low)) isL=false; if(!isH&&!isL) break; } if(isH||isL) piv.push({ idx:i, time:bars[i].time, price: isH? bars[i].high : bars[i].low }); } return piv; }
+function buildHeavenMarkers(bars, lb, pivAll){ const markers=[]; if(!bars||!bars.length) return markers; const longCol='#10b981', shortCol='#ef4444'; let pivIdx=-1; function advancePivotIdxTo(i){ while(pivIdx+1<pivAll.length && pivAll[pivIdx+1].idx<=i){ pivIdx++; } } function segAtIdx(){ if(pivIdx>=1){ const a=pivAll[pivIdx-1], b=pivAll[pivIdx]; return { a, b, dir: b.price>a.price?'up':'down' }; } return null; } let pendingFib=null; const useOrig = (lbcOpts.entryMode!=='Fib Retracement'); const useFib = (lbcOpts.useFibRet && lbcOpts.entryMode!=='Original'); for(let i=1;i<bars.length;i++){ advancePivotIdxTo(i); if(useOrig && lb.trend[i]!==lb.trend[i-1]){ const up = lb.trend[i]===1; markers.push({ time: bars[i].time, position: up? 'belowBar':'aboveBar', color: up? longCol:shortCol, shape: up? 'arrowUp':'arrowDown' }); if(useFib){ const seg=segAtIdx(); if(seg){ const A=seg.a.price, B=seg.b.price; const upSeg=seg.dir==='up'; const move=Math.abs(B-A); const levels=[]; if(lbcOpts.ent382) levels.push(upSeg? (B - move*0.382):(B + move*0.382)); if(lbcOpts.ent500) levels.push(upSeg? (B - move*0.5):(B + move*0.5)); if(lbcOpts.ent618) levels.push(upSeg? (B - move*0.618):(B + move*0.618)); if(lbcOpts.ent786) levels.push(upSeg? (B - move*0.786):(B + move*0.786)); pendingFib={ dir:(up?'long':'short'), levels, mode: lbcOpts.confirmMode||'Bounce' }; } }
     }
     if(useFib && pendingFib && pendingFib.levels && pendingFib.levels.length){ const bar=bars[i]; for(const lv of pendingFib.levels){ let ok=false; if(pendingFib.dir==='long'){ ok=(pendingFib.mode==='Touch')? (bar.low<=lv) : (bar.low<=lv && bar.close>lv); } else { ok=(pendingFib.mode==='Touch')? (bar.high>=lv) : (bar.high>=lv && bar.close<lv); } if(ok){ const up=pendingFib.dir==='long'; markers.push({ time: bars[i].time, position: up? 'belowBar':'aboveBar', color: up? longCol:shortCol, shape: up? 'arrowUp':'arrowDown' }); pendingFib=null; break; } } }
   }
@@ -2232,7 +2232,7 @@ const defaultWeights = {
   eq:10,
   trades:5,
   dd:10,
-  // Extended metrics (0 by dÃ©faut pour rÃ©troâ€‘compatibilitÃ© â€“ l'utilisateur peut les activer)
+  // Extended metrics (0 by défaut pour rétro‑compatibilité – l'utilisateur peut les activer)
   sharpe:0,
   recov:0,
   slope:0,
@@ -2269,7 +2269,7 @@ function scoreResult(st, w){
   const hasDd = Number.isFinite(ddAbsRaw);
   const hasTr = Number.isFinite(trRaw);
 
-  // Normalisations legacy (0â€“1)
+  // Normalisations legacy (0–1)
   const pfS  = pfRaw===Infinity? 1 : clamp01(pfRaw/3);
   const wrS  = clamp01(wrRaw/70);
   const rrS  = clamp01(rrRaw/2);
@@ -2278,62 +2278,62 @@ function scoreResult(st, w){
   const trS  = clamp01(trRaw/150);
   const ddS  = hasDd? (1 - clamp01(ddAbsRaw/5000)) : 0;
 
-  // Sharpe ratio (basÃ© sur st.sharpe si disponible)
+  // Sharpe ratio (basé sur st.sharpe si disponible)
   const sharpeRaw = Number(st.sharpe ?? st.Sharpe ?? NaN);
   const hasSharpe = Number.isFinite(sharpeRaw);
   const sharpeS   = hasSharpe? clamp01(sharpeRaw/3) : 0;
 
   // Recovery factor: P&L / Max DD abs
   const recovRaw = (function(){
-    if(Number.isFinite(st.recov)) {return Number(st.recov);}
-    if(hasPnl && hasDd && ddAbsRaw>1e-9) {return pnlRaw/ddAbsRaw;}
+    if(Number.isFinite(st.recov)) return Number(st.recov);
+    if(hasPnl && hasDd && ddAbsRaw>1e-9) return pnlRaw/ddAbsRaw;
     return NaN;
   })();
   const hasRecov = Number.isFinite(recovRaw);
   const recovS   = hasRecov? clamp01(recovRaw/3) : 0;
 
-  // Pente de l'Ã©quitÃ© (slope) â€“ attend st.slope normalisÃ© par backtest
+  // Pente de l'équité (slope) – attend st.slope normalisé par backtest
   const slopeRaw = Number(st.slope ?? NaN);
   const hasSlope = Number.isFinite(slopeRaw);
-  const slopeS   = hasSlope? clamp01(slopeRaw/0.02) : 0; // heuristique: 0.02 ~ trÃ¨s bonne pente
+  const slopeS   = hasSlope? clamp01(slopeRaw/0.02) : 0; // heuristique: 0.02 ~ très bonne pente
 
-  // Consistency / stabilitÃ©
+  // Consistency / stabilité
   const consRaw = (function(){
-    if(Number.isFinite(st.consistency)) {return Number(st.consistency);} // dÃ©jÃ  0â€“1
-    if(hasWr) {return clamp01(wrRaw/100);} // fallback grossier sur Win%
+    if(Number.isFinite(st.consistency)) return Number(st.consistency); // déjà 0–1
+    if(hasWr) return clamp01(wrRaw/100); // fallback grossier sur Win%
     return NaN;
   })();
   const hasCons = Number.isFinite(consRaw);
   const consS   = hasCons? clamp01(consRaw) : 0;
 
-  // Expectancy (espÃ©rance par trade) â€“ en % si fourni
+  // Expectancy (espérance par trade) – en % si fourni
   const expRaw = (function(){
-    if(Number.isFinite(st.expectancy)) {return Number(st.expectancy);} // ex: % ou USD selon producer
+    if(Number.isFinite(st.expectancy)) return Number(st.expectancy); // ex: % ou USD selon producer
     return NaN;
   })();
   // Mappe une plage [-2 ; +2] vers [0 ; 1] (0% ~ 0.5)
   const hasExp = Number.isFinite(expRaw);
   const expS   = hasExp? clamp01((expRaw + 2) / 4) : 0;
 
-  // Return / pÃ©riode (%) â€“ utilise retPerPeriod, retPct ou P&L / capital initial
+  // Return / période (%) – utilise retPerPeriod, retPct ou P&L / capital initial
   const retRaw = (function(){
-    if(Number.isFinite(st.retPerPeriod)) {return Number(st.retPerPeriod);}
-    if(Number.isFinite(st.retPct)) {return Number(st.retPct);}
+    if(Number.isFinite(st.retPerPeriod)) return Number(st.retPerPeriod);
+    if(Number.isFinite(st.retPct)) return Number(st.retPct);
     if(hasEq && hasPnl){
       const startCap = eqRaw - pnlRaw;
-      if(startCap>0) {return (pnlRaw/startCap)*100;}
+      if(startCap>0) return (pnlRaw/startCap)*100;
     }
     return NaN;
   })();
   const hasRet = Number.isFinite(retRaw);
   const retS   = hasRet
-    ? (retRaw>0 ? (1 - 1/(1 + retRaw/50)) : 0) // fonction saturante similaire Ã  pnlS
+    ? (retRaw>0 ? (1 - 1/(1 + retRaw/50)) : 0) // fonction saturante similaire à pnlS
     : 0;
 
   let num=0; let totalW=0;
   function acc(hasMetric, weight, value){
-    if(!weight || weight<=0) {return;}
-    if(!hasMetric) {return;} // ne tient compte du poids que si la mÃ©trique existe rÃ©ellement
+    if(!weight || weight<=0) return;
+    if(!hasMetric) return; // ne tient compte du poids que si la métrique existe réellement
     totalW += weight;
     num    += weight*value;
   }
@@ -2352,12 +2352,12 @@ function scoreResult(st, w){
   acc(hasExp, w.exp, expS);
   acc(hasRet, w.ret, retS);
 
-  if(!totalW) {return 0;}
+  if(!totalW) return 0;
   const s = num/totalW;
   return s*100;
 }
 function buildZigZagData(piv){ const up=[], dn=[]; for(let k=1;k<piv.length;k++){ const a=piv[k-1], b=piv[k]; const upSeg=b.price>a.price; if(upSeg){ up.push({ time:a.time, value:a.price }); up.push({ time:b.time, value:b.price }); } else { dn.push({ time:a.time, value:a.price }); dn.push({ time:b.time, value:b.price }); } } return { up, dn }; }
-function getLastPivotSeg(piv){ if(!piv || piv.length<2) {return null;} const a=piv[piv.length-2], b=piv[piv.length-1]; return { a, b, dir: b.price>a.price? 'up':'down' }; }
+function getLastPivotSeg(piv){ if(!piv || piv.length<2) return null; const a=piv[piv.length-2], b=piv[piv.length-1]; return { a, b, dir: b.price>a.price? 'up':'down' }; }
 function clearTPPriceLines(){ for(const pl of heavenTPPriceLines){ try{ candleSeries.removePriceLine(pl);}catch(_){ } } heavenTPPriceLines=[]; }
 function createTPLine(price, title, color){ try{ const pl=candleSeries.createPriceLine({ price, color: color||'#7c3aed', lineStyle: LightweightCharts.LineStyle.Dotted, lineWidth:1, title }); heavenTPPriceLines.push(pl); }catch(_){ } }
 function updateFibAndTPLines(piv){ clearTPPriceLines(); if(!candles.length){ return; } const seg=getLastPivotSeg(piv); if(!seg){ return; }
@@ -2369,23 +2369,23 @@ function updateFibAndTPLines(piv){ clearTPPriceLines(); if(!candles.length){ ret
     try{
       if(Array.isArray(lbcOpts.tp)){
         for(const t of lbcOpts.tp){
-          if(t && t.type==='Fib' && t.fib!=null){ const r=parseFloat(t.fib); if(isFinite(r)) {fibSet.add(r);} }
-          if(t && t.sl && t.sl.type==='Fib' && t.sl.fib!=null){ const r2=parseFloat(t.sl.fib); if(isFinite(r2)) {fibSet.add(r2);} }
+          if(t && t.type==='Fib' && t.fib!=null){ const r=parseFloat(t.fib); if(isFinite(r)) fibSet.add(r); }
+          if(t && t.sl && t.sl.type==='Fib' && t.sl.fib!=null){ const r2=parseFloat(t.sl.fib); if(isFinite(r2)) fibSet.add(r2); }
         }
       }
       if(Array.isArray(lbcOpts.sl)){
         for(const s of lbcOpts.sl){
-          if(s && s.type==='Fib' && s.fib!=null){ const r=parseFloat(s.fib); if(isFinite(r)) {fibSet.add(r);} }
+          if(s && s.type==='Fib' && s.fib!=null){ const r=parseFloat(s.fib); if(isFinite(r)) fibSet.add(r); }
         }
       }
     }catch(_){ }
   }
   if(fibSet.size){
     const fibs = Array.from(fibSet).sort((a,b)=>a-b);
-    for(const r of fibs){ const target = (A + (B - A) * r); createTPLine(target, `Fib ${r}`, '#6b7280'); }
+    for(const r of fibs){ const target = up? (B + move*r) : (B - move*r); createTPLine(target, `Fib ${r}`, '#6b7280'); }
   }
   // TP Ladder
-  if(lbcOpts.tpEnable && Array.isArray(lbcOpts.tp) && lbcOpts.tp.length){ let n=1; for(const t of lbcOpts.tp){ if(n>10) {break;} const typ=(t.type||'Fib'); let price=null; if(typ==='Fib'){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)){ price = (A + (B - A) * r); } }
+  if(lbcOpts.tpEnable && Array.isArray(lbcOpts.tp) && lbcOpts.tp.length){ let n=1; for(const t of lbcOpts.tp){ if(n>10) break; const typ=(t.type||'Fib'); let price=null; if(typ==='Fib'){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)){ price = up? (B + move*r) : (B - move*r); } }
       else if(typ==='Percent'){ const p=parseFloat(t.pct!=null? t.pct : t.value); if(isFinite(p)){ price = up? (C * (1 + p/100)) : (C * (1 - p/100)); } }
       else if(typ==='EMA'){ const len = Math.max(1, parseInt(((t&&t.emaLen)!=null? t.emaLen : (lbcOpts.emaLen||55)),10)); const ema=emaCalc(candles, len); const v = ema[ema.length-1]; if(isFinite(v)){ price=v; } }
       if(price!=null){ createTPLine(price, `TP${n}`, '#7c3aed'); }
@@ -2406,29 +2406,29 @@ try{ const liveActive = (!!(liveSession && liveSession.active)) && !(window.__li
   try{ renderLBCOverlay(lb, piv); ensureDraggableLBCProb(); }catch(_){ }
 }
 
-function renderLBCOverlay(lb, piv){ try{ const probEl=document.getElementById('lbc-prob'); const tableEl=document.getElementById('lbc-table'); if(!probEl){ return; } const n=lb.trend.length; const dir= n? (lb.trend[n-1]===1?'Haussier':'Baissier') : 'â€”'; const lvl=n? lb.level[n-1]: null; probEl.classList.remove('hidden'); probEl.innerHTML = `<div style=\"font-weight:600;margin-bottom:4px;\">Heaven</div>
+function renderLBCOverlay(lb, piv){ try{ const probEl=document.getElementById('lbc-prob'); const tableEl=document.getElementById('lbc-table'); if(!probEl){ return; } const n=lb.trend.length; const dir= n? (lb.trend[n-1]===1?'Haussier':'Baissier') : '—'; const lvl=n? lb.level[n-1]: null; probEl.classList.remove('hidden'); probEl.innerHTML = `<div style=\"font-weight:600;margin-bottom:4px;\">Heaven</div>
   <div>Trend: <span style=\"color:${(lb.trend[n-1]===1?'#10b981':'#ef4444')}\">${dir}</span></div>
-  <div>Reversal: ${lvl!=null? lvl.toFixed(2): 'â€”'}</div>`;
+  <div>Reversal: ${lvl!=null? lvl.toFixed(2): '—'}</div>`;
   if(tableEl){ tableEl.classList.add('hidden'); tableEl.innerHTML=''; } }catch(_){ } }
 
 // Draggable + persistent position for Heaven popup (lbc-prob)
-function __cardLoadPos(key, def){ try{ const s=localStorage.getItem(key); if(!s) {return def;} const o=JSON.parse(s); return { left: Number(o.left)||def.left, top: Number(o.top)||def.top }; }catch(_){ return def; } }
+function __cardLoadPos(key, def){ try{ const s=localStorage.getItem(key); if(!s) return def; const o=JSON.parse(s); return { left: Number(o.left)||def.left, top: Number(o.top)||def.top }; }catch(_){ return def; } }
 function __cardSavePos(key, pos){ try{ localStorage.setItem(key, JSON.stringify({ left: Math.round(pos.left||0), top: Math.round(pos.top||0) })); }catch(_){ } }
-function ensureDraggableLBCProb(){ try{ const el=document.getElementById('lbc-prob'); if(!el) {return;} // apply saved position once or always override default
+function ensureDraggableLBCProb(){ try{ const el=document.getElementById('lbc-prob'); if(!el) return; // apply saved position once or always override default
   const key='card:lbc-prob'; const def={ left:12, top: (window.innerHeight- (el.offsetHeight||100) - 12) };
   const pos=__cardLoadPos(key, def); el.style.left = (pos.left|0)+'px'; el.style.top = (pos.top|0)+'px'; el.style.right='auto'; el.style.bottom='auto';
-  if(el.dataset.dragwired==='1') {return;} el.dataset.dragwired='1';
-  el.addEventListener('mousedown', (ev)=>{ try{ const rect=el.getBoundingClientRect(); const offX=ev.clientX-rect.left; const offY=ev.clientY-rect.top; const onMove=(e)=>{ let nx=e.clientX-offX; let ny=e.clientY-offY; const maxX=window.innerWidth - (el.offsetWidth||rect.width) - 4; const maxY=window.innerHeight - (el.offsetHeight||rect.height) - 4; if(nx<4) {nx=4;} if(ny<4) {ny=4;} if(nx>maxX) {nx=maxX;} if(ny>maxY) {ny=maxY;} el.style.left=nx+'px'; el.style.top=ny+'px'; el.style.right='auto'; el.style.bottom='auto'; };
+  if(el.dataset.dragwired==='1') return; el.dataset.dragwired='1';
+  el.addEventListener('mousedown', (ev)=>{ try{ const rect=el.getBoundingClientRect(); const offX=ev.clientX-rect.left; const offY=ev.clientY-rect.top; const onMove=(e)=>{ let nx=e.clientX-offX; let ny=e.clientY-offY; const maxX=window.innerWidth - (el.offsetWidth||rect.width) - 4; const maxY=window.innerHeight - (el.offsetHeight||rect.height) - 4; if(nx<4) nx=4; if(ny<4) ny=4; if(nx>maxX) nx=maxX; if(ny>maxY) ny=maxY; el.style.left=nx+'px'; el.style.top=ny+'px'; el.style.right='auto'; el.style.bottom='auto'; };
     const onUp=()=>{ window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); const rect2=el.getBoundingClientRect(); __cardSavePos(key, { left: rect2.left, top: rect2.top }); };
     window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp); }catch(_){ } });
 }catch(_){ } }
 
 // HTML overlay for arrow markers with pixel offset
 let lbcMkLayer=null; let lbcLastMarkers=[];
-function ensureMkLayer(){ if(!container) {return;} const cs = window.getComputedStyle(container); if(cs && cs.position==='static'){ container.style.position='relative'; } let el=document.getElementById('lbc-markers'); if(!el){ el=document.createElement('div'); el.id='lbc-markers'; el.style.position='absolute'; el.style.left='0'; el.style.top='0'; el.style.width='100%'; el.style.height='100%'; el.style.pointerEvents='none'; el.style.zIndex='100'; container.appendChild(el); } lbcMkLayer=el; }
+function ensureMkLayer(){ if(!container) return; const cs = window.getComputedStyle(container); if(cs && cs.position==='static'){ container.style.position='relative'; } let el=document.getElementById('lbc-markers'); if(!el){ el=document.createElement('div'); el.id='lbc-markers'; el.style.position='absolute'; el.style.left='0'; el.style.top='0'; el.style.width='100%'; el.style.height='100%'; el.style.pointerEvents='none'; el.style.zIndex='100'; container.appendChild(el); } lbcMkLayer=el; }
 function clearMkLayer(){ const el=document.getElementById('lbc-markers'); if(el){ el.innerHTML=''; } }
-function renderMkHTML(markers){ ensureMkLayer(); clearMkLayer(); lbcLastMarkers = Array.isArray(markers)? markers: []; if(!lbcLastMarkers.length) {return;} const ts=chart.timeScale(); const series=candleSeries; const sz=Math.max(8, Math.min(40, (lbcOpts.arrowSizePx|0)||12)); const off=Math.max(0, (lbcOpts.arrowOffsetPx|0)||0); const idxByTime=new Map(); for(let i=0;i<candles.length;i++){ idxByTime.set(candles[i].time, i); } for(const m of lbcLastMarkers){ let x=null; try{ x=ts.timeToCoordinate(m.time); }catch(_){ x=null; } if(x==null) {continue;} const bi=idxByTime.get(m.time); if(bi==null) {continue;} let baseY=null; try{ if(m.position==='belowBar'){ baseY=series.priceToCoordinate(candles[bi].low); } else if(m.position==='aboveBar'){ baseY=series.priceToCoordinate(candles[bi].high); } else { baseY=series.priceToCoordinate(candles[bi].close); } }catch(_){ baseY=null; }
-  if(baseY==null) {continue;} const y = baseY + (m.position==='belowBar'? off : (m.position==='aboveBar'? -off : 0)); const d=document.createElement('div'); d.className='lbc-arrow'; d.style.position='absolute'; d.style.left=x+'px'; d.style.top=y+'px'; d.style.transform = 'translate(-50%, '+(m.position==='aboveBar'? '-100%':'0')+')'; d.style.color=m.color||'#10b981'; let fz=sz; if(m.shape==='cross'){ fz=Math.max(6, Math.round(sz*0.75)); } d.style.fontSize=fz+'px'; d.style.lineHeight='1'; d.style.userSelect='none'; d.style.pointerEvents='none'; let glyph='â–¼'; if(m.shape==='arrowUp') {glyph='â–²';} else if(m.shape==='arrowDown') {glyph='â–¼';} else if(m.shape==='circle') {glyph='â—';} else if(m.shape==='cross') {glyph='âœ–';} else if(m.shape==='square') {glyph='â– ';} d.textContent = glyph; lbcMkLayer.appendChild(d); } }
+function renderMkHTML(markers){ ensureMkLayer(); clearMkLayer(); lbcLastMarkers = Array.isArray(markers)? markers: []; if(!lbcLastMarkers.length) return; const ts=chart.timeScale(); const series=candleSeries; const sz=Math.max(8, Math.min(40, (lbcOpts.arrowSizePx|0)||12)); const off=Math.max(0, (lbcOpts.arrowOffsetPx|0)||0); const idxByTime=new Map(); for(let i=0;i<candles.length;i++){ idxByTime.set(candles[i].time, i); } for(const m of lbcLastMarkers){ let x=null; try{ x=ts.timeToCoordinate(m.time); }catch(_){ x=null; } if(x==null) continue; const bi=idxByTime.get(m.time); if(bi==null) continue; let baseY=null; try{ if(m.position==='belowBar'){ baseY=series.priceToCoordinate(candles[bi].low); } else if(m.position==='aboveBar'){ baseY=series.priceToCoordinate(candles[bi].high); } else { baseY=series.priceToCoordinate(candles[bi].close); } }catch(_){ baseY=null; }
+  if(baseY==null) continue; const y = baseY + (m.position==='belowBar'? off : (m.position==='aboveBar'? -off : 0)); const d=document.createElement('div'); d.className='lbc-arrow'; d.style.position='absolute'; d.style.left=x+'px'; d.style.top=y+'px'; d.style.transform = 'translate(-50%, '+(m.position==='aboveBar'? '-100%':'0')+')'; d.style.color=m.color||'#10b981'; let fz=sz; if(m.shape==='cross'){ fz=Math.max(6, Math.round(sz*0.75)); } d.style.fontSize=fz+'px'; d.style.lineHeight='1'; d.style.userSelect='none'; d.style.pointerEvents='none'; let glyph='▼'; if(m.shape==='arrowUp') glyph='▲'; else if(m.shape==='arrowDown') glyph='▼'; else if(m.shape==='circle') glyph='●'; else if(m.shape==='cross') glyph='✖'; else if(m.shape==='square') glyph='■'; d.textContent = glyph; lbcMkLayer.appendChild(d); } }
 function updateMkPositions(){ try{ if(!((lbcOpts.arrowOffsetPx|0)>0)){ clearMkLayer(); return; } renderMkHTML(lbcLastMarkers||[]); }catch(_){ } }
 
 // EMA/MA options + rendering
@@ -2444,7 +2444,7 @@ const ma13En=document.getElementById('ma13En'); const ma13Len=document.getElemen
 const defaultEMA = { enabled:true,
   e21:{en:true,len:21,col:'#facc15'}, e34:{en:true,len:34,col:'#ffa500'}, e55:{en:true,len:55,col:'#ef4444'}, e200:{en:true,len:200,col:'#6b7280'},
   m5:{en:true,len:5,col:'#3b82f6'}, m8:{en:true,len:8,col:'#00ffff'}, m13:{en:true,len:13,col:'#22c55e'} };
-const emaOpts = (()=>{ try{ const s=localStorage.getItem('emaOptions'); return s? { ...defaultEMA, ...JSON.parse(s) } : { ...defaultEMA }; }catch(_){ return { ...defaultEMA }; } })();
+let emaOpts = (()=>{ try{ const s=localStorage.getItem('emaOptions'); return s? { ...defaultEMA, ...JSON.parse(s) } : { ...defaultEMA }; }catch(_){ return { ...defaultEMA }; } })();
 function saveEMAOpts(){ try{ localStorage.setItem('emaOptions', JSON.stringify(emaOpts)); }catch(_){} }
 if(emaToggleEl){ emaToggleEl.checked = !!emaOpts.enabled; emaToggleEl.addEventListener('change', ()=>{ emaOpts.enabled=!!emaToggleEl.checked; saveEMAOpts(); updateEMAs(); }); }
 if(emaCfgBtn&&emaModalEl){ emaCfgBtn.addEventListener('click', ()=> openModalEl(emaModalEl)); }
@@ -2458,7 +2458,7 @@ if(emaSaveBtn){ emaSaveBtn.addEventListener('click', ()=>{ emaOpts.e21.en=!!(ema
   emaOpts.m13.en=!!(ma13En&&ma13En.checked); emaOpts.m13.len=parseInt((ma13Len&&ma13Len.value)||'13',10); emaOpts.m13.col=(ma13Col&&ma13Col.value)||emaOpts.m13.col;
   saveEMAOpts(); applyEMAStyles(); updateEMAs(); closeModalEl(emaModalEl); }); }
 function applyEMAStyles(){ try{ ema21Series.applyOptions({ color: emaOpts.e21.col }); ema34Series.applyOptions({ color: emaOpts.e34.col }); ema55Series.applyOptions({ color: emaOpts.e55.col }); ema200Series.applyOptions({ color: emaOpts.e200.col }); ma5Series.applyOptions({ color: emaOpts.m5.col }); ma8Series.applyOptions({ color: emaOpts.m8.col }); ma13Series.applyOptions({ color: emaOpts.m13.col }); }catch(_){}}
-function emaCalc(data, len){ const out=new Array(data.length); const k=2/(len+1); let prev=null; for(let i=0;i<data.length;i++){ const v=data[i].close; if(prev==null){ prev=v; } else { prev = v*k + prev*(1-k); } out[i]=prev; } return out; }
+function emaCalc(data, len){ const out=new Array(data.length); let k=2/(len+1); let prev=null; for(let i=0;i<data.length;i++){ const v=data[i].close; if(prev==null){ prev=v; } else { prev = v*k + prev*(1-k); } out[i]=prev; } return out; }
 function smaCalc(data, len){ const out=new Array(data.length).fill(null); let sum=0; for(let i=0;i<data.length;i++){ sum += data[i].close; if(i>=len){ sum -= data[i-len].close; } if(i>=len-1){ out[i]=sum/len; } }
   return out; }
 function toSeriesData(vals){ const arr=[]; for(let i=0;i<candles.length;i++){ const v=vals[i]; if(v!=null && isFinite(v)){ arr.push({ time:candles[i].time, value:v }); } } return arr; }
@@ -2473,31 +2473,30 @@ function updateEMAs(){ if(!emaOpts.enabled||!candles.length){ try{ ema21Series.s
 }
 applyEMAStyles();
 
-// Sauvegarde LBC depuis la modale (si prÃ©sente)
+// Sauvegarde LBC depuis la modale (si présente)
 const lbcSaveBtn = document.getElementById('lbcSave');
 const optEnabled=document.getElementById('optEnabled'); const optNol=document.getElementById('optNol'); const optShowTrend=document.getElementById('optShowTrend'); const optTrendUp=document.getElementById('optTrendUp'); const optTrendDn=document.getElementById('optTrendDn'); const optUseZZDraw=document.getElementById('optUseZZDraw'); const optPrd=document.getElementById('optPrd');
 const optSLInitPct=document.getElementById('optSLInitPct'); const optSLEnable=document.getElementById('optSLEnable'); const optBEEnable=document.getElementById('optBEEnable'); const optBEBars=document.getElementById('optBEBars'); const optBELockPct=document.getElementById('optBELockPct'); const optEMALen=document.getElementById('optEMALen'); const optShowClose=document.getElementById('optShowClose');
 const optEntryMode=document.getElementById('optEntryMode'); const optEnt382=document.getElementById('optEnt382'); const optEnt500=document.getElementById('optEnt500'); const optEnt618=document.getElementById('optEnt618'); const optEnt786=document.getElementById('optEnt786');
 if(lbcSaveBtn){
   lbcSaveBtn.addEventListener('click', ()=>{
-    try{ localStorage.setItem('heaven:manualOverride','1'); }catch(_){ }
-    if(optEnabled) {lbcOpts.enabled = !!optEnabled.checked;}
-    if(optNol) {lbcOpts.nol = Math.max(1, parseInt(optNol.value||String(lbcOpts.nol)));}
-    if(optShowTrend) {lbcOpts.showTrend = !!optShowTrend.checked;}
-    if(optTrendUp) {lbcOpts.trendUpColor = optTrendUp.value||lbcOpts.trendUpColor;}
-    if(optTrendDn) {lbcOpts.trendDnColor = optTrendDn.value||lbcOpts.trendDnColor;}
-    if(optUseZZDraw) {lbcOpts.useZZDraw = !!optUseZZDraw.checked;}
-    if(optPrd) {lbcOpts.prd = Math.max(2, parseInt(optPrd.value||String(lbcOpts.prd)));}
-    if(optSLInitPct) {lbcOpts.slInitPct = Math.max(0, parseFloat(optSLInitPct.value||String(lbcOpts.slInitPct)));}
-    if(optSLEnable) {lbcOpts.slEnable = !!optSLEnable.checked;}
-    if(optBEEnable) {lbcOpts.beEnable = !!optBEEnable.checked;}
-    if(optBEBars) {lbcOpts.beAfterBars = Math.max(1, parseInt(optBEBars.value||String(lbcOpts.beAfterBars)));}
-    if(optBELockPct) {lbcOpts.beLockPct = Math.max(0, parseFloat(optBELockPct.value||String(lbcOpts.beLockPct)));}
-    if(optEMALen) {lbcOpts.emaLen = Math.max(1, parseInt(optEMALen.value||String(lbcOpts.emaLen)));}
-    if(optShowClose) {lbcOpts.showClose = !!optShowClose.checked;}
+    if(optEnabled) lbcOpts.enabled = !!optEnabled.checked;
+    if(optNol) lbcOpts.nol = Math.max(1, parseInt(optNol.value||String(lbcOpts.nol)));
+    if(optShowTrend) lbcOpts.showTrend = !!optShowTrend.checked;
+    if(optTrendUp) lbcOpts.trendUpColor = optTrendUp.value||lbcOpts.trendUpColor;
+    if(optTrendDn) lbcOpts.trendDnColor = optTrendDn.value||lbcOpts.trendDnColor;
+    if(optUseZZDraw) lbcOpts.useZZDraw = !!optUseZZDraw.checked;
+    if(optPrd) lbcOpts.prd = Math.max(2, parseInt(optPrd.value||String(lbcOpts.prd)));
+    if(optSLInitPct) lbcOpts.slInitPct = Math.max(0, parseFloat(optSLInitPct.value||String(lbcOpts.slInitPct)));
+    if(optSLEnable) lbcOpts.slEnable = !!optSLEnable.checked;
+    if(optBEEnable) lbcOpts.beEnable = !!optBEEnable.checked;
+    if(optBEBars) lbcOpts.beAfterBars = Math.max(1, parseInt(optBEBars.value||String(lbcOpts.beAfterBars)));
+    if(optBELockPct) lbcOpts.beLockPct = Math.max(0, parseFloat(optBELockPct.value||String(lbcOpts.beLockPct)));
+    if(optEMALen) lbcOpts.emaLen = Math.max(1, parseInt(optEMALen.value||String(lbcOpts.emaLen)));
+    if(optShowClose) lbcOpts.showClose = !!optShowClose.checked;
 
     const optShowArrows=document.getElementById('optShowArrows');
-    if(optShowArrows) {lbcOpts.showArrows = !!optShowArrows.checked;}
+    if(optShowArrows) lbcOpts.showArrows = !!optShowArrows.checked;
     const optUseFibDraw=document.getElementById('optUseFibDraw');
     const optUseFibDrawTPSL=document.getElementById('optUseFibDrawTPSL');
     const optUseFibRet=document.getElementById('optUseFibRet');
@@ -2508,20 +2507,20 @@ if(lbcSaveBtn){
     const optTPCompound=document.getElementById('optTPCompound');
     const optTPAllLast=document.getElementById('optTPAllLast');
 
-    if(optUseFibDraw) {lbcOpts.useFibDraw = !!optUseFibDraw.checked;}
-    if(optUseFibDrawTPSL) {lbcOpts.useFibDrawTPSL = !!optUseFibDrawTPSL.checked;}
-    if(optUseFibRet) {lbcOpts.useFibRet = !!optUseFibRet.checked;}
-    if(optEntryMode) {lbcOpts.entryMode = optEntryMode.value||lbcOpts.entryMode;}
-    if(optConfirmMode) {lbcOpts.confirmMode = optConfirmMode.value||lbcOpts.confirmMode;}
-    if(optEnt382) {lbcOpts.ent382 = !!optEnt382.checked;}
-    if(optEnt500) {lbcOpts.ent500 = !!optEnt500.checked;}
-    if(optEnt618) {lbcOpts.ent618 = !!optEnt618.checked;}
-    if(optEnt786) {lbcOpts.ent786 = !!optEnt786.checked;}
-    if(optZZUp) {lbcOpts.zzUp = optZZUp.value||lbcOpts.zzUp;}
-    if(optZZDn) {lbcOpts.zzDn = optZZDn.value||lbcOpts.zzDn;}
-    if(optTPEnable) {lbcOpts.tpEnable = !!optTPEnable.checked;}
-    if(optTPCompound) {lbcOpts.tpCompound = !!optTPCompound.checked;}
-    if(optTPAllLast) {lbcOpts.tpCloseAllLast = !!optTPAllLast.checked;}
+    if(optUseFibDraw) lbcOpts.useFibDraw = !!optUseFibDraw.checked;
+    if(optUseFibDrawTPSL) lbcOpts.useFibDrawTPSL = !!optUseFibDrawTPSL.checked;
+    if(optUseFibRet) lbcOpts.useFibRet = !!optUseFibRet.checked;
+    if(optEntryMode) lbcOpts.entryMode = optEntryMode.value||lbcOpts.entryMode;
+    if(optConfirmMode) lbcOpts.confirmMode = optConfirmMode.value||lbcOpts.confirmMode;
+    if(optEnt382) lbcOpts.ent382 = !!optEnt382.checked;
+    if(optEnt500) lbcOpts.ent500 = !!optEnt500.checked;
+    if(optEnt618) lbcOpts.ent618 = !!optEnt618.checked;
+    if(optEnt786) lbcOpts.ent786 = !!optEnt786.checked;
+    if(optZZUp) lbcOpts.zzUp = optZZUp.value||lbcOpts.zzUp;
+    if(optZZDn) lbcOpts.zzDn = optZZDn.value||lbcOpts.zzDn;
+    if(optTPEnable) lbcOpts.tpEnable = !!optTPEnable.checked;
+    if(optTPCompound) lbcOpts.tpCompound = !!optTPCompound.checked;
+    if(optTPAllLast) lbcOpts.tpCloseAllLast = !!optTPAllLast.checked;
 
     let tpCount = lbcOpts.tpCount || 10;
     try{
@@ -2533,7 +2532,7 @@ if(lbcSaveBtn){
 
     const tpArr=[];
     for(let i=1;i<=tpCount;i++){
-      const tSel=document.getElementById(`optTP${i}Type`); if(!tSel) {continue;}
+      const tSel=document.getElementById(`optTP${i}Type`); if(!tSel) continue;
       const typ=tSel.value||'Fib';
       const vNum=document.getElementById(`optTP${i}R`);
       const vFib=document.getElementById(`optTP${i}Fib`);
@@ -2564,7 +2563,7 @@ if(lbcSaveBtn){
         if(isFinite(len) && len>0){ entry.emaLen=len; }
       }
       if(qPct && qPct.value!==''){
-        const qv=parseFloat(qPct.value); if(isFinite(qv)) {entry.qty=qv;}
+        const qv=parseFloat(qPct.value); if(isFinite(qv)) entry.qty=qv;
       }
       // attached SL per TP
       if(sSel){
@@ -2572,13 +2571,13 @@ if(lbcSaveBtn){
         const slEntry={ type:styp };
         if(styp==='Fib'){
           const r2=parseFloat(((sFib && sFib.value) || (sNum && sNum.value) || ''));
-          if(isFinite(r2)) {slEntry.fib=r2;}
+          if(isFinite(r2)) slEntry.fib=r2;
         } else if(styp==='Percent'){
           const p2=parseFloat(((sNum && sNum.value) || (sFib && sFib.value) || ''));
-          if(isFinite(p2)) {slEntry.pct=p2;}
+          if(isFinite(p2)) slEntry.pct=p2;
         } else if(styp==='EMA'){
           const len2=parseInt(((sEma && sEma.value) || (optEMALen && optEMALen.value) || ''),10);
-          if(isFinite(len2) && len2>0) {slEntry.emaLen=len2;}
+          if(isFinite(len2) && len2>0) slEntry.emaLen=len2;
         }
         entry.sl = slEntry;
         // SL trailing attached to TP
@@ -2588,25 +2587,25 @@ if(lbcSaveBtn){
             entry.sl.trail={ mode:m2 };
             if(m2==='ema'){
               const len4=parseInt((sTrEma&&sTrEma.value)||'',10);
-              if(isFinite(len4)&&len4>0) {entry.sl.trail.emaLen=len4;}
+              if(isFinite(len4)&&len4>0) entry.sl.trail.emaLen=len4;
             } else if(m2==='percent'){
               const p4=parseFloat((sTrPct&&sTrPct.value)||'');
-              if(isFinite(p4)) {entry.sl.trail.pct=p4;}
+              if(isFinite(p4)) entry.sl.trail.pct=p4;
             }
           }
         }
       }
-      if(beOn) {entry.beOn = !!beOn.checked;}
+      if(beOn) entry.beOn = !!beOn.checked;
       if(trSel){
         const mode=trSel.value||'none';
         if(mode && mode!=='none'){
           entry.trail={ mode };
           if(mode==='ema'){
             const len3=parseInt((trEma&&trEma.value)||'',10);
-            if(isFinite(len3)&&len3>0) {entry.trail.emaLen=len3;}
+            if(isFinite(len3)&&len3>0) entry.trail.emaLen=len3;
           } else if(mode==='percent'){
             const p3=parseFloat((trPct&&trPct.value)||'');
-            if(isFinite(p3)) {entry.trail.pct=p3;}
+            if(isFinite(p3)) entry.trail.pct=p3;
           }
         }
       }
@@ -2616,7 +2615,7 @@ if(lbcSaveBtn){
 
     const slArr=[];
     for(let i=1;i<=10;i++){
-      const tSel=document.getElementById(`optSL${i}Type`); if(!tSel) {continue;}
+      const tSel=document.getElementById(`optSL${i}Type`); if(!tSel) continue;
       const typ=tSel.value||'Percent';
       const vNum=document.getElementById(`optSL${i}R`);
       const vFib=document.getElementById(`optSL${i}Fib`);
@@ -2643,7 +2642,7 @@ if(lbcSaveBtn){
   });
 }
 
-// --- Backtest (pÃ©riode visible / all / dates) ---
+// --- Backtest (période visible / all / dates) ---
 const btRunBtn=document.getElementById('btRun'); const btCancelBtn=document.getElementById('btCancel'); const btOptimizeBtn=document.getElementById('btOptimize');
 const btProgressEl=document.getElementById('btProgress'); const btProgText=document.getElementById('btProgText'); const btProgBar=document.getElementById('btProgBar'); const btProgNote=document.getElementById('btProgNote'); const btProgTime=document.getElementById('btProgTime'); const btProgLog=document.getElementById('btProgLog'); const btAbortBtn=document.getElementById('btAbort');
 const btProgGlobalText=document.getElementById('btProgGlobalText'); const btProgGlobalBar=document.getElementById('btProgGlobalBar');
@@ -2651,11 +2650,11 @@ const btStartCap=document.getElementById('btStartCap'); const btFee=document.get
 const btRangeVisible=document.getElementById('btRangeVisible'); const btRangeAll=document.getElementById('btRangeAll'); const btRangeDates=document.getElementById('btRangeDates'); const btFrom=document.getElementById('btFrom'); const btTo=document.getElementById('btTo');
 let btAbort=false; let btPaused=false; let __btTimerId=null; let __btStartTs=0;
 function __fmtElapsed(ms){ const s=Math.floor(ms/1000); const m=Math.floor(s/60); const ss=String(s%60).padStart(2,'0'); const mm=String(m%60).padStart(2,'0'); const hh=Math.floor(m/60); return (hh>0? (String(hh).padStart(2,'0')+':'):'')+mm+':'+ss; }
-function __setBtTime(){ if(btProgTime){ const ms=Date.now()-__btStartTs; btProgTime.textContent = `â± ${__fmtElapsed(ms)}`; } }
-function addBtLog(msg){ try{ const t=new Date(); const hh=String(t.getHours()).padStart(2,'0'); const mm=String(t.getMinutes()).padStart(2,'0'); const ss=String(t.getSeconds()).padStart(2,'0'); const line=`[${hh}:${mm}:${ss}] ${msg}`; if(btProgLog){ if(btProgLog.textContent==='â€”') {btProgLog.textContent=line;} else {btProgLog.textContent += ("\n"+line);} btProgLog.scrollTop = btProgLog.scrollHeight; } if(typeof addLabLog==='function'){ addLabLog(msg); } }catch(_){ } }
-function openBtProgress(msg){ if(btProgText) {btProgText.textContent = msg || t('bt.progress.initShort');} if(btProgBar) {btProgBar.style.width='0%';} if(btProgNote) {btProgNote.textContent='';} if(btProgGlobalBar) {btProgGlobalBar.style.width='0%';} if(btProgGlobalText) {btProgGlobalText.textContent=t('bt.progress.globalInit');} if(btProgLog) {btProgLog.textContent='â€”';} const pBtn=document.getElementById('btPause'); if(pBtn) {pBtn.textContent=t('bt.progress.btn.pause');} __btStartTs=Date.now(); if(__btTimerId) { try{ clearInterval(__btTimerId);}catch(_){}} __setBtTime(); __btTimerId=setInterval(__setBtTime, 500); openModalEl(btProgressEl); }
+function __setBtTime(){ if(btProgTime){ const ms=Date.now()-__btStartTs; btProgTime.textContent = `⏱ ${__fmtElapsed(ms)}`; } }
+function addBtLog(msg){ try{ const t=new Date(); const hh=String(t.getHours()).padStart(2,'0'); const mm=String(t.getMinutes()).padStart(2,'0'); const ss=String(t.getSeconds()).padStart(2,'0'); const line=`[${hh}:${mm}:${ss}] ${msg}`; if(btProgLog){ if(btProgLog.textContent==='—') btProgLog.textContent=line; else btProgLog.textContent += ("\n"+line); btProgLog.scrollTop = btProgLog.scrollHeight; } if(typeof addLabLog==='function'){ addLabLog(msg); } }catch(_){ } }
+function openBtProgress(msg){ if(btProgText) btProgText.textContent = msg || t('bt.progress.initShort'); if(btProgBar) btProgBar.style.width='0%'; if(btProgNote) btProgNote.textContent=''; if(btProgGlobalBar) btProgGlobalBar.style.width='0%'; if(btProgGlobalText) btProgGlobalText.textContent=t('bt.progress.globalInit'); if(btProgLog) btProgLog.textContent='—'; const pBtn=document.getElementById('btPause'); if(pBtn) pBtn.textContent=t('bt.progress.btn.pause'); __btStartTs=Date.now(); if(__btTimerId) { try{ clearInterval(__btTimerId);}catch(_){}} __setBtTime(); __btTimerId=setInterval(__setBtTime, 500); openModalEl(btProgressEl); }
 function closeBtProgress(){ if(__btTimerId){ try{ clearInterval(__btTimerId);}catch(_){ } __btTimerId=null; } closeModalEl(btProgressEl); }
-function getVisibleRange(){ try{ const r=chart.timeScale().getVisibleRange(); if(!r) {return null;} return { from: r.from, to: r.to }; }catch(_){ return null; } }
+function getVisibleRange(){ try{ const r=chart.timeScale().getVisibleRange(); if(!r) return null; return { from: r.from, to: r.to }; }catch(_){ return null; } }
 function idxFromTime(from, to){ let s=0, e=candles.length-1; if(from!=null){ for(let i=0;i<candles.length;i++){ if(candles[i].time>=from){ s=i; break; } } } if(to!=null){ for(let j=candles.length-1;j>=0;j--){ if(candles[j].time<=to){ e=j; break; } } } return [s,e]; }
 function runBacktestSlice(sIdx, eIdx, conf){
   const lb=computeLineBreakState(candles, Math.max(1, lbcOpts.nol|0));
@@ -2667,7 +2666,7 @@ function runBacktestSlice(sIdx, eIdx, conf){
   let pivIdx=-1;
   function advancePivotIdxTo(i){ while(pivIdx+1<pivAll.length && pivAll[pivIdx+1].idx<=i){ pivIdx++; } }
   function segAtIdx(){ if(pivIdx>=1){ const a=pivAll[pivIdx-1], b=pivAll[pivIdx]; return { a, b, dir: b.price>a.price?'up':'down' }; } return null; }
-  function computeSLFromLadder(dir, entry, i){ try{ if(!(lbcOpts.slEnable && Array.isArray(lbcOpts.sl) && lbcOpts.sl.length)) {return null;} const seg=segAtIdx(); const A=seg?seg.a.price:null, B=seg?seg.b.price:null, move=seg?Math.abs(B-A):null; const cands=[]; for(const t of lbcOpts.sl){ const typ=(t&&t.type)||'Percent'; let price=null; if(typ==='Fib' && seg && move!=null){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)) {price = (seg.dir==='up')? (B - move*r) : (B + move*r);} } else if(typ==='Percent'){ const p=parseFloat(t.pct!=null? t.pct : t.value); if(isFinite(p)) {price = dir==='long'? (entry*(1 - p/100)) : (entry*(1 + p/100));} } else if(typ==='EMA'){ const len=Math.max(1, parseInt(((t&&t.emaLen)!=null? t.emaLen : (lbcOpts.emaLen||55)),10)); let ema=slEmaCache.get(len); if(!ema){ ema=emaCalc(candles, len); slEmaCache.set(len, ema); } const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) {price=v;} } if(price!=null){ if(dir==='long'){ if(price<=entry) {cands.push(price);} } else { if(price>=entry) {cands.push(price);} } } } if(!cands.length) {return null;} return dir==='long'? Math.max(...cands) : Math.min(...cands); }catch(_){ return null; } }
+  function computeSLFromLadder(dir, entry, i){ try{ if(!(lbcOpts.slEnable && Array.isArray(lbcOpts.sl) && lbcOpts.sl.length)) return null; const seg=segAtIdx(); const A=seg?seg.a.price:null, B=seg?seg.b.price:null, move=seg?Math.abs(B-A):null; const cands=[]; for(const t of lbcOpts.sl){ const typ=(t&&t.type)||'Percent'; let price=null; if(typ==='Fib' && seg && move!=null){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)) price = (seg.dir==='up')? (B - move*r) : (B + move*r); } else if(typ==='Percent'){ const p=parseFloat(t.pct!=null? t.pct : t.value); if(isFinite(p)) price = dir==='long'? (entry*(1 - p/100)) : (entry*(1 + p/100)); } else if(typ==='EMA'){ const len=Math.max(1, parseInt(((t&&t.emaLen)!=null? t.emaLen : (lbcOpts.emaLen||55)),10)); let ema=slEmaCache.get(len); if(!ema){ ema=emaCalc(candles, len); slEmaCache.set(len, ema); } const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) price=v; } if(price!=null){ if(dir==='long'){ if(price<=entry) cands.push(price); } else { if(price>=entry) cands.push(price); } } } if(!cands.length) return null; return dir==='long'? Math.max(...cands) : Math.min(...cands); }catch(_){ return null; } }
   function buildTargets(dir, entry, riskAbs, i){
     let list=[];
     if(lbcOpts.tpEnable && Array.isArray(lbcOpts.tp) && lbcOpts.tp.length){
@@ -2675,18 +2674,18 @@ function runBacktestSlice(sIdx, eIdx, conf){
       const A=seg?seg.a.price:null, B=seg?seg.b.price:null, move=seg?Math.abs(B-A):null;
       for(let idx=0; idx<lbcOpts.tp.length; idx++){
         const t=lbcOpts.tp[idx]; let price=null; const typ=(t.type||'Fib');
-        if(typ==='Fib' && seg && move!=null){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)) {price = (A + (B - A) * r);} }
-        else if(typ==='Percent'){ const p=parseFloat(t.pct!=null? t.pct : t.value); if(isFinite(p)) {price = dir==='long'? (entry*(1+p/100)) : (entry*(1-p/100));} }
-        else if(typ==='EMA'){ const len=Math.max(1, parseInt(((t&&t.emaLen)!=null? t.emaLen : (lbcOpts.emaLen||55)),10)); const ema=emaCalc(candles, len); const v = ema[Math.min(i, ema.length-1)]; if(isFinite(v)) {price=v;} }
+        if(typ==='Fib' && seg && move!=null){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)) price = (seg.dir==='up')? (B + move*r) : (B - move*r); }
+        else if(typ==='Percent'){ const p=parseFloat(t.pct!=null? t.pct : t.value); if(isFinite(p)) price = dir==='long'? (entry*(1+p/100)) : (entry*(1-p/100)); }
+        else if(typ==='EMA'){ const len=Math.max(1, parseInt(((t&&t.emaLen)!=null? t.emaLen : (lbcOpts.emaLen||55)),10)); const ema=emaCalc(candles, len); const v = ema[Math.min(i, ema.length-1)]; if(isFinite(v)) price=v; }
         if(price!=null){ if((dir==='long' && price>entry) || (dir==='short' && price<entry)){
             let w=null; const q=t.qty; if(q!=null && isFinite(q)){ w = (q>1? q/100 : q); }
             list.push({price, w, srcIdx: idx});
         } }
       }
-      if(dir==='long') {list.sort((a,b)=>a.price-b.price);} else {list.sort((a,b)=>b.price-a.price);}
+      if(dir==='long') list.sort((a,b)=>a.price-b.price); else list.sort((a,b)=>b.price-a.price);
       let sumW=0, hasW=false; for(const it of list){ if(it.w!=null && it.w>0){ sumW+=it.w; hasW=true; } }
       if(!hasW){ if(list.length){ const even=1/list.length; list=list.map(it=>({ price:it.price, w:even, srcIdx: it.srcIdx })); } else { list=[{price: (dir==='long'? entry + riskAbs*(lbcOpts.tp1R||1) : entry - riskAbs*(lbcOpts.tp1R||1)), w:1, srcIdx: 0}]; } }
-      else { if(sumW>1){ const k=1/sumW; for(const it of list){ if(it.w!=null) {it.w*=k;} } } else if(lbcOpts.tpCloseAllLast && sumW<1 && list.length){ list[list.length-1].w = (list[list.length-1].w||0) + (1-sumW); } }
+      else { if(sumW>1){ const k=1/sumW; for(const it of list){ if(it.w!=null) it.w*=k; } } else if(lbcOpts.tpCloseAllLast && sumW<1 && list.length){ list[list.length-1].w = (list[list.length-1].w||0) + (1-sumW); } }
       return list;
     } else {
       return [{ price: dir==='long'? (entry + riskAbs*(lbcOpts.tp1R||1)) : (entry - riskAbs*(lbcOpts.tp1R||1)), w:1, srcIdx: 0 }];
@@ -2696,8 +2695,8 @@ function runBacktestSlice(sIdx, eIdx, conf){
   let pos=null; let pendingFib=null;
   const feePct=conf.fee/100; const lev=conf.lev; const baseMode=conf.base;
   function __computeQty(entry, sl){
-    if(!(isFinite(entry)&&isFinite(sl))) {return 0;}
-    if(equity<=0) {return 0;}
+    if(!(isFinite(entry)&&isFinite(sl))) return 0;
+    if(equity<=0) return 0;
     const pctLocal = (lbcOpts && lbcOpts.maxPct != null) ? Number(lbcOpts.maxPct) : (conf.maxPct != null ? Number(conf.maxPct) : 100);
     const maxPct = Math.max(0, pctLocal)/100;
     const capBase=(baseMode==='equity')?equity:conf.startCap;
@@ -2711,15 +2710,15 @@ function runBacktestSlice(sIdx, eIdx, conf){
     return q;
   }
   for(let i=Math.max(1,sIdx); i<=eIdx; i++){
-    if(btAbort) {break;} if(equity<=0) {break;}
+    if(btAbort) break; if(equity<=0) break;
     const bar=candles[i]; const trendNow=lb.trend[i]; const trendPrev=lb.trend[i-1];
     advancePivotIdxTo(i);
     if(!pos){
       if(trendNow!==trendPrev){
         const seg=segAtIdx();
-        if(seg){ const A=seg.a.price, B=seg.b.price; const up=seg.dir==='up'; const move=Math.abs(B-A); const levels=[]; if(lbcOpts.ent382) {levels.push(up? (B - move*0.382) : (B + move*0.382));} if(lbcOpts.ent500) {levels.push(up? (B - move*0.5) : (B + move*0.5));} if(lbcOpts.ent618) {levels.push(up? (B - move*0.618) : (B + move*0.618));} if(lbcOpts.ent786) {levels.push(up? (B - move*0.786) : (B + move*0.786));} pendingFib={ dir:(trendNow===1?'long':'short'), levels, mode: lbcOpts.confirmMode||'Bounce' }; }
+        if(seg){ const A=seg.a.price, B=seg.b.price; const up=seg.dir==='up'; const move=Math.abs(B-A); const levels=[]; if(lbcOpts.ent382) levels.push(up? (B - move*0.382) : (B + move*0.382)); if(lbcOpts.ent500) levels.push(up? (B - move*0.5) : (B + move*0.5)); if(lbcOpts.ent618) levels.push(up? (B - move*0.618) : (B + move*0.618)); if(lbcOpts.ent786) levels.push(up? (B - move*0.786) : (B + move*0.786)); pendingFib={ dir:(trendNow===1?'long':'short'), levels, mode: lbcOpts.confirmMode||'Bounce' }; }
         if(lbcOpts.entryMode!=='Fib Retracement'){
-          const dir=(trendNow===1)?'long':'short'; const entry=bar.close; let sl=computeSLFromLadder(dir, entry, i); if(sl==null){ const riskPx=entry*(lbcOpts.slInitPct/100); sl=dir==='long'?(entry-riskPx):(entry+riskPx); } else { if(dir==='long' && sl>entry) {sl=entry;} if(dir==='short' && sl<entry) {sl=entry;} }
+          const dir=(trendNow===1)?'long':'short'; const entry=bar.close; let sl=computeSLFromLadder(dir, entry, i); if(sl==null){ const riskPx=entry*(lbcOpts.slInitPct/100); sl=dir==='long'?(entry-riskPx):(entry+riskPx); } else { if(dir==='long' && sl>entry) sl=entry; if(dir==='short' && sl<entry) sl=entry; }
           const initQty=__computeQty(entry, sl);
           if(initQty>1e-12 && isFinite(initQty)){
             const targets=buildTargets(dir, entry, Math.abs(entry-sl), i);
@@ -2730,34 +2729,34 @@ pos={ dir, entry, sl, initSL:sl, qty:initQty, initQty, entryIdx:i, beActive:fals
       if(!pos && lbcOpts.useFibRet && (lbcOpts.entryMode!=='Original') && pendingFib && pendingFib.levels && pendingFib.levels.length){
         for(const lv of pendingFib.levels){
           let ok=false;
-          if(pendingFib.dir==='long') {ok=(pendingFib.mode==='Touch')? (bar.low<=lv) : (bar.low<=lv && bar.close>lv);}
-          else {ok=(pendingFib.mode==='Touch')? (bar.high>=lv) : (bar.high>=lv && bar.close<lv);}
-if(ok){ const dir=pendingFib.dir; const entry=bar.close; let sl=computeSLFromLadder(dir, entry, i); if(sl==null){ const riskPx=entry*(lbcOpts.slInitPct/100); sl=dir==='long'?(entry-riskPx):(entry+riskPx); } else { if(dir==='long' && sl>entry) {sl=entry;} if(dir==='short' && sl<entry) {sl=entry;} } const initQty=__computeQty(entry, sl); if(initQty>1e-12 && isFinite(initQty)){ const targets=buildTargets(dir, entry, Math.abs(entry-sl), i); pos={ dir, entry, sl, initSL:sl, qty:initQty, initQty, entryIdx:i, beActive:false, anyTP:false, tpIdx:0, targets, risk: Math.abs(entry-sl)*initQty, hiSince: bar.high, loSince: bar.low, lastTpIdx: 0, tpTrailCfg: null, slTrailCfg: null }; pendingFib=null; break; } }
+          if(pendingFib.dir==='long') ok=(pendingFib.mode==='Touch')? (bar.low<=lv) : (bar.low<=lv && bar.close>lv);
+          else ok=(pendingFib.mode==='Touch')? (bar.high>=lv) : (bar.high>=lv && bar.close<lv);
+if(ok){ const dir=pendingFib.dir; const entry=bar.close; let sl=computeSLFromLadder(dir, entry, i); if(sl==null){ const riskPx=entry*(lbcOpts.slInitPct/100); sl=dir==='long'?(entry-riskPx):(entry+riskPx); } else { if(dir==='long' && sl>entry) sl=entry; if(dir==='short' && sl<entry) sl=entry; } const initQty=__computeQty(entry, sl); if(initQty>1e-12 && isFinite(initQty)){ const targets=buildTargets(dir, entry, Math.abs(entry-sl), i); pos={ dir, entry, sl, initSL:sl, qty:initQty, initQty, entryIdx:i, beActive:false, anyTP:false, tpIdx:0, targets, risk: Math.abs(entry-sl)*initQty, hiSince: bar.high, loSince: bar.low, lastTpIdx: 0, tpTrailCfg: null, slTrailCfg: null }; pendingFib=null; break; } }
         }
       }
     } else {
       pos.hiSince = Math.max(pos.hiSince||bar.high, bar.high); pos.loSince = Math.min(pos.loSince||bar.low, bar.low);
       if(lbcOpts.beEnable && !pos.beActive && (i - pos.entryIdx) >= lbcOpts.beAfterBars){ const movePct = pos.dir==='long'? ((bar.high - pos.entry)/pos.entry*100) : ((pos.entry - bar.low)/pos.entry*100); if(movePct >= lbcOpts.beLockPct){ pos.beActive=true; pos.sl = pos.entry; } }
       // Continuous per-TP trailing (ema/percent)
-      if(pos.tpTrailCfg){ try{ let cand=null; if(pos.tpTrailCfg.mode==='ema'){ const len=Math.max(1, parseInt((pos.tpTrailCfg.emaLen!=null? pos.tpTrailCfg.emaLen : (lbcOpts.emaLen||55)),10)); const ema=emaCalc(candles, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) {cand=v;} } else if(pos.tpTrailCfg.mode==='percent'){ const pct=Number(pos.tpTrailCfg.pct)||0; if(pos.dir==='long'){ cand=(pos.hiSince||bar.high)*(1 - pct/100); } else { cand=(pos.loSince||bar.low)*(1 + pct/100); } } if(cand!=null){ let b=cand; if(!pos.beActive){ b=(pos.dir==='long')? Math.min(cand, pos.entry) : Math.max(cand, pos.entry); } pos.sl = (pos.dir==='long')? Math.max(pos.sl, b) : Math.min(pos.sl, b); } }catch(_){ } }
+      if(pos.tpTrailCfg){ try{ let cand=null; if(pos.tpTrailCfg.mode==='ema'){ const len=Math.max(1, parseInt((pos.tpTrailCfg.emaLen!=null? pos.tpTrailCfg.emaLen : (lbcOpts.emaLen||55)),10)); const ema=emaCalc(candles, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) cand=v; } else if(pos.tpTrailCfg.mode==='percent'){ const pct=Number(pos.tpTrailCfg.pct)||0; if(pos.dir==='long'){ cand=(pos.hiSince||bar.high)*(1 - pct/100); } else { cand=(pos.loSince||bar.low)*(1 + pct/100); } } if(cand!=null){ let b=cand; if(!pos.beActive){ b=(pos.dir==='long')? Math.min(cand, pos.entry) : Math.max(cand, pos.entry); } pos.sl = (pos.dir==='long')? Math.max(pos.sl, b) : Math.min(pos.sl, b); } }catch(_){ } }
       // Continuous SL-attached trailing (ema/percent)
-      if(pos.slTrailCfg){ try{ let cand=null; if(pos.slTrailCfg.mode==='ema'){ const len=Math.max(1, parseInt((pos.slTrailCfg.emaLen!=null? pos.slTrailCfg.emaLen : (lbcOpts.emaLen||55)),10)); const ema=emaCalc(candles, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) {cand=v;} } else if(pos.slTrailCfg.mode==='percent'){ const pct=Number(pos.slTrailCfg.pct)||0; if(pos.dir==='long'){ cand=(pos.hiSince||bar.high)*(1 - pct/100); } else { cand=(pos.loSince||bar.low)*(1 + pct/100); } } if(cand!=null){ let b=cand; if(!pos.beActive){ b=(pos.dir==='long')? Math.min(cand, pos.entry) : Math.max(cand, pos.entry); } pos.sl = (pos.dir==='long')? Math.max(pos.sl, b) : Math.min(pos.sl, b); } }catch(_){ } }
+      if(pos.slTrailCfg){ try{ let cand=null; if(pos.slTrailCfg.mode==='ema'){ const len=Math.max(1, parseInt((pos.slTrailCfg.emaLen!=null? pos.slTrailCfg.emaLen : (lbcOpts.emaLen||55)),10)); const ema=emaCalc(candles, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) cand=v; } else if(pos.slTrailCfg.mode==='percent'){ const pct=Number(pos.slTrailCfg.pct)||0; if(pos.dir==='long'){ cand=(pos.hiSince||bar.high)*(1 - pct/100); } else { cand=(pos.loSince||bar.low)*(1 + pct/100); } } if(cand!=null){ let b=cand; if(!pos.beActive){ b=(pos.dir==='long')? Math.min(cand, pos.entry) : Math.max(cand, pos.entry); } pos.sl = (pos.dir==='long')? Math.max(pos.sl, b) : Math.min(pos.sl, b); } }catch(_){ } }
       { const sl2=computeSLFromLadder(pos.dir, pos.entry, i); if(sl2!=null){ let b=sl2; if(!pos.beActive){ b=(pos.dir==='long')? Math.min(sl2, pos.entry) : Math.max(sl2, pos.entry); } pos.sl = (pos.dir==='long')? Math.max(pos.sl, b) : Math.min(pos.sl, b); } }
       let closed=false;
       if(pos.dir==='long'){
-        if(bar.low <= pos.sl){ const portionQty = pos.qty; const pnl = (pos.sl - pos.entry) * portionQty; const fees = (pos.entry*portionQty + pos.sl*portionQty) * feePct; const net=pnl-fees; equity+=net; if(equity<0) {equity=0;} tradesCount++; if(pos.risk>0) {rrSum+=(net/pos.risk);} if(net>=0){ grossProfit+=net; wins++; } else { grossLoss+=net; losses++; } if(equity>peak) {peak=equity;} const dd=peak-equity; if(dd>maxDDAbs) {maxDDAbs=dd;} trades.push({ dir:pos.dir, entryTime:candles[pos.entryIdx].time, entry:pos.entry, initSL:pos.initSL, exitTime:candles[i].time, exit:pos.sl, reason:'SL', qty:portionQty, pnl, fees, net, rr: (Math.abs(pos.entry-pos.initSL)*portionQty>0? net/(Math.abs(pos.entry-pos.initSL)*portionQty) : null) }); try{ addSLHitMarker(candles[i].time, pos.dir); }catch(_){ } pos=null; closed=true; }
+        if(bar.low <= pos.sl){ const portionQty = pos.qty; const pnl = (pos.sl - pos.entry) * portionQty; const fees = (pos.entry*portionQty + pos.sl*portionQty) * feePct; const net=pnl-fees; equity+=net; if(equity<0) equity=0; tradesCount++; if(pos.risk>0) rrSum+=(net/pos.risk); if(net>=0){ grossProfit+=net; wins++; } else { grossLoss+=net; losses++; } if(equity>peak) peak=equity; const dd=peak-equity; if(dd>maxDDAbs) maxDDAbs=dd; trades.push({ dir:pos.dir, entryTime:candles[pos.entryIdx].time, entry:pos.entry, initSL:pos.initSL, exitTime:candles[i].time, exit:pos.sl, reason:'SL', qty:portionQty, pnl, fees, net, rr: (Math.abs(pos.entry-pos.initSL)*portionQty>0? net/(Math.abs(pos.entry-pos.initSL)*portionQty) : null) }); try{ addSLHitMarker(candles[i].time, pos.dir); }catch(_){ } pos=null; closed=true; }
       } else {
-        if(bar.high >= pos.sl){ const portionQty = pos.qty; const pnl = (pos.entry - pos.sl) * portionQty; const fees = (pos.entry*portionQty + pos.sl*portionQty) * feePct; const net=pnl-fees; equity+=net; if(equity<0) {equity=0;} tradesCount++; if(pos.risk>0) {rrSum+=(net/pos.risk);} if(net>=0){ grossProfit+=net; wins++; } else { grossLoss+=net; losses++; } if(equity>peak) {peak=equity;} const dd=peak-equity; if(dd>maxDDAbs) {maxDDAbs=dd;} trades.push({ dir:pos.dir, entryTime:candles[pos.entryIdx].time, entry:pos.entry, initSL:pos.initSL, exitTime:candles[i].time, exit:pos.sl, reason:'SL', qty:portionQty, pnl, fees, net, rr: (Math.abs(pos.entry-pos.initSL)*portionQty>0? net/(Math.abs(pos.entry-pos.initSL)*portionQty) : null) }); try{ addSLHitMarker(candles[i].time, pos.dir); }catch(_){ } pos=null; closed=true; }
+        if(bar.high >= pos.sl){ const portionQty = pos.qty; const pnl = (pos.entry - pos.sl) * portionQty; const fees = (pos.entry*portionQty + pos.sl*portionQty) * feePct; const net=pnl-fees; equity+=net; if(equity<0) equity=0; tradesCount++; if(pos.risk>0) rrSum+=(net/pos.risk); if(net>=0){ grossProfit+=net; wins++; } else { grossLoss+=net; losses++; } if(equity>peak) peak=equity; const dd=peak-equity; if(dd>maxDDAbs) maxDDAbs=dd; trades.push({ dir:pos.dir, entryTime:candles[pos.entryIdx].time, entry:pos.entry, initSL:pos.initSL, exitTime:candles[i].time, exit:pos.sl, reason:'SL', qty:portionQty, pnl, fees, net, rr: (Math.abs(pos.entry-pos.initSL)*portionQty>0? net/(Math.abs(pos.entry-pos.initSL)*portionQty) : null) }); try{ addSLHitMarker(candles[i].time, pos.dir); }catch(_){ } pos=null; closed=true; }
       }
       if(closed) { if(btProgBar && btProgText){ const p = Math.round((i - sIdx) / Math.max(1, (eIdx - sIdx)) * 100); if(p%5===0){ btProgBar.style.width = p+'%'; btProgText.textContent = `Simulation ${p}%`; } } continue; }
       if(pos.targets && pos.tpIdx < pos.targets.length){
         while(pos && pos.tpIdx < pos.targets.length){
-          const tp=pos.targets[pos.tpIdx]; const hit = pos.dir==='long'? (bar.high >= tp.price) : (bar.low <= tp.price); if(!hit) {break;}
+          const tp=pos.targets[pos.tpIdx]; const hit = pos.dir==='long'? (bar.high >= tp.price) : (bar.low <= tp.price); if(!hit) break;
           const portionFrac = lbcOpts.tpCompound? (tp.w||1) : 1; const portionQty = pos.initQty * portionFrac; const usedQty = Math.min(portionQty, pos.qty);
 const exitPx = tp.price; const pnl = (pos.dir==='long'? (exitPx - pos.entry) : (pos.entry - exitPx)) * usedQty; const fees = (pos.entry*usedQty + exitPx*usedQty) * feePct; const net = pnl - fees; const eqBeforeLocal=equity;
-          equity += net; if(equity<0) {equity=0;} tradesCount++; if(pos.risk>0) {rrSum += (net/pos.risk);}
+          equity += net; if(equity<0) equity=0; tradesCount++; if(pos.risk>0) rrSum += (net/pos.risk);
           if(net>=0){ grossProfit+=net; wins++; } else { grossLoss+=net; losses++; }
-          if(equity>peak) {peak=equity;} const dd=peak-equity; if(dd>maxDDAbs) {maxDDAbs=dd;}
+          if(equity>peak) peak=equity; const dd=peak-equity; if(dd>maxDDAbs) maxDDAbs=dd;
 trades.push({ dir:pos.dir, entryTime:candles[pos.entryIdx].time, entry:pos.entry, initSL:pos.initSL, exitTime:candles[i].time, exit:exitPx, reason:`TP${pos.tpIdx+1}`, qty:usedQty, net, fees, rr: (Math.abs(pos.entry-pos.initSL)*usedQty>0? net/(Math.abs(pos.entry-pos.initSL)*usedQty) : null), eqBefore: eqBeforeLocal });
           try{ addTPHitMarker(candles[i].time, pos.dir); }catch(_){ }
           pos.qty -= usedQty; pos.anyTP=true;
@@ -2773,35 +2772,35 @@ trades.push({ dir:pos.dir, entryTime:candles[pos.entryIdx].time, entry:pos.entry
               const sEma=document.getElementById(`optTP${idx}SLEma`);
               const beOn=document.getElementById(`optTP${idx}BEOn`);
               if(sSel){ const styp=sSel.value||'Percent'; const slEntry={ type:styp };
-                if(styp==='Fib'){ const r2=parseFloat(((sFib && sFib.value) || (sNum && sNum.value) || '')); if(isFinite(r2)) {slEntry.fib=r2;} }
-                else if(styp==='Percent'){ const p2=parseFloat(((sNum && sNum.value) || (sFib && sFib.value) || '')); if(isFinite(p2)) {slEntry.pct=p2;} }
-                else if(styp==='EMA'){ const len2=parseInt(((sEma && sEma.value) || (lbcOpts.emaLen||55)),10); if(isFinite(len2) && len2>0) {slEntry.emaLen=len2;} }
+                if(styp==='Fib'){ const r2=parseFloat(((sFib && sFib.value) || (sNum && sNum.value) || '')); if(isFinite(r2)) slEntry.fib=r2; }
+                else if(styp==='Percent'){ const p2=parseFloat(((sNum && sNum.value) || (sFib && sFib.value) || '')); if(isFinite(p2)) slEntry.pct=p2; }
+                else if(styp==='EMA'){ const len2=parseInt(((sEma && sEma.value) || (lbcOpts.emaLen||55)),10); if(isFinite(len2) && len2>0) slEntry.emaLen=len2; }
                 tCfg.sl = slEntry;
               }
               // read per-TP trailing (TP + SL) from DOM if not persisted
               const trSel=document.getElementById(`optTP${idx}TrailType`);
               const trEma=document.getElementById(`optTP${idx}TrailEma`);
               const trPct=document.getElementById(`optTP${idx}TrailPct`);
-              if(trSel){ const mode=trSel.value||'none'; if(mode && mode!=='none'){ tCfg.trail={ mode }; if(mode==='ema'){ const len3=parseInt((trEma&&trEma.value)||'',10); if(isFinite(len3)&&len3>0) {tCfg.trail.emaLen=len3;} } else if(mode==='percent'){ const p3=parseFloat((trPct&&trPct.value)||''); if(isFinite(p3)) {tCfg.trail.pct=p3;} } } }
+              if(trSel){ const mode=trSel.value||'none'; if(mode && mode!=='none'){ tCfg.trail={ mode }; if(mode==='ema'){ const len3=parseInt((trEma&&trEma.value)||'',10); if(isFinite(len3)&&len3>0) tCfg.trail.emaLen=len3; } else if(mode==='percent'){ const p3=parseFloat((trPct&&trPct.value)||''); if(isFinite(p3)) tCfg.trail.pct=p3; } } }
               const sTrSel=document.getElementById(`optTP${idx}SLTrailType`);
               const sTrEma=document.getElementById(`optTP${idx}SLTrailEma`);
               const sTrPct=document.getElementById(`optTP${idx}SLTrailPct`);
-              if(sTrSel){ const m2=sTrSel.value||'none'; if(m2 && m2!=='none'){ if(!tCfg.sl) {tCfg.sl={type:'Percent'};} tCfg.sl.trail={ mode:m2 }; if(m2==='ema'){ const len4=parseInt((sTrEma&&sTrEma.value)||'',10); if(isFinite(len4)&&len4>0) {tCfg.sl.trail.emaLen=len4;} } else if(m2==='percent'){ const p4=parseFloat((sTrPct&&sTrPct.value)||''); if(isFinite(p4)) {tCfg.sl.trail.pct=p4;} } } }
+              if(sTrSel){ const m2=sTrSel.value||'none'; if(m2 && m2!=='none'){ if(!tCfg.sl) tCfg.sl={type:'Percent'}; tCfg.sl.trail={ mode:m2 }; if(m2==='ema'){ const len4=parseInt((sTrEma&&sTrEma.value)||'',10); if(isFinite(len4)&&len4>0) tCfg.sl.trail.emaLen=len4; } else if(m2==='percent'){ const p4=parseFloat((sTrPct&&sTrPct.value)||''); if(isFinite(p4)) tCfg.sl.trail.pct=p4; } } }
               tCfg.beOn = !!(beOn && beOn.checked);
             }catch(_){ }
           }
           if(tCfg){ if(tCfg.beOn){ pos.sl = pos.entry; applied=true; }
             const slNew = (function(){ try{
-              const seg=segAtIdx(); if(!(tCfg&&tCfg.sl)) {return null;} const s=tCfg.sl; let price=null; if(s.type==='Fib' && seg){ const A=seg.a.price, B=seg.b.price; const move=Math.abs(B-A); const r=parseFloat(s.fib!=null? s.fib : s.value); if(isFinite(r)) {price = (seg.dir==='up')? (B - move*r) : (B + move*r);} }
-              else if(s.type==='Percent'){ const p=parseFloat(s.pct!=null? s.pct : s.value); if(isFinite(p)) {price = pos.dir==='long'? (pos.entry*(1 - p/100)) : (pos.entry*(1 + p/100));} }
-              else if(s.type==='EMA'){ const len=Math.max(1, parseInt(((s&&s.emaLen)!=null? s.emaLen : (lbcOpts.emaLen||55)),10)); const ema=emaCalc(candles, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) {price=v;} }
+              const seg=segAtIdx(); if(!(tCfg&&tCfg.sl)) return null; const s=tCfg.sl; let price=null; if(s.type==='Fib' && seg){ const A=seg.a.price, B=seg.b.price; const move=Math.abs(B-A); const r=parseFloat(s.fib!=null? s.fib : s.value); if(isFinite(r)) price = (seg.dir==='up')? (B - move*r) : (B + move*r); }
+              else if(s.type==='Percent'){ const p=parseFloat(s.pct!=null? s.pct : s.value); if(isFinite(p)) price = pos.dir==='long'? (pos.entry*(1 - p/100)) : (pos.entry*(1 + p/100)); }
+              else if(s.type==='EMA'){ const len=Math.max(1, parseInt(((s&&s.emaLen)!=null? s.emaLen : (lbcOpts.emaLen||55)),10)); const ema=emaCalc(candles, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) price=v; }
               return price;
             }catch(_){ return null; } })();
             if(slNew!=null){ let b=slNew; if(!pos.beActive){ b=(pos.dir==='long')? Math.min(slNew, pos.entry) : Math.max(slNew, pos.entry); } pos.sl = (pos.dir==='long')? Math.max(pos.sl, b) : Math.min(pos.sl, b); applied=true; }
             // Per-TP trailing at hit (be/prev/ema/percent)
             if(tCfg.trail && tCfg.trail.mode){ let cand=null; const m=tCfg.trail.mode; if(m==='be'){ cand=pos.entry; }
               else if(m==='prev'){ cand=exitPx; }
-              else if(m==='ema'){ const len=Math.max(1, parseInt(((tCfg.trail.emaLen!=null? tCfg.trail.emaLen : (lbcOpts.emaLen||55))),10)); const ema=emaCalc(candles, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) {cand=v;} }
+              else if(m==='ema'){ const len=Math.max(1, parseInt(((tCfg.trail.emaLen!=null? tCfg.trail.emaLen : (lbcOpts.emaLen||55))),10)); const ema=emaCalc(candles, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) cand=v; }
               else if(m==='percent'){ const pct=Number(tCfg.trail.pct)||0; if(pos.dir==='long'){ cand=(pos.hiSince||bar.high)*(1 - pct/100); } else { cand=(pos.loSince||bar.low)*(1 + pct/100); } }
               if(cand!=null){ let b=cand; if(!pos.beActive){ b=(pos.dir==='long')? Math.min(cand, pos.entry) : Math.max(cand, pos.entry); } pos.sl = (pos.dir==='long')? Math.max(pos.sl, b) : Math.min(pos.sl, b); applied=true; }
               if(m==='ema' || m==='percent'){ pos.tpTrailCfg = { mode:m, emaLen: tCfg.trail.emaLen, pct: tCfg.trail.pct }; }
@@ -2814,7 +2813,7 @@ trades.push({ dir:pos.dir, entryTime:candles[pos.entryIdx].time, entry:pos.entry
       }
       if(pos){
         if((pos.dir==='long' && trendNow!==trendPrev && trendNow!==1) || (pos.dir==='short' && trendNow!==trendPrev && trendNow!==-1)){
-          const exit=bar.close; const portionQty=pos.qty; const pnl=(pos.dir==='long'? (exit - pos.entry):(pos.entry - exit))*portionQty; const fees=(pos.entry*portionQty + exit*portionQty)*feePct; const net=pnl-fees; equity+=net; if(equity<0) {equity=0;} tradesCount++; if(pos.risk>0) {rrSum+=(net/pos.risk);} if(net>=0){ grossProfit+=net; wins++; } else { grossLoss+=net; losses++; } if(equity>peak) {peak=equity;} const dd=peak-equity; if(dd>maxDDAbs) {maxDDAbs=dd;} trades.push({ dir:pos.dir, entryTime:candles[pos.entryIdx].time, entry:pos.entry, initSL:pos.initSL, exitTime:candles[i].time, exit:exit, reason:'Flip', qty:portionQty, pnl, fees, net, rr: (Math.abs(pos.entry-pos.initSL)*portionQty>0? net/(Math.abs(pos.entry-pos.initSL)*portionQty) : null) }); pos=null;
+          const exit=bar.close; const portionQty=pos.qty; const pnl=(pos.dir==='long'? (exit - pos.entry):(pos.entry - exit))*portionQty; const fees=(pos.entry*portionQty + exit*portionQty)*feePct; const net=pnl-fees; equity+=net; if(equity<0) equity=0; tradesCount++; if(pos.risk>0) rrSum+=(net/pos.risk); if(net>=0){ grossProfit+=net; wins++; } else { grossLoss+=net; losses++; } if(equity>peak) peak=equity; const dd=peak-equity; if(dd>maxDDAbs) maxDDAbs=dd; trades.push({ dir:pos.dir, entryTime:candles[pos.entryIdx].time, entry:pos.entry, initSL:pos.initSL, exitTime:candles[i].time, exit:exit, reason:'Flip', qty:portionQty, pnl, fees, net, rr: (Math.abs(pos.entry-pos.initSL)*portionQty>0? net/(Math.abs(pos.entry-pos.initSL)*portionQty) : null) }); pos=null;
         }
       }
     }
@@ -2832,7 +2831,7 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
   let pivIdx=-1;
   function advancePivotIdxTo(i){ while(pivIdx+1<pivAll.length && pivAll[pivIdx+1].idx<=i){ pivIdx++; } }
   function segAtIdx(){ if(pivIdx>=1){ const a=pivAll[pivIdx-1], b=pivAll[pivIdx]; return { a, b, dir: b.price>a.price?'up':'down' }; } return null; }
-  function computeSLFromLadder(dir, entry, i){ try{ if(!(params.slEnable && Array.isArray(params.sl) && params.sl.length)) {return null;} const seg=segAtIdx(); const A=seg?seg.a.price:null, B=seg?seg.b.price:null, move=seg?Math.abs(B-A):null; const cands=[]; for(const t of params.sl){ const typ=(t&&t.type)||'Percent'; let price=null; if(typ==='Fib' && seg && move!=null){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)) {price = (seg.dir==='up')? (B - move*r) : (B + move*r);} } else if(typ==='Percent'){ const p=parseFloat(t.pct!=null? t.pct : t.value); if(isFinite(p)) {price = dir==='long'? (entry*(1 - p/100)) : (entry*(1 + p/100));} } else if(typ==='EMA'){ const len=Math.max(1, parseInt(((t&&t.emaLen)!=null? t.emaLen : (params.emaLen||55)),10)); let ema=slEmaCache.get(len); if(!ema){ ema=emaCalc(bars, len); slEmaCache.set(len, ema); } const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) {price=v;} } if(price!=null){ if(dir==='long'){ if(price<=entry) {cands.push(price);} } else { if(price>=entry) {cands.push(price);} } } } if(!cands.length) {return null;} return dir==='long'? Math.max(...cands) : Math.min(...cands); }catch(_){ return null; } }
+  function computeSLFromLadder(dir, entry, i){ try{ if(!(params.slEnable && Array.isArray(params.sl) && params.sl.length)) return null; const seg=segAtIdx(); const A=seg?seg.a.price:null, B=seg?seg.b.price:null, move=seg?Math.abs(B-A):null; const cands=[]; for(const t of params.sl){ const typ=(t&&t.type)||'Percent'; let price=null; if(typ==='Fib' && seg && move!=null){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)) price = (seg.dir==='up')? (B - move*r) : (B + move*r); } else if(typ==='Percent'){ const p=parseFloat(t.pct!=null? t.pct : t.value); if(isFinite(p)) price = dir==='long'? (entry*(1 - p/100)) : (entry*(1 + p/100)); } else if(typ==='EMA'){ const len=Math.max(1, parseInt(((t&&t.emaLen)!=null? t.emaLen : (params.emaLen||55)),10)); let ema=slEmaCache.get(len); if(!ema){ ema=emaCalc(bars, len); slEmaCache.set(len, ema); } const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) price=v; } if(price!=null){ if(dir==='long'){ if(price<=entry) cands.push(price); } else { if(price>=entry) cands.push(price); } } } if(!cands.length) return null; return dir==='long'? Math.max(...cands) : Math.min(...cands); }catch(_){ return null; } }
   const tpCompound = (typeof params.tpCompound==='boolean')? params.tpCompound : !!lbcOpts.tpCompound;
   const tpCloseAllLast = (typeof params.tpCloseAllLast==='boolean')? params.tpCloseAllLast : !!lbcOpts.tpCloseAllLast;
   function buildTargets(dir, entry, riskAbs, i){
@@ -2841,18 +2840,18 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
       const seg=segAtIdx(); const A=seg?seg.a.price:null, B=seg?seg.b.price:null, move=seg?Math.abs(B-A):null;
       for(let idx=0; idx<params.tp.length; idx++){
         const t=params.tp[idx]; let price=null; const typ=(t.type||'Fib');
-        if(typ==='Fib' && seg && move!=null){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)) {price = (A + (B - A) * r);} }
-        else if(typ==='Percent'){ const p=parseFloat(t.pct!=null? t.pct : t.value); if(isFinite(p)) {price = dir==='long'? (entry*(1+p/100)) : (entry*(1-p/100));} }
-        else if(typ==='EMA'){ const len=Math.max(1, parseInt(((t&&t.emaLen)!=null? t.emaLen : (params.emaLen||55)),10)); let ema=emaTargetCache.get(len); if(!ema){ ema=emaCalc(bars, len); emaTargetCache.set(len, ema); } const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) {price=v;} }
+        if(typ==='Fib' && seg && move!=null){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)) price = (seg.dir==='up')? (B + move*r) : (B - move*r); }
+        else if(typ==='Percent'){ const p=parseFloat(t.pct!=null? t.pct : t.value); if(isFinite(p)) price = dir==='long'? (entry*(1+p/100)) : (entry*(1-p/100)); }
+        else if(typ==='EMA'){ const len=Math.max(1, parseInt(((t&&t.emaLen)!=null? t.emaLen : (params.emaLen||55)),10)); let ema=emaTargetCache.get(len); if(!ema){ ema=emaCalc(bars, len); emaTargetCache.set(len, ema); } const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) price=v; }
         if(price!=null){ if((dir==='long' && price>entry) || (dir==='short' && price<entry)){
           let w=null; const q=t.qty; if(q!=null && isFinite(q)){ w = (q>1? q/100 : q); }
           list.push({price, w, srcIdx: idx});
         } }
       }
-      if(dir==='long') {list.sort((a,b)=>a.price-b.price);} else {list.sort((a,b)=>b.price-a.price);}
+      if(dir==='long') list.sort((a,b)=>a.price-b.price); else list.sort((a,b)=>b.price-a.price);
       let sumW=0, hasW=false; for(const it of list){ if(it.w!=null && it.w>0){ sumW+=it.w; hasW=true; } }
       if(!hasW){ if(list.length){ const even=1/list.length; list=list.map(it=>({ price:it.price, w:even, srcIdx: it.srcIdx })); } else { list=[{price: (dir==='long'? entry + riskAbs*(params.tp1R||1) : entry - riskAbs*(params.tp1R||1)), w:1, srcIdx: 0}]; } }
-      else { if(sumW>1){ const k=1/sumW; for(const it of list){ if(it.w!=null) {it.w*=k;} } } }
+      else { if(sumW>1){ const k=1/sumW; for(const it of list){ if(it.w!=null) it.w*=k; } } }
       if(tpCloseAllLast && list.length){ let s=0; for(const it of list){ s+=(it.w||0); } if(s<1){ list[list.length-1].w = (list[list.length-1].w||0) + (1-s); } }
       return list;
     } else {
@@ -2860,11 +2859,11 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
     }
   }
   let equity=conf.startCap; let peak=equity; let maxDDAbs=0; let grossProfit=0, grossLoss=0; let wins=0, losses=0; let rrSum=0; let tradesCount=0;
-  const positions=[]; let pendingFib=null; const trades = collect? []: null; const eqPts = collect? []: null;
+  let positions=[]; let pendingFib=null; const trades = collect? []: null; const eqPts = collect? []: null;
   const feePct=conf.fee/100; const lev=conf.lev; const baseMode=conf.base;
   function __computeQty(entry, sl){
-    if(!(isFinite(entry)&&isFinite(sl))) {return 0;}
-    if(equity<=0) {return 0;}
+    if(!(isFinite(entry)&&isFinite(sl))) return 0;
+    if(equity<=0) return 0;
     const pctLocal = (params && params.maxPct != null) ? Number(params.maxPct) : (conf.maxPct != null ? Number(conf.maxPct) : 100);
     const maxPct = Math.max(0, pctLocal)/100;
     const capBase=(baseMode==='equity')?equity:conf.startCap;
@@ -2877,33 +2876,33 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
     const q=Math.max(0, Math.min(qty0, qtyRisk));
     return q;
   }
-  function tryOpen(dir, entry, i){ let sl=computeSLFromLadder(dir, entry, i); if(sl==null){ const riskPx=entry*(params.slInitPct/100); sl=dir==='long'?(entry-riskPx):(entry+riskPx); } else { if(dir==='long' && sl>entry) {sl=entry;} if(dir==='short' && sl<entry) {sl=entry;} } const initQty=__computeQty(entry, sl); if(initQty>1e-12 && isFinite(initQty)){ const targets=buildTargets(dir, entry, Math.abs(entry-sl), i); positions.push({ dir, entry, sl, initSL:sl, qty:initQty, initQty, entryIdx:i, beActive:false, anyTP:false, tpIdx:0, targets, risk: Math.abs(entry-sl)*initQty, hiSince: bars[i].high, loSince: bars[i].low, lastTpIdx: 0, tpTrailCfg: null, slTrailCfg: null }); } }
+  function tryOpen(dir, entry, i){ let sl=computeSLFromLadder(dir, entry, i); if(sl==null){ const riskPx=entry*(params.slInitPct/100); sl=dir==='long'?(entry-riskPx):(entry+riskPx); } else { if(dir==='long' && sl>entry) sl=entry; if(dir==='short' && sl<entry) sl=entry; } const initQty=__computeQty(entry, sl); if(initQty>1e-12 && isFinite(initQty)){ const targets=buildTargets(dir, entry, Math.abs(entry-sl), i); positions.push({ dir, entry, sl, initSL:sl, qty:initQty, initQty, entryIdx:i, beActive:false, anyTP:false, tpIdx:0, targets, risk: Math.abs(entry-sl)*initQty, hiSince: bars[i].high, loSince: bars[i].low, lastTpIdx: 0, tpTrailCfg: null, slTrailCfg: null }); } }
   for(let i=Math.max(1,sIdx); i<=eIdx; i++){
-    if(btAbort) {break;} if(equity<=0) {break;}
+    if(btAbort) break; if(equity<=0) break;
     const bar=bars[i]; const trendNow=lb.trend[i]; const trendPrev=lb.trend[i-1];
     if(eqPts){ eqPts.push({ time: bar.time, equity }); }
     advancePivotIdxTo(i);
     if(trendNow!==trendPrev){
-      const seg=segAtIdx(); if(seg){ const A=seg.a.price, B=seg.b.price; const up=seg.dir==='up'; const move=Math.abs(B-A); const levels=[]; if(params.ent382) {levels.push(up? (B - move*0.382) : (B + move*0.382));} if(params.ent500) {levels.push(up? (B - move*0.5) : (B + move*0.5));} if(params.ent618) {levels.push(up? (B - move*0.618) : (B + move*0.618));} if(params.ent786) {levels.push(up? (B - move*0.786) : (B + move*0.786));} pendingFib={ dir:(trendNow===1?'long':'short'), levels, mode: params.confirmMode||'Bounce' }; }
+      const seg=segAtIdx(); if(seg){ const A=seg.a.price, B=seg.b.price; const up=seg.dir==='up'; const move=Math.abs(B-A); const levels=[]; if(params.ent382) levels.push(up? (B - move*0.382) : (B + move*0.382)); if(params.ent500) levels.push(up? (B - move*0.5) : (B + move*0.5)); if(params.ent618) levels.push(up? (B - move*0.618) : (B + move*0.618)); if(params.ent786) levels.push(up? (B - move*0.786) : (B + move*0.786)); pendingFib={ dir:(trendNow===1?'long':'short'), levels, mode: params.confirmMode||'Bounce' }; }
       if(params.entryMode!=='Fib Retracement'){ const dir=(trendNow===1)?'long':'short'; tryOpen(dir, bar.close, i); }
     }
     if(params.useFibRet && (params.entryMode!=='Original') && pendingFib && pendingFib.levels && pendingFib.levels.length){
       for(const lv of pendingFib.levels){ let ok=false; if(pendingFib.dir==='long'){ ok=(pendingFib.mode==='Touch')? (bar.low<=lv) : (bar.low<=lv && bar.close>lv); } else { ok=(pendingFib.mode==='Touch')? (bar.high>=lv) : (bar.high>=lv && bar.close<lv); } if(ok){ tryOpen(pendingFib.dir, bar.close, i); pendingFib=null; break; } }
     }
     for(let k=positions.length-1; k>=0; k--){
-      const pos=positions[k];
+      let pos=positions[k];
       pos.hiSince = Math.max(pos.hiSince||bar.high, bar.high);
       pos.loSince = Math.min(pos.loSince||bar.low, bar.low);
       if(params.beEnable && !pos.beActive && (i - pos.entryIdx) >= params.beAfterBars){ const movePct = pos.dir==='long'? ((bar.high - pos.entry)/pos.entry*100) : ((pos.entry - bar.low)/pos.entry*100); if(movePct >= params.beLockPct){ pos.beActive=true; pos.sl = pos.entry; } }
-      if(pos.tpTrailCfg){ try{ let cand=null; if(pos.tpTrailCfg.mode==='ema'){ const len=Math.max(1, parseInt((pos.tpTrailCfg.emaLen!=null? pos.tpTrailCfg.emaLen : (params.emaLen||55)),10)); const ema=emaCalc(bars, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) {cand=v;} } else if(pos.tpTrailCfg.mode==='percent'){ const pct=Number(pos.tpTrailCfg.pct)||0; cand = (pos.dir==='long')? ( (pos.hiSince||bar.high)*(1 - pct/100) ) : ( (pos.loSince||bar.low)*(1 + pct/100) ); } if(cand!=null){ let b=cand; if(!pos.beActive){ b=(pos.dir==='long')? Math.min(cand, pos.entry) : Math.max(cand, pos.entry); } pos.sl = (pos.dir==='long')? Math.max(pos.sl, b) : Math.min(pos.sl, b); } }catch(_){ } }
-      if(pos.slTrailCfg){ try{ let cand=null; if(pos.slTrailCfg.mode==='ema'){ const len=Math.max(1, parseInt((pos.slTrailCfg.emaLen!=null? pos.slTrailCfg.emaLen : (params.emaLen||55)),10)); const ema=emaCalc(bars, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) {cand=v;} } else if(pos.slTrailCfg.mode==='percent'){ const pct=Number(pos.slTrailCfg.pct)||0; cand = (pos.dir==='long')? ( (pos.hiSince||bar.high)*(1 - pct/100) ) : ( (pos.loSince||bar.low)*(1 + pct/100) ); } if(cand!=null){ let b=cand; if(!pos.beActive){ b=(pos.dir==='long')? Math.min(cand, pos.entry) : Math.max(cand, pos.entry); } pos.sl = (pos.dir==='long')? Math.max(pos.sl, b) : Math.min(pos.sl, b); } }catch(_){ } }
+      if(pos.tpTrailCfg){ try{ let cand=null; if(pos.tpTrailCfg.mode==='ema'){ const len=Math.max(1, parseInt((pos.tpTrailCfg.emaLen!=null? pos.tpTrailCfg.emaLen : (params.emaLen||55)),10)); const ema=emaCalc(bars, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) cand=v; } else if(pos.tpTrailCfg.mode==='percent'){ const pct=Number(pos.tpTrailCfg.pct)||0; cand = (pos.dir==='long')? ( (pos.hiSince||bar.high)*(1 - pct/100) ) : ( (pos.loSince||bar.low)*(1 + pct/100) ); } if(cand!=null){ let b=cand; if(!pos.beActive){ b=(pos.dir==='long')? Math.min(cand, pos.entry) : Math.max(cand, pos.entry); } pos.sl = (pos.dir==='long')? Math.max(pos.sl, b) : Math.min(pos.sl, b); } }catch(_){ } }
+      if(pos.slTrailCfg){ try{ let cand=null; if(pos.slTrailCfg.mode==='ema'){ const len=Math.max(1, parseInt((pos.slTrailCfg.emaLen!=null? pos.slTrailCfg.emaLen : (params.emaLen||55)),10)); const ema=emaCalc(bars, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) cand=v; } else if(pos.slTrailCfg.mode==='percent'){ const pct=Number(pos.slTrailCfg.pct)||0; cand = (pos.dir==='long')? ( (pos.hiSince||bar.high)*(1 - pct/100) ) : ( (pos.loSince||bar.low)*(1 + pct/100) ); } if(cand!=null){ let b=cand; if(!pos.beActive){ b=(pos.dir==='long')? Math.min(cand, pos.entry) : Math.max(cand, pos.entry); } pos.sl = (pos.dir==='long')? Math.max(pos.sl, b) : Math.min(pos.sl, b); } }catch(_){ } }
       { const sl2=computeSLFromLadder(pos.dir, pos.entry, i); if(sl2!=null){ let b=sl2; if(!pos.beActive){ b=(pos.dir==='long')? Math.min(sl2, pos.entry) : Math.max(sl2, pos.entry); } pos.sl = (pos.dir==='long')? Math.max(pos.sl, b) : Math.min(pos.sl, b); } }
       // SL check
       let closedBySL=false;
       if(pos.dir==='long'){
-        if(bar.low <= pos.sl){ const portionQty = pos.qty; const pnl = (pos.sl - pos.entry) * portionQty; const fees = (pos.entry*portionQty + pos.sl*portionQty) * feePct; const net=pnl-fees; const eqBeforeLocal=equity; equity+=net; if(equity<0) {equity=0;} tradesCount++; if(pos.risk>0) {rrSum+=(net/pos.risk);} if(net>=0){ grossProfit+=net; wins++; } else { grossLoss+=net; losses++; } if(equity>peak) {peak=equity;} const dd=peak-equity; if(dd>maxDDAbs) {maxDDAbs=dd;} if(trades){ trades.push({ dir:pos.dir, entryTime:bars[pos.entryIdx].time, entry:pos.entry, initSL:pos.initSL, exitTime:bars[i].time, exit:pos.sl, reason:'SL', qty:portionQty, net, fees, rr: (Math.abs(pos.entry-pos.initSL)*portionQty>0? net/(Math.abs(pos.entry-pos.initSL)*portionQty) : null), eqBefore: eqBeforeLocal }); } closedBySL=true; }
+        if(bar.low <= pos.sl){ const portionQty = pos.qty; const pnl = (pos.sl - pos.entry) * portionQty; const fees = (pos.entry*portionQty + pos.sl*portionQty) * feePct; const net=pnl-fees; const eqBeforeLocal=equity; equity+=net; if(equity<0) equity=0; tradesCount++; if(pos.risk>0) rrSum+=(net/pos.risk); if(net>=0){ grossProfit+=net; wins++; } else { grossLoss+=net; losses++; } if(equity>peak) peak=equity; const dd=peak-equity; if(dd>maxDDAbs) maxDDAbs=dd; if(trades){ trades.push({ dir:pos.dir, entryTime:bars[pos.entryIdx].time, entry:pos.entry, initSL:pos.initSL, exitTime:bars[i].time, exit:pos.sl, reason:'SL', qty:portionQty, net, fees, rr: (Math.abs(pos.entry-pos.initSL)*portionQty>0? net/(Math.abs(pos.entry-pos.initSL)*portionQty) : null), eqBefore: eqBeforeLocal }); } closedBySL=true; }
       } else {
-        if(bar.high >= pos.sl){ const portionQty = pos.qty; const pnl = (pos.entry - pos.sl) * portionQty; const fees = (pos.entry*portionQty + pos.sl*portionQty) * feePct; const net=pnl-fees; const eqBeforeLocal=equity; equity+=net; if(equity<0) {equity=0;} tradesCount++; if(pos.risk>0) {rrSum+=(net/pos.risk);} if(net>=0){ grossProfit+=net; wins++; } else { grossLoss+=net; losses++; } if(equity>peak) {peak=equity;} const dd=peak-equity; if(dd>maxDDAbs) {maxDDAbs=dd;} if(trades){ trades.push({ dir:pos.dir, entryTime:bars[pos.entryIdx].time, entry:pos.entry, initSL:pos.initSL, exitTime:bars[i].time, exit:pos.sl, reason:'SL', qty:portionQty, net, fees, rr: (Math.abs(pos.entry-pos.initSL)*portionQty>0? net/(Math.abs(pos.entry-pos.initSL)*portionQty) : null), eqBefore: eqBeforeLocal }); } closedBySL=true; }
+        if(bar.high >= pos.sl){ const portionQty = pos.qty; const pnl = (pos.entry - pos.sl) * portionQty; const fees = (pos.entry*portionQty + pos.sl*portionQty) * feePct; const net=pnl-fees; const eqBeforeLocal=equity; equity+=net; if(equity<0) equity=0; tradesCount++; if(pos.risk>0) rrSum+=(net/pos.risk); if(net>=0){ grossProfit+=net; wins++; } else { grossLoss+=net; losses++; } if(equity>peak) peak=equity; const dd=peak-equity; if(dd>maxDDAbs) maxDDAbs=dd; if(trades){ trades.push({ dir:pos.dir, entryTime:bars[pos.entryIdx].time, entry:pos.entry, initSL:pos.initSL, exitTime:bars[i].time, exit:pos.sl, reason:'SL', qty:portionQty, net, fees, rr: (Math.abs(pos.entry-pos.initSL)*portionQty>0? net/(Math.abs(pos.entry-pos.initSL)*portionQty) : null), eqBefore: eqBeforeLocal }); } closedBySL=true; }
       }
       if(closedBySL){ positions.splice(k,1); continue; }
       // TP sequential for this position
@@ -2911,20 +2910,20 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
         while(pos && pos.tpIdx < pos.targets.length){
           const tp=pos.targets[pos.tpIdx];
           const hit = pos.dir==='long'? (bar.high >= tp.price) : (bar.low <= tp.price);
-          if(!hit) {break;}
+          if(!hit) break;
           const portionFrac = tpCompound? (tp.w||1) : 1;
           const portionQty = pos.initQty * portionFrac;
           const usedQty = Math.min(portionQty, pos.qty);
           const exitPx = tp.price;
           const pnl = (pos.dir==='long'? (exitPx - pos.entry) : (pos.entry - exitPx)) * usedQty;
           const fees = (pos.entry*usedQty + exitPx*usedQty) * feePct;
-          const net = pnl - fees; equity += net; if(equity<0) {equity=0;} tradesCount++; if(pos.risk>0) {rrSum += (net/pos.risk);} if(net>=0){ grossProfit+=net; wins++; } else { grossLoss+=net; losses++; } if(equity>peak) {peak=equity;} const dd=peak-equity; if(dd>maxDDAbs) {maxDDAbs=dd;} if(trades){ trades.push({ dir:pos.dir, entryTime:bars[pos.entryIdx].time, entry:pos.entry, initSL:pos.initSL, exitTime:bars[i].time, exit:exitPx, reason:`TP${pos.tpIdx+1}`, qty:usedQty, net, fees, rr: (Math.abs(pos.entry-pos.initSL)*usedQty>0? net/(Math.abs(pos.entry-pos.initSL)*usedQty) : null) }); }
+          const net = pnl - fees; equity += net; if(equity<0) equity=0; tradesCount++; if(pos.risk>0) rrSum += (net/pos.risk); if(net>=0){ grossProfit+=net; wins++; } else { grossLoss+=net; losses++; } if(equity>peak) peak=equity; const dd=peak-equity; if(dd>maxDDAbs) maxDDAbs=dd; if(trades){ trades.push({ dir:pos.dir, entryTime:bars[pos.entryIdx].time, entry:pos.entry, initSL:pos.initSL, exitTime:bars[i].time, exit:exitPx, reason:`TP${pos.tpIdx+1}`, qty:usedQty, net, fees, rr: (Math.abs(pos.entry-pos.initSL)*usedQty>0? net/(Math.abs(pos.entry-pos.initSL)*usedQty) : null) }); }
           pos.qty -= usedQty; pos.anyTP=true;
           let tCfg = (Array.isArray(params.tp) && tp.srcIdx!=null)? params.tp[tp.srcIdx] : null; if(!tCfg){ tCfg={}; }
           if(tCfg.beOn){ pos.sl = pos.entry; }
-          const slNew=(function(){ try{ const seg=segAtIdx(); const s=tCfg.sl; if(!(seg && s)) {return null;} let price=null; if(s.type==='Fib'){ const A=seg.a.price, B=seg.b.price; const move=Math.abs(B-A); const r=parseFloat(s.fib!=null? s.fib : s.value); if(isFinite(r)) {price = (seg.dir==='up')? (B - move*r) : (B + move*r);} } else if(s.type==='Percent'){ const p=parseFloat(s.pct!=null? s.pct : s.value); if(isFinite(p)) {price = pos.dir==='long'? (pos.entry*(1 - p/100)) : (pos.entry*(1 + p/100));} } else if(s.type==='EMA'){ const len=Math.max(1, parseInt(((s&&s.emaLen)!=null? s.emaLen : (params.emaLen||55)),10)); const ema=emaCalc(bars, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) {price=v;} } return price; }catch(_){ return null; } })();
+          const slNew=(function(){ try{ const seg=segAtIdx(); const s=tCfg.sl; if(!(seg && s)) return null; let price=null; if(s.type==='Fib'){ const A=seg.a.price, B=seg.b.price; const move=Math.abs(B-A); const r=parseFloat(s.fib!=null? s.fib : s.value); if(isFinite(r)) price = (seg.dir==='up')? (B - move*r) : (B + move*r); } else if(s.type==='Percent'){ const p=parseFloat(s.pct!=null? s.pct : s.value); if(isFinite(p)) price = pos.dir==='long'? (pos.entry*(1 - p/100)) : (pos.entry*(1 + p/100)); } else if(s.type==='EMA'){ const len=Math.max(1, parseInt(((s&&s.emaLen)!=null? s.emaLen : (params.emaLen||55)),10)); const ema=emaCalc(bars, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) price=v; } return price; }catch(_){ return null; } })();
           if(slNew!=null){ let b=slNew; if(!pos.beActive){ b=(pos.dir==='long')? Math.min(slNew, pos.entry) : Math.max(slNew, pos.entry); } pos.sl = (pos.dir==='long')? Math.max(pos.sl, b) : Math.min(pos.sl, b); }
-          if(tCfg.trail && tCfg.trail.mode){ let cand=null; const m=tCfg.trail.mode; if(m==='be'){ cand=pos.entry; } else if(m==='prev'){ cand=exitPx; } else if(m==='ema'){ const len=Math.max(1, parseInt(((tCfg.trail.emaLen!=null? tCfg.trail.emaLen : (params.emaLen||55))),10)); const ema=emaCalc(bars, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) {cand=v;} } else if(m==='percent'){ const pct=Number(tCfg.trail.pct)||0; cand = (pos.dir==='long')? ( (pos.hiSince||bar.high)*(1 - pct/100) ) : ( (pos.loSince||bar.low)*(1 + pct/100) ); } if(cand!=null){ let b=cand; if(!pos.beActive){ b=(pos.dir==='long')? Math.min(cand, pos.entry) : Math.max(cand, pos.entry); } pos.sl = (pos.dir==='long')? Math.max(pos.sl, b) : Math.min(pos.sl, b); } if(m==='ema' || m==='percent'){ pos.tpTrailCfg = { mode:m, emaLen: tCfg.trail.emaLen, pct: tCfg.trail.pct }; } }
+          if(tCfg.trail && tCfg.trail.mode){ let cand=null; const m=tCfg.trail.mode; if(m==='be'){ cand=pos.entry; } else if(m==='prev'){ cand=exitPx; } else if(m==='ema'){ const len=Math.max(1, parseInt(((tCfg.trail.emaLen!=null? tCfg.trail.emaLen : (params.emaLen||55))),10)); const ema=emaCalc(bars, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) cand=v; } else if(m==='percent'){ const pct=Number(tCfg.trail.pct)||0; cand = (pos.dir==='long')? ( (pos.hiSince||bar.high)*(1 - pct/100) ) : ( (pos.loSince||bar.low)*(1 + pct/100) ); } if(cand!=null){ let b=cand; if(!pos.beActive){ b=(pos.dir==='long')? Math.min(cand, pos.entry) : Math.max(cand, pos.entry); } pos.sl = (pos.dir==='long')? Math.max(pos.sl, b) : Math.min(pos.sl, b); } if(m==='ema' || m==='percent'){ pos.tpTrailCfg = { mode:m, emaLen: tCfg.trail.emaLen, pct: tCfg.trail.pct }; } }
           if(tCfg.sl && tCfg.sl.trail && tCfg.sl.trail.mode){ const m2=tCfg.sl.trail.mode; if(m2==='ema' || m2==='percent'){ pos.slTrailCfg = { mode:m2, emaLen: tCfg.sl.trail.emaLen, pct: tCfg.sl.trail.pct }; } }
           if(!tpCompound){ pos.qty = 0; }
           pos.tpIdx++;
@@ -2937,8 +2936,8 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
   }
   if(eqPts){ eqPts.push({ time: bars[Math.min(eIdx, bars.length-1)].time, equity }); }
   const res = { equityFinal: equity, totalPnl: equity - conf.startCap, tradesCount: tradesCount, winrate: tradesCount? (wins/tradesCount*100):0, avgRR: tradesCount? (rrSum/tradesCount):0, profitFactor: (grossLoss<0? (grossProfit/Math.abs(grossLoss)) : (tradesCount? Infinity:0)), maxDDAbs };
-  if(trades) {res.trades = trades;}
-  if(eqPts) {res.eqSeries = eqPts;}
+  if(trades) res.trades = trades;
+  if(eqPts) res.eqSeries = eqPts;
   return res;
 }
   try{ const btExportDetails=document.getElementById('btExportDetails');
@@ -2946,9 +2945,9 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
   const btPauseBtn=document.getElementById('btPause');
   const btStopBtn=document.getElementById('btStop');
   const btAbortBtn=document.getElementById('btAbort');
-  if(btPauseBtn){ btPauseBtn.addEventListener('click', ()=>{ btPaused=!btPaused; addBtLog(btPaused?'Pause':'Reprise'); if(labRunStatusEl) {labRunStatusEl.textContent = btPaused? 'Pause' : 'En cours';} btPauseBtn.textContent = btPaused? 'Reprendre' : 'Pause'; }); }
-  if(btStopBtn){ btStopBtn.addEventListener('click', ()=>{ btAbort=true; addBtLog('ArrÃªt demandÃ©'); if(labRunStatusEl) {labRunStatusEl.textContent='ArrÃªt';} if(labAutoLoopEl){ labAutoLoopEl.checked=false; } }); }
-  if(btAbortBtn){ btAbortBtn.addEventListener('click', ()=>{ btAbort=true; addBtLog('Annulation'); if(labRunStatusEl) {labRunStatusEl.textContent='ArrÃªt';} if(labAutoLoopEl){ labAutoLoopEl.checked=false; } try{ closeBtProgress(); }catch(_){ } }); }
+  if(btPauseBtn){ btPauseBtn.addEventListener('click', ()=>{ btPaused=!btPaused; addBtLog(btPaused?'Pause':'Reprise'); if(labRunStatusEl) labRunStatusEl.textContent = btPaused? 'Pause' : 'En cours'; btPauseBtn.textContent = btPaused? 'Reprendre' : 'Pause'; }); }
+  if(btStopBtn){ btStopBtn.addEventListener('click', ()=>{ btAbort=true; addBtLog('Arrêt demandé'); if(labRunStatusEl) labRunStatusEl.textContent='Arrêt'; if(labAutoLoopEl){ labAutoLoopEl.checked=false; } }); }
+  if(btAbortBtn){ btAbortBtn.addEventListener('click', ()=>{ btAbort=true; addBtLog('Annulation'); if(labRunStatusEl) labRunStatusEl.textContent='Arrêt'; if(labAutoLoopEl){ labAutoLoopEl.checked=false; } try{ closeBtProgress(); }catch(_){ } }); }
   if(btShowDetails){ btShowDetails.addEventListener('click', ()=> openEvalsModal((labSymbolSelect&&labSymbolSelect.value)||currentSymbol, (labTFSelect&&labTFSelect.value)||currentInterval)); }
   if(btExportDetails){ btExportDetails.addEventListener('click', ()=> exportEvalsCSV()); }
 }catch(_){ }
@@ -2991,15 +2990,15 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
   const idxFromTimeLocal=(bars,from,to)=>{ let s=0,e=bars.length-1; if(from!=null){ for(let i=0;i<bars.length;i++){ if(bars[i].time>=from){ s=i; break; } } } if(to!=null){ for(let j=bars.length-1;j>=0;j--){ if(bars[j].time<=to){ e=j; break; } } } return [s,e]; };
   const [sIdx,eIdx]=idxFromTimeLocal(bars,from,to);
   openBtProgress('Optimisation...'); btAbort=false; const best=[]; const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
-  let done=0; const total=combos.length; async function step(k){ const end=Math.min(k+5, total); for(let i=k;i<end;i++){ if(btAbort) {break;} const p=combos[i]; const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, p); const score=scoreResult(res, weights); best.push({ score, params:p, res }); best.sort((a,b)=> b.score-a.score); if(best.length>topN){ best.length=topN; } done++; if(btProgBar&&btProgText){ const pct=Math.round(done/total*100); btProgBar.style.width=pct+'%'; btProgText.textContent=`Optimisation ${pct}% (${done}/${total})`; } }
-    if(done<total && !btAbort){ setTimeout(()=> step(end), 0); } else { closeBtProgress(); closeModalEl(btModalEl); try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } setStatus('Optimisation terminÃ©e'); }
+  let done=0; const total=combos.length; async function step(k){ const end=Math.min(k+5, total); for(let i=k;i<end;i++){ if(btAbort) break; const p=combos[i]; const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, p); const score=scoreResult(res, weights); best.push({ score, params:p, res }); best.sort((a,b)=> b.score-a.score); if(best.length>topN){ best.length=topN; } done++; if(btProgBar&&btProgText){ const pct=Math.round(done/total*100); btProgBar.style.width=pct+'%'; btProgText.textContent=`Optimisation ${pct}% (${done}/${total})`; } }
+    if(done<total && !btAbort){ setTimeout(()=> step(end), 0); } else { closeBtProgress(); closeModalEl(btModalEl); try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } setStatus('Optimisation terminée'); }
   }
   step(0);
  }catch(e){ setStatus('Erreur optimisation'); }
 }); }
-if(btRunBtn){ btRunBtn.addEventListener('click', ()=>{ if(!candles.length){ setStatus('Aucune donnÃ©e'); return; } const conf={ startCap: Math.max(0, parseFloat(btStartCap&&btStartCap.value||'10000')), fee: Math.max(0, parseFloat(btFee&&btFee.value||'0.1')), lev: Math.max(1, parseFloat(btLev&&btLev.value||'1')), maxPct: Math.max(0, Math.min(100, parseFloat(btMaxPct&&btMaxPct.value||'100'))), base: (btMaxBase&&btMaxBase.value)||'initial' };
+if(btRunBtn){ btRunBtn.addEventListener('click', ()=>{ if(!candles.length){ setStatus('Aucune donnée'); return; } const conf={ startCap: Math.max(0, parseFloat(btStartCap&&btStartCap.value||'10000')), fee: Math.max(0, parseFloat(btFee&&btFee.value||'0.1')), lev: Math.max(1, parseFloat(btLev&&btLev.value||'1')), maxPct: Math.max(0, Math.min(100, parseFloat(btMaxPct&&btMaxPct.value||'100'))), base: (btMaxBase&&btMaxBase.value)||'initial' };
   let from=null, to=null; if(btRangeDates&&btRangeDates.checked){ const f=(btFrom&&btFrom.value)||''; const t=(btTo&&btTo.value)||''; from = f? Math.floor(new Date(f).getTime()/1000): null; to = t? Math.floor(new Date(t).getTime()/1000): null; } else if(btRangeAll&&btRangeAll.checked){ from=null; to=null; } else { const r=getVisibleRange(); if(r){ from=r.from; to=r.to; } }
-const [sIdx,eIdx]=idxFromTime(from,to); btAbort=false; try{ clearTPHitMarkers(); clearSLHitMarkers(); clearBEHitMarkers(); }catch(_){ } openBtProgress('PrÃ©paration...'); setTimeout(()=>{ const res=runBacktestSlice(sIdx,eIdx,conf); try{ clearTPHitMarkers(); clearSLHitMarkers(); clearBEHitMarkers(); const tr = Array.isArray(res.trades)? res.trades: []; for(const ev of tr){ if(ev && ev.reason){ if(ev.reason==='SL'){ const be = Math.abs(ev.exit - ev.entry) <= 1e-8; if(be){ addBEHitMarker(ev.exitTime, ev.dir); } else { addSLHitMarker(ev.exitTime, ev.dir); } } else if(typeof ev.reason==='string' && ev.reason.startsWith('TP')){ addTPHitMarker(ev.exitTime, ev.dir); } } } }catch(_){ } renderLBC(); closeBtProgress(); closeModalEl(btModalEl); showStrategyResult(res, {symbol: currentSymbol, tf: (intervalSelect&&intervalSelect.value)||'', startCap: conf.startCap}); try{ renderLabFromStorage(); }catch(_){ } }, 20); }); }
+const [sIdx,eIdx]=idxFromTime(from,to); btAbort=false; try{ clearTPHitMarkers(); clearSLHitMarkers(); clearBEHitMarkers(); }catch(_){ } openBtProgress('Préparation...'); setTimeout(()=>{ const res=runBacktestSlice(sIdx,eIdx,conf); try{ clearTPHitMarkers(); clearSLHitMarkers(); clearBEHitMarkers(); const tr = Array.isArray(res.trades)? res.trades: []; for(const ev of tr){ if(ev && ev.reason){ if(ev.reason==='SL'){ const be = Math.abs(ev.exit - ev.entry) <= 1e-8; if(be){ addBEHitMarker(ev.exitTime, ev.dir); } else { addSLHitMarker(ev.exitTime, ev.dir); } } else if(typeof ev.reason==='string' && ev.reason.startsWith('TP')){ addTPHitMarker(ev.exitTime, ev.dir); } } } }catch(_){ } renderLBC(); closeBtProgress(); closeModalEl(btModalEl); showStrategyResult(res, {symbol: currentSymbol, tf: (intervalSelect&&intervalSelect.value)||'', startCap: conf.startCap}); try{ renderLabFromStorage(); }catch(_){ } }, 20); }); }
 
 // Strategy result modal
 const stratModalEl=document.getElementById('stratModal');
@@ -3022,9 +3021,9 @@ let __modalZCtr = +(localStorage.getItem('modal:zCtr')||'9000');
 function bumpModalZ(){ __modalZCtr++; try{ localStorage.setItem('modal:zCtr', String(__modalZCtr)); }catch(_){ } return __modalZCtr; }
 function loadWinState(key, def){ try{ const s=localStorage.getItem('win:'+key); if(s){ const o=JSON.parse(s); return { ...def, ...o }; } }catch(_){ } return { ...def }; }
 function saveWinState(key, st){ try{ localStorage.setItem('win:'+key, JSON.stringify(st)); }catch(_){ } }
-function ensureFloatingModal(modalEl, key, def){ try{ if(!modalEl) {return;} const content=modalEl.querySelector('.modal-content'); if(!content) {return;} if(content.dataset.floating==='1'){ return; } const backdrop=modalEl.querySelector('.modal-backdrop'); if(backdrop){ backdrop.style.display='none'; }
+function ensureFloatingModal(modalEl, key, def){ try{ if(!modalEl) return; const content=modalEl.querySelector('.modal-content'); if(!content) return; if(content.dataset.floating==='1'){ return; } const backdrop=modalEl.querySelector('.modal-backdrop'); if(backdrop){ backdrop.style.display='none'; }
   modalEl.style.pointerEvents='none'; content.style.pointerEvents='auto'; content.style.position='fixed'; content.style.transform='none'; content.style.resize='both'; content.style.overflow='auto'; content.classList.add('floating-compact');
-  const st=loadWinState(key, def||{left:40,top:40,width:560,height:360,zIndex:bumpZ()}); if(st.width) {content.style.width=st.width+'px';} if(st.height) {content.style.height=st.height+'px';} if(st.left!=null) {content.style.left=st.left+'px';} if(st.top!=null) {content.style.top=st.top+'px';} content.style.zIndex=String(st.zIndex||bumpZ());
+  const st=loadWinState(key, def||{left:40,top:40,width:560,height:360,zIndex:bumpZ()}); if(st.width) content.style.width=st.width+'px'; if(st.height) content.style.height=st.height+'px'; if(st.left!=null) content.style.left=st.left+'px'; if(st.top!=null) content.style.top=st.top+'px'; content.style.zIndex=String(st.zIndex||bumpZ());
   const header=content.querySelector('.modal-header'); if(header){ header.style.cursor='move'; header.addEventListener('mousedown', (ev)=>{ ev.preventDefault(); const startX=ev.clientX, startY=ev.clientY; const startLeft=parseInt(content.style.left||'0',10)||0; const startTop=parseInt(content.style.top||'0',10)||0; content.style.zIndex=String(bumpZ()); const onMove=(e)=>{ const dx=e.clientX-startX, dy=e.clientY-startY; content.style.left=(startLeft+dx)+'px'; content.style.top=(startTop+dy)+'px'; };
     const onUp=()=>{ window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); const ns={ left: parseInt(content.style.left)||0, top: parseInt(content.style.top)||0, width: parseInt(content.style.width)||content.offsetWidth, height: parseInt(content.style.height)||content.offsetHeight, zIndex: parseInt(content.style.zIndex)||bumpZ(), collapsed: (content.dataset.collapsed==='1') }; saveWinState(key, ns); };
     window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp); }); header.addEventListener('dblclick', ()=>{ const col = content.dataset.collapsed==='1' ? '0' : '1'; content.dataset.collapsed = col; const stNow=loadWinState(key, def); saveWinState(key, { ...stNow, collapsed: (content.dataset.collapsed==='1') }); }); }
@@ -3032,14 +3031,14 @@ function ensureFloatingModal(modalEl, key, def){ try{ if(!modalEl) {return;} con
   content.addEventListener('mousedown', ()=>{ content.style.zIndex=String(bumpZ()); const stNow=loadWinState(key, def); saveWinState(key, { ...stNow, zIndex: parseInt(content.style.zIndex)||bumpZ(), collapsed: (content.dataset.collapsed==='1') }); });
   if(st && st.collapsed){ content.dataset.collapsed='1'; try{ const header=content.querySelector('.modal-header'); const prevW = (parseInt(content.style.width)||content.offsetWidth||0); const prevH = (parseInt(content.style.height)||content.offsetHeight||0); content.dataset.prevW = String(prevW); content.dataset.prevH = String(prevH); const h = header? (header.offsetHeight||40) : 40; content.style.height = h+'px'; content.style.overflow='hidden'; }catch(_){ } }
   content.dataset.floating='1'; }catch(_){ } }
-function showStrategyResult(res, ctx){ if(stratTitle){ stratTitle.textContent = `${symbolToDisplay(ctx.symbol)} â€¢ ${ctx.tf} â€” RÃ©sultats`; } if(stratTBody){ const rows=[]; const prof=(localStorage.getItem('labWeightsProfile')||'balancee'); const w=getWeights(prof); const score=scoreResult(res, w); rows.push(`<tr><td style=\"text-align:left\">Score (profil: ${prof})</td><td>${score.toFixed(2)}</td><td style=\"text-align:right\">â€”</td></tr>`);
-  rows.push(`<tr><td style=\"text-align:left\">Profit factor</td><td>â€”</td><td style=\"text-align:right\">${(res.profitFactor===Infinity?'âˆž':res.profitFactor.toFixed(2))}</td></tr>`);
-  rows.push(`<tr><td style=\"text-align:left\">Trades</td><td>â€”</td><td style=\"text-align:right\">${res.tradesCount}</td></tr>`);
-  rows.push(`<tr><td style=\"text-align:left\">Win %</td><td>â€”</td><td style=\"text-align:right\">${res.winrate.toFixed(1)}%</td></tr>`);
-  rows.push(`<tr><td style=\"text-align:left\">Avg RR</td><td>â€”</td><td style=\"text-align:right\">${Number.isFinite(res.avgRR)? res.avgRR.toFixed(2): 'â€”'}</td></tr>`);
-  rows.push(`<tr><td style=\"text-align:left\">P&L net</td><td>â€”</td><td style=\"text-align:right\">${res.totalPnl.toFixed(2)}</td></tr>`);
-  rows.push(`<tr><td style=\"text-align:left\">Cap. final</td><td>â€”</td><td style=\"text-align:right\">${res.equityFinal.toFixed(2)}</td></tr>`);
-  rows.push(`<tr><td style=\"text-align:left\">Max DD (abs)</td><td>â€”</td><td style=\"text-align:right\">${res.maxDDAbs.toFixed(2)}</td></tr>`);
+function showStrategyResult(res, ctx){ if(stratTitle){ stratTitle.textContent = `${symbolToDisplay(ctx.symbol)} • ${ctx.tf} — Résultats`; } if(stratTBody){ const rows=[]; const prof=(localStorage.getItem('labWeightsProfile')||'balancee'); const w=getWeights(prof); const score=scoreResult(res, w); rows.push(`<tr><td style=\"text-align:left\">Score (profil: ${prof})</td><td>${score.toFixed(2)}</td><td style=\"text-align:right\">—</td></tr>`);
+  rows.push(`<tr><td style=\"text-align:left\">Profit factor</td><td>—</td><td style=\"text-align:right\">${(res.profitFactor===Infinity?'∞':res.profitFactor.toFixed(2))}</td></tr>`);
+  rows.push(`<tr><td style=\"text-align:left\">Trades</td><td>—</td><td style=\"text-align:right\">${res.tradesCount}</td></tr>`);
+  rows.push(`<tr><td style=\"text-align:left\">Win %</td><td>—</td><td style=\"text-align:right\">${res.winrate.toFixed(1)}%</td></tr>`);
+  rows.push(`<tr><td style=\"text-align:left\">Avg RR</td><td>—</td><td style=\"text-align:right\">${Number.isFinite(res.avgRR)? res.avgRR.toFixed(2): '—'}</td></tr>`);
+  rows.push(`<tr><td style=\"text-align:left\">P&L net</td><td>—</td><td style=\"text-align:right\">${res.totalPnl.toFixed(2)}</td></tr>`);
+  rows.push(`<tr><td style=\"text-align:left\">Cap. final</td><td>—</td><td style=\"text-align:right\">${res.equityFinal.toFixed(2)}</td></tr>`);
+  rows.push(`<tr><td style=\"text-align:left\">Max DD (abs)</td><td>—</td><td style=\"text-align:right\">${res.maxDDAbs.toFixed(2)}</td></tr>`);
   stratTBody.innerHTML = rows.join(''); }
 try{ let startCap = ctx && ctx.startCap != null ? ctx.startCap : undefined; if(startCap==null && Number.isFinite(res?.equityFinal) && Number.isFinite(res?.totalPnl)){ startCap = res.equityFinal - res.totalPnl; }
     lastTradesCtx = { trades: Array.isArray(res.trades)? res.trades: [], symbol: ctx.symbol, tf: ctx.tf, startCap, equityFinal: res.equityFinal, totalPnl: res.totalPnl };
@@ -3050,7 +3049,7 @@ try{ let startCap = ctx && ctx.startCap != null ? ctx.startCap : undefined; if(s
 if(stratClose){ stratClose.addEventListener('click', ()=> closeModalEl(stratModalEl)); }
 if(stratClose2){ stratClose2.addEventListener('click', ()=> closeModalEl(stratModalEl)); }
 // Collapse buttons (next to close cross)
-function toggleCollapse(modalEl, key, def){ if(!modalEl) {return;} const content=modalEl.querySelector('.modal-content'); if(!content) {return;} const header=content.querySelector('.modal-header'); const isCollapsed=content.dataset.collapsed==='1'; if(!isCollapsed){ // collapse
+function toggleCollapse(modalEl, key, def){ if(!modalEl) return; const content=modalEl.querySelector('.modal-content'); if(!content) return; const header=content.querySelector('.modal-header'); const isCollapsed=content.dataset.collapsed==='1'; if(!isCollapsed){ // collapse
     content.dataset.prevW = String(parseInt(content.style.width)||content.offsetWidth||0);
     content.dataset.prevH = String(parseInt(content.style.height)||content.offsetHeight||0);
     content.dataset.collapsed='1';
@@ -3074,17 +3073,17 @@ try{
   const tradesCollapseBtn=document.getElementById('tradesCollapse');
   if(tradesCollapseBtn && tradesModalEl){ tradesCollapseBtn.addEventListener('click', ()=> toggleCollapse(tradesModalEl, 'trades', { left: 540, top: 40, width: 720, height: 360, zIndex: bumpZ() })); }
 }catch(_){ }
-function populateTradesModal(state){ try{ const t=(state&&state.trades)||[]; if(tradesCtx){ tradesCtx.textContent = ''; tradesCtx.style.display='none'; } if(!tradesTBody){ return; } if(!t.length){ tradesTBody.innerHTML = '<tr><td colspan=\"10\">Aucun trade</td></tr>'; if(tradesHdrCtx){ tradesHdrCtx.textContent = `${symbolToDisplay(state?.symbol||currentSymbol)} â€¢ ${(state?.tf||'')}`; } return; }
+function populateTradesModal(state){ try{ const t=(state&&state.trades)||[]; if(tradesCtx){ tradesCtx.textContent = ''; tradesCtx.style.display='none'; } if(!tradesTBody){ return; } if(!t.length){ tradesTBody.innerHTML = '<tr><td colspan=\"10\">Aucun trade</td></tr>'; if(tradesHdrCtx){ tradesHdrCtx.textContent = `${symbolToDisplay(state?.symbol||currentSymbol)} • ${(state?.tf||'')}`; } return; }
   // Helpers
   const fmt=(ts)=>{ try{ return new Date(ts*1000).toLocaleString(); }catch(_){ return String(ts); } };
-  const fmtDurHMS=(secs)=>{ secs=Math.max(0, Math.floor(secs)); const h=Math.floor(secs/3600); const m=Math.floor((secs%3600)/60); const s=secs%60; const parts=[]; if(h) {parts.push(`${h}h`);} if(m||h) {parts.push(`${m}m`);} parts.push(`${s}s`); return parts.join(' '); };
+  const fmtDurHMS=(secs)=>{ secs=Math.max(0, Math.floor(secs)); const h=Math.floor(secs/3600); const m=Math.floor((secs%3600)/60); const s=secs%60; const parts=[]; if(h) parts.push(`${h}h`); if(m||h) parts.push(`${m}m`); parts.push(`${s}s`); return parts.join(' '); };
 const getEurRate=()=> getUsdcEurRate();
   const usdEur = (x)=> (Number.isFinite(x)? x*getEurRate(): NaN);
-  const fmtUsdEur=(x)=>{ if(!Number.isFinite(x)) {return '';} const eur=usdEur(x); const usdStr = `$${Math.abs(x).toFixed(2)}`; const eurStr = `${Number.isFinite(eur)? Math.abs(eur).toFixed(2):'â€”'} â‚¬`; const sign = x<0? '-' : ''; return `${sign}${usdStr} ${sign}${eurStr}`; };
-  const eventLabel=(ev,g)=>{ const r=(ev?.reason||''); if(r.startsWith('TP')) {return r;} if(r==='SL') {return 'SL';} if(r==='Flip') {return 'Close';} if(!r && g) {return (g.dir==='long'?'Long':'Short');} return r; };
+  const fmtUsdEur=(x)=>{ if(!Number.isFinite(x)) return ''; const eur=usdEur(x); const usdStr = `$${Math.abs(x).toFixed(2)}`; const eurStr = `${Number.isFinite(eur)? Math.abs(eur).toFixed(2):'—'} €`; const sign = x<0? '-' : ''; return `${sign}${usdStr} ${sign}${eurStr}`; };
+  const eventLabel=(ev,g)=>{ const r=(ev?.reason||''); if(r.startsWith('TP')) return r; if(r==='SL') return 'SL'; if(r==='Flip') return 'Close'; if(!r && g) return (g.dir==='long'?'Long':'Short'); return r; };
   // Compute equity after each event (timeline)
   let startCap = (state && state.startCap!=null)? Number(state.startCap): undefined; if(!(Number.isFinite(startCap))){ const ef=Number(state?.equityFinal), tp=Number(state?.totalPnl); if(Number.isFinite(ef) && Number.isFinite(tp)){ startCap = ef - tp; } }
-  if(!Number.isFinite(startCap)) {startCap = 0;}
+  if(!Number.isFinite(startCap)) startCap = 0;
   const sorted = t.slice().sort((a,b)=> (a.exitTime||0)-(b.exitTime||0)); let eq = startCap; for(const ev of sorted){ const net=Number(ev.net)||0; eq += net; ev.__equityAfter = eq; }
   const idxMap = new Map(); for(let i=0;i<sorted.length;i++){ idxMap.set(sorted[i], i); }
   // Group events by position (parent row), then render sub-rows per event
@@ -3099,9 +3098,9 @@ const groups = groupTradesByPosition(t);
     const totalTrades = groups.length;
     const totalEvents = t.filter(ev=> ev && (ev.reason==='SL' || (typeof ev.reason==='string' && ev.reason.startsWith('TP')))).length;
     let minTs = Infinity, maxTs = -Infinity;
-    for(const ev of t){ if(Number.isFinite(ev.entryTime) && ev.entryTime<minTs) {minTs=ev.entryTime;} if(Number.isFinite(ev.exitTime) && ev.exitTime>maxTs) {maxTs=ev.exitTime;} }
+    for(const ev of t){ if(Number.isFinite(ev.entryTime) && ev.entryTime<minTs) minTs=ev.entryTime; if(Number.isFinite(ev.exitTime) && ev.exitTime>maxTs) maxTs=ev.exitTime; }
     const totalNet = groups.reduce((s,g)=> s + (Number(g.net)||0), 0);
-if(tradesHdrCtx){ const periodStr = (minTs<Infinity && maxTs>-Infinity)? `${fmt(minTs)} â†’ ${fmt(maxTs)}` : 'â€”'; tradesHdrCtx.textContent = `${symbolToDisplay(state?.symbol||currentSymbol)} â€¢ ${(state?.tf||'')} â€” ${periodStr} â€¢ P&L total: ${fmtUsdEur(totalNet)}`; }
+if(tradesHdrCtx){ const periodStr = (minTs<Infinity && maxTs>-Infinity)? `${fmt(minTs)} → ${fmt(maxTs)}` : '—'; tradesHdrCtx.textContent = `${symbolToDisplay(state?.symbol||currentSymbol)} • ${(state?.tf||'')} — ${periodStr} • P&L total: ${fmtUsdEur(totalNet)}`; }
   }catch(_){ }
   // Sort groups chronologically to assign numbers (oldest = #1), then display most recent first
   const groupsAsc = groups.slice().sort((a,b)=> (a.entryTime||0)-(b.entryTime||0));
@@ -3110,7 +3109,7 @@ if(tradesHdrCtx){ const periodStr = (minTs<Infinity && maxTs>-Infinity)? `${fmt(
   const rows=[];
   for(const g of groupsDesc){
     // Parent row (position summary)
-    const durParent = (g.exitTime && g.entryTime)? fmtDurHMS((g.exitTime - g.entryTime)) : 'â€”';
+    const durParent = (g.exitTime && g.entryTime)? fmtDurHMS((g.exitTime - g.entryTime)) : '—';
     const pnlPctParent = (g.capEntry>0 && Number.isFinite(g.net))? ((g.net/g.capEntry)*100) : NaN;
     const qtyValPar = (Number.isFinite(g.qty) && Number.isFinite(g.entry))? g.qty*g.entry : NaN;
     const qtyCellPar = Number.isFinite(g.qty)? `${g.qty.toFixed(6)}${Number.isFinite(qtyValPar)? ' ('+fmtUsdEur(qtyValPar)+')':''}` : '';
@@ -3127,9 +3126,9 @@ if(tradesHdrCtx){ const periodStr = (minTs<Infinity && maxTs>-Infinity)? `${fmt(
       `<td>${durParent}</td>`+
     `</tr>`);
     // Children event rows
-    const eidx=1; for(const ev of g.events){ const dur = (ev.exitTime && ev.entryTime)? fmtDurHMS((ev.exitTime - ev.entryTime)) : 'â€”'; const pnlPct = (g.capEntry>0 && Number.isFinite(ev.net))? ((ev.net/g.capEntry)*100) : NaN; const isClose = (ev === g.events[g.events.length-1]); const capClose = (Number.isFinite(g.capEntry)&&Number.isFinite(g.net))? (g.capEntry + g.net) : NaN; const capCell = isClose? fmtUsdEur(capClose) : fmtUsdEur(g.capEntry); const qtyValCh = (Number.isFinite(ev.qty) && Number.isFinite(ev.entry))? ev.qty*ev.entry : NaN; const qtyCellCh = Number.isFinite(ev.qty)? `${ev.qty.toFixed(6)}${Number.isFinite(qtyValCh)? ' ('+fmtUsdEur(qtyValCh)+')':''}` : '';
+    let eidx=1; for(const ev of g.events){ const dur = (ev.exitTime && ev.entryTime)? fmtDurHMS((ev.exitTime - ev.entryTime)) : '—'; const pnlPct = (g.capEntry>0 && Number.isFinite(ev.net))? ((ev.net/g.capEntry)*100) : NaN; const isClose = (ev === g.events[g.events.length-1]); const capClose = (Number.isFinite(g.capEntry)&&Number.isFinite(g.net))? (g.capEntry + g.net) : NaN; const capCell = isClose? fmtUsdEur(capClose) : fmtUsdEur(g.capEntry); const qtyValCh = (Number.isFinite(ev.qty) && Number.isFinite(ev.entry))? ev.qty*ev.entry : NaN; const qtyCellCh = Number.isFinite(ev.qty)? `${ev.qty.toFixed(6)}${Number.isFinite(qtyValCh)? ' ('+fmtUsdEur(qtyValCh)+')':''}` : '';
       rows.push(`<tr class=\"trade-event subrow\" data-type=\"child\" data-parent=\"${g.id}\" style=\"display:none;\">`+
-        `<td style=\"text-align:left; padding-left:18px; color:var(--muted);\">â†³</td>`+
+        `<td style=\"text-align:left; padding-left:18px; color:var(--muted);\">↳</td>`+
         `<td>${fmt(ev.exitTime||0)}</td>`+
         `<td>${capCell}</td>`+
         `<td class=\"${(g.dir==='long'?'dir-long':'dir-short')}\">${eventLabel(ev)}</td>`+
@@ -3143,7 +3142,7 @@ if(tradesHdrCtx){ const periodStr = (minTs<Infinity && maxTs>-Infinity)? `${fmt(
   }
   tradesTBody.innerHTML = rows.join('');
   if(!tradesTBody.dataset || tradesTBody.dataset.expandWired!=='1'){
-    tradesTBody.addEventListener('click', (e)=>{ const tr=e.target&&e.target.closest? e.target.closest('tr[data-type=\"parent\"]'):null; if(!tr) {return;} const id=tr.getAttribute('data-id'); const exp = tr.getAttribute('data-expanded')==='1'; tr.setAttribute('data-expanded', exp?'0':'1'); const children = tradesTBody.querySelectorAll('tr[data-parent=\"'+id+'\"]'); children.forEach(r=>{ r.style.display = exp? 'none':'table-row'; }); const caret = tr.querySelector('.caret'); if(caret){ caret.style.transform = exp? 'rotate(0deg)':'rotate(90deg)'; }
+    tradesTBody.addEventListener('click', (e)=>{ const tr=e.target&&e.target.closest? e.target.closest('tr[data-type=\"parent\"]'):null; if(!tr) return; const id=tr.getAttribute('data-id'); const exp = tr.getAttribute('data-expanded')==='1'; tr.setAttribute('data-expanded', exp?'0':'1'); const children = tradesTBody.querySelectorAll('tr[data-parent=\"'+id+'\"]'); children.forEach(r=>{ r.style.display = exp? 'none':'table-row'; }); const caret = tr.querySelector('.caret'); if(caret){ caret.style.transform = exp? 'rotate(0deg)':'rotate(90deg)'; }
     });
     tradesTBody.dataset.expandWired='1';
   }
@@ -3175,51 +3174,51 @@ try{
 function __drawText(ctx, x, y, txt, align='left'){ ctx.save(); ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--fg')||'#111827'; ctx.font='12px Segoe UI, Arial'; ctx.textAlign=align; ctx.textBaseline='middle'; ctx.fillText(txt, x, y); ctx.restore(); }
 function __clr(){ const cs=getComputedStyle(document.documentElement); return { fg: cs.getPropertyValue('--fg')||'#111827', muted: cs.getPropertyValue('--muted')||'#6b7280', border: cs.getPropertyValue('--header-border')||'#e5e7eb' }; }
 // Tooltip helper
-function ensureTooltip(){ let el=document.getElementById('detailTooltip'); if(el) {return el;} el=document.createElement('div'); el.id='detailTooltip'; el.style.position='fixed'; el.style.pointerEvents='none'; el.style.background='rgba(0,0,0,0.75)'; el.style.color='#fff'; el.style.fontSize='12px'; el.style.padding='4px 6px'; el.style.borderRadius='4px'; el.style.zIndex='2000'; el.style.display='none'; document.body.appendChild(el); return el; }
+function ensureTooltip(){ let el=document.getElementById('detailTooltip'); if(el) return el; el=document.createElement('div'); el.id='detailTooltip'; el.style.position='fixed'; el.style.pointerEvents='none'; el.style.background='rgba(0,0,0,0.75)'; el.style.color='#fff'; el.style.fontSize='12px'; el.style.padding='4px 6px'; el.style.borderRadius='4px'; el.style.zIndex='2000'; el.style.display='none'; document.body.appendChild(el); return el; }
 function showTip(x,y,html){ const el=ensureTooltip(); el.innerHTML=html; el.style.left=(x+12)+'px'; el.style.top=(y+12)+'px'; el.style.display='block'; }
 function hideTip(){ const el=ensureTooltip(); el.style.display='none'; }
 // Crosshair helper (vertical line following the mouse on interactive charts)
-function ensureCrosshairOverlay(canvas){ if(!canvas) {return null;} let ov=canvas.__crosshair; if(ov && ov.parentElement) {return ov;} ov=document.createElement('div'); ov.style.position='fixed'; ov.style.pointerEvents='none'; ov.style.top='0'; ov.style.left='0'; ov.style.width='0'; ov.style.height='0'; ov.style.zIndex='1500'; document.body.appendChild(ov); canvas.__crosshair=ov; return ov; }
-function updateCrosshair(canvas, clientX, clientY){ try{ const ov=ensureCrosshairOverlay(canvas); if(!ov||!canvas) {return;} const rect=canvas.getBoundingClientRect(); ov.style.left=rect.left+'px'; ov.style.top=rect.top+'px'; ov.style.width=rect.width+'px'; ov.style.height=rect.height+'px'; let line=ov.firstChild; if(!line){ line=document.createElement('div'); line.style.position='absolute'; line.style.top='0'; line.style.bottom='0'; line.style.width='1px'; line.style.background='rgba(148,163,184,0.9)'; ov.appendChild(line); }
+function ensureCrosshairOverlay(canvas){ if(!canvas) return null; let ov=canvas.__crosshair; if(ov && ov.parentElement) return ov; ov=document.createElement('div'); ov.style.position='fixed'; ov.style.pointerEvents='none'; ov.style.top='0'; ov.style.left='0'; ov.style.width='0'; ov.style.height='0'; ov.style.zIndex='1500'; document.body.appendChild(ov); canvas.__crosshair=ov; return ov; }
+function updateCrosshair(canvas, clientX, clientY){ try{ const ov=ensureCrosshairOverlay(canvas); if(!ov||!canvas) return; const rect=canvas.getBoundingClientRect(); ov.style.left=rect.left+'px'; ov.style.top=rect.top+'px'; ov.style.width=rect.width+'px'; ov.style.height=rect.height+'px'; let line=ov.firstChild; if(!line){ line=document.createElement('div'); line.style.position='absolute'; line.style.top='0'; line.style.bottom='0'; line.style.width='1px'; line.style.background='rgba(148,163,184,0.9)'; ov.appendChild(line); }
   const x=Math.max(0, Math.min(rect.width, clientX-rect.left)); line.style.left=(x-0.5)+'px'; line.style.display='block'; }catch(_){ } }
 function hideCrosshair(canvas){ try{ const ov=canvas && canvas.__crosshair; if(ov && ov.firstChild){ ov.firstChild.style.display='none'; } }catch(_){ } }
-function drawRadar(canvas, labels, vals){ if(!canvas) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 14, 'Radar critÃ¨res (0â€“100)', 'center'); const cx=w/2, cy=h/2+10, R=Math.min(w,h)/2-30; const n=labels.length; ctx.strokeStyle=__clr().border; ctx.lineWidth=1; for(let r=0;r<=4;r++){ const rr=R*(r/4); ctx.beginPath(); for(let k=0;k<n;k++){ const ang = -Math.PI/2 + 2*Math.PI*k/n; const x=cx+rr*Math.cos(ang), y=cy+rr*Math.sin(ang); if(k===0) {ctx.moveTo(x,y);} else {ctx.lineTo(x,y);} } ctx.closePath(); ctx.stroke(); __drawText(ctx, cx+rr+2, cy, String(r*25), 'left'); }
+function drawRadar(canvas, labels, vals){ if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 14, 'Radar critères (0–100)', 'center'); const cx=w/2, cy=h/2+10, R=Math.min(w,h)/2-30; const n=labels.length; ctx.strokeStyle=__clr().border; ctx.lineWidth=1; for(let r=0;r<=4;r++){ const rr=R*(r/4); ctx.beginPath(); for(let k=0;k<n;k++){ const ang = -Math.PI/2 + 2*Math.PI*k/n; const x=cx+rr*Math.cos(ang), y=cy+rr*Math.sin(ang); if(k===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); } ctx.closePath(); ctx.stroke(); __drawText(ctx, cx+rr+2, cy, String(r*25), 'left'); }
   for(let k=0;k<n;k++){ const ang=-Math.PI/2 + 2*Math.PI*k/n; const x=cx+(R+10)*Math.cos(ang), y=cy+(R+10)*Math.sin(ang); __drawText(ctx, x, y, labels[k], (Math.cos(ang)>0?'left':(Math.cos(ang)<0?'right':'center'))); }
-  ctx.beginPath(); for(let k=0;k<n;k++){ const v=Math.max(0,Math.min(100, vals[k]||0))/100; const ang=-Math.PI/2 + 2*Math.PI*k/n; const x=cx+R*v*Math.cos(ang), y=cy+R*v*Math.sin(ang); if(k===0) {ctx.moveTo(x,y);} else {ctx.lineTo(x,y);} } ctx.closePath(); ctx.fillStyle='rgba(37,99,235,0.25)'; ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.fill(); ctx.stroke(); }
-function drawEquity(canvas, eq){ if(!canvas) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); if(!eq||!eq.length) {return;} __drawText(ctx, w/2, 12, 'Ã‰quity (USD) â€” ligne bleue; zones rouges = drawdown', 'center'); const padL=46, padR=18, padT=20, padB=24; const min=Math.min(...eq.map(p=>p.equity)); const max=Math.max(...eq.map(p=>p.equity)); const x=(i)=> i/(eq.length-1)*(w-padL-padR)+padL; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB); // axes
+  ctx.beginPath(); for(let k=0;k<n;k++){ const v=Math.max(0,Math.min(100, vals[k]||0))/100; const ang=-Math.PI/2 + 2*Math.PI*k/n; const x=cx+R*v*Math.cos(ang), y=cy+R*v*Math.sin(ang); if(k===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); } ctx.closePath(); ctx.fillStyle='rgba(37,99,235,0.25)'; ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.fill(); ctx.stroke(); }
+function drawEquity(canvas, eq){ if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); if(!eq||!eq.length) return; __drawText(ctx, w/2, 12, 'Équity (USD) — ligne bleue; zones rouges = drawdown', 'center'); const padL=46, padR=18, padT=20, padB=24; const min=Math.min(...eq.map(p=>p.equity)); const max=Math.max(...eq.map(p=>p.equity)); const x=(i)=> i/(eq.length-1)*(w-padL-padR)+padL; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB); // axes
   ctx.strokeStyle=__clr().border; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); // y ticks
   const ticks=4; for(let t=0;t<=ticks;t++){ const val=min + (max-min)*t/ticks; const yy=y(val); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-6, yy, val.toFixed(0), 'right'); }
   // dd shading and equity
   let peak=-Infinity; ctx.fillStyle='rgba(239,68,68,0.18)'; for(let i=0;i<eq.length;i++){ peak=Math.max(peak, eq[i].equity); const dd=peak-eq[i].equity; if(dd>0){ const xx=x(i); ctx.fillRect(xx-1, y(peak), 2, Math.max(0, y(eq[i].equity)-y(peak))); } }
-  ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<eq.length;i++){ const xx=x(i), yy=y(eq[i].equity); if(i===0) {ctx.moveTo(xx,yy);} else {ctx.lineTo(xx,yy);} } ctx.stroke();
-  // Xâ€‘axis: dates de dÃ©but/fin + indication temporelle
+  ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<eq.length;i++){ const xx=x(i), yy=y(eq[i].equity); if(i===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy); } ctx.stroke();
+  // X‑axis: dates de début/fin + indication temporelle
   try{
     const fmtD=(ts)=>{ const d=new Date((ts||0)*1000); return d.toLocaleDateString(); };
     const t0=eq[0]?.time, t1=eq[eq.length-1]?.time;
-    if(t0!=null) {__drawText(ctx, padL, h-8, fmtD(t0), 'left');}
-    if(t1!=null) {__drawText(ctx, w-padR, h-8, fmtD(t1), 'right');}
-    __drawText(ctx, (padL+w-padR)/2, h-8, 'Temps du backtest â†’', 'center');
-  }catch(_){ __drawText(ctx, padL, h-8, 'Temps du backtest â†’', 'left'); }
+    if(t0!=null) __drawText(ctx, padL, h-8, fmtD(t0), 'left');
+    if(t1!=null) __drawText(ctx, w-padR, h-8, fmtD(t1), 'right');
+    __drawText(ctx, (padL+w-padR)/2, h-8, 'Temps du backtest →', 'center');
+  }catch(_){ __drawText(ctx, padL, h-8, 'Temps du backtest →', 'left'); }
 }
-function drawEquityCompare(canvas, eq1, eq2){ if(!canvas) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); if(!eq1||!eq1.length) {return;} const all=eq2&&eq2.length? eq1.concat(eq2) : eq1; __drawText(ctx, w/2, 12, 'Ã‰quity comparÃ©e (bleu = stratÃ©gie analysÃ©e, orange = comparaison)', 'center'); const padL=46, padR=18, padT=20, padB=24; const min=Math.min(...all.map(p=>p.equity)); const max=Math.max(...all.map(p=>p.equity)); const n1=eq1.length, n2=(eq2&&eq2.length)||0; const x1=(i)=> i/(n1-1)*(w-padL-padR)+padL; const x2=(i)=> i/(n2-1)*(w-padL-padR)+padL; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB);
+function drawEquityCompare(canvas, eq1, eq2){ if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); if(!eq1||!eq1.length) return; const all=eq2&&eq2.length? eq1.concat(eq2) : eq1; __drawText(ctx, w/2, 12, 'Équity comparée (bleu = stratégie analysée, orange = comparaison)', 'center'); const padL=46, padR=18, padT=20, padB=24; const min=Math.min(...all.map(p=>p.equity)); const max=Math.max(...all.map(p=>p.equity)); const n1=eq1.length, n2=(eq2&&eq2.length)||0; const x1=(i)=> i/(n1-1)*(w-padL-padR)+padL; const x2=(i)=> i/(n2-1)*(w-padL-padR)+padL; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB);
   ctx.strokeStyle=__clr().border; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke();
   const ticks=4; for(let t=0;t<=ticks;t++){ const val=min + (max-min)*t/ticks; const yy=y(val); ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-6, yy, val.toFixed(0), 'right'); }
   // shade for eq1
   let peak=-Infinity; ctx.fillStyle='rgba(239,68,68,0.18)'; for(let i=0;i<eq1.length;i++){ peak=Math.max(peak, eq1[i].equity); const dd=peak-eq1[i].equity; if(dd>0){ const xx=x1(i); ctx.fillRect(xx-1, y(peak), 2, Math.max(0, y(eq1[i].equity)-y(peak))); } }
   // line 1
-  ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<n1;i++){ const xx=x1(i), yy=y(eq1[i].equity); if(i===0) {ctx.moveTo(xx,yy);} else {ctx.lineTo(xx,yy);} } ctx.stroke();
+  ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<n1;i++){ const xx=x1(i), yy=y(eq1[i].equity); if(i===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy); } ctx.stroke();
   // line 2
-  if(eq2&&n2>1){ ctx.strokeStyle='#f59e0b'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<n2;i++){ const xx=x2(i), yy=y(eq2[i].equity); if(i===0) {ctx.moveTo(xx,yy);} else {ctx.lineTo(xx,yy);} } ctx.stroke(); }
-  // Xâ€‘axis: dates de dÃ©but/fin
+  if(eq2&&n2>1){ ctx.strokeStyle='#f59e0b'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<n2;i++){ const xx=x2(i), yy=y(eq2[i].equity); if(i===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy); } ctx.stroke(); }
+  // X‑axis: dates de début/fin
   try{
     const fmtD=(ts)=>{ const d=new Date((ts||0)*1000); return d.toLocaleDateString(); };
     const t0=all[0]?.time, t1=all[all.length-1]?.time;
-    if(t0!=null) {__drawText(ctx, padL, h-8, fmtD(t0), 'left');}
-    if(t1!=null) {__drawText(ctx, w-padR, h-8, fmtD(t1), 'right');}
-    __drawText(ctx, (padL+w-padR)/2, h-8, 'Temps du backtest â†’', 'center');
-  }catch(_){ __drawText(ctx, padL, h-8, 'Temps du backtest â†’', 'left'); }
+    if(t0!=null) __drawText(ctx, padL, h-8, fmtD(t0), 'left');
+    if(t1!=null) __drawText(ctx, w-padR, h-8, fmtD(t1), 'right');
+    __drawText(ctx, (padL+w-padR)/2, h-8, 'Temps du backtest →', 'center');
+  }catch(_){ __drawText(ctx, padL, h-8, 'Temps du backtest →', 'left'); }
 }
-function drawDD(canvas, eq){ if(!canvas) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); if(!eq||!eq.length) {return;} __drawText(ctx, w/2, 12, 'Drawdown absolu (USD)', 'center'); let peak=-Infinity; const maxDD=Math.max(1e-9, ...eq.map(p=>{ peak=Math.max(peak, p.equity); return peak-p.equity; })); peak=-Infinity; const padL=46, padR=18, padT=18, padB=24; // yâ€‘axis
+function drawDD(canvas, eq){ if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); if(!eq||!eq.length) return; __drawText(ctx, w/2, 12, 'Drawdown absolu (USD)', 'center'); let peak=-Infinity; const maxDD=Math.max(1e-9, ...eq.map(p=>{ peak=Math.max(peak, p.equity); return peak-p.equity; })); peak=-Infinity; const padL=46, padR=18, padT=18, padB=24; // y‑axis
   const x=(i)=> i/(eq.length-1)*(w-padL-padR)+padL; const y0=h-padB; const y1=padT; ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, y0); ctx.lineTo(w-padR, y0); ctx.stroke();
   // bars
   for(let i=0;i<eq.length;i++){ peak=Math.max(peak, eq[i].equity); const dd=peak-eq[i].equity; const xx=x(i); const hh=(dd/maxDD)*(y0-y1); ctx.fillStyle='rgba(239,68,68,0.65)'; ctx.fillRect(xx-1, y0-hh, 2, hh); }
@@ -3229,53 +3228,53 @@ function drawDD(canvas, eq){ if(!canvas) {return;} const ctx=canvas.getContext('
   try{
     const fmtD=(ts)=>{ const d=new Date((ts||0)*1000); return d.toLocaleDateString(); };
     const t0=eq[0]?.time, t1=eq[eq.length-1]?.time;
-    if(t0!=null) {__drawText(ctx, padL, h-8, fmtD(t0), 'left');}
-    if(t1!=null) {__drawText(ctx, w-padR, h-8, fmtD(t1), 'right');}
-    __drawText(ctx, (padL+w-padR)/2, h-8, 'Temps du backtest â†’', 'center');
-  }catch(_){ __drawText(ctx, padL, h-8, 'Temps du backtest â†’', 'left'); }
+    if(t0!=null) __drawText(ctx, padL, h-8, fmtD(t0), 'left');
+    if(t1!=null) __drawText(ctx, w-padR, h-8, fmtD(t1), 'right');
+    __drawText(ctx, (padL+w-padR)/2, h-8, 'Temps du backtest →', 'center');
+  }catch(_){ __drawText(ctx, padL, h-8, 'Temps du backtest →', 'left'); }
 }
-function drawUnderwater(canvas, eq){ if(!canvas||!eq||!eq.length) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'Underwater (drawdown %)', 'center'); const padL=46, padR=12, padT=20, padB=24; let peak=eq[0].equity||0; const uw=eq.map(p=>{ peak=Math.max(peak, p.equity||0); const dd=peak>0? ((p.equity-peak)/peak*100) : 0; return dd; }); const min=Math.min(0, ...uw), max=0; const x=(i)=> i/(uw.length-1)*(w-padL-padR)+padL; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke();
+function drawUnderwater(canvas, eq){ if(!canvas||!eq||!eq.length) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'Underwater (drawdown %)', 'center'); const padL=46, padR=12, padT=20, padB=24; let peak=eq[0].equity||0; const uw=eq.map(p=>{ peak=Math.max(peak, p.equity||0); const dd=peak>0? ((p.equity-peak)/peak*100) : 0; return dd; }); const min=Math.min(0, ...uw), max=0; const x=(i)=> i/(uw.length-1)*(w-padL-padR)+padL; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke();
   // 0% line
   const y0=y(0); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, y0); ctx.lineTo(w-padR, y0); ctx.stroke(); __drawText(ctx, padL-8, y0, '0%', 'right');
   // underwater area
   ctx.fillStyle='rgba(239,68,68,0.5)'; for(let i=0;i<uw.length;i++){ const xx=x(i); const yy=y(Math.min(0, uw[i])); ctx.fillRect(xx-1, yy, 2, Math.max(0, y(min)-yy)); }
-  // Xâ€‘axis dates
+  // X‑axis dates
   try{
     const fmtD=(ts)=>{ const d=new Date((ts||0)*1000); return d.toLocaleDateString(); };
     const t0=eq[0]?.time, t1=eq[eq.length-1]?.time;
-    if(t0!=null) {__drawText(ctx, padL, h-8, fmtD(t0), 'left');}
-    if(t1!=null) {__drawText(ctx, w-padR, h-8, fmtD(t1), 'right');}
-    __drawText(ctx, (padL+w-padR)/2, h-8, 'Temps du backtest â†’', 'center');
-  }catch(_){ __drawText(ctx, padL, h-8, 'Temps du backtest â†’', 'left'); }
+    if(t0!=null) __drawText(ctx, padL, h-8, fmtD(t0), 'left');
+    if(t1!=null) __drawText(ctx, w-padR, h-8, fmtD(t1), 'right');
+    __drawText(ctx, (padL+w-padR)/2, h-8, 'Temps du backtest →', 'center');
+  }catch(_){ __drawText(ctx, padL, h-8, 'Temps du backtest →', 'left'); }
 }
-function drawHist(canvas, data){ if(!canvas) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); if(!data||!data.length) {return;} const min=Math.min(...data), max=Math.max(...data); const bins=20; const step=(max-min)/(bins||1)||1; const hist=new Array(bins).fill(0); for(const v of data){ let b=Math.floor((v-min)/step); if(b<0) {b=0;} if(b>=bins) {b=bins-1;} hist[b]++; } const mcount=Math.max(...hist); __drawText(ctx, w/2, 12, 'Distribution des rendements (%)', 'center'); // axes
+function drawHist(canvas, data){ if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); if(!data||!data.length) return; const min=Math.min(...data), max=Math.max(...data); const bins=20; const step=(max-min)/(bins||1)||1; const hist=new Array(bins).fill(0); for(const v of data){ let b=Math.floor((v-min)/step); if(b<0) b=0; if(b>=bins) b=bins-1; hist[b]++; } const mcount=Math.max(...hist); __drawText(ctx, w/2, 12, 'Distribution des rendements (%)', 'center'); // axes
   const padL=36, padR=10, padT=18, padB=22; ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); // draw bars
   for(let i=0;i<bins;i++){ const xx=i/bins*(w-padL-padR)+padL; const hh= (hist[i]/(mcount||1))*(h-padT-padB); ctx.fillStyle='#2563eb'; ctx.fillRect(xx, h-padB-hh, (w-padL-padR)/bins-2, hh); }
   // x labels min/0/max
   __drawText(ctx, padL, h-6, `${min.toFixed(2)}%`, 'left'); __drawText(ctx, w/2, h-6, '0%', 'center'); __drawText(ctx, w-8, h-6, `${max.toFixed(2)}%`, 'right'); }
-function drawBars(canvas, labels, vals){ if(!canvas) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'EfficacitÃ© de la stratÃ©gie (0â€“100)', 'center'); const n=labels.length; // grid
+function drawBars(canvas, labels, vals){ if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'Efficacité de la stratégie (0–100)', 'center'); const n=labels.length; // grid
   ctx.strokeStyle=__clr().border; for(let g=0; g<=5; g++){ const x=120 + (w-140)*(g/5); ctx.beginPath(); ctx.moveTo(x, 18); ctx.lineTo(x, h-10); ctx.stroke(); __drawText(ctx, x, h-4, String(g*20)+'%', 'center'); }
   for(let i=0;i<n;i++){ const y=24+i*((h-36)/n); const val=Math.max(0,Math.min(100, vals[i]||0)); ctx.fillStyle='#e5e7eb'; ctx.fillRect(120, y, w-140, 12); ctx.fillStyle='#2563eb'; ctx.fillRect(120, y, (w-140)*val/100, 12); __drawText(ctx, 110, y+6, String(val.toFixed(0))+'%', 'right'); __drawText(ctx, 10, y+6, labels[i], 'left'); } }
 
-function drawLineChart(canvas, data, opts){ if(!canvas||!Array.isArray(data)||data.length<2) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); const title=opts&&opts.title||'Rolling'; const padL=40, padR=10, padT=18, padB=20; const min=Math.min(...data), max=Math.max(...data); const yMin=(opts&&opts.yMin!=null)?opts.yMin:min; const yMax=(opts&&opts.yMax!=null)?opts.yMax:max; const x=(i)=> i/(data.length-1)*(w-padL-padR)+padL; const y=(v)=> h-padB - (v-yMin)/(yMax-yMin+1e-9)*(h-padT-padB); __drawText(ctx, w/2, 12, title, 'center'); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; for(let t=0;t<=ticks;t++){ const val=yMin + (yMax-yMin)*t/ticks; const yy=y(val); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-6, yy, (opts&&opts.fmt?opts.fmt(val):val.toFixed(2)), 'right'); } ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<data.length;i++){ const xx=x(i), yy=y(data[i]); if(i===0) {ctx.moveTo(xx,yy);} else {ctx.lineTo(xx,yy);} } ctx.stroke(); __drawText(ctx, padL, h-4, 'Positions (ordre chronologique) â†’', 'left'); }
+function drawLineChart(canvas, data, opts){ if(!canvas||!Array.isArray(data)||data.length<2) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); const title=opts&&opts.title||'Rolling'; const padL=40, padR=10, padT=18, padB=20; const min=Math.min(...data), max=Math.max(...data); const yMin=(opts&&opts.yMin!=null)?opts.yMin:min; const yMax=(opts&&opts.yMax!=null)?opts.yMax:max; const x=(i)=> i/(data.length-1)*(w-padL-padR)+padL; const y=(v)=> h-padB - (v-yMin)/(yMax-yMin+1e-9)*(h-padT-padB); __drawText(ctx, w/2, 12, title, 'center'); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; for(let t=0;t<=ticks;t++){ const val=yMin + (yMax-yMin)*t/ticks; const yy=y(val); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-6, yy, (opts&&opts.fmt?opts.fmt(val):val.toFixed(2)), 'right'); } ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<data.length;i++){ const xx=x(i), yy=y(data[i]); if(i===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy); } ctx.stroke(); __drawText(ctx, padL, h-4, 'Positions (ordre chronologique) →', 'left'); }
 
-function drawDurations(canvas, arrMin){ if(!canvas||!Array.isArray(arrMin)||!arrMin.length) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'DurÃ©e des trades (minutes)', 'center'); const padL=46, padR=12, padT=18, padB=24; const sorted=arrMin.slice().sort((a,b)=>a-b); const p95=sorted[Math.floor(sorted.length*0.95)]||sorted[sorted.length-1]; const maxVal=Math.max(1, p95); const bins=20; const hist=new Array(bins).fill(0); for(const v of arrMin){ const c=Math.min(v, maxVal); let b=Math.floor(c/maxVal*(bins)); if(b>=bins) {b=bins-1;} hist[b]++; }
+function drawDurations(canvas, arrMin){ if(!canvas||!Array.isArray(arrMin)||!arrMin.length) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'Durée des trades (minutes)', 'center'); const padL=46, padR=12, padT=18, padB=24; const sorted=arrMin.slice().sort((a,b)=>a-b); const p95=sorted[Math.floor(sorted.length*0.95)]||sorted[sorted.length-1]; const maxVal=Math.max(1, p95); const bins=20; const hist=new Array(bins).fill(0); for(const v of arrMin){ const c=Math.min(v, maxVal); let b=Math.floor(c/maxVal*(bins)); if(b>=bins) b=bins-1; hist[b]++; }
   ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const mcount=Math.max(...hist,1); const ticks=4; for(let t=0;t<=ticks;t++){ const yy=h-padB - (h-padT-padB)*t/ticks; const val=Math.round(mcount*t/ticks); ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-8, yy, String(val), 'right'); }
   for(let i=0;i<bins;i++){ const xx=i/bins*(w-padL-padR)+padL; const hh=(hist[i]/mcount)*(h-padT-padB); ctx.fillStyle='#2563eb'; ctx.fillRect(xx, h-padB-hh, (w-padL-padR)/bins-2, hh); } __drawText(ctx, padL, h-8, '0', 'left'); __drawText(ctx, w-8, h-8, `${maxVal.toFixed(0)}+`, 'right'); }
 
-function drawStreaks(canvas, winCounts, loseCounts){ if(!canvas) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'SÃ©quences victoires/dÃ©faites', 'center'); const padL=46, padR=12, padT=18, padB=24; const maxLen=Math.max(winCounts.length, loseCounts.length); const maxVal=Math.max(1, ...winCounts, ...loseCounts); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; for(let t=0;t<=ticks;t++){ const yy=h-padB - (h-padT-padB)*t/ticks; const val=Math.round(maxVal*t/ticks); ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-8, yy, String(val), 'right'); }
+function drawStreaks(canvas, winCounts, loseCounts){ if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'Séquences victoires/défaites', 'center'); const padL=46, padR=12, padT=18, padB=24; const maxLen=Math.max(winCounts.length, loseCounts.length); const maxVal=Math.max(1, ...winCounts, ...loseCounts); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; for(let t=0;t<=ticks;t++){ const yy=h-padB - (h-padT-padB)*t/ticks; const val=Math.round(maxVal*t/ticks); ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-8, yy, String(val), 'right'); }
   const barW=(w-padL-padR)/Math.max(1,maxLen); for(let i=0;i<maxLen;i++){ const x0=padL+i*barW; const wHalf=barW/2-2; const wv=winCounts[i]||0, lv=loseCounts[i]||0; const hhW = (wv/maxVal)*(h-padT-padB); const hhL = (lv/maxVal)*(h-padT-padB); ctx.fillStyle='#10b981'; ctx.fillRect(x0+2, h-padB-hhW, wHalf, hhW); ctx.fillStyle='#ef4444'; ctx.fillRect(x0+2+wHalf, h-padB-hhL, wHalf, hhL); __drawText(ctx, x0+barW/2, h-8, String(i), 'center'); } __drawText(ctx, w-8, padT+2, 'Vert: Win  Rouge: Loss', 'right'); }
 
-function drawHistLongShort(canvas, longs, shorts){ if(!canvas) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'Distribution retours (%) â€” Long vs Short', 'center'); const padL=46, padR=12, padT=18, padB=24; const all=longs.concat(shorts); if(!all.length) {return;} const min=Math.min(...all), max=Math.max(...all); const bins=20; const step=(max-min)/(bins||1)||1; const histL=new Array(bins).fill(0), histS=new Array(bins).fill(0); for(const v of longs){ let b=Math.floor((v-min)/step); if(b<0) {b=0;} if(b>=bins) {b=bins-1;} histL[b]++; } for(const v of shorts){ let b=Math.floor((v-min)/step); if(b<0) {b=0;} if(b>=bins) {b=bins-1;} histS[b]++; } const mcount=Math.max(1, ...histL, ...histS); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; for(let t=0;t<=ticks;t++){ const yy=h-padB - (h-padT-padB)*t/ticks; const val=Math.round(mcount*t/ticks); ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-8, yy, String(val), 'right'); }
+function drawHistLongShort(canvas, longs, shorts){ if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'Distribution retours (%) — Long vs Short', 'center'); const padL=46, padR=12, padT=18, padB=24; const all=longs.concat(shorts); if(!all.length) return; const min=Math.min(...all), max=Math.max(...all); const bins=20; const step=(max-min)/(bins||1)||1; const histL=new Array(bins).fill(0), histS=new Array(bins).fill(0); for(const v of longs){ let b=Math.floor((v-min)/step); if(b<0) b=0; if(b>=bins) b=bins-1; histL[b]++; } for(const v of shorts){ let b=Math.floor((v-min)/step); if(b<0) b=0; if(b>=bins) b=bins-1; histS[b]++; } const mcount=Math.max(1, ...histL, ...histS); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; for(let t=0;t<=ticks;t++){ const yy=h-padB - (h-padT-padB)*t/ticks; const val=Math.round(mcount*t/ticks); ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-8, yy, String(val), 'right'); }
   for(let i=0;i<bins;i++){ const xx=i/bins*(w-padL-padR)+padL; const hhL=(histL[i]/mcount)*(h-padT-padB); const hhS=(histS[i]/mcount)*(h-padT-padB); const bw=(w-padL-padR)/bins-3; ctx.fillStyle='rgba(16,185,129,0.6)'; ctx.fillRect(xx, h-padB-hhL, bw, hhL); ctx.fillStyle='rgba(239,68,68,0.6)'; ctx.fillRect(xx, h-padB-hhS, bw, hhS); }
   __drawText(ctx, padL, h-8, `${min.toFixed(2)}%`, 'left'); __drawText(ctx, w-8, h-8, `${max.toFixed(2)}%`, 'right'); __drawText(ctx, w-8, padT+2, 'Vert: Long  Rouge: Short', 'right'); }
 
-function drawMAEMFEScatter(canvas, points){ if(!canvas||!points||!points.length) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'MAE/MFE Scatter (R units)', 'center'); const padL=46, padR=12, padT=20, padB=28; const maxX=Math.max(1, ...points.map(p=>p.maeR)); const maxY=Math.max(1, ...points.map(p=>p.mfeR)); const x=(v)=> padL + (v/Math.max(1e-9,maxX))*(w-padL-padR); const y=(v)=> h-padB - (v/Math.max(1e-9,maxY))*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; for(let t=0;t<=ticks;t++){ const xx=padL + (w-padL-padR)*t/ticks; const yy=h-padB - (h-padT-padB)*t/ticks; ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(xx, padT); ctx.lineTo(xx, h-padB); ctx.stroke(); ctx.beginPath(); ctx.moveTo(padL, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, xx, h-8, (maxX*t/ticks).toFixed(1), 'center'); __drawText(ctx, padL-8, yy, (maxY*t/ticks).toFixed(1), 'right'); }
-  __drawText(ctx, w-8, h-8, 'MAE (R) â†’', 'right'); __drawText(ctx, padL+2, padT, 'MFE (R) â†‘', 'left'); __drawText(ctx, w-8, padT+2, 'Vert = Gain  Rouge = Perte', 'right');
+function drawMAEMFEScatter(canvas, points){ if(!canvas||!points||!points.length) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'MAE/MFE Scatter (R units)', 'center'); const padL=46, padR=12, padT=20, padB=28; const maxX=Math.max(1, ...points.map(p=>p.maeR)); const maxY=Math.max(1, ...points.map(p=>p.mfeR)); const x=(v)=> padL + (v/Math.max(1e-9,maxX))*(w-padL-padR); const y=(v)=> h-padB - (v/Math.max(1e-9,maxY))*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; for(let t=0;t<=ticks;t++){ const xx=padL + (w-padL-padR)*t/ticks; const yy=h-padB - (h-padT-padB)*t/ticks; ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(xx, padT); ctx.lineTo(xx, h-padB); ctx.stroke(); ctx.beginPath(); ctx.moveTo(padL, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, xx, h-8, (maxX*t/ticks).toFixed(1), 'center'); __drawText(ctx, padL-8, yy, (maxY*t/ticks).toFixed(1), 'right'); }
+  __drawText(ctx, w-8, h-8, 'MAE (R) →', 'right'); __drawText(ctx, padL+2, padT, 'MFE (R) ↑', 'left'); __drawText(ctx, w-8, padT+2, 'Vert = Gain  Rouge = Perte', 'right');
   for(const p of points){ const col = p.win? 'rgba(16,185,129,0.85)' : 'rgba(239,68,68,0.85)'; ctx.fillStyle=col; const xx=x(p.maeR), yy=y(p.mfeR); ctx.beginPath(); ctx.arc(xx, yy, 3, 0, Math.PI*2); ctx.fill(); }
 }
 
-function drawMonthlyHeatmap(canvas, cells){ if(!canvas||!cells||!cells.length) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 10, 'Monthly returns (%)', 'center'); const padL=60, padR=10, padT=30, padB=12; const years=Array.from(new Set(cells.map(c=>c.y))).sort((a,b)=>a-b); const months=['J','F','M','A','M','J','J','A','S','O','N','D']; const rows=years.length, cols=12; const cw=(w-padL-padR)/cols, ch=(h-padT-padB)/Math.max(1,rows); const vals=cells.map(c=>c.r); const vMin=Math.min(...vals, -10), vMax=Math.max(...vals, 10); function color(v){ const x=(v - vMin)/(vMax-vMin+1e-9); const r=Math.round(239*(1-x)); const g=Math.round(68 + (185-68)*x); const b=Math.round(68*(1-x)); return `rgb(${r},${g},${b})`; }
+function drawMonthlyHeatmap(canvas, cells){ if(!canvas||!cells||!cells.length) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 10, 'Monthly returns (%)', 'center'); const padL=60, padR=10, padT=30, padB=12; const years=Array.from(new Set(cells.map(c=>c.y))).sort((a,b)=>a-b); const months=['J','F','M','A','M','J','J','A','S','O','N','D']; const rows=years.length, cols=12; const cw=(w-padL-padR)/cols, ch=(h-padT-padB)/Math.max(1,rows); const vals=cells.map(c=>c.r); const vMin=Math.min(...vals, -10), vMax=Math.max(...vals, 10); function color(v){ const x=(v - vMin)/(vMax-vMin+1e-9); const r=Math.round(239*(1-x)); const g=Math.round(68 + (185-68)*x); const b=Math.round(68*(1-x)); return `rgb(${r},${g},${b})`; }
   // axes labels
   for(let m=0;m<12;m++){ __drawText(ctx, padL + m*cw + cw/2, padT-6, months[m], 'center'); }
   for(let i=0;i<years.length;i++){ __drawText(ctx, padL-6, padT + i*ch + ch/2, String(years[i]), 'right'); }
@@ -3287,9 +3286,9 @@ function drawMonthlyHeatmap(canvas, cells){ if(!canvas||!cells||!cells.length) {
   }
 }
 
-function drawWeeklyHeatmap(canvas, cells){ if(!canvas||!cells||!cells.length) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 10, 'Weekly returns (%)', 'center'); const padL=58, padR=10, padT=30, padB=18; const years=Array.from(new Set(cells.map(c=>c.y))).sort((a,b)=>a-b); const cols=53; const cw=(w-padL-padR)/cols, ch=(h-padT-padB)/Math.max(1,years.length); const vals=cells.map(c=>c.r); const vMin=Math.min(...vals, -10), vMax=Math.max(...vals, 10); function color(v){ const x=(v - vMin)/(vMax-vMin+1e-9); const r=Math.round(239*(1-x)); const g=Math.round(68 + (185-68)*x); const b=Math.round(68*(1-x)); return `rgb(${r},${g},${b})`; }
+function drawWeeklyHeatmap(canvas, cells){ if(!canvas||!cells||!cells.length) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 10, 'Weekly returns (%)', 'center'); const padL=58, padR=10, padT=30, padB=18; const years=Array.from(new Set(cells.map(c=>c.y))).sort((a,b)=>a-b); const cols=53; const cw=(w-padL-padR)/cols, ch=(h-padT-padB)/Math.max(1,years.length); const vals=cells.map(c=>c.r); const vMin=Math.min(...vals, -10), vMax=Math.max(...vals, 10); function color(v){ const x=(v - vMin)/(vMax-vMin+1e-9); const r=Math.round(239*(1-x)); const g=Math.round(68 + (185-68)*x); const b=Math.round(68*(1-x)); return `rgb(${r},${g},${b})`; }
   const showVals = (ch>=16 && cw>=22);
-  // x ticks every 4 weeks (limitÃ©s pour Ã©viter le chevauchement)
+  // x ticks every 4 weeks (limités pour éviter le chevauchement)
   for(let k=1;k<=cols;k+=8){ __drawText(ctx, padL + (k-0.5)*cw, padT-6, String(k), 'center'); }
   for(let i=0;i<years.length;i++){ __drawText(ctx, padL-6, padT + i*ch + ch/2, String(years[i]), 'right'); }
   const map=new Map(); for(const c of cells){ map.set(`${c.y}-${c.w}`, c.r); }
@@ -3299,55 +3298,55 @@ function drawWeeklyHeatmap(canvas, cells){ if(!canvas||!cells||!cells.length) {r
       if(v!=null && showVals){ __drawText(ctx, x+cw/2, y+ch/2, String(v.toFixed(1)), 'center'); }
     }
   }
-__drawText(ctx, w-8, h-6, 'Semaines (1â€“53) â†’', 'right');
+__drawText(ctx, w-8, h-6, 'Semaines (1–53) →', 'right');
 }
 
-function drawDOWBars(canvas, vals){ if(!canvas||!vals||vals.length!==7) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); const padL=46, padR=12, padT=20, padB=28; __drawText(ctx, w/2, 12, 'Retours moyens par jour de semaine (%)', 'center'); const min=Math.min(0, ...vals.map(v=>v.v)), max=Math.max(0, ...vals.map(v=>v.v)); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB); for(let t=0;t<=ticks;t++){ const val=min + (max-min)*t/ticks; const yy=y(val); ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-8, yy, val.toFixed(2)+'%', 'right'); } const bw=(w-padL-padR)/7 - 6; for(let i=0;i<7;i++){ const x0=padL + i*((w-padL-padR)/7) + 3; const v=vals[i].v; const y0=y(0), yv=y(v); ctx.fillStyle = v>=0? 'rgba(16,185,129,0.75)' : 'rgba(239,68,68,0.75)'; ctx.fillRect(x0, Math.min(y0,yv), bw, Math.abs(y0-yv)); __drawText(ctx, x0+bw/2, h-10, vals[i].k, 'center'); }
+function drawDOWBars(canvas, vals){ if(!canvas||!vals||vals.length!==7) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); const padL=46, padR=12, padT=20, padB=28; __drawText(ctx, w/2, 12, 'Retours moyens par jour de semaine (%)', 'center'); const min=Math.min(0, ...vals.map(v=>v.v)), max=Math.max(0, ...vals.map(v=>v.v)); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB); for(let t=0;t<=ticks;t++){ const val=min + (max-min)*t/ticks; const yy=y(val); ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-8, yy, val.toFixed(2)+'%', 'right'); } const bw=(w-padL-padR)/7 - 6; for(let i=0;i<7;i++){ const x0=padL + i*((w-padL-padR)/7) + 3; const v=vals[i].v; const y0=y(0), yv=y(v); ctx.fillStyle = v>=0? 'rgba(16,185,129,0.75)' : 'rgba(239,68,68,0.75)'; ctx.fillRect(x0, Math.min(y0,yv), bw, Math.abs(y0-yv)); __drawText(ctx, x0+bw/2, h-10, vals[i].k, 'center'); }
 }
 
-function drawDOWHourHeatmap(canvas, cells){ if(!canvas||!cells||!cells.length) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 10, 'Jour Ã— Heure â€” retours (%)', 'center'); const padL=60, padR=10, padT=30, padB=18; const rows=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']; const cols=24; const cw=(w-padL-padR)/cols, ch=(h-padT-padB)/rows.length; const vals=cells.map(c=>c.r); const vMin=Math.min(...vals, -5), vMax=Math.max(...vals, 5); function color(v){ const x=(v - vMin)/(vMax-vMin+1e-9); const r=Math.round(239*(1-x)); const g=Math.round(68 + (185-68)*x); const b=Math.round(68*(1-x)); return `rgb(${r},${g},${b})`; }
+function drawDOWHourHeatmap(canvas, cells){ if(!canvas||!cells||!cells.length) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 10, 'Jour × Heure — retours (%)', 'center'); const padL=60, padR=10, padT=30, padB=18; const rows=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']; const cols=24; const cw=(w-padL-padR)/cols, ch=(h-padT-padB)/rows.length; const vals=cells.map(c=>c.r); const vMin=Math.min(...vals, -5), vMax=Math.max(...vals, 5); function color(v){ const x=(v - vMin)/(vMax-vMin+1e-9); const r=Math.round(239*(1-x)); const g=Math.round(68 + (185-68)*x); const b=Math.round(68*(1-x)); return `rgb(${r},${g},${b})`; }
   for(let hcol=0; hcol<cols; hcol+=6){ __drawText(ctx, padL + hcol*cw + cw/2, padT-6, String(hcol), 'center'); }
   for(let r=0;r<rows.length;r++){ __drawText(ctx, padL-6, padT + r*ch + ch/2, rows[r], 'right'); for(let c=0;c<cols;c++){ const cell=cells[r*cols + c]; const x=padL + c*cw, y=padT + r*ch; const v=(cell && Number.isFinite(cell.r))? cell.r : null; ctx.fillStyle = v==null? '#e5e7eb' : color(v); ctx.fillRect(x+1,y+1,cw-2,ch-2); if(v!=null){ __drawText(ctx, x+cw/2, y+ch/2, String((v).toFixed(1)), 'center'); } } }
   // store hover config on canvas for tooltip/click
   try{ canvas.__heatCfg = { padL, padT, padR, padB, rows, cols, cells, cw, ch }; }catch(_){ }
 }
 
-function drawCIBars(canvas, ci){ if(!canvas||!ci) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'IC 95% â€” Win%, PF, Exp', 'center'); const padL=70, padR=12, padT=22, padB=12; const rows=[{k:'Win%', lo:(ci.win&&ci.win[0])||0, hi:(ci.win&&ci.win[1])||0, min:0, max:100, fmt:(v)=>v.toFixed(1)+'%'},{k:'PF', lo:(ci.pf&&ci.pf[0])||0, hi:(ci.pf&&ci.pf[1])||0, min:0, max:Math.max(3, (ci.pf&&ci.pf[1])||0), fmt:(v)=> (v===Infinity?'âˆž':v.toFixed(2))},{k:'Exp', lo:(ci.exp&&ci.exp[0])||0, hi:(ci.exp&&ci.exp[1])||0, min:Math.min((ci.exp&&ci.exp[0])||0,0), max:Math.max((ci.exp&&ci.exp[1])||0,0), fmt:(v)=> v.toFixed(2)}]; const rh=(h-padT-padB)/rows.length; ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); for(let r=0;r<rows.length;r++){ const row=rows[r]; const y=padT + r*rh + rh/2; const min=row.min, max=row.max; const x=(v)=> padL + (v-min)/(max-min+1e-9)*(w-padL-padR); // grid
+function drawCIBars(canvas, ci){ if(!canvas||!ci) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'IC 95% — Win%, PF, Exp', 'center'); const padL=70, padR=12, padT=22, padB=12; const rows=[{k:'Win%', lo:(ci.win&&ci.win[0])||0, hi:(ci.win&&ci.win[1])||0, min:0, max:100, fmt:(v)=>v.toFixed(1)+'%'},{k:'PF', lo:(ci.pf&&ci.pf[0])||0, hi:(ci.pf&&ci.pf[1])||0, min:0, max:Math.max(3, (ci.pf&&ci.pf[1])||0), fmt:(v)=> (v===Infinity?'∞':v.toFixed(2))},{k:'Exp', lo:(ci.exp&&ci.exp[0])||0, hi:(ci.exp&&ci.exp[1])||0, min:Math.min((ci.exp&&ci.exp[0])||0,0), max:Math.max((ci.exp&&ci.exp[1])||0,0), fmt:(v)=> v.toFixed(2)}]; const rh=(h-padT-padB)/rows.length; ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); for(let r=0;r<rows.length;r++){ const row=rows[r]; const y=padT + r*rh + rh/2; const min=row.min, max=row.max; const x=(v)=> padL + (v-min)/(max-min+1e-9)*(w-padL-padR); // grid
   const ticks=4; for(let t=0;t<=ticks;t++){ const xx=padL + (w-padL-padR)*t/ticks; ctx.beginPath(); ctx.moveTo(xx, y-rh/2+4); ctx.lineTo(xx, y+rh/2-4); ctx.stroke(); }
   // CI segment
   const xl=x(row.lo), xh=x(row.hi); ctx.strokeStyle='#2563eb'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(xl, y); ctx.lineTo(xh, y); ctx.stroke(); ctx.strokeStyle=__clr().border; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(xl, y-6); ctx.lineTo(xl, y+6); ctx.moveTo(xh, y-6); ctx.lineTo(xh, y+6); ctx.stroke(); __drawText(ctx, padL-8, y, row.k, 'right'); __drawText(ctx, xl-4, y-10, row.fmt(row.lo), 'right'); __drawText(ctx, xh+4, y-10, row.fmt(row.hi), 'left'); }
 }
 
-function drawWFTable(canvas, splits){ if(!canvas||!Array.isArray(splits)||!splits.length) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 10, 'Walk-forward â€” mÃ©triques par split', 'center'); const padL=60, padR=10, padT=30, padB=12; const cols=splits.length, rows=['PF','Win%','Exp','P&L']; const cw=(w-padL-padR)/cols, rh=(h-padT-padB)/rows.length; ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); for(let c=0;c<cols;c++){ __drawText(ctx, padL + c*cw + cw/2, padT-6, 'S'+(c+1), 'center'); for(let r=0;r<rows.length;r++){ const x=padL + c*cw, y=padT + r*rh; ctx.strokeStyle=__clr().border; ctx.strokeRect(x+0.5, y+0.5, cw-1, rh-1); let val='â€”'; if(r===0) {val = (splits[c].pf===Infinity? 'âˆž': splits[c].pf.toFixed(2));} else if(r===1) {val = splits[c].win.toFixed(1)+'%';} else if(r===2) {val = splits[c].exp.toFixed(2);} else if(r===3) {val = splits[c].pnl.toFixed(0);} __drawText(ctx, x+cw/2, y+rh/2, val, 'center'); if(c===0){ __drawText(ctx, padL-8, y+rh/2, rows[r], 'right'); } } }
+function drawWFTable(canvas, splits){ if(!canvas||!Array.isArray(splits)||!splits.length) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 10, 'Walk-forward — métriques par split', 'center'); const padL=60, padR=10, padT=30, padB=12; const cols=splits.length, rows=['PF','Win%','Exp','P&L']; const cw=(w-padL-padR)/cols, rh=(h-padT-padB)/rows.length; ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); for(let c=0;c<cols;c++){ __drawText(ctx, padL + c*cw + cw/2, padT-6, 'S'+(c+1), 'center'); for(let r=0;r<rows.length;r++){ const x=padL + c*cw, y=padT + r*rh; ctx.strokeStyle=__clr().border; ctx.strokeRect(x+0.5, y+0.5, cw-1, rh-1); let val='—'; if(r===0) val = (splits[c].pf===Infinity? '∞': splits[c].pf.toFixed(2)); else if(r===1) val = splits[c].win.toFixed(1)+'%'; else if(r===2) val = splits[c].exp.toFixed(2); else if(r===3) val = splits[c].pnl.toFixed(0); __drawText(ctx, x+cw/2, y+rh/2, val, 'center'); if(c===0){ __drawText(ctx, padL-8, y+rh/2, rows[r], 'right'); } } }
 }
 
-function drawRegimeHeatmap(canvas, mat){ if(!canvas||!mat) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 10, 'PF par rÃ©gime (Trend Ã— Vol)', 'center'); const padL=80, padR=10, padT=30, padB=12; const rows=['Up','Down'], cols=['Low','Med','High']; const cw=(w-padL-padR)/cols.length, ch=(h-padT-padB)/rows.length; for(let r=0;r<rows.length;r++){ __drawText(ctx, padL-6, padT + r*ch + ch/2, rows[r], 'right'); for(let c=0;c<cols.length;c++){ const cell=mat[rows[r]][cols[c]]||{pf:0,count:0}; const pf=(cell.pf===Infinity? 5 : Math.max(0, Math.min(5, cell.pf||0))); const x=padL + c*cw, y=padT + r*ch; // green scale by PF
+function drawRegimeHeatmap(canvas, mat){ if(!canvas||!mat) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 10, 'PF par régime (Trend × Vol)', 'center'); const padL=80, padR=10, padT=30, padB=12; const rows=['Up','Down'], cols=['Low','Med','High']; const cw=(w-padL-padR)/cols.length, ch=(h-padT-padB)/rows.length; for(let r=0;r<rows.length;r++){ __drawText(ctx, padL-6, padT + r*ch + ch/2, rows[r], 'right'); for(let c=0;c<cols.length;c++){ const cell=mat[rows[r]][cols[c]]||{pf:0,count:0}; const pf=(cell.pf===Infinity? 5 : Math.max(0, Math.min(5, cell.pf||0))); const x=padL + c*cw, y=padT + r*ch; // green scale by PF
       const g=Math.round(255*Math.min(1, pf/3)); const col=`rgb(${255-g},${g},120)`; ctx.fillStyle=col; ctx.fillRect(x+1,y+1,cw-2,ch-2);
-      // Texte en surimpression avec couleur sombre pour lisibilitÃ©
-      const label = `${(cell.pf===Infinity?'âˆž':pf.toFixed(2))} (${cell.count})`;
+      // Texte en surimpression avec couleur sombre pour lisibilité
+      const label = `${(cell.pf===Infinity?'∞':pf.toFixed(2))} (${cell.count})`;
       ctx.save(); ctx.fillStyle='rgba(15,23,42,0.95)'; ctx.font='11px Segoe UI, Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(label, x+cw/2, y+ch/2); ctx.restore();
       ctx.save(); ctx.fillStyle='rgba(15,23,42,0.95)'; ctx.font='11px Segoe UI, Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(cols[c], x+cw/2, padT-6); ctx.restore(); }
   }
 }
 
-function drawPareto(canvas, pts){ if(!canvas||!pts||!pts.length) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'Pareto â€” P&L vs Max DD', 'center'); const padL=56, padR=12, padT=22, padB=28; const minX=0, maxX=Math.max(1, ...pts.map(p=>p.dd)); const minY=Math.min(0, ...pts.map(p=>p.pnl)), maxY=Math.max(1, ...pts.map(p=>p.pnl)); const x=(v)=> padL + (v-minX)/(maxX-minX+1e-9)*(w-padL-padR); const y=(v)=> h-padB - (v-minY)/(maxY-minY+1e-9)*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; for(let t=0;t<=ticks;t++){ const tx=padL + (w-padL-padR)*t/ticks; const ty=h-padB - (h-padT-padB)*t/ticks; ctx.beginPath(); ctx.moveTo(tx, padT); ctx.lineTo(tx, h-padB); ctx.stroke(); ctx.beginPath(); ctx.moveTo(padL, ty); ctx.lineTo(w-padR, ty); ctx.stroke(); __drawText(ctx, tx, h-8, String(((maxX-minX)*t/ticks+minX).toFixed(0)), 'center'); __drawText(ctx, padL-8, ty, String(((maxY-minY)*t/ticks+minY).toFixed(0)), 'right'); }
-  __drawText(ctx, w-8, h-8, 'Max DD â†’', 'right'); __drawText(ctx, padL+2, padT, 'P&L â†‘', 'left');
-  function colFromScore(s){ if(!Number.isFinite(s)) {return 'rgba(37,99,235,0.85)';} const x=Math.max(0, Math.min(1, s/100)); const g=Math.round(180*x+40); const r=Math.round(220*(1-x)); return `rgba(${r},${g},120,0.9)`; }
+function drawPareto(canvas, pts){ if(!canvas||!pts||!pts.length) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'Pareto — P&L vs Max DD', 'center'); const padL=56, padR=12, padT=22, padB=28; const minX=0, maxX=Math.max(1, ...pts.map(p=>p.dd)); const minY=Math.min(0, ...pts.map(p=>p.pnl)), maxY=Math.max(1, ...pts.map(p=>p.pnl)); const x=(v)=> padL + (v-minX)/(maxX-minX+1e-9)*(w-padL-padR); const y=(v)=> h-padB - (v-minY)/(maxY-minY+1e-9)*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; for(let t=0;t<=ticks;t++){ const tx=padL + (w-padL-padR)*t/ticks; const ty=h-padB - (h-padT-padB)*t/ticks; ctx.beginPath(); ctx.moveTo(tx, padT); ctx.lineTo(tx, h-padB); ctx.stroke(); ctx.beginPath(); ctx.moveTo(padL, ty); ctx.lineTo(w-padR, ty); ctx.stroke(); __drawText(ctx, tx, h-8, String(((maxX-minX)*t/ticks+minX).toFixed(0)), 'center'); __drawText(ctx, padL-8, ty, String(((maxY-minY)*t/ticks+minY).toFixed(0)), 'right'); }
+  __drawText(ctx, w-8, h-8, 'Max DD →', 'right'); __drawText(ctx, padL+2, padT, 'P&L ↑', 'left');
+  function colFromScore(s){ if(!Number.isFinite(s)) return 'rgba(37,99,235,0.85)'; const x=Math.max(0, Math.min(1, s/100)); const g=Math.round(180*x+40); const r=Math.round(220*(1-x)); return `rgba(${r},${g},120,0.9)`; }
   for(const p of pts){ ctx.fillStyle=colFromScore(p.score); ctx.beginPath(); ctx.arc(x(p.dd), y(p.pnl), 3, 0, Math.PI*2); ctx.fill(); }
 }
 
-function drawQQ(canvas, arr){ if(!canvas||!arr||arr.length<3) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'QQ-Plot (retours normalisÃ©s)', 'center'); const padL=40, padR=10, padT=18, padB=22; const xs=arr.slice().filter(Number.isFinite).sort((a,b)=>a-b); const n=xs.length; const mean=xs.reduce((s,x)=>s+x,0)/n; const sd=Math.sqrt(xs.reduce((s,x)=> s+(x-mean)*(x-mean),0)/Math.max(1,n-1)); const zs=xs.map(x=> (x-mean)/(sd||1)); function qnorm(p){ // inverse CDF normal approx (Beasley-Springer/Moro) simple poly
-  const a=[-39.696830,220.946098,-275.928510,138.357751,-30.664798,2.506628]; const b=[-54.476098,161.585836,-155.698979,66.801311,-13.280681]; const c=[-0.007784894, -0.322396, -2.400758, -2.549732, 4.374664, 2.938163]; const d=[0.007784695, 0.322467, 2.445134, 3.754408]; const plow=0.02425, phigh=1-plow; let q; if(p<plow){ q=Math.sqrt(-2*Math.log(p)); return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); } if(p>phigh){ q=Math.sqrt(-2*Math.log(1-p)); return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); } q=p-0.5; const r=q*q; return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*1; }
+function drawQQ(canvas, arr){ if(!canvas||!arr||arr.length<3) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'QQ-Plot (retours normalisés)', 'center'); const padL=40, padR=10, padT=18, padB=22; const xs=arr.slice().filter(Number.isFinite).sort((a,b)=>a-b); const n=xs.length; const mean=xs.reduce((s,x)=>s+x,0)/n; const sd=Math.sqrt(xs.reduce((s,x)=> s+(x-mean)*(x-mean),0)/Math.max(1,n-1)); const zs=xs.map(x=> (x-mean)/(sd||1)); function qnorm(p){ // inverse CDF normal approx (Beasley-Springer/Moro) simple poly
+  const a=[-39.696830,220.946098,-275.928510,138.357751,-30.664798,2.506628]; const b=[-54.476098,161.585836,-155.698979,66.801311,-13.280681]; const c=[-0.007784894, -0.322396, -2.400758, -2.549732, 4.374664, 2.938163]; const d=[0.007784695, 0.322467, 2.445134, 3.754408]; const plow=0.02425, phigh=1-plow; let q,r; if(p<plow){ q=Math.sqrt(-2*Math.log(p)); return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); } if(p>phigh){ q=Math.sqrt(-2*Math.log(1-p)); return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); } q=p-0.5; r=q*q; return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*1; }
   const theo=[]; for(let i=1;i<=n;i++){ const p=(i-0.5)/n; theo.push(qnorm(p)); }
   const minV=Math.min(...zs, ...theo), maxV=Math.max(...zs, ...theo); const x=(v)=> padL + (v-minV)/(maxV-minV+1e-9)*(w-padL-padR); const y=(v)=> h-padB - (v-minV)/(maxV-minV+1e-9)*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); // diagonal
   ctx.strokeStyle='#10b981'; ctx.beginPath(); ctx.moveTo(x(minV), y(minV)); ctx.lineTo(x(maxV), y(maxV)); ctx.stroke(); ctx.fillStyle='rgba(37,99,235,0.85)'; for(let i=0;i<n;i++){ ctx.beginPath(); ctx.arc(x(theo[i]), y(zs[i]), 2.5, 0, Math.PI*2); ctx.fill(); } }
 
-function drawACF(canvas, arr, maxLag){ if(!canvas||!arr||arr.length<3) {return;} maxLag=Math.max(1, maxLag||10); const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'AutocorrÃ©lation (lags)', 'center'); const padL=30, padR=10, padT=18, padB=22; const xs=arr.slice().filter(Number.isFinite); const n=xs.length; const mean=xs.reduce((s,x)=>s+x,0)/n; const varr=xs.reduce((s,x)=> s+(x-mean)*(x-mean),0); const acf=[]; for(let k=1;k<=maxLag;k++){ let num=0; for(let i=0;i<n-k;i++){ num += (xs[i]-mean)*(xs[i+k]-mean); } acf.push(num/(varr||1)); } const yMin=Math.min(0, ...acf), yMax=Math.max(0, ...acf); const x=(i)=> padL + (i-1)/(maxLag-1)*(w-padL-padR); const y=(v)=> h-padB - (v-yMin)/(yMax-yMin+1e-9)*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const z=1.96/Math.sqrt(Math.max(1,n)); ctx.strokeStyle='#ef4444'; ctx.beginPath(); ctx.moveTo(padL, y(z)); ctx.lineTo(w-padR, y(z)); ctx.moveTo(padL, y(-z)); ctx.lineTo(w-padR, y(-z)); ctx.stroke(); for(let k=1;k<=maxLag;k++){ const xx=x(k); const hh=(acf[k-1]-0)/(yMax-yMin+1e-9)*(h-padT-padB); ctx.fillStyle='#2563eb'; const y0=y(0), yk=y(acf[k-1]); ctx.fillRect(xx-6, Math.min(y0,yk), 12, Math.abs(y0-yk)); __drawText(ctx, xx, h-6, String(k), 'center'); } }
-function drawRobust(canvas, complexity, robustness){ if(!canvas) {return;} const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 14, 'ComplexitÃ© & Robustesse (0â€“100)', 'center'); // grid
+function drawACF(canvas, arr, maxLag){ if(!canvas||!arr||arr.length<3) return; maxLag=Math.max(1, maxLag||10); const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, 'Autocorrélation (lags)', 'center'); const padL=30, padR=10, padT=18, padB=22; const xs=arr.slice().filter(Number.isFinite); const n=xs.length; const mean=xs.reduce((s,x)=>s+x,0)/n; const varr=xs.reduce((s,x)=> s+(x-mean)*(x-mean),0); const acf=[]; for(let k=1;k<=maxLag;k++){ let num=0; for(let i=0;i<n-k;i++){ num += (xs[i]-mean)*(xs[i+k]-mean); } acf.push(num/(varr||1)); } const yMin=Math.min(0, ...acf), yMax=Math.max(0, ...acf); const x=(i)=> padL + (i-1)/(maxLag-1)*(w-padL-padR); const y=(v)=> h-padB - (v-yMin)/(yMax-yMin+1e-9)*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const z=1.96/Math.sqrt(Math.max(1,n)); ctx.strokeStyle='#ef4444'; ctx.beginPath(); ctx.moveTo(padL, y(z)); ctx.lineTo(w-padR, y(z)); ctx.moveTo(padL, y(-z)); ctx.lineTo(w-padR, y(-z)); ctx.stroke(); for(let k=1;k<=maxLag;k++){ const xx=x(k); const hh=(acf[k-1]-0)/(yMax-yMin+1e-9)*(h-padT-padB); ctx.fillStyle='#2563eb'; const y0=y(0), yk=y(acf[k-1]); ctx.fillRect(xx-6, Math.min(y0,yk), 12, Math.abs(y0-yk)); __drawText(ctx, xx, h-6, String(k), 'center'); } }
+function drawRobust(canvas, complexity, robustness){ if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 14, 'Complexité & Robustesse (0–100)', 'center'); // grid
   ctx.strokeStyle=__clr().border; for(let g=0; g<=5; g++){ const x=220 + (w-240)*(g/5); ctx.beginPath(); ctx.moveTo(x, 24); ctx.lineTo(x, h-14); ctx.stroke(); __drawText(ctx, x, h-6, String(g*20)+'%', 'center'); }
-  const labels=['ComplexitÃ© (params actifs)','Robustesse (stabilitÃ©)']; const vals=[complexity, robustness]; for(let i=0;i<2;i++){ const y=40+i*40; ctx.fillStyle='#e5e7eb'; ctx.fillRect(220, y, w-240, 14); ctx.fillStyle=i===0?'#f59e0b':'#10b981'; ctx.fillRect(220, y, (w-240)*Math.max(0,Math.min(100, vals[i]))/100, 14); __drawText(ctx, 210, y+7, String(Math.round(vals[i]))+'%', 'right'); __drawText(ctx, 10, y+7, labels[i], 'left'); } }
+  const labels=['Complexité (params actifs)','Robustesse (stabilité)']; const vals=[complexity, robustness]; for(let i=0;i<2;i++){ const y=40+i*40; ctx.fillStyle='#e5e7eb'; ctx.fillRect(220, y, w-240, 14); ctx.fillStyle=i===0?'#f59e0b':'#10b981'; ctx.fillRect(220, y, (w-240)*Math.max(0,Math.min(100, vals[i]))/100, 14); __drawText(ctx, 210, y+7, String(Math.round(vals[i]))+'%', 'right'); __drawText(ctx, 10, y+7, labels[i], 'left'); } }
 
-// Aide: synthÃ¨se et suggestions automatiques
+// Aide: synthèse et suggestions automatiques
 function generateStrategySummary(res, ctx, d){ try{
   const pf = (res.profitFactor===Infinity? Infinity : (+res.profitFactor||0));
   const wr = +res.winrate||0; const rr = +res.avgRR||0; const dd = +res.maxDDAbs||0;
@@ -3357,59 +3356,59 @@ function generateStrategySummary(res, ctx, d){ try{
   const freq = Math.max(0, d && d.freq || 0);
   const gen = Math.max(1, ctx && ctx.gen || 1);
   const lines = [];
-  // SynthÃ¨se courte
-  lines.push(`â€¢ Profit Factor: ${pf===Infinity?'âˆž':pf.toFixed(2)}  â€¢ Win%: ${wr.toFixed(1)}%  â€¢ Avg R:R: ${Number.isFinite(rr)? rr.toFixed(2):'â€”'}`);
-  if(Number.isFinite(ddPct)) {lines.push(`â€¢ Max DD: ${dd.toFixed(0)} (${ddPct.toFixed(1)}% du capital initial)`);}
-  lines.push(`â€¢ Exposition: ${tim.toFixed(1)}%  â€¢ Trades/jour: ${freq.toFixed(2)}`);
-  if(d && typeof d.expectancy==='number') {lines.push(`â€¢ Expectancy/trade: ${d.expectancy.toFixed(2)} (USD)`);}
-  if(d && typeof d.avgDurMin==='number') {lines.push(`â€¢ DurÃ©e moyenne/trade: ${d.avgDurMin.toFixed(1)} min`);}
-  if(d && typeof d.bestNet==='number' && typeof d.worstNet==='number') {lines.push(`â€¢ Meilleur trade: ${d.bestNet.toFixed(2)}  â€¢ Pire trade: ${d.worstNet.toFixed(2)}`);}
-  if(d && Number.isFinite(d.r2)) {lines.push(`â€¢ LinÃ©aritÃ© equity (RÂ²): ${(d.r2*100).toFixed(0)}%`);}
-  // InterprÃ©tation
+  // Synthèse courte
+  lines.push(`• Profit Factor: ${pf===Infinity?'∞':pf.toFixed(2)}  • Win%: ${wr.toFixed(1)}%  • Avg R:R: ${Number.isFinite(rr)? rr.toFixed(2):'—'}`);
+  if(Number.isFinite(ddPct)) lines.push(`• Max DD: ${dd.toFixed(0)} (${ddPct.toFixed(1)}% du capital initial)`);
+  lines.push(`• Exposition: ${tim.toFixed(1)}%  • Trades/jour: ${freq.toFixed(2)}`);
+  if(d && typeof d.expectancy==='number') lines.push(`• Expectancy/trade: ${d.expectancy.toFixed(2)} (USD)`);
+  if(d && typeof d.avgDurMin==='number') lines.push(`• Durée moyenne/trade: ${d.avgDurMin.toFixed(1)} min`);
+  if(d && typeof d.bestNet==='number' && typeof d.worstNet==='number') lines.push(`• Meilleur trade: ${d.bestNet.toFixed(2)}  • Pire trade: ${d.worstNet.toFixed(2)}`);
+  if(d && Number.isFinite(d.r2)) lines.push(`• Linéarité equity (R²): ${(d.r2*100).toFixed(0)}%`);
+  // Interprétation
   const insights = [];
-  if(pf<1.2 && pf!==Infinity) {insights.push("rentabilitÃ© fragile (PF < 1.2)");}
-  if(wr<45) {insights.push("taux de rÃ©ussite bas (<45%)");}
-  if(Number.isFinite(rr) && rr<1.0) {insights.push("R:R moyen < 1 (cibles trop proches vs SL)");}
-  if(Number.isFinite(ddPct) && ddPct>20) {insights.push("drawdown Ã©levÃ© (>20% du capital)");}
-  if(tim>60) {insights.push("exposition importante au marchÃ© (>60%)");}
-  if(insights.length){ lines.push(`â€¢ Lecture: ${insights.join(' â€¢ ')}`); }
-  if(d && d.ci){ try{ const winCI = d.ci.win||[]; const pfCI=d.ci.pf||[]; const expCI=d.ci.exp||[]; lines.push(`â€¢ IC95: Win% [${(winCI[0]||0).toFixed(1)}â€“${(winCI[1]||0).toFixed(1)}]  PF [${(pfCI[0]||0).toFixed(2)}â€“${(pfCI[1]||0).toFixed(2)}]  Exp [${(expCI[0]||0).toFixed(2)}â€“${(expCI[1]||0).toFixed(2)}]`); }catch(_){ } }
-  // Points d'amÃ©lioration pour gen â‰¥ 2
+  if(pf<1.2 && pf!==Infinity) insights.push("rentabilité fragile (PF < 1.2)");
+  if(wr<45) insights.push("taux de réussite bas (<45%)");
+  if(Number.isFinite(rr) && rr<1.0) insights.push("R:R moyen < 1 (cibles trop proches vs SL)");
+  if(Number.isFinite(ddPct) && ddPct>20) insights.push("drawdown élevé (>20% du capital)");
+  if(tim>60) insights.push("exposition importante au marché (>60%)");
+  if(insights.length){ lines.push(`• Lecture: ${insights.join(' • ')}`); }
+  if(d && d.ci){ try{ const winCI = d.ci.win||[]; const pfCI=d.ci.pf||[]; const expCI=d.ci.exp||[]; lines.push(`• IC95: Win% [${(winCI[0]||0).toFixed(1)}–${(winCI[1]||0).toFixed(1)}]  PF [${(pfCI[0]||0).toFixed(2)}–${(pfCI[1]||0).toFixed(2)}]  Exp [${(expCI[0]||0).toFixed(2)}–${(expCI[1]||0).toFixed(2)}]`); }catch(_){ } }
+  // Points d'amélioration pour gen ≥ 2
   if(gen>=2){
     const imp = [];
-    if(wr<45) {imp.push("Renforcer la confirmation d'entrÃ©e (mode: Bounce/Touch), ou augmenter prd/NOL pour filtrer le bruit");}
-    if(pf<1.3) {imp.push("RÃ©Ã©quilibrer l'Ã©chelle de TP (plus de distance/poids sur TP ultÃ©rieurs) et rÃ©duire le nombre de trades");}
-    if(Number.isFinite(rr) && rr<1.0) {imp.push("Augmenter tp1R / ratios Fib, ou rapprocher le SL initial pour amÃ©liorer le R:R");}
-    if(Number.isFinite(ddPct) && ddPct>20) {imp.push("Activer/renforcer BE (beAfterBars, beLockPct) et envisager SL ladder plus strict");}
-    if(tim>60) {imp.push("RÃ©duire l'exposition (prdâ†‘, NOLâ†‘) pour limiter le temps en position");}
-    if(!imp.length) {imp.push("Affiner lÃ©gÃ¨rement TP/SL et confirmer sur 2â€“3 splits temporels");}
-    lines.push("\nPoints d'amÃ©lioration (gÃ©nÃ©ration â‰¥ 2):\n- " + imp.join("\n- "));
+    if(wr<45) imp.push("Renforcer la confirmation d'entrée (mode: Bounce/Touch), ou augmenter prd/NOL pour filtrer le bruit");
+    if(pf<1.3) imp.push("Rééquilibrer l'échelle de TP (plus de distance/poids sur TP ultérieurs) et réduire le nombre de trades");
+    if(Number.isFinite(rr) && rr<1.0) imp.push("Augmenter tp1R / ratios Fib, ou rapprocher le SL initial pour améliorer le R:R");
+    if(Number.isFinite(ddPct) && ddPct>20) imp.push("Activer/renforcer BE (beAfterBars, beLockPct) et envisager SL ladder plus strict");
+    if(tim>60) imp.push("Réduire l'exposition (prd↑, NOL↑) pour limiter le temps en position");
+    if(!imp.length) imp.push("Affiner légèrement TP/SL et confirmer sur 2–3 splits temporels");
+    lines.push("\nPoints d'amélioration (génération ≥ 2):\n- " + imp.join("\n- "));
   }
   return lines.join("\n");
-}catch(_){ return 'â€”'; }}
+}catch(_){ return '—'; }}
 
-// Description dÃ©taillÃ©e des paramÃ¨tres de stratÃ©gie (structure, entrÃ©es, TP/SL, capital)
+// Description détaillée des paramètres de stratégie (structure, entrées, TP/SL, capital)
 function describeStrategyParams(p, conf){ try{
   p = p || {}; conf = conf || {};
   const parts = [];
-  const nol = (p.nol!=null? p.nol : 'â€”');
-  const prd = (p.prd!=null? p.prd : 'â€”');
-  const slInit = (p.slInitPct!=null? p.slInitPct : (window.lbcOpts && lbcOpts.slInitPct!=null? lbcOpts.slInitPct : 'â€”'));
-  const beBars = (p.beAfterBars!=null? p.beAfterBars : (window.lbcOpts && lbcOpts.beAfterBars!=null? lbcOpts.beAfterBars : 'â€”'));
-  const beLock = (p.beLockPct!=null? p.beLockPct : (window.lbcOpts && lbcOpts.beLockPct!=null? lbcOpts.beLockPct : 'â€”'));
-  const emaLen = (p.emaLen!=null? p.emaLen : (window.lbcOpts && lbcOpts.emaLen!=null? lbcOpts.emaLen : 'â€”'));
-  parts.push(`Structure: nol=${nol} â€¢ prd=${prd} â€¢ SL init=${slInit}% â€¢ BE=${beBars}/${beLock}% â€¢ EMA=${emaLen}`);
+  const nol = (p.nol!=null? p.nol : '—');
+  const prd = (p.prd!=null? p.prd : '—');
+  const slInit = (p.slInitPct!=null? p.slInitPct : (window.lbcOpts && lbcOpts.slInitPct!=null? lbcOpts.slInitPct : '—'));
+  const beBars = (p.beAfterBars!=null? p.beAfterBars : (window.lbcOpts && lbcOpts.beAfterBars!=null? lbcOpts.beAfterBars : '—'));
+  const beLock = (p.beLockPct!=null? p.beLockPct : (window.lbcOpts && lbcOpts.beLockPct!=null? lbcOpts.beLockPct : '—'));
+  const emaLen = (p.emaLen!=null? p.emaLen : (window.lbcOpts && lbcOpts.emaLen!=null? lbcOpts.emaLen : '—'));
+  parts.push(`Structure: nol=${nol} • prd=${prd} • SL init=${slInit}% • BE=${beBars}/${beLock}% • EMA=${emaLen}`);
 
   const mode = p.entryMode || (window.lbcOpts && lbcOpts.entryMode) || 'Both';
   const fibRet = p.useFibRet ? 'Oui' : 'Non';
-  const confirm = p.confirmMode || (window.lbcOpts && lbcOpts.confirmMode) || 'â€”';
+  const confirm = p.confirmMode || (window.lbcOpts && lbcOpts.confirmMode) || '—';
   const ents = [];
-  if(p.ent382 || (window.lbcOpts && lbcOpts.ent382)) {ents.push('382');}
-  if(p.ent500 || (window.lbcOpts && lbcOpts.ent500)) {ents.push('500');}
-  if(p.ent618 || (window.lbcOpts && lbcOpts.ent618)) {ents.push('618');}
-  if(p.ent786 || (window.lbcOpts && lbcOpts.ent786)) {ents.push('786');}
-  const entStr = ents.length? ents.join('/') : 'â€”';
-  parts.push(`EntrÃ©e: mode=${mode} â€¢ FibRet=${fibRet} â€¢ Confirm=${confirm} â€¢ Ent=${entStr}`);
+  if(p.ent382 || (window.lbcOpts && lbcOpts.ent382)) ents.push('382');
+  if(p.ent500 || (window.lbcOpts && lbcOpts.ent500)) ents.push('500');
+  if(p.ent618 || (window.lbcOpts && lbcOpts.ent618)) ents.push('618');
+  if(p.ent786 || (window.lbcOpts && lbcOpts.ent786)) ents.push('786');
+  const entStr = ents.length? ents.join('/') : '—';
+  parts.push(`Entrée: mode=${mode} • FibRet=${fibRet} • Confirm=${confirm} • Ent=${entStr}`);
 
   const tpArr = Array.isArray(p.tp)? p.tp : [];
   const tpEnable = (typeof p.tpEnable==='boolean')? p.tpEnable : !!(window.lbcOpts && lbcOpts.tpEnable);
@@ -3433,41 +3432,41 @@ function describeStrategyParams(p, conf){ try{
         lvl = `EMA${len}`;
       }
       const inner=[];
-      if(tp.beOn) {inner.push('BE');}
+      if(tp.beOn) inner.push('BE');
       if(tp.trail && tp.trail.mode){
         const m = tp.trail.mode;
-        if(m==='be') {inner.push('Trail:BE');}
-        else if(m==='prev') {inner.push('Trail:Prev');}
-        else if(m==='ema') {inner.push(`Trail:EMA${tp.trail.emaLen!=null? tp.trail.emaLen : emaLen}`);}
-        else if(m==='percent') {inner.push(`Trail:${tp.trail.pct!=null? tp.trail.pct:0}%`);}
+        if(m==='be') inner.push('Trail:BE');
+        else if(m==='prev') inner.push('Trail:Prev');
+        else if(m==='ema') inner.push(`Trail:EMA${tp.trail.emaLen!=null? tp.trail.emaLen : emaLen}`);
+        else if(m==='percent') inner.push(`Trail:${tp.trail.pct!=null? tp.trail.pct:0}%`);
       }
       if(tp.sl){
         let slDesc=null;
         const s=tp.sl;
-        if(s.type==='Fib') {slDesc = `F${s.fib!=null? s.fib:s.value}`;}
-        else if(s.type==='Percent') {slDesc = `${s.pct!=null? s.pct:s.value}%`;}
-        else if(s.type==='EMA') {slDesc = `EMA${s.emaLen!=null? s.emaLen:emaLen}`;}
+        if(s.type==='Fib') slDesc = `F${s.fib!=null? s.fib:s.value}`;
+        else if(s.type==='Percent') slDesc = `${s.pct!=null? s.pct:s.value}%`;
+        else if(s.type==='EMA') slDesc = `EMA${s.emaLen!=null? s.emaLen:emaLen}`;
         if(s.trail && s.trail.mode){
           const m2=s.trail.mode;
           let tStr=m2;
-          if(m2==='ema') {tStr = `EMA${s.trail.emaLen!=null? s.trail.emaLen:emaLen}`;}
-          else if(m2==='percent') {tStr = `${s.trail.pct!=null? s.trail.pct:0}%`;}
+          if(m2==='ema') tStr = `EMA${s.trail.emaLen!=null? s.trail.emaLen:emaLen}`;
+          else if(m2==='percent') tStr = `${s.trail.pct!=null? s.trail.pct:0}%`;
           slDesc = slDesc? `${slDesc}, SLTr:${tStr}` : `SLTr:${tStr}`;
         }
-        if(slDesc) {inner.push(`SL:${slDesc}`);}
+        if(slDesc) inner.push(`SL:${slDesc}`);
       }
       let alloc=null;
       if(tp.qty!=null){ const a = (tp.qty>1? tp.qty : tp.qty*100); alloc = `${a.toFixed(a>=1?0:1)}%`; }
-      if(alloc) {caps.push(alloc);}
+      if(alloc) caps.push(alloc);
       const seg = [`TP${n}=${lvl}`];
-      if(inner.length) {seg.push(`(${inner.join(', ')})`);}
-      if(alloc) {seg.push(`{${alloc}}`);}
+      if(inner.length) seg.push(`(${inner.join(', ')})`);
+      if(alloc) seg.push(`{${alloc}}`);
       lines.push(seg.join(' '));
     }
     parts.push('TP ladder: '+lines.join(' ; '));
-    if(caps.length) {parts.push('Cap/TP: '+caps.join(' / '));}
+    if(caps.length) parts.push('Cap/TP: '+caps.join(' / '));
   } else {
-    parts.push('TP: standard 1R (aucune ladder avancÃ©e dÃ©finie)');
+    parts.push('TP: standard 1R (aucune ladder avancée définie)');
   }
 
   const slArr = Array.isArray(p.sl)? p.sl : [];
@@ -3475,49 +3474,49 @@ function describeStrategyParams(p, conf){ try{
   if(slEnable && slArr.length){
     const descList=[];
     for(const s of slArr){
-      if(!s) {continue;}
-      if(s.type==='Fib') {descList.push(`F:${s.fib!=null? s.fib:s.value}`);}
-      else if(s.type==='Percent') {descList.push(`${s.pct!=null? s.pct:s.value}%`);}
-      else if(s.type==='EMA') {descList.push(`EMA${s.emaLen!=null? s.emaLen:emaLen}`);}
+      if(!s) continue;
+      if(s.type==='Fib') descList.push(`F:${s.fib!=null? s.fib:s.value}`);
+      else if(s.type==='Percent') descList.push(`${s.pct!=null? s.pct:s.value}%`);
+      else if(s.type==='EMA') descList.push(`EMA${s.emaLen!=null? s.emaLen:emaLen}`);
     }
-    if(descList.length) {parts.push('SL ladder: '+descList.join(' â€¢ '));}
+    if(descList.length) parts.push('SL ladder: '+descList.join(' • '));
   }
 
   const maxPct = (p.maxPct!=null? p.maxPct : (conf.maxPct!=null? conf.maxPct : null));
   if(maxPct!=null){
-    parts.push(`Risque: Max â‰ˆ ${Number(maxPct).toFixed(2)}% du capital par trade`);
+    parts.push(`Risque: Max ≈ ${Number(maxPct).toFixed(2)}% du capital par trade`);
   }
 
-  parts.push(`Options: Compound=${tpCompound?'On':'Off'} â€¢ CloseAllLast=${tpCloseAllLast?'On':'Off'}`);
+  parts.push(`Options: Compound=${tpCompound?'On':'Off'} • CloseAllLast=${tpCloseAllLast?'On':'Off'}`);
   return parts.join("\n");
-}catch(_){ return 'â€”'; }}
+}catch(_){ return '—'; }}
 
-// Lab detail: dernier contexte principal (stratÃ©gie cliquÃ©e) et configuration de comparaison
+// Lab detail: dernier contexte principal (stratégie cliquée) et configuration de comparaison
 let __detailLastMain = null;
 let __detailCompareCfg = null; // { mode:'heaven' } ou { mode:'palmares', params, label }
 let __detailCompPalmaresList = [];
-let __detailLastCmp = null; // dernier rÃ©sultat de stratÃ©gie comparÃ©e (Heaven/PalmarÃ¨s)
-let __detailBestBySymbol = {}; // cache: meilleure stratÃ©gie de comparaison par paire
+let __detailLastCmp = null; // dernier résultat de stratégie comparée (Heaven/Palmarès)
+let __detailBestBySymbol = {}; // cache: meilleure stratégie de comparaison par paire
 
 async function computeDefaultDetailCompareCfgForSymbol(sym){
   try{
     sym = sym || currentSymbol;
   }catch(_){ }
-  if(!sym) {return { mode:'heaven' };}
+  if(!sym) return { mode:'heaven' };
   try{
     if(__detailBestBySymbol && __detailBestBySymbol[sym]){
       return __detailBestBySymbol[sym];
     }
   }catch(_){ }
   let best = null;
-  // Liste de TF utilisÃ©e dans le Lab
+  // Liste de TF utilisée dans le Lab
   let tfs = [];
   try{
     const sel = labTFSelect || document.getElementById('labTFSelect');
     if(sel && sel.options && sel.options.length){
       for(let i=0;i<sel.options.length;i++){
         const v = sel.options[i].value;
-        if(v) {tfs.push(v);}
+        if(v) tfs.push(v);
       }
     }
   }catch(_){ }
@@ -3528,21 +3527,21 @@ async function computeDefaultDetailCompareCfgForSymbol(sym){
   if(hasSupa){
     const profiles = ['sure','balancee','agressive'];
     const wCache = {};
-    const wFor = (prof)=>{ if(!wCache[prof]) {wCache[prof] = getWeights(prof);} return wCache[prof]; };
+    const wFor = (prof)=>{ if(!wCache[prof]) wCache[prof] = getWeights(prof); return wCache[prof]; };
     for(const tf of tfs){
       for(const prof of profiles){
         let arr = [];
         try{ arr = await SUPA.fetchPalmares(sym, tf, 50, prof); }catch(_){ arr = []; }
-        if(!Array.isArray(arr) || !arr.length) {continue;}
+        if(!Array.isArray(arr) || !arr.length) continue;
         const w = wFor(prof);
         for(const it of arr){
-          if(!it || !it.params) {continue;}
+          if(!it || !it.params) continue;
           const st = it.res || {};
-          const sc = Number.isFinite(it.score) ? Number(it.score) : scoreResult(st, w);
-          if(!Number.isFinite(sc)) {continue;}
+          let sc = Number.isFinite(it.score) ? Number(it.score) : scoreResult(st, w);
+          if(!Number.isFinite(sc)) continue;
           if(!best || sc > best.score){
-            const labelBase = it.name || `PalmarÃ¨s ${symbolToDisplay(sym)} â€¢ ${tf}`;
-            const label = `${labelBase} â€¢ ${prof}`;
+            const labelBase = it.name || `Palmarès ${symbolToDisplay(sym)} • ${tf}`;
+            const label = `${labelBase} • ${prof}`;
             best = { score: sc, params: it.params, label, tf, profile: prof };
           }
         }
@@ -3555,14 +3554,14 @@ async function computeDefaultDetailCompareCfgForSymbol(sym){
     for(const tf of tfs){
       let arr = [];
       try{ arr = readPalmares(sym, tf) || []; }catch(_){ arr = []; }
-      if(!Array.isArray(arr) || !arr.length) {continue;}
+      if(!Array.isArray(arr) || !arr.length) continue;
       for(const it of arr){
-        if(!it || !it.params) {continue;}
+        if(!it || !it.params) continue;
         const st = it.res || {};
-        const sc = Number.isFinite(it.score) ? Number(it.score) : scoreResult(st, w);
-        if(!Number.isFinite(sc)) {continue;}
+        let sc = Number.isFinite(it.score) ? Number(it.score) : scoreResult(st, w);
+        if(!Number.isFinite(sc)) continue;
         if(!best || sc > best.score){
-          const label = it.name || `PalmarÃ¨s ${symbolToDisplay(sym)} â€¢ ${tf}`;
+          const label = it.name || `Palmarès ${symbolToDisplay(sym)} • ${tf}`;
           best = { score: sc, params: it.params, label, tf, profile: prof };
         }
       }
@@ -3575,7 +3574,7 @@ async function computeDefaultDetailCompareCfgForSymbol(sym){
     cfg = { mode:'heaven' };
   }
   try{
-    if(!__detailBestBySymbol) {__detailBestBySymbol = {};}
+    if(!__detailBestBySymbol) __detailBestBySymbol = {};
     __detailBestBySymbol[sym] = cfg;
   }catch(_){ }
   return cfg;
@@ -3587,28 +3586,28 @@ function setupDetailConfigUI(){
     const feeEl=document.getElementById('detailFee');
     const levEl=document.getElementById('detailLev');
     const applyEl=document.getElementById('detailConfApply');
-    if(!capEl || !feeEl || !levEl) {return;}
+    if(!capEl || !feeEl || !levEl) return;
     const ctxMain = __detailLastMain && __detailLastMain.ctx;
     const conf = (ctxMain && ctxMain.conf) || {};
     const labCapEl=document.getElementById('labStartCap');
     const labFeeEl=document.getElementById('labFee');
     const labLevEl=document.getElementById('labLev');
-    // Toujours rafraÃ®chir les valeurs Ã  partir du contexte courant
+    // Toujours rafraîchir les valeurs à partir du contexte courant
     const startCapVal = (conf.startCap!=null? conf.startCap : (labCapEl && labCapEl.value) || 10000);
     const feeVal = (conf.fee!=null? conf.fee : (labFeeEl && labFeeEl.value) || 0.1);
     const levVal = (conf.lev!=null? conf.lev : (labLevEl && labLevEl.value) || 1);
     capEl.value = String(startCapVal);
     feeEl.value = String(feeVal);
     levEl.value = String(levVal);
-    // Ne cÃ¢bler le bouton qu'une seule fois, mais rÃ©utiliser __detailLastMain Ã  chaque clic
+    // Ne câbler le bouton qu'une seule fois, mais réutiliser __detailLastMain à chaque clic
     if(applyEl && (!applyEl.dataset || applyEl.dataset.wired!=='1')){
       applyEl.addEventListener('click', ()=>{
         try{
-          if(!__detailLastMain || !__detailLastMain.ctx) {return;}
+          if(!__detailLastMain || !__detailLastMain.ctx) return;
           const item = __detailLastMain.item;
           const ctx = __detailLastMain.ctx;
           const bars = ctx.bars||[];
-          if(!bars.length) {return;}
+          if(!bars.length) return;
           const sIdx = ctx.sIdx|0, eIdx = ctx.eIdx|0;
           const p = ctx.params || (item && (item.params||item.p)) || {};
           const startCap = Math.max(0, parseFloat(capEl.value||'0'));
@@ -3622,13 +3621,13 @@ function setupDetailConfigUI(){
           try{ setupDetailTradesUI(); }catch(_){ }
         }catch(_){ }
       });
-      if(!applyEl.dataset) {applyEl.dataset={};}
+      if(!applyEl.dataset) applyEl.dataset={};
       applyEl.dataset.wired='1';
     }
   }catch(_){ }
 }
 
-// Nouveau flux: popâ€‘up simple via showStrategyResult (mÃ©triques & trades)
+// Nouveau flux: pop‑up simple via showStrategyResult (métriques & trades)
 async function openLabStrategyDetail(item, ctx){ try{
   const sym=ctx.symbol, tf=ctx.tf; const p=item.params||item.p||{};
   const conf=readLabRiskConf();
@@ -3638,7 +3637,7 @@ async function openLabStrategyDetail(item, ctx){ try{
       const mode=(modeEl&&modeEl.value)||'auto';
       const mp=Number(conf.maxPct)||0;
       const mpStr=Number.isFinite(mp)? mp.toFixed(2): String(mp);
-      const modeStr = (mode==='fixed') ? `${mpStr}% (fixe)` : 'Auto (algo, plafond 100% du capital de rÃ©fÃ©rence)';
+      const modeStr = (mode==='fixed') ? `${mpStr}% (fixe)` : 'Auto (algo, plafond 100% du capital de référence)';
       addBtLog(`[detail] Contexte risque: startCap=${conf.startCap}, frais=${conf.fee}%, levier=${conf.lev}x, Max % par trade: ${modeStr}`);
     }
   }catch(_){ }
@@ -3646,70 +3645,70 @@ async function openLabStrategyDetail(item, ctx){ try{
   try{
     openBtProgress(t('detail.progress'));
     try{
-      if(typeof addBtLog==='function') {addBtLog(`[detail] Analyse de "${item && item.name ? item.name : 'stratÃ©gie'}" sur ${symbolToDisplay(sym)} @ ${tf}`);}
+      if(typeof addBtLog==='function') addBtLog(`[detail] Analyse de "${item && item.name ? item.name : 'stratégie'}" sur ${symbolToDisplay(sym)} @ ${tf}`);
     }catch(_){ }
     try{
-      if(btProgText) {btProgText.textContent = t('bt.progress.initShort');}
-      if(btProgNote) {btProgNote.textContent = `SÃ©lection des bougies pour ${symbolToDisplay(sym)} â€¢ ${tf} (chart courant, cache mÃ©moire ou API REST)...`;}
+      if(btProgText) btProgText.textContent = t('bt.progress.initShort');
+      if(btProgNote) btProgNote.textContent = `Sélection des bougies pour ${symbolToDisplay(sym)} • ${tf} (chart courant, cache mémoire ou API REST)...`;
     }catch(_){ }
   }catch(_){ }
-  // Charger les donnÃ©es (toujours pleine pÃ©riode pour le dÃ©tail)
+  // Charger les données (toujours pleine période pour le détail)
   let bars=null;
   let srcLabel='';
   if(sym===currentSymbol && tf===currentInterval){
     bars = __baseAfterCutoff();
     srcLabel = 'chart courant';
     try{
-      if(btProgNote) {btProgNote.textContent = `DonnÃ©es trouvÃ©es sur le chart courant â€” ${bars.length} bougies`;}
+      if(btProgNote) btProgNote.textContent = `Données trouvées sur le chart courant — ${bars.length} bougies`;
     }catch(_){ }
   }
   if((!bars || !bars.length) && !srcLabel){
     const mem = loadMemSeries(sym, tf);
     if(mem && Array.isArray(mem.bars) && mem.bars.length){
       bars = mem.bars;
-      srcLabel = 'cache mÃ©moire';
+      srcLabel = 'cache mémoire';
       try{
-        if(btProgNote) {btProgNote.textContent = `DonnÃ©es rechargÃ©es depuis le cache mÃ©moire â€” ${bars.length} bougies`;}
+        if(btProgNote) btProgNote.textContent = `Données rechargées depuis le cache mémoire — ${bars.length} bougies`;
       }catch(_){ }
     }
   }
   if(!bars || !bars.length){
     srcLabel = srcLabel || 'API REST';
     try{
-      if(btProgText) {btProgText.textContent = t('status.loading');}
-      if(btProgNote) {btProgNote.textContent = `Pas de donnÃ©es locales pour ${symbolToDisplay(sym)} â€¢ ${tf} â€” chargement complet des bougies depuis l'API REST (peut prendre quelques secondes)...`;}
+      if(btProgText) btProgText.textContent = t('status.loading');
+      if(btProgNote) btProgNote.textContent = `Pas de données locales pour ${symbolToDisplay(sym)} • ${tf} — chargement complet des bougies depuis l'API REST (peut prendre quelques secondes)...`;
     }catch(_){ }
     try{
-      // Utiliser un plafond de sÃ©curitÃ© pour Ã©viter des tÃ©lÃ©chargements Ã©normes (ex: 1m sur plusieurs annÃ©es)
+      // Utiliser un plafond de sécurité pour éviter des téléchargements énormes (ex: 1m sur plusieurs années)
       bars = await fetchAllKlines(sym, tf, REMOTE_MAX_BARS);
       try{ saveMemSeries(sym, tf, bars, bars.length); }catch(_){ }
     }catch(_){ bars = []; }
   }
   if(!bars || !bars.length){
     bars = candles||[];
-    if(!srcLabel) {srcLabel='bougies visibles';}
+    if(!srcLabel) srcLabel='bougies visibles';
   }
   try{
     const n = Array.isArray(bars)? bars.length:0;
-    const msg = `[detail] Source donnÃ©es: ${srcLabel||'inconnue'} â€” ${n} bougies`;
-    if(typeof addBtLog==='function') {addBtLog(msg);}
-    if(btProgNote) {btProgNote.textContent = `DonnÃ©es: ${srcLabel||'â€”'} â€” ${n} bougies`;}
+    const msg = `[detail] Source données: ${srcLabel||'inconnue'} — ${n} bougies`;
+    if(typeof addBtLog==='function') addBtLog(msg);
+    if(btProgNote) btProgNote.textContent = `Données: ${srcLabel||'—'} — ${n} bougies`;
   }catch(_){ }
-  // PÃ©riode complÃ¨te
-  const from=null, to=null;
-  const [sIdx,eIdx]=(()=>{ const s=0,e=bars.length-1; return [s,e]; })();
+  // Période complète
+  let from=null, to=null;
+  const [sIdx,eIdx]=(()=>{ let s=0,e=bars.length-1; return [s,e]; })();
   try{
-    if(btProgText) {btProgText.textContent = t('bt.progress.title');}
-    if(btProgNote) {btProgNote.textContent = `Simulation sur ${bars.length} bougies (source: ${srcLabel||'inconnue'})...`;}
+    if(btProgText) btProgText.textContent = t('bt.progress.title');
+    if(btProgNote) btProgNote.textContent = `Simulation sur ${bars.length} bougies (source: ${srcLabel||'inconnue'})...`;
   }catch(_){ }
   const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, p, true);
   try{ closeBtProgress(); }catch(_){ }
-  // Ouvre la nouvelle fenÃªtre de DÃ©tail et rend l'analyse complÃ¨te; fallback sur l'ancienne modale si besoin
+  // Ouvre la nouvelle fenêtre de Détail et rend l'analyse complète; fallback sur l'ancienne modale si besoin
   try{
-    if(detailCtxEl){ detailCtxEl.textContent = `${symbolToDisplay(sym)} â€¢ ${tf} â€” Analyse en cours...`; }
+    if(detailCtxEl){ detailCtxEl.textContent = `${symbolToDisplay(sym)} • ${tf} — Analyse en cours...`; }
     openModalEl(detailModalEl);
     try{ ensureFloatingModal(detailModalEl, 'detail', { left: 60, top: 60, width: 1000, height: 660, zIndex: bumpZ() }); }catch(_){ }
-    const ctxFull = { symbol: sym, tf, name: (item && item.name) || 'StratÃ©gie', conf, bars, sIdx, eIdx, params: p, gen: (item && item.gen) ? item.gen : 1 };
+    const ctxFull = { symbol: sym, tf, name: (item && item.name) || 'Stratégie', conf, bars, sIdx, eIdx, params: p, gen: (item && item.gen) ? item.gen : 1 };
     __detailLastMain = { item, ctx: ctxFull, res };
     if(!__detailCompareCfg){
       __detailCompareCfg = await computeDefaultDetailCompareCfgForSymbol(sym);
@@ -3719,28 +3718,28 @@ async function openLabStrategyDetail(item, ctx){ try{
     try{ setupDetailCompareUI(); }catch(_){ }
     try{ setupDetailTradesUI(); }catch(_){ }
   }catch(__err){
-    // Fallback: modales RÃ©sultats+Trades existantes
+    // Fallback: modales Résultats+Trades existantes
     try{ showStrategyResult(res, { symbol: sym, tf, startCap: conf.startCap }); }catch(__){ }
   }
-}catch(e){ try{ closeBtProgress(); }catch(_){ } setStatus('Erreur dÃ©tail'); try{ addLabLog && addLabLog('Erreur dÃ©tail: '+(e&&e.message?e.message:e)); }catch(__){} }}
+}catch(e){ try{ closeBtProgress(); }catch(_){ } setStatus('Erreur détail'); try{ addLabLog && addLabLog('Erreur détail: '+(e&&e.message?e.message:e)); }catch(__){} }}
 
-// Met Ã  jour complÃ¨tement le dÃ©tail en relanÃ§ant le rendu avec la configuration de comparaison courante
+// Met à jour complètement le détail en relançant le rendu avec la configuration de comparaison courante
 function refreshStrategyDetailComparator(){ try{
-  if(!__detailLastMain || !__detailLastMain.ctx || !__detailLastMain.res) {return;}
+  if(!__detailLastMain || !__detailLastMain.ctx || !__detailLastMain.res) return;
   renderStrategyDetailIntoModal(__detailLastMain.res, __detailLastMain.ctx, __detailCompareCfg||{mode:'heaven'});
   try{ setupDetailTradesUI(); }catch(_){ }
 }catch(_){ } }
 
-// UI de configuration de la stratÃ©gie comparÃ©e
+// UI de configuration de la stratégie comparée
 async function populateDetailCompPalmares(){
   try{
     const srcSel=document.getElementById('detailCompSource');
-    if(!srcSel || srcSel.value!=='palmares') {return;}
+    if(!srcSel || srcSel.value!=='palmares') return;
     const symSel=document.getElementById('detailCompSymbol');
     const tfSel=document.getElementById('detailCompTF');
     const profSel=document.getElementById('detailCompProfile');
     const listSel=document.getElementById('detailCompPalmares');
-    if(!symSel || !tfSel || !profSel || !listSel) {return;}
+    if(!symSel || !tfSel || !profSel || !listSel) return;
     const sym = symSel.value || __detailLastMain?.ctx?.symbol || currentSymbol;
     const tf = tfSel.value || __detailLastMain?.ctx?.tf || currentInterval;
     const prof = profSel.value || localStorage.getItem('labWeightsProfile') || 'balancee';
@@ -3752,23 +3751,23 @@ async function populateDetailCompPalmares(){
     }
     __detailCompPalmaresList = Array.isArray(pal)? pal.slice(): [];
     const w=getWeights(prof||'balancee');
-    const opts = ['<option value="">â€”</option>'];
+    const opts = ['<option value="">—</option>'];
     let idx=0;
     for(const it of __detailCompPalmaresList){
       const st=it.res||{};
-      const sc = Number.isFinite(it.score)? it.score.toFixed(2) : (st ? (function(){ try{ return scoreResult(st, w).toFixed(2);}catch(_){ return 'â€”'; } })() : 'â€”');
-      const nm = it.name || `PalmarÃ¨s #${idx+1}`;
-      opts.push(`<option value="${idx}">${nm} â€” ${sc}</option>`);
+      const sc = Number.isFinite(it.score)? it.score.toFixed(2) : (st ? (function(){ try{ return scoreResult(st, w).toFixed(2);}catch(_){ return '—'; } })() : '—');
+      const nm = it.name || `Palmarès #${idx+1}`;
+      opts.push(`<option value="${idx}">${nm} — ${sc}</option>`);
       idx++;
     }
     listSel.innerHTML = opts.join('');
-    // SÃ©lectionner automatiquement la stratÃ©gie utilisÃ©e comme comparaison par dÃ©faut, si possible
+    // Sélectionner automatiquement la stratégie utilisée comme comparaison par défaut, si possible
     try{
       if(__detailCompareCfg && __detailCompareCfg.mode==='palmares' && __detailCompareCfg.params){
         const targetKey = paramsKey(__detailCompareCfg.params);
         for(let i=0;i<__detailCompPalmaresList.length;i++){
           const it = __detailCompPalmaresList[i];
-          if(!it || !it.params) {continue;}
+          if(!it || !it.params) continue;
           if(paramsKey(it.params) === targetKey){
             listSel.value = String(i);
             break;
@@ -3787,59 +3786,59 @@ function setupDetailCompareUI(){
     const profSel=document.getElementById('detailCompProfile');
     const listSel=document.getElementById('detailCompPalmares');
     const applyBtn=document.getElementById('detailCompApply');
-    if(!srcSel) {return;}
+    if(!srcSel) return;
     const alreadyWired = !!(srcSel.dataset && srcSel.dataset.wired==='1');
-    // Restaurer/mettre Ã  jour la source + mÃ©ta (pair/TF/profil) Ã  partir de la config courante
+    // Restaurer/mettre à jour la source + méta (pair/TF/profil) à partir de la config courante
     let cmpMode = 'heaven';
     let cmpSym = __detailLastMain?.ctx?.symbol || (symbolSelect && symbolSelect.value) || '';
     let cmpTf = __detailLastMain?.ctx?.tf || currentInterval || '1h';
     let cmpProf = null;
     try{
       if(__detailCompareCfg){
-        if(__detailCompareCfg.mode) {cmpMode = __detailCompareCfg.mode;}
-        if(__detailCompareCfg.symbol) {cmpSym = __detailCompareCfg.symbol;}
-        if(__detailCompareCfg.tf) {cmpTf = __detailCompareCfg.tf;}
-        if(__detailCompareCfg.profile) {cmpProf = __detailCompareCfg.profile;}
+        if(__detailCompareCfg.mode) cmpMode = __detailCompareCfg.mode;
+        if(__detailCompareCfg.symbol) cmpSym = __detailCompareCfg.symbol;
+        if(__detailCompareCfg.tf) cmpTf = __detailCompareCfg.tf;
+        if(__detailCompareCfg.profile) cmpProf = __detailCompareCfg.profile;
       }
     }catch(_){ }
     try{ srcSel.value = cmpMode; }catch(_){ }
-    // Peupler les paires Ã  partir de la liste principale du chart (toujours rafraÃ®chi selon le contexte courant)
+    // Peupler les paires à partir de la liste principale du chart (toujours rafraîchi selon le contexte courant)
     try{
       if(symSel && symbolSelect && symbolSelect.innerHTML){
         symSel.innerHTML = symbolSelect.innerHTML;
         symSel.value = cmpSym || (__detailLastMain?.ctx?.symbol || (symbolSelect && symbolSelect.value) || '');
       }
     }catch(_){ }
-    // TF par dÃ©faut = TF du dÃ©tail ou TF de la stratÃ©gie comparÃ©e
+    // TF par défaut = TF du détail ou TF de la stratégie comparée
     try{
       if(tfSel){ tfSel.value = cmpTf || (__detailLastMain?.ctx?.tf || currentInterval || '1h'); }
     }catch(_){ }
-    // Profil par dÃ©faut: profil de la stratÃ©gie comparÃ©e ou mÃªme que Heaven/Lab
+    // Profil par défaut: profil de la stratégie comparée ou même que Heaven/Lab
     try{
       const prefBase = localStorage.getItem('heaven:profile') || localStorage.getItem('labWeightsProfile') || 'balancee';
       const profVal = cmpProf || prefBase;
       if(profSel){ profSel.value = profVal; }
     }catch(_){ }
-    // Source: Heaven ou PalmarÃ¨s
+    // Source: Heaven ou Palmarès
     const syncVisibility = ()=>{
       const mode = srcSel.value||'heaven';
       const disabled = (mode!=='palmares');
-      if(listSel) {listSel.disabled = disabled;}
-      if(symSel) {symSel.disabled = disabled;}
-      if(tfSel) {tfSel.disabled = disabled;}
-      if(profSel) {profSel.disabled = disabled;}
+      if(listSel) listSel.disabled = disabled;
+      if(symSel) symSel.disabled = disabled;
+      if(tfSel) tfSel.disabled = disabled;
+      if(profSel) profSel.disabled = disabled;
     };
     if(!alreadyWired){
       srcSel.addEventListener('change', ()=>{
         syncVisibility();
-        // Quand on passe en mode PalmarÃ¨s, charger immÃ©diatement la liste
+        // Quand on passe en mode Palmarès, charger immédiatement la liste
         if(srcSel.value==='palmares'){ populateDetailCompPalmares(); }
       });
-      // RafraÃ®chir la liste PalmarÃ¨s quand pair/TF/profil changent
+      // Rafraîchir la liste Palmarès quand pair/TF/profil changent
       const triggerPalmares = ()=>{ populateDetailCompPalmares(); };
-      if(symSel) {symSel.addEventListener('change', triggerPalmares);}
-      if(tfSel) {tfSel.addEventListener('change', triggerPalmares);}
-      if(profSel) {profSel.addEventListener('change', triggerPalmares);}
+      if(symSel) symSel.addEventListener('change', triggerPalmares);
+      if(tfSel) tfSel.addEventListener('change', triggerPalmares);
+      if(profSel) profSel.addEventListener('change', triggerPalmares);
       // Bouton Appliquer
       if(applyBtn){
         applyBtn.addEventListener('click', ()=>{
@@ -3850,14 +3849,14 @@ function setupDetailCompareUI(){
               refreshStrategyDetailComparator();
               return;
             }
-            // mode palmarÃ¨s: utiliser la stratÃ©gie sÃ©lectionnÃ©e mais la rejouer sur les mÃªmes donnÃ©es que la stratÃ©gie analysÃ©e
-            if(!listSel) {return;}
+            // mode palmarès: utiliser la stratégie sélectionnée mais la rejouer sur les mêmes données que la stratégie analysée
+            if(!listSel) return;
             const idxStr = listSel.value||'';
-            if(!idxStr) {return;}
+            if(!idxStr) return;
             const idx = parseInt(idxStr,10);
             const it = Array.isArray(__detailCompPalmaresList)? __detailCompPalmaresList[idx] : null;
             if(!it || !it.params){ return; }
-            const label = it.name || `PalmarÃ¨s #${idx+1}`;
+            const label = it.name || `Palmarès #${idx+1}`;
             const selSym = (symSel && symSel.value) || __detailLastMain?.ctx?.symbol || currentSymbol;
             const selTf = (tfSel && tfSel.value) || __detailLastMain?.ctx?.tf || currentInterval;
             let selProf = (profSel && profSel.value) || null;
@@ -3869,10 +3868,10 @@ function setupDetailCompareUI(){
           }catch(_){ }
         });
       }
-      if(!srcSel.dataset) {srcSel.dataset={};}
+      if(!srcSel.dataset) srcSel.dataset={};
       srcSel.dataset.wired='1';
     }
-    // Appliquer visibilitÃ© & rafraÃ®chir PalmarÃ¨s pour le contexte courant si besoin
+    // Appliquer visibilité & rafraîchir Palmarès pour le contexte courant si besoin
     syncVisibility();
     if(srcSel.value==='palmares'){ populateDetailCompPalmares(); }
   }catch(_){ }
@@ -3885,7 +3884,7 @@ function setupDetailTradesUI(){
     if(btnMain && (!btnMain.dataset || btnMain.dataset.wired!=='1')){
       btnMain.addEventListener('click', ()=>{
         try{
-          if(!__detailLastMain || !__detailLastMain.ctx || !__detailLastMain.res) {return;}
+          if(!__detailLastMain || !__detailLastMain.ctx || !__detailLastMain.res) return;
           const ctx = __detailLastMain.ctx;
           const res = __detailLastMain.res;
           const conf = ctx.conf || {};
@@ -3897,18 +3896,18 @@ function setupDetailTradesUI(){
           showStrategyResult(res, ctxFor);
           try{
             if(stratTitle){
-              stratTitle.textContent = `${symbolToDisplay(ctx.symbol)} â€¢ ${ctx.tf} â€” RÃ©sultats (stratÃ©gie analysÃ©e)`;
+              stratTitle.textContent = `${symbolToDisplay(ctx.symbol)} • ${ctx.tf} — Résultats (stratégie analysée)`;
             }
           }catch(_){ }
         }catch(_){ }
       });
-      if(!btnMain.dataset) {btnMain.dataset={};}
+      if(!btnMain.dataset) btnMain.dataset={};
       btnMain.dataset.wired='1';
     }
     if(btnCmp && (!btnCmp.dataset || btnCmp.dataset.wired!=='1')){
       btnCmp.addEventListener('click', ()=>{
         try{
-          if(!__detailLastMain || !__detailLastMain.ctx || !__detailLastCmp || !__detailLastCmp.res) {return;}
+          if(!__detailLastMain || !__detailLastMain.ctx || !__detailLastCmp || !__detailLastCmp.res) return;
           const ctx = __detailLastMain.ctx;
           const resCmp = __detailLastCmp.res;
           const label = __detailLastCmp.label || 'Heaven';
@@ -3921,24 +3920,24 @@ function setupDetailTradesUI(){
           showStrategyResult(resCmp, ctxFor);
           try{
             if(stratTitle){
-              stratTitle.textContent = `${symbolToDisplay(ctx.symbol)} â€¢ ${ctx.tf} â€” RÃ©sultats (${label})`;
+              stratTitle.textContent = `${symbolToDisplay(ctx.symbol)} • ${ctx.tf} — Résultats (${label})`;
             }
           }catch(_){ }
         }catch(_){ }
       });
-      if(!btnCmp.dataset) {btnCmp.dataset={};}
+      if(!btnCmp.dataset) btnCmp.dataset={};
       btnCmp.dataset.wired='1';
     }
     const mainHasTrades = !!(__detailLastMain && __detailLastMain.res && Array.isArray(__detailLastMain.res.trades) && __detailLastMain.res.trades.length);
-    if(btnMain) {btnMain.disabled = !mainHasTrades;}
+    if(btnMain) btnMain.disabled = !mainHasTrades;
     const cmpHasTrades = !!(__detailLastCmp && __detailLastCmp.res && Array.isArray(__detailLastCmp.res.trades) && __detailLastCmp.res.trades.length);
-    if(btnCmp) {btnCmp.disabled = !cmpHasTrades;}
+    if(btnCmp) btnCmp.disabled = !cmpHasTrades;
   }catch(_){ }
 }
 
 function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
-  const sym = ctx.symbol, tf = ctx.tf; const name = ctx.name||'StratÃ©gie'; const conf = ctx.conf; const bars = ctx.bars; const sIdx = ctx.sIdx, eIdx=ctx.eIdx;
-  // Description textuelle de la stratÃ©gie (params)
+  const sym = ctx.symbol, tf = ctx.tf; const name = ctx.name||'Stratégie'; const conf = ctx.conf; const bars = ctx.bars; const sIdx = ctx.sIdx, eIdx=ctx.eIdx;
+  // Description textuelle de la stratégie (params)
   try{
     if(detailSummaryEl){
       const txt = describeStrategyParams(ctx.params||{}, conf||{});
@@ -3946,34 +3945,34 @@ function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
     }
   }catch(_){ }
   const eq = (res.eqSeries||[]).map(x=>({ time:x.time, equity:x.equity }));
-  const setNote = (id, txt)=>{ try{ const el=document.getElementById(id); if(el) {el.textContent = String(txt||'');} }catch(_){ } };
+  const setNote = (id, txt)=>{ try{ const el=document.getElementById(id); if(el) el.textContent = String(txt||''); }catch(_){ } };
   const chartReg = {}; function registerChart(id, spec){ chartReg[id]=spec; }
   function heavenNoteText(id){ try{
     const label = (typeof cmpLabel==='string' && cmpLabel)? cmpLabel : 'Heaven';
-    if(id==='detailEquity') {return `Courbe d'Ã©quity de ${label} sur la mÃªme pÃ©riode; comparez la pente, la rÃ©gularitÃ© et la profondeur des creux avec la stratÃ©gie analysÃ©e.`;}
-    if(id==='detailDD') {return `Drawdown absolu de ${label}; vÃ©rifiez si la taille et la frÃ©quence des creux sont plus ou moins agressives que sur le graphique principal.`;}
-    if(id==='detailHist') {return `Distribution des rendements de ${label}; comparez la forme de l'histogramme (queue gauche/droite) Ã  celle de la stratÃ©gie analysÃ©e.`;}
-    if(id==='detailRollPF' || id==='detailRollWin' || id==='detailRollRR' || id==='detailRollExp') {return `Rolling mÃ©trique pour ${label}; observez si la stabilitÃ© (PF, Win%, R:R, expectancy) est meilleure ou plus heurtÃ©e que sur la courbe principale.`;}
-    if(id==='detailDurHist') {return `DurÃ©e des trades pour ${label}; comparez la dispersion des durÃ©es avec la stratÃ©gie analysÃ©e (scalping vs swing plus lent).`;}
-    if(id==='detailUnder') {return `Underwater de ${label}; jugez si les phases de drawdown sont plus longues/profondes que sur la stratÃ©gie de rÃ©fÃ©rence.`;}
-    if(id==='detailDOW' || id==='detailWeekly') {return `SaisonnalitÃ© de ${label}; repÃ©rez si les jours/semaines les plus porteurs diffÃ¨rent de ceux de la stratÃ©gie principale.`;}
-    if(id==='detailDOWHour' || id==='detailDOWHourLong' || id==='detailDOWHourShort') {return `CrÃ©neaux JourÃ—Heure de ${label}; cherchez des dÃ©calages de zones vertes/rouges par rapport au graphique principal.`;}
-    if(id==='detailEff') {return `Radar d'efficacitÃ© de ${label}; comparez les forces/faiblesses (PF, Win%, temps en marchÃ©...) Ã  la stratÃ©gie analysÃ©e.`;}
-    if(id==='detailRegime') {return `RÃ©gimes de marchÃ© favorables Ã  ${label}; notez si les combinaisons TrendÃ—Vol gagnantes sont les mÃªmes que pour la stratÃ©gie principale.`;}
-    if(id==='detailPareto') {return `Nuage Pareto de ${label}; regardez si le compromis P&L / Max DD est plus ou moins efficient que celui de la stratÃ©gie de rÃ©fÃ©rence.`;}
-    if(id==='detailCIs') {return `Intervalles de confiance de ${label}; comparez l'incertitude (Win%, PF, expectancy) Ã  celle du modÃ¨le analysÃ©.`;}
-    if(id==='detailMC') {return `Ã‰ventail Monte Carlo de ${label}; jugez si la bande de trajectoires est plus resserrÃ©e ou plus risquÃ©e que pour la stratÃ©gie principale.`;}
-    if(id==='detailQQ') {return `QQ-plot des rendements de ${label}; observez si les queues extrÃªmes s'Ã©cartent davantage de la loi normale que pour la stratÃ©gie principale.`;}
-    if(id==='detailACF') {return `ACF des rendements de ${label}; comparez le nombre de lags significatifs Ã  celui de la stratÃ©gie analysÃ©e.`;}
-    if(id==='detailWF') {return `Walk-forward de ${label}; vÃ©rifiez si les splits temporels sont plus homogÃ¨nes ou plus irrÃ©guliers que sur le modÃ¨le principal.`;}
-    if(id==='detailMAEMFE') {return `MAE/MFE de ${label}; comparez la zone de points (gains/pertes en R) Ã  celle de la stratÃ©gie analysÃ©e.`;}
-    if(id==='detailLSHist') {return `RÃ©partition Long/Short de ${label}; voyez si un biais directionnel diffÃ©rent apparaÃ®t par rapport Ã  la stratÃ©gie principale.`;}
-    if(id==='detailStreaks') {return `SÃ©quences de gains/pertes de ${label}; jugez si les sÃ©ries gagnantes/perdantes sont plus longues que sur la stratÃ©gie de rÃ©fÃ©rence.`;}
-    return `MÃªme mÃ©trique pour ${label}; interprÃ©tez ce graphique en miroir du graphique principal pour juger si la stratÃ©gie comparÃ©e se comporte mieux ou moins bien.`;
-  }catch(_){ return 'StratÃ©gie comparÃ©e â€” interprÃ©tez ce graphique comme celui du dessus, mais pour la stratÃ©gie de comparaison.'; }}
-  function ensureHeavenClone(id){ try{ const can=document.getElementById(id); if(!can) {return null;} const heavenId=id+'Heaven'; let ch=document.getElementById(heavenId); if(ch) {return ch;} const note=document.getElementById(id+'Note'); const parent=(note&&note.parentElement)||can.parentElement; const lab=document.createElement('div'); lab.style.color='var(--muted)'; lab.style.fontSize='12px'; lab.style.marginTop='6px'; lab.textContent='Comparaison'; parent.appendChild(lab); ch=document.createElement('canvas'); ch.id=heavenId; ch.width=can.width; ch.height=can.height; ch.style.cssText=can.style.cssText; parent.appendChild(ch); const note2=document.createElement('div'); note2.id=heavenId+'Note'; note2.style.color='var(--muted)'; note2.style.fontSize='12px'; note2.style.marginTop='4px'; note2.textContent=heavenNoteText(id); parent.appendChild(note2); return ch; }catch(_){ return null; } }
+    if(id==='detailEquity') return `Courbe d'équity de ${label} sur la même période; comparez la pente, la régularité et la profondeur des creux avec la stratégie analysée.`;
+    if(id==='detailDD') return `Drawdown absolu de ${label}; vérifiez si la taille et la fréquence des creux sont plus ou moins agressives que sur le graphique principal.`;
+    if(id==='detailHist') return `Distribution des rendements de ${label}; comparez la forme de l'histogramme (queue gauche/droite) à celle de la stratégie analysée.`;
+    if(id==='detailRollPF' || id==='detailRollWin' || id==='detailRollRR' || id==='detailRollExp') return `Rolling métrique pour ${label}; observez si la stabilité (PF, Win%, R:R, expectancy) est meilleure ou plus heurtée que sur la courbe principale.`;
+    if(id==='detailDurHist') return `Durée des trades pour ${label}; comparez la dispersion des durées avec la stratégie analysée (scalping vs swing plus lent).`;
+    if(id==='detailUnder') return `Underwater de ${label}; jugez si les phases de drawdown sont plus longues/profondes que sur la stratégie de référence.`;
+    if(id==='detailDOW' || id==='detailWeekly') return `Saisonnalité de ${label}; repérez si les jours/semaines les plus porteurs diffèrent de ceux de la stratégie principale.`;
+    if(id==='detailDOWHour' || id==='detailDOWHourLong' || id==='detailDOWHourShort') return `Créneaux Jour×Heure de ${label}; cherchez des décalages de zones vertes/rouges par rapport au graphique principal.`;
+    if(id==='detailEff') return `Radar d'efficacité de ${label}; comparez les forces/faiblesses (PF, Win%, temps en marché...) à la stratégie analysée.`;
+    if(id==='detailRegime') return `Régimes de marché favorables à ${label}; notez si les combinaisons Trend×Vol gagnantes sont les mêmes que pour la stratégie principale.`;
+    if(id==='detailPareto') return `Nuage Pareto de ${label}; regardez si le compromis P&L / Max DD est plus ou moins efficient que celui de la stratégie de référence.`;
+    if(id==='detailCIs') return `Intervalles de confiance de ${label}; comparez l'incertitude (Win%, PF, expectancy) à celle du modèle analysé.`;
+    if(id==='detailMC') return `Éventail Monte Carlo de ${label}; jugez si la bande de trajectoires est plus resserrée ou plus risquée que pour la stratégie principale.`;
+    if(id==='detailQQ') return `QQ-plot des rendements de ${label}; observez si les queues extrêmes s'écartent davantage de la loi normale que pour la stratégie principale.`;
+    if(id==='detailACF') return `ACF des rendements de ${label}; comparez le nombre de lags significatifs à celui de la stratégie analysée.`;
+    if(id==='detailWF') return `Walk-forward de ${label}; vérifiez si les splits temporels sont plus homogènes ou plus irréguliers que sur le modèle principal.`;
+    if(id==='detailMAEMFE') return `MAE/MFE de ${label}; comparez la zone de points (gains/pertes en R) à celle de la stratégie analysée.`;
+    if(id==='detailLSHist') return `Répartition Long/Short de ${label}; voyez si un biais directionnel différent apparaît par rapport à la stratégie principale.`;
+    if(id==='detailStreaks') return `Séquences de gains/pertes de ${label}; jugez si les séries gagnantes/perdantes sont plus longues que sur la stratégie de référence.`;
+    return `Même métrique pour ${label}; interprétez ce graphique en miroir du graphique principal pour juger si la stratégie comparée se comporte mieux ou moins bien.`;
+  }catch(_){ return 'Stratégie comparée — interprétez ce graphique comme celui du dessus, mais pour la stratégie de comparaison.'; }}
+  function ensureHeavenClone(id){ try{ const can=document.getElementById(id); if(!can) return null; const heavenId=id+'Heaven'; let ch=document.getElementById(heavenId); if(ch) return ch; const note=document.getElementById(id+'Note'); const parent=(note&&note.parentElement)||can.parentElement; const lab=document.createElement('div'); lab.style.color='var(--muted)'; lab.style.fontSize='12px'; lab.style.marginTop='6px'; lab.textContent='Comparaison'; parent.appendChild(lab); ch=document.createElement('canvas'); ch.id=heavenId; ch.width=can.width; ch.height=can.height; ch.style.cssText=can.style.cssText; parent.appendChild(ch); const note2=document.createElement('div'); note2.id=heavenId+'Note'; note2.style.color='var(--muted)'; note2.style.fontSize='12px'; note2.style.marginTop='4px'; note2.textContent=heavenNoteText(id); parent.appendChild(note2); return ch; }catch(_){ return null; } }
   // shared helpers
-  function groupPositions(tr){ const t=(tr||[]).slice().sort((a,b)=> (a.exitTime||0)-(b.exitTime||0)); const map=new Map(); function keyOf(e){ return `${e.dir}|${e.entryTime}|${e.entry}|${e.initSL}`; } for(const ev of t){ const k=keyOf(ev); let g=map.get(k); if(!g){ g={ entryTime:ev.entryTime, exitTime:ev.exitTime, entry: (Number.isFinite(ev.entry)? ev.entry : null), initSL: (Number.isFinite(ev.initSL)? ev.initSL : null), net:0, dur:0, dir:ev.dir||'long', eq0: (Number(ev.eqBefore)||null) }; map.set(k,g); } g.net += Number(ev.net)||0; if(Number.isFinite(ev.exitTime)&&Number.isFinite(ev.entryTime)) {g.dur = Math.max(g.dur, ev.exitTime-ev.entryTime);} if(Number.isFinite(ev.exitTime)) {g.exitTime = ev.exitTime;} if(g.entry==null && Number.isFinite(ev.entry)) {g.entry = ev.entry;} if(g.initSL==null && Number.isFinite(ev.initSL)) {g.initSL = ev.initSL;} if(g.eq0==null && Number.isFinite(ev.eqBefore)) {g.eq0 = Number(ev.eqBefore);} }
+  function groupPositions(tr){ const t=(tr||[]).slice().sort((a,b)=> (a.exitTime||0)-(b.exitTime||0)); const map=new Map(); function keyOf(e){ return `${e.dir}|${e.entryTime}|${e.entry}|${e.initSL}`; } for(const ev of t){ const k=keyOf(ev); let g=map.get(k); if(!g){ g={ entryTime:ev.entryTime, exitTime:ev.exitTime, entry: (Number.isFinite(ev.entry)? ev.entry : null), initSL: (Number.isFinite(ev.initSL)? ev.initSL : null), net:0, dur:0, dir:ev.dir||'long', eq0: (Number(ev.eqBefore)||null) }; map.set(k,g); } g.net += Number(ev.net)||0; if(Number.isFinite(ev.exitTime)&&Number.isFinite(ev.entryTime)) g.dur = Math.max(g.dur, ev.exitTime-ev.entryTime); if(Number.isFinite(ev.exitTime)) g.exitTime = ev.exitTime; if(g.entry==null && Number.isFinite(ev.entry)) g.entry = ev.entry; if(g.initSL==null && Number.isFinite(ev.initSL)) g.initSL = ev.initSL; if(g.eq0==null && Number.isFinite(ev.eqBefore)) g.eq0 = Number(ev.eqBefore); }
     return Array.from(map.values()).sort((a,b)=> (a.exitTime||0)-(b.exitTime||0)); }
   function deriveFor(resX){ const out={}; try{
       out.eq = (resX.eqSeries||[]).map(x=>({ time:x.time, equity:x.equity }));
@@ -3985,19 +3984,19 @@ function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
       }
       // rets, duration span
       out.rets=[]; out.totalDur=0; out.minTs=Infinity; out.maxTs=-Infinity;
-      for(const t of tArr){ const cap=Math.max(1, t.eqBefore||conf.startCap); out.rets.push((t.net/cap)*100); out.totalDur += Math.max(0, (t.exitTime||0)-(t.entryTime||0)); if(Number.isFinite(t.entryTime)&&t.entryTime<out.minTs) {out.minTs=t.entryTime;} if(Number.isFinite(t.exitTime)&&t.exitTime>out.maxTs) {out.maxTs=t.exitTime;} }
+      for(const t of tArr){ const cap=Math.max(1, t.eqBefore||conf.startCap); out.rets.push((t.net/cap)*100); out.totalDur += Math.max(0, (t.exitTime||0)-(t.entryTime||0)); if(Number.isFinite(t.entryTime)&&t.entryTime<out.minTs) out.minTs=t.entryTime; if(Number.isFinite(t.exitTime)&&t.exitTime>out.maxTs) out.maxTs=t.exitTime; }
       // groups
       out.groups = groupPositions(resX.trades||[]);
       // durations
       out.durationsMin = out.groups.map(g=> Math.max(0, (Number(g.dur)||0)/60));
       // long/short returns by position
-      out.retLong=[]; out.retShort=[]; for(const g of out.groups){ const eq0=Number.isFinite(g.eq0)&&g.eq0>0? g.eq0 : (Number(conf.startCap)||1); const rpct = (Number(g.net)||0)/eq0*100; if(g.dir==='long') {out.retLong.push(rpct);} else {out.retShort.push(rpct);} }
+      out.retLong=[]; out.retShort=[]; for(const g of out.groups){ const eq0=Number.isFinite(g.eq0)&&g.eq0>0? g.eq0 : (Number(conf.startCap)||1); const rpct = (Number(g.net)||0)/eq0*100; if(g.dir==='long') out.retLong.push(rpct); else out.retShort.push(rpct); }
       // rolling (window 30)
-      const ROLL_N=30; const rrByPos=(function(){ const map=new Map(); const t=(resX.trades||[]); function keyOf(e){ return `${e.dir}|${e.entryTime}|${e.entry}|${e.initSL}`; } for(const ev of t){ const k=keyOf(ev); let arr=map.get(k); if(!arr){ arr=[]; map.set(k,arr); } if(Number.isFinite(ev.rr)) {arr.push(Number(ev.rr));} } const rrArr=[]; for(const g of (out.groups||[])){ const k=`${g.dir}|${g.entryTime}|${g.entry}|${g.initSL}`; const arr=map.get(k)||[]; const m=arr.length? (arr.reduce((x,y)=>x+y,0)/arr.length) : null; rrArr.push(m); } return rrArr; })();
+      const ROLL_N=30; const rrByPos=(function(){ const map=new Map(); const t=(resX.trades||[]); function keyOf(e){ return `${e.dir}|${e.entryTime}|${e.entry}|${e.initSL}`; } for(const ev of t){ const k=keyOf(ev); let arr=map.get(k); if(!arr){ arr=[]; map.set(k,arr); } if(Number.isFinite(ev.rr)) arr.push(Number(ev.rr)); } const rrArr=[]; for(const g of (out.groups||[])){ const k=`${g.dir}|${g.entryTime}|${g.entry}|${g.initSL}`; const arr=map.get(k)||[]; const m=arr.length? (arr.reduce((x,y)=>x+y,0)/arr.length) : null; rrArr.push(m); } return rrArr; })();
       out.rollPF=[]; out.rollWin=[]; out.rollRR=[]; out.rollExp=[]; for(let i=0;i<out.groups.length;i++){ const winSlice=out.groups.slice(Math.max(0,i-ROLL_N+1), i+1); const profits=winSlice.map(g=> g.net).filter(x=> x>0).reduce((s,x)=>s+x,0); const losses=winSlice.map(g=> g.net).filter(x=> x<0).reduce((s,x)=>s+x,0); const pf = (losses<0? profits/Math.abs(losses) : Infinity); out.rollPF.push(Math.min(5,pf)); const w = winSlice.filter(g=> g.net>=0).length; out.rollWin.push(100*w/winSlice.length); const rrVals = rrByPos.slice(Math.max(0,i-ROLL_N+1), i+1).filter(x=> Number.isFinite(x)); out.rollRR.push(rrVals.length? (rrVals.reduce((s,x)=>s+x,0)/rrVals.length) : 0); out.rollExp.push(winSlice.reduce((s,g)=> s+(Number(g.net)||0),0)/winSlice.length); }
       // MAE/MFE
-      out.maePts=[]; const timeToIdx=(ts)=>{ let lo=0, hi=bars.length-1, ans=0; while(lo<=hi){ const mid=(lo+hi)>>1; if(bars[mid].time<=ts){ ans=mid; lo=mid+1; } else {hi=mid-1;} } return ans; };
-      for(const g of out.groups){ if(!Number.isFinite(g.entryTime) || !Number.isFinite(g.exitTime) || !Number.isFinite(g.entry) || !Number.isFinite(g.initSL)) {continue;} const i0=timeToIdx(g.entryTime), i1=timeToIdx(g.exitTime); if(i1<=i0) {continue;} let hi=-Infinity, lo=Infinity; for(let i=i0;i<=i1;i++){ hi=Math.max(hi, bars[i].high); lo=Math.min(lo, bars[i].low); } const entry=g.entry; const risk=Math.max(1e-9, Math.abs(entry - g.initSL)); let maeR=0, mfeR=0; if(g.dir==='long'){ maeR = Math.max(0, (entry - lo)/risk); mfeR = Math.max(0, (hi - entry)/risk); } else { maeR = Math.max(0, (hi - entry)/risk); mfeR = Math.max(0, (entry - lo)/risk); } out.maePts.push({ maeR, mfeR, win: (g.net||0)>=0 }); }
+      out.maePts=[]; const timeToIdx=(ts)=>{ let lo=0, hi=bars.length-1, ans=0; while(lo<=hi){ const mid=(lo+hi)>>1; if(bars[mid].time<=ts){ ans=mid; lo=mid+1; } else hi=mid-1; } return ans; };
+      for(const g of out.groups){ if(!Number.isFinite(g.entryTime) || !Number.isFinite(g.exitTime) || !Number.isFinite(g.entry) || !Number.isFinite(g.initSL)) continue; const i0=timeToIdx(g.entryTime), i1=timeToIdx(g.exitTime); if(i1<=i0) continue; let hi=-Infinity, lo=Infinity; for(let i=i0;i<=i1;i++){ hi=Math.max(hi, bars[i].high); lo=Math.min(lo, bars[i].low); } const entry=g.entry; const risk=Math.max(1e-9, Math.abs(entry - g.initSL)); let maeR=0, mfeR=0; if(g.dir==='long'){ maeR = Math.max(0, (entry - lo)/risk); mfeR = Math.max(0, (hi - entry)/risk); } else { maeR = Math.max(0, (hi - entry)/risk); mfeR = Math.max(0, (entry - lo)/risk); } out.maePts.push({ maeR, mfeR, win: (g.net||0)>=0 }); }
       // Weekly/DOW/DOWHour
       function isoYearWeek(ts){ const d=new Date(ts*1000); const dt=new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); const dayNum = dt.getUTCDay() || 7; dt.setUTCDate(dt.getUTCDate() + 4 - dayNum); const isoYear = dt.getUTCFullYear(); const yearStart = new Date(Date.UTC(isoYear,0,1)); const week = Math.ceil((((dt - yearStart)/86400000) + 1) / 7); return { y: isoYear, w: Math.max(1, Math.min(53, week)) }; }
       const endByYW=new Map(); if(out.eq && out.eq.length){ for(const p of out.eq){ const yw=isoYearWeek(p.time); const key=`${yw.y}-${yw.w}`; endByYW.set(key, p.equity); } } const keys=Array.from(endByYW.keys()).sort((a,b)=>{ const [ay,aw]=a.split('-').map(Number), [by,bw]=b.split('-').map(Number); return ay!==by? ay-by : aw-bw; }); out.weekly=[]; let prev=null; for(const k of keys){ const v=endByYW.get(k); if(prev!=null){ const [y,w]=k.split('-').map(Number); const r=((v-prev)/prev)*100; out.weekly.push({ y, w, r }); } prev=v; }
@@ -4011,8 +4010,8 @@ function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
       out.dowHourLong = mkCells('long'); out.dowHourShort = mkCells('short');
       // regime matrix
       try{ const prd=Math.max(2, lbcOpts.prd|0); const lb=computeLineBreakState(bars, Math.max(1, lbcOpts.nol|0)); function atrPct(data, len){ const tr=new Array(data.length).fill(0); for(let i=1;i<data.length;i++){ const h=data[i].high, l=data[i].low, cPrev=data[i-1].close; tr[i]=Math.max(h-l, Math.abs(h-cPrev), Math.abs(l-cPrev)); } const atr=new Array(data.length).fill(0); let s=0; for(let i=0;i<data.length;i++){ if(i<len){ s+=tr[i]; atr[i]=s/Math.max(1,i+1); } else { atr[i]=(atr[i-1]*(len-1)+tr[i])/len; } } return atr.map((a,i)=> (a/Math.max(1e-9, data[i].close))*100); } const atrP = atrPct(bars, 14); const vals=atrP.filter(x=> Number.isFinite(x)); const sorted=vals.slice().sort((a,b)=>a-b); const q1=sorted[Math.floor(sorted.length*0.33)]||0, q2=sorted[Math.floor(sorted.length*0.66)]||0; const bucketVol=(x)=> x<=q1? 'Low' : (x>=q2? 'High' : 'Med'); const bucketTrend=(i)=> lb.trend[i]===1? 'Up':'Down'; const mat={ Up:{Low:{pf:0,gp:0,gl:0,count:0}, Med:{pf:0,gp:0,gl:0,count:0}, High:{pf:0,gp:0,gl:0,count:0}}, Down:{Low:{pf:0,gp:0,gl:0,count:0}, Med:{pf:0,gp:0,gl:0,count:0}, High:{pf:0,gp:0,gl:0,count:0}} };
-        const idxOfTime=(ts)=>{ let lo=0, hi=bars.length-1, ans=0; while(lo<=hi){ const mid=(lo+hi)>>1; if(bars[mid].time<=ts){ ans=mid; lo=mid+1; } else {hi=mid-1;} } return ans; };
-        for(const g of out.groups){ const i=idxOfTime(g.entryTime); const tr=bucketTrend(Math.min(i, lb.trend.length-1)); const vol=bucketVol(atrP[Math.min(i, atrP.length-1)]||0); const cell=mat[tr][vol]; cell.count++; if((g.net||0)>=0) {cell.gp += (g.net||0);} else {cell.gl += (g.net||0);} } for(const r of ['Up','Down']){ for(const c of ['Low','Med','High']){ const cell=mat[r][c]; cell.pf = (cell.gl<0? cell.gp/Math.abs(cell.gl) : (cell.count>0? Infinity:0)); } } out.regime=mat; }catch(_){ out.regime=null; }
+        const idxOfTime=(ts)=>{ let lo=0, hi=bars.length-1, ans=0; while(lo<=hi){ const mid=(lo+hi)>>1; if(bars[mid].time<=ts){ ans=mid; lo=mid+1; } else hi=mid-1; } return ans; };
+        for(const g of out.groups){ const i=idxOfTime(g.entryTime); const tr=bucketTrend(Math.min(i, lb.trend.length-1)); const vol=bucketVol(atrP[Math.min(i, atrP.length-1)]||0); const cell=mat[tr][vol]; cell.count++; if((g.net||0)>=0) cell.gp += (g.net||0); else cell.gl += (g.net||0); } for(const r of ['Up','Down']){ for(const c of ['Low','Med','High']){ const cell=mat[r][c]; cell.pf = (cell.gl<0? cell.gp/Math.abs(cell.gl) : (cell.count>0? Infinity:0)); } } out.regime=mat; }catch(_){ out.regime=null; }
       // WF
       out.wf=[]; try{ const N=4; if(out.eq && out.eq.length>10){ const t0=out.eq[0].time, t1=out.eq[out.eq.length-1].time; const bounds=[]; for(let k=0;k<=N;k++){ bounds.push(t0 + Math.round((t1-t0)*k/N)); } for(let k=0;k<N;k++){ const a=bounds[k], b=bounds[k+1]; const gg=out.groups.filter(g=> Number.isFinite(g.exitTime) && g.exitTime>=a && g.exitTime<b); const L=gg.length; let gp=0, gl=0, wins=0; let exp=0, pnl=0; for(const g of gg){ const net=Number(g.net)||0; pnl+=net; if(net>=0){ gp+=net; wins++; } else { gl+=net; } } if(L>0){ exp = pnl/L; } const pf = gl<0? (gp/Math.abs(gl)) : (L>0? Infinity:0); const win = L>0? (wins/L*100):0; out.wf.push({ pf: Number.isFinite(pf)? pf: Infinity, win, exp, pnl }); } } }catch(_){ out.wf=[]; }
       // CIs
@@ -4032,21 +4031,21 @@ function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
     let eqBefore = Number(conf.startCap)||0;
     for(const ev of sorted){ ev.eqBefore = eqBefore; eqBefore += Number(ev.net)||0; }
   }
-  const rets=[]; let totalDur=0; let minTs=Infinity, maxTs=-Infinity; for(const t of tArr){ const cap=Math.max(1, t.eqBefore||conf.startCap); rets.push((t.net/cap)*100); totalDur += Math.max(0, (t.exitTime||0)-(t.entryTime||0)); if(Number.isFinite(t.entryTime)&&t.entryTime<minTs) {minTs=t.entryTime;} if(Number.isFinite(t.exitTime)&&t.exitTime>maxTs) {maxTs=t.exitTime;} }
+  const rets=[]; let totalDur=0; let minTs=Infinity, maxTs=-Infinity; for(const t of tArr){ const cap=Math.max(1, t.eqBefore||conf.startCap); rets.push((t.net/cap)*100); totalDur += Math.max(0, (t.exitTime||0)-(t.entryTime||0)); if(Number.isFinite(t.entryTime)&&t.entryTime<minTs) minTs=t.entryTime; if(Number.isFinite(t.exitTime)&&t.exitTime>maxTs) maxTs=t.exitTime; }
   const mean=(arr)=> arr.length? arr.reduce((a,b)=>a+b,0)/arr.length : 0; const m=mean(rets); const sd=Math.sqrt(mean(rets.map(x=> (x-m)*(x-m)))); const sharpe = (sd>0? (m/sd*Math.sqrt(Math.max(1, rets.length))) : 0);
   const pf = (res.profitFactor===Infinity? 3 : Math.max(0, Math.min(3, +res.profitFactor||0))); const pfN = (pf/3)*100; const sharpeN = Math.max(0, Math.min(100, (sharpe/3)*100)); const recov = (res.maxDDAbs>0? (res.totalPnl/Math.max(1e-9, res.maxDDAbs)) : 0); const recovN = Math.max(0, Math.min(100, (recov/3)*100)); const consN = Math.max(0, Math.min(100, 100*(1 - Math.min(1, sd/3)))); const cpiN = Math.max(0, Math.min(100, 100*(1 - Math.min(1, (res.maxDDAbs/Math.max(1, conf.startCap)) / 0.5))));
-  const r2 = (()=>{ const n=eq.length; if(n<3) {return 0;} const xs=eq.map((_,i)=>i); const ys=eq.map(p=>p.equity); const xm=mean(xs), ym=mean(ys); let num=0, den=0; for(let i=0;i<n;i++){ const xv=xs[i]-xm, yv=ys[i]-ym; num += xv*yv; den += xv*xv; } const a=num/(den||1); const b=ym - a*xm; let ssTot=0, ssRes=0; for(let i=0;i<n;i++){ const y=ys[i]; const yhat=a*xs[i]+b; ssTot += (y-ym)*(y-ym); ssRes += (y-yhat)*(y-yhat); } return 1 - (ssRes/(ssTot||1)); })();
+  const r2 = (()=>{ const n=eq.length; if(n<3) return 0; const xs=eq.map((_,i)=>i); const ys=eq.map(p=>p.equity); const xm=mean(xs), ym=mean(ys); let num=0, den=0; for(let i=0;i<n;i++){ const xv=xs[i]-xm, yv=ys[i]-ym; num += xv*yv; den += xv*xv; } const a=num/(den||1); const b=ym - a*xm; let ssTot=0, ssRes=0; for(let i=0;i<n;i++){ const y=ys[i]; const yhat=a*xs[i]+b; ssTot += (y-ym)*(y-ym); ssRes += (y-yhat)*(y-yhat); } return 1 - (ssRes/(ssTot||1)); })();
   const r2N = Math.max(0, Math.min(100, r2*100)); const winrate = +res.winrate||0; const avgRR = +res.avgRR||0; const teN = Math.max(0, Math.min(100, (winrate/100) * (pf/(pf+1))*100)); const edgeN = Math.max(0, Math.min(100, (pf/(pf+1)) * (1 - Math.min(1, sd/5))*100));
   // CI bootstrap moved after groups are computed
-  drawRadar(canRadar, ['Profit Factor','Sharpe','Recovery (P&L/DD)','Consistency','Cap. Protection','RÂ² equity','Trade Efficiency','Edge Robustness'], [pfN, sharpeN, recovN, consN, cpiN, r2N, teN, edgeN]);
-  try{ const labs=['PF','Sharpe','Recovery (P&L/DD)','Consistency','CapProt','RÂ²','TradeEff','Edge']; const vals=[pfN,sharpeN,recovN,consN,cpiN,r2N,teN,edgeN]; const idxs=vals.map((v,i)=>[v,i]).sort((a,b)=>b[0]-a[0]); const top=idxs.slice(0,2).map(([v,i])=>`${labs[i]} ${v.toFixed(0)}%`).join(', '); const bot=idxs.slice(-2).map(([v,i])=>`${labs[i]} ${v.toFixed(0)}%`).join(', '); setNote('detailRadarNote', `Forces: ${top} â€¢ Faiblesses: ${bot}`); }catch(_){ }
-  // Comparaison: par dÃ©faut, config Heaven; optionnellement, une stratÃ©gie du PalmarÃ¨s (rejouÃ©e sur les mÃªmes donnÃ©es)
+  drawRadar(canRadar, ['Profit Factor','Sharpe','Recovery (P&L/DD)','Consistency','Cap. Protection','R² equity','Trade Efficiency','Edge Robustness'], [pfN, sharpeN, recovN, consN, cpiN, r2N, teN, edgeN]);
+  try{ const labs=['PF','Sharpe','Recovery (P&L/DD)','Consistency','CapProt','R²','TradeEff','Edge']; const vals=[pfN,sharpeN,recovN,consN,cpiN,r2N,teN,edgeN]; const idxs=vals.map((v,i)=>[v,i]).sort((a,b)=>b[0]-a[0]); const top=idxs.slice(0,2).map(([v,i])=>`${labs[i]} ${v.toFixed(0)}%`).join(', '); const bot=idxs.slice(-2).map(([v,i])=>`${labs[i]} ${v.toFixed(0)}%`).join(', '); setNote('detailRadarNote', `Forces: ${top} • Faiblesses: ${bot}`); }catch(_){ }
+  // Comparaison: par défaut, config Heaven; optionnellement, une stratégie du Palmarès (rejouée sur les mêmes données)
   let resCmp=null, eqCmp=null, H=null; let cmpLabel='Heaven';
   try{
     const mode = (compCfg && compCfg.mode) || 'heaven';
     if(mode==='palmares' && compCfg && compCfg.params){
       const pCmp = { ...(compCfg.params||{}) };
-      cmpLabel = compCfg.label || 'PalmarÃ¨s';
+      cmpLabel = compCfg.label || 'Palmarès';
       resCmp = runBacktestSliceFor(bars, sIdx, eIdx, conf, pCmp, true);
     } else {
       const pHeaven={ ...(window.lbcOpts||{}) };
@@ -4057,8 +4056,8 @@ function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
     try{ H = deriveFor(resCmp); }catch(__){ H=null; }
     try{ __detailLastCmp = resCmp ? { res: resCmp, label: cmpLabel } : null; }catch(__){ }
   }catch(_){ resCmp=null; eqCmp=null; H=null; __detailLastCmp=null; }
-  // Radar de comparaison (Heaven ou PalmarÃ¨s)
-  try{ if(resCmp && eqCmp && H){ const meanH=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length : 0; const mH = meanH(H.rets||[]); const sdH = Math.sqrt(meanH((H.rets||[]).map(x=> (x-mH)*(x-mH)))); const sharpeH = (sdH>0? (mH/sdH*Math.sqrt(Math.max(1, (H.rets?H.rets.length:1)))) : 0); const pfHraw = (resCmp.profitFactor===Infinity? 3 : Math.max(0, Math.min(3, +resCmp.profitFactor||0))); const pfNH=(pfHraw/3)*100; const recovH = (resCmp.maxDDAbs>0? (resCmp.totalPnl/Math.max(1e-9, resCmp.maxDDAbs)) : 0); const recovNH = Math.max(0, Math.min(100, (recovH/3)*100)); const consNH = Math.max(0, Math.min(100, 100*(1 - Math.min(1, (sdH/3)||0)))); const cpiNH = Math.max(0, Math.min(100, 100*(1 - Math.min(1, ((+resCmp.maxDDAbs||0)/Math.max(1, conf.startCap)) / 0.5)))); const r2H=(function(){ const n=eqCmp.length; if(n<3) {return 0;} const xs=eqCmp.map((_,i)=>i); const ys=eqCmp.map(p=>p.equity); const xm=meanH(xs), ym=meanH(ys); let num=0, den=0; for(let i=0;i<n;i++){ const xv=xs[i]-xm, yv=ys[i]-ym; num += xv*yv; den += xv*xv; } const a=num/(den||1); const b=ym - a*xm; let ssTot=0, ssRes=0; for(let i=0;i<n;i++){ const y=ys[i]; const yhat=a*xs[i]+b; ssTot += (y-ym)*(y-ym); ssRes += (y-yhat)*(y-yhat); } return 1 - (ssRes/(ssTot||1)); })()*100; const teNH = Math.max(0, Math.min(100, ((+resCmp.winrate||0)/100) * (pfHraw/(pfHraw+1))*100)); const edgeNH = Math.max(0, Math.min(100, (pfHraw/(pfHraw+1)) * (1 - Math.min(1, (sdH/5)||0))*100)); const c=ensureHeavenClone('detailRadar'); if(c){ drawRadar(c, ['Profit Factor','Sharpe','Recovery (P&L/DD)','Consistency','Cap. Protection','RÂ² equity','Trade Efficiency','Edge Robustness'], [pfNH, Math.max(0, Math.min(100, (sharpeH/3)*100)), recovNH, consNH, cpiNH, Math.max(0, Math.min(100, r2H)), teNH, edgeNH]); } } }catch(_){ }
+  // Radar de comparaison (Heaven ou Palmarès)
+  try{ if(resCmp && eqCmp && H){ const meanH=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length : 0; const mH = meanH(H.rets||[]); const sdH = Math.sqrt(meanH((H.rets||[]).map(x=> (x-mH)*(x-mH)))); const sharpeH = (sdH>0? (mH/sdH*Math.sqrt(Math.max(1, (H.rets?H.rets.length:1)))) : 0); const pfHraw = (resCmp.profitFactor===Infinity? 3 : Math.max(0, Math.min(3, +resCmp.profitFactor||0))); const pfNH=(pfHraw/3)*100; const recovH = (resCmp.maxDDAbs>0? (resCmp.totalPnl/Math.max(1e-9, resCmp.maxDDAbs)) : 0); const recovNH = Math.max(0, Math.min(100, (recovH/3)*100)); const consNH = Math.max(0, Math.min(100, 100*(1 - Math.min(1, (sdH/3)||0)))); const cpiNH = Math.max(0, Math.min(100, 100*(1 - Math.min(1, ((+resCmp.maxDDAbs||0)/Math.max(1, conf.startCap)) / 0.5)))); const r2H=(function(){ const n=eqCmp.length; if(n<3) return 0; const xs=eqCmp.map((_,i)=>i); const ys=eqCmp.map(p=>p.equity); const xm=meanH(xs), ym=meanH(ys); let num=0, den=0; for(let i=0;i<n;i++){ const xv=xs[i]-xm, yv=ys[i]-ym; num += xv*yv; den += xv*xv; } const a=num/(den||1); const b=ym - a*xm; let ssTot=0, ssRes=0; for(let i=0;i<n;i++){ const y=ys[i]; const yhat=a*xs[i]+b; ssTot += (y-ym)*(y-ym); ssRes += (y-yhat)*(y-yhat); } return 1 - (ssRes/(ssTot||1)); })()*100; const teNH = Math.max(0, Math.min(100, ((+resCmp.winrate||0)/100) * (pfHraw/(pfHraw+1))*100)); const edgeNH = Math.max(0, Math.min(100, (pfHraw/(pfHraw+1)) * (1 - Math.min(1, (sdH/5)||0))*100)); const c=ensureHeavenClone('detailRadar'); if(c){ drawRadar(c, ['Profit Factor','Sharpe','Recovery (P&L/DD)','Consistency','Cap. Protection','R² equity','Trade Efficiency','Edge Robustness'], [pfNH, Math.max(0, Math.min(100, (sharpeH/3)*100)), recovNH, consNH, cpiNH, Math.max(0, Math.min(100, r2H)), teNH, edgeNH]); } } }catch(_){ }
   // primary equity
   try{ drawEquity(canEquity, eq); registerChart('detailEquity', { type:'equity', eq1:eq }); }catch(_){ }
   // heaven equity
@@ -4074,7 +4073,7 @@ function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
   }catch(_){ ddSeries=null; ddSeriesCmp=null; }
   // primary hist
   drawHist(canHist, rets); registerChart('detailHist', { type:'rets', values: rets.slice() });
-  // comparator hist (Heaven ou PalmarÃ¨s), si disponible
+  // comparator hist (Heaven ou Palmarès), si disponible
   try{ if(typeof H!=='undefined' && H && Array.isArray(H.rets) && H.rets.length){ const cH=ensureHeavenClone('detailHist'); if(cH){ drawHist(cH, H.rets); registerChart('detailHistHeaven', { type:'rets', values:(H.rets||[]).slice() }); } } }catch(_){ }
   try{
     if(eq && eq.length>1){
@@ -4089,23 +4088,23 @@ function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
       const freqDay = days>0? (trades/days) : 0;
       const timeInMktLoc = Math.max(0, Math.min(100, 100*(totalDur/Math.max(1, totalSecs))));
       const pf1Raw = (res.profitFactor===Infinity? Infinity : (+res.profitFactor||0));
-      const pf1Disp = pf1Raw===Infinity? 'âˆž' : pf1Raw.toFixed(2);
+      const pf1Disp = pf1Raw===Infinity? '∞' : pf1Raw.toFixed(2);
       const wr1 = +res.winrate||0;
       // Descriptions qualitatives pour le graphique principal
-      const perfLabel = (retPct1>80? 'Performance globale trÃ¨s forte' : retPct1>30? 'Performance globale solide' : retPct1>10? 'Performance positive' : retPct1>-5? 'Performance quasi neutre' : 'Performance dÃ©gradÃ©e');
-      const riskLabel = (!Number.isFinite(ddPct1)? 'un profil de risque difficile Ã  estimer' : ddPct1<10? 'un risque bien contenu' : ddPct1<25? 'un risque modÃ©rÃ©' : 'un risque Ã©levÃ©');
-      const trendLabel = (r2N>=80? "une courbe d'Ã©quity trÃ¨s rÃ©guliÃ¨re (trend propre)" : r2N>=50? "une courbe d'Ã©quity assez lisible avec quelques phases de respiration marquÃ©es" : "une courbe d'Ã©quity heurtÃ©e, avec des phases de gains et de pertes alternÃ©es");
+      const perfLabel = (retPct1>80? 'Performance globale très forte' : retPct1>30? 'Performance globale solide' : retPct1>10? 'Performance positive' : retPct1>-5? 'Performance quasi neutre' : 'Performance dégradée');
+      const riskLabel = (!Number.isFinite(ddPct1)? 'un profil de risque difficile à estimer' : ddPct1<10? 'un risque bien contenu' : ddPct1<25? 'un risque modéré' : 'un risque élevé');
+      const trendLabel = (r2N>=80? "une courbe d'équity très régulière (trend propre)" : r2N>=50? "une courbe d'équity assez lisible avec quelques phases de respiration marquées" : "une courbe d'équity heurtée, avec des phases de gains et de pertes alternées");
       let activityLabel = '';
-      if(freqDay<0.3) {activityLabel = `peu de positions (~${freqDay.toFixed(2)} trade/jour, ${timeInMktLoc.toFixed(0)}% du temps en marchÃ©)`;}
-      else if(freqDay<1) {activityLabel = `un rythme de trading modÃ©rÃ© (~${freqDay.toFixed(2)} trades/jour, ${timeInMktLoc.toFixed(0)}% du temps en marchÃ©)`;}
-      else {activityLabel = `un trading dense (~${freqDay.toFixed(2)} trades/jour, ${timeInMktLoc.toFixed(0)}% du temps en marchÃ©)`;}
-      const teLabel = (teN>=70? 'trade efficiency Ã©levÃ©e' : teN>=40? 'trade efficiency correcte' : 'trade efficiency fragile');
-      const eqNote = `${perfLabel} (${retPct1.toFixed(1)}% cumulÃ©s, capital ${startE.toFixed(0)} â†’ ${endE.toFixed(0)}). `+
-        `Le couple rendement/risque reste caractÃ©risÃ© par ${riskLabel} (PF ${pf1Disp}, Win ${wr1.toFixed(1)}%, DD max ${ddAbs.toFixed(0)}${Number.isFinite(ddPct1)? ' ('+ddPct1.toFixed(1)+'%)':''}). `+
+      if(freqDay<0.3) activityLabel = `peu de positions (~${freqDay.toFixed(2)} trade/jour, ${timeInMktLoc.toFixed(0)}% du temps en marché)`;
+      else if(freqDay<1) activityLabel = `un rythme de trading modéré (~${freqDay.toFixed(2)} trades/jour, ${timeInMktLoc.toFixed(0)}% du temps en marché)`;
+      else activityLabel = `un trading dense (~${freqDay.toFixed(2)} trades/jour, ${timeInMktLoc.toFixed(0)}% du temps en marché)`;
+      const teLabel = (teN>=70? 'trade efficiency élevée' : teN>=40? 'trade efficiency correcte' : 'trade efficiency fragile');
+      const eqNote = `${perfLabel} (${retPct1.toFixed(1)}% cumulés, capital ${startE.toFixed(0)} → ${endE.toFixed(0)}). `+
+        `Le couple rendement/risque reste caractérisé par ${riskLabel} (PF ${pf1Disp}, Win ${wr1.toFixed(1)}%, DD max ${ddAbs.toFixed(0)}${Number.isFinite(ddPct1)? ' ('+ddPct1.toFixed(1)+'%)':''}). `+
         `La courbe montre ${trendLabel} avec ${activityLabel}. `+
-        `Trade Efficiency â‰ˆ ${teN.toFixed(0)}% (${teLabel}).`;
+        `Trade Efficiency ≈ ${teN.toFixed(0)}% (${teLabel}).`;
       setNote('detailEquityNote', eqNote);
-      setNote('detailDDNote', `Taille et frÃ©quence des creux cohÃ©rentes avec ce profil de risque (DD max ${ddAbs.toFixed(0)}).`);
+      setNote('detailDDNote', `Taille et fréquence des creux cohérentes avec ce profil de risque (DD max ${ddAbs.toFixed(0)}).`);
       if(resCmp && eqCmp && eqCmp.length>1){
         const startE2 = (eqCmp[0].equity!=null? eqCmp[0].equity : (conf.startCap||0));
         const endE2 = (eqCmp[eqCmp.length-1].equity!=null? eqCmp[eqCmp.length-1].equity : startE2);
@@ -4113,54 +4112,54 @@ function renderStrategyDetailIntoModal(res, ctx, compCfg){ try{
         const dd2 = +resCmp.maxDDAbs||0;
         const ddPct2 = startE2>0? (dd2/startE2*100) : NaN;
         const pf2Raw = (resCmp.profitFactor===Infinity? Infinity : (+resCmp.profitFactor||0));
-        const pf2Disp = pf2Raw===Infinity? 'âˆž' : pf2Raw.toFixed(2);
+        const pf2Disp = pf2Raw===Infinity? '∞' : pf2Raw.toFixed(2);
         const wr2 = +resCmp.winrate||0;
         const pnl1 = +res.totalPnl||0;
         const pnl2 = +resCmp.totalPnl||0;
-        // RÃ©cap numÃ©rique entre les deux stratÃ©gies
-        setNote('detailCompareNote', `${cmpLabel} â€” PF ${pf2Disp} vs ${pf1Disp} â€¢ Win ${wr2.toFixed(1)}% vs ${wr1.toFixed(1)}% â€¢ P&L ${pnl2.toFixed(0)} vs ${pnl1.toFixed(0)} â€¢ Max DD ${dd2.toFixed(0)} vs ${ddAbs.toFixed(0)}`);
-        // Analyse concise: principaux avantages / inconvÃ©nients de la stratÃ©gie comparÃ©e
+        // Récap numérique entre les deux stratégies
+        setNote('detailCompareNote', `${cmpLabel} — PF ${pf2Disp} vs ${pf1Disp} • Win ${wr2.toFixed(1)}% vs ${wr1.toFixed(1)}% • P&L ${pnl2.toFixed(0)} vs ${pnl1.toFixed(0)} • Max DD ${dd2.toFixed(0)} vs ${ddAbs.toFixed(0)}`);
+        // Analyse concise: principaux avantages / inconvénients de la stratégie comparée
         const advantages=[]; const limits=[];
         if(Number.isFinite(retPct1)&&Number.isFinite(retPct2)){
           const dR = retPct2-retPct1;
-          if(dR>2) {advantages.push(`rendement supÃ©rieur (+${dR.toFixed(1)} pts)`);}
-          else if(dR<-2) {limits.push(`rendement infÃ©rieur (${dR.toFixed(1)} pts)`);}
+          if(dR>2) advantages.push(`rendement supérieur (+${dR.toFixed(1)} pts)`);
+          else if(dR<-2) limits.push(`rendement inférieur (${dR.toFixed(1)} pts)`);
         }
         if(Number.isFinite(ddPct1)&&Number.isFinite(ddPct2)){
           const dD = ddPct2-ddPct1;
-          if(dD<-2) {advantages.push(`drawdown plus contenu (${dd2.toFixed(0)} vs ${ddAbs.toFixed(0)})`);}
-          else if(dD>2) {limits.push(`drawdown plus profond (${dd2.toFixed(0)} vs ${ddAbs.toFixed(0)})`);}
+          if(dD<-2) advantages.push(`drawdown plus contenu (${dd2.toFixed(0)} vs ${ddAbs.toFixed(0)})`);
+          else if(dD>2) limits.push(`drawdown plus profond (${dd2.toFixed(0)} vs ${ddAbs.toFixed(0)})`);
         }
         if(Number.isFinite(pf1Raw)&&Number.isFinite(pf2Raw)){
           const dPf = pf2Raw-pf1Raw;
-          if(dPf>0.1) {advantages.push(`PF plus Ã©levÃ© (${pf2Disp} vs ${pf1Disp})`);}
-          else if(dPf<-0.1) {limits.push(`PF plus faible (${pf2Disp} vs ${pf1Disp})`);}
+          if(dPf>0.1) advantages.push(`PF plus élevé (${pf2Disp} vs ${pf1Disp})`);
+          else if(dPf<-0.1) limits.push(`PF plus faible (${pf2Disp} vs ${pf1Disp})`);
         }
         if(Number.isFinite(wr1)&&Number.isFinite(wr2)){
           const dW = wr2-wr1;
-          if(dW>1.5) {advantages.push(`Win% supÃ©rieur (${wr2.toFixed(1)}% vs ${wr1.toFixed(1)}%)`);}
-          else if(dW<-1.5) {limits.push(`Win% plus faible (${wr2.toFixed(1)}% vs ${wr1.toFixed(1)}%)`);}
+          if(dW>1.5) advantages.push(`Win% supérieur (${wr2.toFixed(1)}% vs ${wr1.toFixed(1)}%)`);
+          else if(dW<-1.5) limits.push(`Win% plus faible (${wr2.toFixed(1)}% vs ${wr1.toFixed(1)}%)`);
         }
-        const advStr = advantages.length? advantages.slice(0,3).join(', ') : 'un profil de performance globalement proche de la stratÃ©gie analysÃ©e';
-        const limStr = limits.length? limits.slice(0,3).join(', ') : 'pas de faiblesse majeure apparente par rapport Ã  la stratÃ©gie analysÃ©e sur ces mÃ©triques simples';
-        const cmpText = `${cmpLabel} â€” Avantages: ${advStr} â€¢ InconvÃ©nients: ${limStr}`;
+        const advStr = advantages.length? advantages.slice(0,3).join(', ') : 'un profil de performance globalement proche de la stratégie analysée';
+        const limStr = limits.length? limits.slice(0,3).join(', ') : 'pas de faiblesse majeure apparente par rapport à la stratégie analysée sur ces métriques simples';
+        const cmpText = `${cmpLabel} — Avantages: ${advStr} • Inconvénients: ${limStr}`;
         setNote('detailEquityHeavenNote', cmpText);
         compareSummaryText = cmpText;
       }
     }
     const neg=rets.filter(x=>x<0).length, N=rets.length;
-    setNote('detailHistNote', `Moyenne: ${m.toFixed(2)}% â€¢ Ã‰cart-type: ${sd.toFixed(2)} â€¢ Pertes: ${(N? (neg/N*100):0).toFixed(0)}% des trades`);
+    setNote('detailHistNote', `Moyenne: ${m.toFixed(2)}% • Écart-type: ${sd.toFixed(2)} • Pertes: ${(N? (neg/N*100):0).toFixed(0)}% des trades`);
   }catch(_){ }
 const totalSecs=Math.max(1, (maxTs>minTs? (maxTs-minTs) : (bars[eIdx].time-bars[sIdx].time))); const days=totalSecs/86400; const freq = (res.tradesCount||0)/(days||1); const timeInMkt = Math.max(0, Math.min(100, 100*(totalDur/Math.max(1, totalSecs)))); const effLabels=['Win Rate','Avg R:R','Trade Efficiency','Time in Market','Trades / jour']; const effVals=[winrate, Math.max(0, Math.min(100, (avgRR/2)*100)), teN, timeInMkt, Math.max(0, Math.min(100, (freq/20)*100))];
   // Expectancy & trade stats (par position)
 const groups=(function(){ const t=(res.trades||[]).slice().sort((a,b)=> (a.exitTime||0)-(b.exitTime||0)); const map=new Map(); function keyOf(e){ return `${e.dir}|${e.entryTime}|${e.entry}|${e.initSL}`; } for(const ev of t){ const k=keyOf(ev); let g=map.get(k); if(!g){ g={ entryTime:ev.entryTime, exitTime:ev.exitTime, entry: (Number.isFinite(ev.entry)? ev.entry : null), initSL: (Number.isFinite(ev.initSL)? ev.initSL : null), net:0, dur:0, dir:ev.dir||'long', eq0: (Number(ev.eqBefore)||null) }; map.set(k,g); }
-    g.net += Number(ev.net)||0; if(Number.isFinite(ev.exitTime)&&Number.isFinite(ev.entryTime)) {g.dur = Math.max(g.dur, ev.exitTime-ev.entryTime);} if(Number.isFinite(ev.exitTime)) {g.exitTime = ev.exitTime;} if(g.entry==null && Number.isFinite(ev.entry)) {g.entry = ev.entry;} if(g.initSL==null && Number.isFinite(ev.initSL)) {g.initSL = ev.initSL;} if(g.eq0==null && Number.isFinite(ev.eqBefore)) {g.eq0 = Number(ev.eqBefore);} }
+    g.net += Number(ev.net)||0; if(Number.isFinite(ev.exitTime)&&Number.isFinite(ev.entryTime)) g.dur = Math.max(g.dur, ev.exitTime-ev.entryTime); if(Number.isFinite(ev.exitTime)) g.exitTime = ev.exitTime; if(g.entry==null && Number.isFinite(ev.entry)) g.entry = ev.entry; if(g.initSL==null && Number.isFinite(ev.initSL)) g.initSL = ev.initSL; if(g.eq0==null && Number.isFinite(ev.eqBefore)) g.eq0 = Number(ev.eqBefore); }
     return Array.from(map.values()).sort((a,b)=> (a.exitTime||0)-(b.exitTime||0)); })();
 const positions = groups.length||0; const expNet = positions? groups.reduce((s,g)=> s+(Number(g.net)||0),0)/positions : 0; const avgDurMin = positions? (groups.reduce((s,g)=> s+(Number(g.dur)||0),0)/positions/60) : 0; const bestNet = positions? Math.max(...groups.map(g=> Number(g.net)||0)) : 0; const worstNet = positions? Math.min(...groups.map(g=> Number(g.net)||0)) : 0;
   // Rolling metrics (window 30 positions)
   const ROLL_N=30; const rollPF=[], rollWin=[], rollRR=[], rollExp=[];
-  // Per-position RR approximÃ©e: moyenne des rr d'Ã©vÃ©nements de la position, sinon fallback par signe/net
-const rrByPos=(function(){ const map=new Map(); const t=(res.trades||[]); function keyOf(e){ return `${e.dir}|${e.entryTime}|${e.entry}|${e.initSL}`; } for(const ev of t){ const k=keyOf(ev); let arr=map.get(k); if(!arr){ arr=[]; map.set(k,arr); } if(Number.isFinite(ev.rr)) {arr.push(Number(ev.rr));} }
+  // Per-position RR approximée: moyenne des rr d'événements de la position, sinon fallback par signe/net
+const rrByPos=(function(){ const map=new Map(); const t=(res.trades||[]); function keyOf(e){ return `${e.dir}|${e.entryTime}|${e.entry}|${e.initSL}`; } for(const ev of t){ const k=keyOf(ev); let arr=map.get(k); if(!arr){ arr=[]; map.set(k,arr); } if(Number.isFinite(ev.rr)) arr.push(Number(ev.rr)); }
     const out=[]; for(const g of groups){ const k=`${g.dir}|${g.entryTime}|${g.entry}|${g.initSL}`; const arr=map.get(k)||[]; const m=arr.length? (arr.reduce((x,y)=>x+y,0)/arr.length) : null; out.push(m); } return out; })();
   for(let i=0;i<groups.length;i++){
     const winSlice=groups.slice(Math.max(0,i-ROLL_N+1), i+1);
@@ -4173,23 +4172,23 @@ const rrByPos=(function(){ const map=new Map(); const t=(res.trades||[]); functi
   }
   // Durations & streaks
   const durationsMin = groups.map(g=> Math.max(0, (Number(g.dur)||0)/60));
-  const retLong=[], retShort=[]; for(const g of groups){ const eq0=Number.isFinite(g.eq0)&&g.eq0>0? g.eq0 : (Number(conf.startCap)||1); const rpct = (Number(g.net)||0)/eq0*100; if(g.dir==='long') {retLong.push(rpct);} else {retShort.push(rpct);} }
+  const retLong=[], retShort=[]; for(const g of groups){ const eq0=Number.isFinite(g.eq0)&&g.eq0>0? g.eq0 : (Number(conf.startCap)||1); const rpct = (Number(g.net)||0)/eq0*100; if(g.dir==='long') retLong.push(rpct); else retShort.push(rpct); }
   // Bootstrap CIs (95%) for Win%, PF, Expectancy (par position)
   let ciBoot=null; try{ const nets=groups.map(g=> Number(g.net)||0); const L=nets.length; if(L>=8){ const B=200; const pfArr=[], wrArr=[], expArr=[]; function q(a,p){ const s=a.slice().sort((x,y)=>x-y); const idx=Math.max(0, Math.min(s.length-1, Math.floor((s.length-1)*p))); return s[idx]; }
     for(let b=0;b<B;b++){ let gp=0, gl=0, wins=0, sum=0; for(let i=0;i<L;i++){ const v=nets[Math.floor(Math.random()*L)]; sum+=v; if(v>=0){ gp+=v; wins++; } else { gl+=v; } } const pfv = gl<0? (gp/Math.abs(gl)) : 10; pfArr.push(pfv); wrArr.push(100*wins/L); expArr.push(sum/L); }
     ciBoot={ win:[q(wrArr,0.025), q(wrArr,0.975)], pf:[q(pfArr,0.025), q(pfArr,0.975)], exp:[q(expArr,0.025), q(expArr,0.975)] };
   } }catch(_){ ciBoot=null; }
   // Streaks
-  const sortedPos = groups.slice().sort((a,b)=> (a.exitTime||0)-(b.exitTime||0)); let curType=null, curLen=0; const winLen=[], loseLen=[]; function pushStreak(){ if(curLen>0){ if(curType==='win') {winLen.push(curLen);} else {loseLen.push(curLen);} } }
-  for(const g of sortedPos){ const typ=(g.net>=0?'win':'lose'); if(typ===curType){ curLen++; } else { pushStreak(); curType=typ; curLen=1; } } pushStreak(); const maxStreak=Math.max(1,...winLen, ...loseLen); const winCounts=new Array(Math.max(1,maxStreak+1)).fill(0); const loseCounts=new Array(Math.max(1,maxStreak+1)).fill(0); for(const k of winLen) {winCounts[k]=(winCounts[k]||0)+1;} for(const k of loseLen) {loseCounts[k]=(loseCounts[k]||0)+1;}
+  const sortedPos = groups.slice().sort((a,b)=> (a.exitTime||0)-(b.exitTime||0)); let curType=null, curLen=0; const winLen=[], loseLen=[]; function pushStreak(){ if(curLen>0){ if(curType==='win') winLen.push(curLen); else loseLen.push(curLen); } }
+  for(const g of sortedPos){ const typ=(g.net>=0?'win':'lose'); if(typ===curType){ curLen++; } else { pushStreak(); curType=typ; curLen=1; } } pushStreak(); const maxStreak=Math.max(1,...winLen, ...loseLen); const winCounts=new Array(Math.max(1,maxStreak+1)).fill(0); const loseCounts=new Array(Math.max(1,maxStreak+1)).fill(0); for(const k of winLen) winCounts[k]=(winCounts[k]||0)+1; for(const k of loseLen) loseCounts[k]=(loseCounts[k]||0)+1;
   drawBars(canEff, effLabels, effVals);
-  try{ const idxs=effVals.map((v,i)=>[v,i]).sort((a,b)=>b[0]-a[0]); const best=effLabels[idxs[0][1]]; const worst=effLabels[idxs[idxs.length-1][1]]; setNote('detailEffNote', `Point fort: ${best} â€¢ Ã€ amÃ©liorer: ${worst}`); }catch(_){ }
+  try{ const idxs=effVals.map((v,i)=>[v,i]).sort((a,b)=>b[0]-a[0]); const best=effLabels[idxs[0][1]]; const worst=effLabels[idxs[idxs.length-1][1]]; setNote('detailEffNote', `Point fort: ${best} • À améliorer: ${worst}`); }catch(_){ }
   // Heaven efficiency bars
   try{ if(typeof H!=='undefined' && H){ const totalSecsH=Math.max(1, (H.maxTs>H.minTs? (H.maxTs-H.minTs) : (bars[eIdx].time-bars[sIdx].time))); const daysH=totalSecsH/86400; const freqH = (resCmp.tradesCount||0)/(daysH||1); const timeInMktH = Math.max(0, Math.min(100, 100*(H.totalDur/Math.max(1, totalSecsH)))); const pfH = (resCmp.profitFactor===Infinity? 3 : Math.max(0, Math.min(3, +resCmp.profitFactor||0))); const teNH = Math.max(0, Math.min(100, ((+resCmp.winrate||0)/100) * (pfH/(pfH+1))*100)); const effValsH=[(+resCmp.winrate||0), Math.max(0, Math.min(100, ((+resCmp.avgRR||0)/2)*100)), teNH, timeInMktH, Math.max(0, Math.min(100, (freqH/20)*100))]; const canEH=ensureHeavenClone('detailEff'); if(canEH){ drawBars(canEH, effLabels, effValsH); } } }catch(_){ }
   const complexity = (6 + (+!!(ctx.params&&ctx.params.useFibRet)) + (ctx.params&&ctx.params.confirmMode?1:0) + (Array.isArray((ctx.params&&ctx.params.tp))? ctx.params.tp.length:0)); const compN = Math.max(0, Math.min(100, (complexity/20)*100));
   drawRobust(canRob, compN, edgeN);
-  try{ setNote('detailRobustNote', `ComplexitÃ© ${compN.toFixed(0)}% â€¢ Robustesse ${edgeN.toFixed(0)}%`); }catch(_){ }
-  // Graphique de robustesse pour la stratÃ©gie comparÃ©e (Heaven / PalmarÃ¨s)
+  try{ setNote('detailRobustNote', `Complexité ${compN.toFixed(0)}% • Robustesse ${edgeN.toFixed(0)}%`); }catch(_){ }
+  // Graphique de robustesse pour la stratégie comparée (Heaven / Palmarès)
   try{
     if(typeof H!=='undefined' && H && resCmp){
       const retsH=(H.rets||[]).slice();
@@ -4206,46 +4205,46 @@ const rrByPos=(function(){ const map=new Map(); const t=(res.trades||[]); functi
     }
   }catch(_){ }
   // Rolling charts
-  try{ drawLineChart(canRollPF, rollPF, { title:'Rolling PF (fenÃªtre 30)', yMin:0, yMax: Math.max(3, Math.min(5, Math.max(...rollPF,3))), fmt:(v)=> (v===Infinity?'âˆž':v.toFixed(2)) }); registerChart('detailRollPF', { type:'rolling', name:'PF', values: rollPF.slice() }); }catch(_){ }
-  try{ drawLineChart(canRollWin, rollWin, { title:'Rolling Win% (fenÃªtre 30)', yMin:0, yMax:100, fmt:(v)=> v.toFixed(0)+'%' }); registerChart('detailRollWin', { type:'rolling', name:'Win%', values: rollWin.slice() }); }catch(_){ }
-  try{ drawLineChart(canRollRR, rollRR, { title:'Rolling Avg R:R (fenÃªtre 30)', yMin:0, yMax: Math.max(2, Math.max(...rollRR,1.5)), fmt:(v)=> v.toFixed(2) }); registerChart('detailRollRR', { type:'rolling', name:'Avg R:R', values: rollRR.slice() }); }catch(_){ }
+  try{ drawLineChart(canRollPF, rollPF, { title:'Rolling PF (fenêtre 30)', yMin:0, yMax: Math.max(3, Math.min(5, Math.max(...rollPF,3))), fmt:(v)=> (v===Infinity?'∞':v.toFixed(2)) }); registerChart('detailRollPF', { type:'rolling', name:'PF', values: rollPF.slice() }); }catch(_){ }
+  try{ drawLineChart(canRollWin, rollWin, { title:'Rolling Win% (fenêtre 30)', yMin:0, yMax:100, fmt:(v)=> v.toFixed(0)+'%' }); registerChart('detailRollWin', { type:'rolling', name:'Win%', values: rollWin.slice() }); }catch(_){ }
+  try{ drawLineChart(canRollRR, rollRR, { title:'Rolling Avg R:R (fenêtre 30)', yMin:0, yMax: Math.max(2, Math.max(...rollRR,1.5)), fmt:(v)=> v.toFixed(2) }); registerChart('detailRollRR', { type:'rolling', name:'Avg R:R', values: rollRR.slice() }); }catch(_){ }
   try{ drawLineChart(canRollExp, rollExp, { title:'Rolling Expectancy (USD, fen.30)', yMin: Math.min(0, Math.min(...rollExp,0)), yMax: Math.max(0, Math.max(...rollExp,0)), fmt:(v)=> v.toFixed(2) }); registerChart('detailRollExp', { type:'rolling', name:'Expectancy', values: rollExp.slice() }); }catch(_){ }
   // Heaven rollings
-  try{ if(typeof H!=='undefined' && H){ const c1=ensureHeavenClone('detailRollPF'); if(c1){ drawLineChart(c1, H.rollPF, { title:'Rolling PF (fenÃªtre 30)', yMin:0, yMax: Math.max(3, Math.min(5, Math.max(...H.rollPF,3))), fmt:(v)=> (v===Infinity?'âˆž':v.toFixed(2)) }); registerChart('detailRollPFHeaven', { type:'rolling', name:'PF', values: H.rollPF.slice() }); }
-    const c2=ensureHeavenClone('detailRollWin'); if(c2){ drawLineChart(c2, H.rollWin, { title:'Rolling Win% (fenÃªtre 30)', yMin:0, yMax:100, fmt:(v)=> v.toFixed(0)+'%' }); registerChart('detailRollWinHeaven', { type:'rolling', name:'Win%', values: H.rollWin.slice() }); }
-    const c3=ensureHeavenClone('detailRollRR'); if(c3){ drawLineChart(c3, H.rollRR, { title:'Rolling Avg R:R (fenÃªtre 30)', yMin:0, yMax: Math.max(2, Math.max(...H.rollRR,1.5)), fmt:(v)=> v.toFixed(2) }); registerChart('detailRollRRHeaven', { type:'rolling', name:'Avg R:R', values: H.rollRR.slice() }); }
+  try{ if(typeof H!=='undefined' && H){ const c1=ensureHeavenClone('detailRollPF'); if(c1){ drawLineChart(c1, H.rollPF, { title:'Rolling PF (fenêtre 30)', yMin:0, yMax: Math.max(3, Math.min(5, Math.max(...H.rollPF,3))), fmt:(v)=> (v===Infinity?'∞':v.toFixed(2)) }); registerChart('detailRollPFHeaven', { type:'rolling', name:'PF', values: H.rollPF.slice() }); }
+    const c2=ensureHeavenClone('detailRollWin'); if(c2){ drawLineChart(c2, H.rollWin, { title:'Rolling Win% (fenêtre 30)', yMin:0, yMax:100, fmt:(v)=> v.toFixed(0)+'%' }); registerChart('detailRollWinHeaven', { type:'rolling', name:'Win%', values: H.rollWin.slice() }); }
+    const c3=ensureHeavenClone('detailRollRR'); if(c3){ drawLineChart(c3, H.rollRR, { title:'Rolling Avg R:R (fenêtre 30)', yMin:0, yMax: Math.max(2, Math.max(...H.rollRR,1.5)), fmt:(v)=> v.toFixed(2) }); registerChart('detailRollRRHeaven', { type:'rolling', name:'Avg R:R', values: H.rollRR.slice() }); }
     const c4=ensureHeavenClone('detailRollExp'); if(c4){ drawLineChart(c4, H.rollExp, { title:'Rolling Expectancy (USD, fen.30)', yMin: Math.min(0, Math.min(...H.rollExp,0)), yMax: Math.max(0, Math.max(...H.rollExp,0)), fmt:(v)=> v.toFixed(2) }); registerChart('detailRollExpHeaven', { type:'rolling', name:'Expectancy', values: H.rollExp.slice() }); } } }catch(_){ }
-  try{ const med=(a)=>{ const s=a.slice().sort((x,y)=>x-y); return s.length? s[Math.floor(s.length/2)] : 0; }; setNote('detailRollPFNote', `Dernier ${rollPF.length? (rollPF[rollPF.length-1]).toFixed(2):'â€”'} â€¢ MÃ©diane ${med(rollPF).toFixed(2)}`); setNote('detailRollWinNote', `Dernier ${rollWin.length? (rollWin[rollWin.length-1]).toFixed(0)+'%':'â€”'} â€¢ MÃ©diane ${med(rollWin).toFixed(0)}%`); setNote('detailRollRRNote', `Dernier ${rollRR.length? (rollRR[rollRR.length-1]).toFixed(2):'â€”'} â€¢ MÃ©diane ${med(rollRR).toFixed(2)}`); setNote('detailRollExpNote', `Dernier ${rollExp.length? (rollExp[rollExp.length-1]).toFixed(2):'â€”'} â€¢ MÃ©diane ${med(rollExp).toFixed(2)}`); }catch(_){ }
+  try{ const med=(a)=>{ const s=a.slice().sort((x,y)=>x-y); return s.length? s[Math.floor(s.length/2)] : 0; }; setNote('detailRollPFNote', `Dernier ${rollPF.length? (rollPF[rollPF.length-1]).toFixed(2):'—'} • Médiane ${med(rollPF).toFixed(2)}`); setNote('detailRollWinNote', `Dernier ${rollWin.length? (rollWin[rollWin.length-1]).toFixed(0)+'%':'—'} • Médiane ${med(rollWin).toFixed(0)}%`); setNote('detailRollRRNote', `Dernier ${rollRR.length? (rollRR[rollRR.length-1]).toFixed(2):'—'} • Médiane ${med(rollRR).toFixed(2)}`); setNote('detailRollExpNote', `Dernier ${rollExp.length? (rollExp[rollExp.length-1]).toFixed(2):'—'} • Médiane ${med(rollExp).toFixed(2)}`); }catch(_){ }
   // Diagnostics charts
   try{ drawDurations(canDur, durationsMin); registerChart('detailDurHist', { type:'rolling', name:'Duration(min)', values: durationsMin.slice() }); }catch(_){ }
-  try{ const srt=durationsMin.slice().sort((a,b)=>a-b); const p50=srt.length? srt[Math.floor(0.5*(srt.length-1))]:0; const p95=srt.length? srt[Math.floor(0.95*(srt.length-1))]:0; setNote('detailDurHistNote', `DurÃ©e mÃ©diane ${p50.toFixed(1)} min â€¢ 95% < ${p95.toFixed(1)} min`); }catch(_){ }
+  try{ const srt=durationsMin.slice().sort((a,b)=>a-b); const p50=srt.length? srt[Math.floor(0.5*(srt.length-1))]:0; const p95=srt.length? srt[Math.floor(0.95*(srt.length-1))]:0; setNote('detailDurHistNote', `Durée médiane ${p50.toFixed(1)} min • 95% < ${p95.toFixed(1)} min`); }catch(_){ }
   // Heaven durations
   try{ if(typeof H!=='undefined' && H){ const c=ensureHeavenClone('detailDurHist'); if(c){ drawDurations(c, H.durationsMin||[]); try{ registerChart('detailDurHistHeaven', { type:'rolling', name:'Duration(min)', values: (H.durationsMin||[]).slice() }); }catch(__){} } } }catch(_){ }
   try{ drawUnderwater(document.getElementById('detailUnder'), eq); const days = Math.max(1,( (maxTs>minTs? (maxTs-minTs) : (bars[eIdx].time-bars[sIdx].time)) / 86400 )); const years=days/365; const startE=eq[0]?.equity||conf.startCap||0; const endE=eq[eq.length-1]?.equity||startE; const cagr = (startE>0 && years>0)? (Math.pow(endE/startE, 1/years)-1) : 0; // risk metrics
     let peak=eq[0]?.equity||0; const uw=eq.map(p=>{ peak=Math.max(peak, p.equity||0); return peak>0? ((p.equity-peak)/peak*100) : 0; }); uwSeries = uw.slice(); const ulcer = Math.sqrt(uw.reduce((s,v)=> s + Math.pow(Math.min(0,v),2),0)/Math.max(1,uw.length)); const ddMaxPct = Math.min(0, Math.min(...uw)); const mar = (ddMaxPct<0)? (cagr/Math.abs(ddMaxPct/100)) : 0; const negR = rets.filter(x=>x<0); const ddn = Math.sqrt((negR.length? negR.reduce((s,x)=>s+x*x,0)/negR.length : 0)); const sortino = (ddn>0)? (m/ddn) : 0; const posR=rets.filter(x=>x>0).reduce((s,x)=>s+x,0), negAbs=rets.filter(x=>x<0).reduce((s,x)=>s+Math.abs(x),0); const omega = (negAbs>0)? (posR/negAbs) : Infinity; // VaR/ES (95%)
-    const sr=rets.slice().sort((a,b)=>a-b); const qIdx=Math.floor(0.05*Math.max(0,sr.length-1)); const var95 = sr.length? sr[qIdx] : 0; const es95 = sr.length? (sr.slice(0,qIdx+1).reduce((s,x)=>s+x,0)/Math.max(1,qIdx+1)) : 0; setNote('detailUnderNote', `CAGR ${(cagr*100).toFixed(1)}% â€¢ Ulcer ${ulcer.toFixed(2)} â€¢ MAR ${mar.toFixed(2)} â€¢ Sortino ${sortino.toFixed(2)} â€¢ Omega ${omega===Infinity?'âˆž':omega.toFixed(2)} â€¢ VaR95 ${var95.toFixed(2)}% â€¢ ES95 ${es95.toFixed(2)}%`); }catch(_){ }
+    const sr=rets.slice().sort((a,b)=>a-b); const qIdx=Math.floor(0.05*Math.max(0,sr.length-1)); const var95 = sr.length? sr[qIdx] : 0; const es95 = sr.length? (sr.slice(0,qIdx+1).reduce((s,x)=>s+x,0)/Math.max(1,qIdx+1)) : 0; setNote('detailUnderNote', `CAGR ${(cagr*100).toFixed(1)}% • Ulcer ${ulcer.toFixed(2)} • MAR ${mar.toFixed(2)} • Sortino ${sortino.toFixed(2)} • Omega ${omega===Infinity?'∞':omega.toFixed(2)} • VaR95 ${var95.toFixed(2)}% • ES95 ${es95.toFixed(2)}%`); }catch(_){ }
   try{ drawStreaks(canStreaks, winCounts, loseCounts); try{ registerChart('detailStreaks', { type:'streaks', win: winCounts.slice(), lose: loseCounts.slice() }); }catch(__){} }catch(_){ }
   // Heaven durations + underwater + streaks/LS will follow after H derivation
-  try{ const lw = winLen.length? Math.max(...winLen) : 0; const ll = loseLen.length? Math.max(...loseLen) : 0; setNote('detailStreaksNote', `Plus longue sÃ©rie: ${lw} gains, ${ll} pertes`); }catch(_){ }
+  try{ const lw = winLen.length? Math.max(...winLen) : 0; const ll = loseLen.length? Math.max(...loseLen) : 0; setNote('detailStreaksNote', `Plus longue série: ${lw} gains, ${ll} pertes`); }catch(_){ }
 try{ drawHistLongShort(canLS, retLong, retShort); try{ registerChart('detailLSHist', { type:'lsdist', long: retLong.slice(), short: retShort.slice() }); }catch(__){} }catch(_){ }
-  try{ const mean=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length:0; setNote('detailLSHistNote', `Moyenne Long ${mean(retLong).toFixed(2)}% â€¢ Short ${mean(retShort).toFixed(2)}%`); }catch(_){ }
+  try{ const mean=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length:0; setNote('detailLSHistNote', `Moyenne Long ${mean(retLong).toFixed(2)}% • Short ${mean(retShort).toFixed(2)}%`); }catch(_){ }
   // Heaven Long/Short distributions
   try{ if(typeof H!=='undefined' && H){ const c=ensureHeavenClone('detailLSHist'); if(c){ drawHistLongShort(c, H.retLong||[], H.retShort||[]); try{ registerChart('detailLSHistHeaven', { type:'lsdist', long:(H.retLong||[]).slice(), short:(H.retShort||[]).slice() }); }catch(__){} } } }catch(_){ }
   // Heaven streaks
-  try{ if(typeof H!=='undefined' && H){ const sortedPosH = (H.groups||[]).slice().sort((a,b)=> (a.exitTime||0)-(b.exitTime||0)); let curTypeH=null, curLenH=0; const winLenH=[], loseLenH=[]; function pushStreakH(){ if(curLenH>0){ if(curTypeH==='win') {winLenH.push(curLenH);} else {loseLenH.push(curLenH);} } }
-    for(const g of sortedPosH){ const typ=(g.net>=0?'win':'lose'); if(typ===curTypeH){ curLenH++; } else { pushStreakH(); curTypeH=typ; curLenH=1; } } pushStreakH(); const maxStreakH=Math.max(1,...winLenH, ...loseLenH); const winCountsH=new Array(Math.max(1,maxStreakH+1)).fill(0); const loseCountsH=new Array(Math.max(1,maxStreakH+1)).fill(0); for(const k of winLenH) {winCountsH[k]=(winCountsH[k]||0)+1;} for(const k of loseLenH) {loseCountsH[k]=(loseCountsH[k]||0)+1;} const cH=ensureHeavenClone('detailStreaks'); if(cH){ drawStreaks(cH, winCountsH, loseCountsH); try{ registerChart('detailStreaksHeaven', { type:'streaks', win: winCountsH.slice(), lose: loseCountsH.slice() }); }catch(__){} } } }catch(_){ }
+  try{ if(typeof H!=='undefined' && H){ const sortedPosH = (H.groups||[]).slice().sort((a,b)=> (a.exitTime||0)-(b.exitTime||0)); let curTypeH=null, curLenH=0; const winLenH=[], loseLenH=[]; function pushStreakH(){ if(curLenH>0){ if(curTypeH==='win') winLenH.push(curLenH); else loseLenH.push(curLenH); } }
+    for(const g of sortedPosH){ const typ=(g.net>=0?'win':'lose'); if(typ===curTypeH){ curLenH++; } else { pushStreakH(); curTypeH=typ; curLenH=1; } } pushStreakH(); const maxStreakH=Math.max(1,...winLenH, ...loseLenH); const winCountsH=new Array(Math.max(1,maxStreakH+1)).fill(0); const loseCountsH=new Array(Math.max(1,maxStreakH+1)).fill(0); for(const k of winLenH) winCountsH[k]=(winCountsH[k]||0)+1; for(const k of loseLenH) loseCountsH[k]=(loseCountsH[k]||0)+1; const cH=ensureHeavenClone('detailStreaks'); if(cH){ drawStreaks(cH, winCountsH, loseCountsH); try{ registerChart('detailStreaksHeaven', { type:'streaks', win: winCountsH.slice(), lose: loseCountsH.slice() }); }catch(__){} } } }catch(_){ }
   // MAE/MFE points
   try{
-    const timeToIdx=(ts)=>{ let lo=0, hi=bars.length-1, ans=0; while(lo<=hi){ const mid=(lo+hi)>>1; if(bars[mid].time<=ts){ ans=mid; lo=mid+1; } else {hi=mid-1;} } return ans; };
+    const timeToIdx=(ts)=>{ let lo=0, hi=bars.length-1, ans=0; while(lo<=hi){ const mid=(lo+hi)>>1; if(bars[mid].time<=ts){ ans=mid; lo=mid+1; } else hi=mid-1; } return ans; };
     const maePts=[];
-    for(const g of groups){ if(!Number.isFinite(g.entryTime) || !Number.isFinite(g.exitTime) || !Number.isFinite(g.entry) || !Number.isFinite(g.initSL)) {continue;} const i0=timeToIdx(g.entryTime), i1=timeToIdx(g.exitTime); if(i1<=i0) {continue;} let hi=-Infinity, lo=Infinity; for(let i=i0;i<=i1;i++){ hi=Math.max(hi, bars[i].high); lo=Math.min(lo, bars[i].low); } const entry=g.entry; const risk=Math.max(1e-9, Math.abs(entry - g.initSL)); let maeR=0, mfeR=0; if(g.dir==='long'){ maeR = Math.max(0, (entry - lo)/risk); mfeR = Math.max(0, (hi - entry)/risk); } else { maeR = Math.max(0, (hi - entry)/risk); mfeR = Math.max(0, (entry - lo)/risk); } maePts.push({ maeR, mfeR, win: (g.net||0)>=0 }); }
+    for(const g of groups){ if(!Number.isFinite(g.entryTime) || !Number.isFinite(g.exitTime) || !Number.isFinite(g.entry) || !Number.isFinite(g.initSL)) continue; const i0=timeToIdx(g.entryTime), i1=timeToIdx(g.exitTime); if(i1<=i0) continue; let hi=-Infinity, lo=Infinity; for(let i=i0;i<=i1;i++){ hi=Math.max(hi, bars[i].high); lo=Math.min(lo, bars[i].low); } const entry=g.entry; const risk=Math.max(1e-9, Math.abs(entry - g.initSL)); let maeR=0, mfeR=0; if(g.dir==='long'){ maeR = Math.max(0, (entry - lo)/risk); mfeR = Math.max(0, (hi - entry)/risk); } else { maeR = Math.max(0, (hi - entry)/risk); mfeR = Math.max(0, (entry - lo)/risk); } maePts.push({ maeR, mfeR, win: (g.net||0)>=0 }); }
     drawMAEMFEScatter(canMAEMFE, maePts);
     try{ registerChart('detailMAEMFE', { type:'maemfe', points: maePts.slice() }); }catch(__){}
-    try{ maePtsVar = maePts.slice(); const mean=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length:0; const aMFE=mean(maePts.map(p=>p.mfeR)); const aMAE=mean(maePts.map(p=>p.maeR)); setNote('detailMAEMFENote', `MFE moyen ${aMFE.toFixed(2)}R â€¢ MAE moyen ${aMAE.toFixed(2)}R`); }catch(__){}
+    try{ maePtsVar = maePts.slice(); const mean=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length:0; const aMFE=mean(maePts.map(p=>p.mfeR)); const aMAE=mean(maePts.map(p=>p.maeR)); setNote('detailMAEMFENote', `MFE moyen ${aMFE.toFixed(2)}R • MAE moyen ${aMAE.toFixed(2)}R`); }catch(__){}
   }catch(_){ }
   // Heaven Underwater
-  try{ if(typeof H!=='undefined' && H && eqCmp){ const canUH=ensureHeavenClone('detailUnder'); if(canUH){ drawUnderwater(canUH, eqCmp); const daysH = Math.max(1,( (H.maxTs>H.minTs? (H.maxTs-H.minTs) : (bars[eIdx].time-bars[sIdx].time)) / 86400 )); const yearsH=daysH/365; const startEH=H.eq[0]?.equity||conf.startCap||0; const endEH=H.eq[H.eq.length-1]?.equity||startEH; const cagrH = (startEH>0 && yearsH>0)? (Math.pow(endEH/startEH, 1/yearsH)-1) : 0; let peakH=H.eq[0]?.equity||0; const uwH=H.eq.map(p=>{ peakH=Math.max(peakH, p.equity||0); return peakH>0? ((p.equity-peakH)/peakH*100) : 0; }); uwSeriesCmp = uwH.slice(); const ulcerH = Math.sqrt(uwH.reduce((s,v)=> s + Math.pow(Math.min(0,v),2),0)/Math.max(1,uwH.length)); const ddMaxPctH = Math.min(0, Math.min(...uwH)); const marH = (ddMaxPctH<0)? (cagrH/Math.abs(ddMaxPctH/100)) : 0; const negRH = H.rets.filter(x=>x<0); const ddnH = Math.sqrt((negRH.length? negRH.reduce((s,x)=>s+x*x,0)/negRH.length : 0)); const mH=(H.rets.length? H.rets.reduce((a,b)=>a+b,0)/H.rets.length:0); const sortinoH = (ddnH>0)? (mH/ddnH) : 0; const posRH=H.rets.filter(x=>x>0).reduce((s,x)=>s+x,0), negAbsH=H.rets.filter(x=>x<0).reduce((s,x)=>s+Math.abs(x),0); const omegaH = (negAbsH>0)? (posRH/negAbsH) : Infinity; const srH=H.rets.slice().sort((a,b)=>a-b); const qIdxH=Math.floor(0.05*Math.max(0,srH.length-1)); const var95H = srH.length? srH[qIdxH] : 0; const es95H = srH.length? (srH.slice(0,qIdxH+1).reduce((s,x)=>s+x,0)/Math.max(1,qIdxH+1)) : 0; setNote('detailUnderHeavenNote', `CAGR ${(cagrH*100).toFixed(1)}% â€¢ Ulcer ${ulcerH.toFixed(2)} â€¢ MAR ${marH.toFixed(2)} â€¢ Sortino ${sortinoH.toFixed(2)} â€¢ Omega ${omegaH===Infinity?'âˆž':omegaH.toFixed(2)} â€¢ VaR95 ${var95H.toFixed(2)}% â€¢ ES95 ${es95H.toFixed(2)}%`); } } }catch(_){ }
-// Seasonality â€” weekly heatmap
+  try{ if(typeof H!=='undefined' && H && eqCmp){ const canUH=ensureHeavenClone('detailUnder'); if(canUH){ drawUnderwater(canUH, eqCmp); const daysH = Math.max(1,( (H.maxTs>H.minTs? (H.maxTs-H.minTs) : (bars[eIdx].time-bars[sIdx].time)) / 86400 )); const yearsH=daysH/365; const startEH=H.eq[0]?.equity||conf.startCap||0; const endEH=H.eq[H.eq.length-1]?.equity||startEH; const cagrH = (startEH>0 && yearsH>0)? (Math.pow(endEH/startEH, 1/yearsH)-1) : 0; let peakH=H.eq[0]?.equity||0; const uwH=H.eq.map(p=>{ peakH=Math.max(peakH, p.equity||0); return peakH>0? ((p.equity-peakH)/peakH*100) : 0; }); uwSeriesCmp = uwH.slice(); const ulcerH = Math.sqrt(uwH.reduce((s,v)=> s + Math.pow(Math.min(0,v),2),0)/Math.max(1,uwH.length)); const ddMaxPctH = Math.min(0, Math.min(...uwH)); const marH = (ddMaxPctH<0)? (cagrH/Math.abs(ddMaxPctH/100)) : 0; const negRH = H.rets.filter(x=>x<0); const ddnH = Math.sqrt((negRH.length? negRH.reduce((s,x)=>s+x*x,0)/negRH.length : 0)); const mH=(H.rets.length? H.rets.reduce((a,b)=>a+b,0)/H.rets.length:0); const sortinoH = (ddnH>0)? (mH/ddnH) : 0; const posRH=H.rets.filter(x=>x>0).reduce((s,x)=>s+x,0), negAbsH=H.rets.filter(x=>x<0).reduce((s,x)=>s+Math.abs(x),0); const omegaH = (negAbsH>0)? (posRH/negAbsH) : Infinity; const srH=H.rets.slice().sort((a,b)=>a-b); const qIdxH=Math.floor(0.05*Math.max(0,srH.length-1)); const var95H = srH.length? srH[qIdxH] : 0; const es95H = srH.length? (srH.slice(0,qIdxH+1).reduce((s,x)=>s+x,0)/Math.max(1,qIdxH+1)) : 0; setNote('detailUnderHeavenNote', `CAGR ${(cagrH*100).toFixed(1)}% • Ulcer ${ulcerH.toFixed(2)} • MAR ${marH.toFixed(2)} • Sortino ${sortinoH.toFixed(2)} • Omega ${omegaH===Infinity?'∞':omegaH.toFixed(2)} • VaR95 ${var95H.toFixed(2)}% • ES95 ${es95H.toFixed(2)}%`); } } }catch(_){ }
+// Seasonality — weekly heatmap
   try{
     function isoYearWeek(ts){ const d=new Date(ts*1000); // copy UTC date
       const dt=new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
@@ -4260,11 +4259,11 @@ try{ drawHistLongShort(canLS, retLong, retShort); try{ registerChart('detailLSHi
     const keys=Array.from(endByYW.keys()).sort((a,b)=>{ const [ay,aw]=a.split('-').map(Number), [by,bw]=b.split('-').map(Number); return ay!==by? ay-by : aw-bw; });
     const cells=[]; let prev=null; for(const k of keys){ const v=endByYW.get(k); if(prev!=null){ const [y,w]=k.split('-').map(Number); const r=((v-prev)/prev)*100; cells.push({ y, w, r }); } prev=v; }
 drawWeeklyHeatmap(canWeekly, cells);
-    try{ registerChart('detailWeekly', { type:'weekly', cells: cells.slice() }); weeklyCells = cells.slice(); if(weeklyCells.length){ const r=weeklyCells.map(c=>c.r); const mn=Math.min(...r), mx=Math.max(...r); const avg=r.reduce((a,b)=>a+b,0)/r.length; setNote('detailWeeklyNote', `Moy. hebdo ${avg.toFixed(2)}% â€¢ Meilleure ${mx.toFixed(1)}% â€¢ Pire ${mn.toFixed(1)}%`); } }catch(__){}
+    try{ registerChart('detailWeekly', { type:'weekly', cells: cells.slice() }); weeklyCells = cells.slice(); if(weeklyCells.length){ const r=weeklyCells.map(c=>c.r); const mn=Math.min(...r), mx=Math.max(...r); const avg=r.reduce((a,b)=>a+b,0)/r.length; setNote('detailWeeklyNote', `Moy. hebdo ${avg.toFixed(2)}% • Meilleure ${mx.toFixed(1)}% • Pire ${mn.toFixed(1)}%`); } }catch(__){}
   }catch(_){ }
   // Heaven weekly
   try{ if(typeof H!=='undefined' && H){ const c=ensureHeavenClone('detailWeekly'); if(c){ drawWeeklyHeatmap(c, H.weekly); registerChart('detailWeeklyHeaven', { type:'weekly', cells: H.weekly.slice() }); } } }catch(_){ }
-  // Seasonality â€” day-of-week bars
+  // Seasonality — day-of-week bars
   try{
     function toYMD(ts){ const d=new Date(ts*1000); return `${d.getUTCFullYear()}-${d.getUTCMonth()+1}-${d.getUTCDate()}`; }
     const eod=new Map(); if(eq && eq.length){ for(const p of eq){ const key=toYMD(p.time); eod.set(key, p.equity); } }
@@ -4272,13 +4271,13 @@ drawWeeklyHeatmap(canWeekly, cells);
     const labels=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']; const arr=labels.map((k,i)=>({k, v: (dowCnt[i]>0? dowVals[i]/dowCnt[i] : 0)}));
     drawDOWBars(canDOW, arr);
     try{ registerChart('detailDOW', { type:'bars', labels: arr.map(x=>x.k), values: arr.map(x=>x.v) }); }catch(__){}
-    try{ dowArr = arr.slice(); if(dowArr.length){ let best=dowArr[0], worst=dowArr[0]; for(const x of dowArr){ if(x.v>best.v) {best=x;} if(x.v<worst.v) {worst=x;} } setNote('detailDOWNote', `Jour le plus favorable: ${best.k} (${best.v.toFixed(2)}%) â€¢ Le moins: ${worst.k} (${worst.v.toFixed(2)}%)`); } }catch(__){}
+    try{ dowArr = arr.slice(); if(dowArr.length){ let best=dowArr[0], worst=dowArr[0]; for(const x of dowArr){ if(x.v>best.v) best=x; if(x.v<worst.v) worst=x; } setNote('detailDOWNote', `Jour le plus favorable: ${best.k} (${best.v.toFixed(2)}%) • Le moins: ${worst.k} (${worst.v.toFixed(2)}%)`); } }catch(__){}
   }catch(_){ }
   // Heaven DOW bars
   try{ if(typeof H!=='undefined' && H){ const c=ensureHeavenClone('detailDOW'); if(c){ drawDOWBars(c, H.dow||[]); try{ registerChart('detailDOWHeaven', { type:'bars', labels: (H.dow||[]).map(x=>x.k), values: (H.dow||[]).map(x=>x.v) }); }catch(__){} } } }catch(_){ }
   // Heaven MAE/MFE
   try{ if(typeof H!=='undefined' && H){ const c=ensureHeavenClone('detailMAEMFE'); if(c){ drawMAEMFEScatter(c, H.maePts||[]); try{ registerChart('detailMAEMFEHeaven', { type:'maemfe', points: (H.maePts||[]).slice() }); }catch(__){} } } }catch(_){ }
-// Seasonality â€” weekly heatmap
+// Seasonality — weekly heatmap
   try{
     function toYMDH(ts){ const d=new Date(ts*1000); return `${d.getUTCFullYear()}-${d.getUTCMonth()+1}-${d.getUTCDate()}-${d.getUTCHours()}`; }
     const eoh=new Map(); if(eq && eq.length){ for(const p of eq){ const key=toYMDH(p.time); eoh.set(key, p.equity); } }
@@ -4287,19 +4286,19 @@ drawWeeklyHeatmap(canWeekly, cells);
     const cells2=[]; for(let r=0;r<7;r++){ for(let c=0;c<24;c++){ const v=cnt[r][c]>0? (sum[r][c]/cnt[r][c]) : 0; cells2.push({ c, d:r, h:c, r:v }); } }
     drawDOWHourHeatmap(canDOWHour, cells2);
     try{ /* also register for CSV if needed */ }catch(__){}
-    try{ registerChart('detailDOWHour', { type:'heatmap', cells: cells2.slice(), rows:7, cols:24 }); dowHourCells=cells2.slice(); if(dowHourCells.length){ let best=dowHourCells[0], worst=dowHourCells[0]; for(const x of dowHourCells){ if(x.r>best.r) {best=x;} if(x.r<worst.r) {worst=x;} } const lab=(x)=> ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'][x.d]+' '+String(x.h).padStart(2,'0')+'h'; setNote('detailDOWHourNote', `Meilleur crÃ©neau: ${lab(best)} (${best.r.toFixed(2)}%) â€¢ Pire: ${lab(worst)} (${worst.r.toFixed(2)}%)`); } }catch(__){}
+    try{ registerChart('detailDOWHour', { type:'heatmap', cells: cells2.slice(), rows:7, cols:24 }); dowHourCells=cells2.slice(); if(dowHourCells.length){ let best=dowHourCells[0], worst=dowHourCells[0]; for(const x of dowHourCells){ if(x.r>best.r) best=x; if(x.r<worst.r) worst=x; } const lab=(x)=> ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'][x.d]+' '+String(x.h).padStart(2,'0')+'h'; setNote('detailDOWHourNote', `Meilleur créneau: ${lab(best)} (${best.r.toFixed(2)}%) • Pire: ${lab(worst)} (${worst.r.toFixed(2)}%)`); } }catch(__){}
   }catch(_){ }
-  // Heaven DOWÃ—Heure (global)
+  // Heaven DOW×Heure (global)
   try{ if(typeof H!=='undefined' && H){ const c=ensureHeavenClone('detailDOWHour'); if(c){ drawDOWHourHeatmap(c, H.dowHour||[]); registerChart('detailDOWHourHeaven', { type:'heatmap', cells: (H.dowHour||[]).slice(), rows:7, cols:24 }); } } }catch(_){ }
-  // DayÃ—Hour â€” Long-only and Short-only (by entry hour, mean % return per position)
+  // Day×Hour — Long-only and Short-only (by entry hour, mean % return per position)
   try{
     const mkCells=(dir)=>{ const sum=Array.from({length:7},()=> new Array(24).fill(0)); const cnt=Array.from({length:7},()=> new Array(24).fill(0)); for(const g of groups){ if(g && g.dir===dir && Number.isFinite(g.entryTime)){ const eq0=Number.isFinite(g.eq0)&&g.eq0>0? g.eq0 : (Number(conf.startCap)||1); const rpct=(Number(g.net)||0)/eq0*100; const dt=new Date((g.entryTime||0)*1000); const dow=(dt.getUTCDay()+6)%7; const hr=dt.getUTCHours(); sum[dow][hr]+=rpct; cnt[dow][hr]++; } } const cells=[]; for(let r=0;r<7;r++){ for(let c=0;c<24;c++){ const v=cnt[r][c]>0? (sum[r][c]/cnt[r][c]) : 0; cells.push({ c, d:r, h:c, r:v }); } } return cells; };
-    try{ if(canDOWHourLong){ const cL=mkCells('long'); dhLongCells=cL.slice(); drawDOWHourHeatmap(canDOWHourLong, cL); registerChart('detailDOWHourLong', { type:'heatmap', cells:cL.slice(), rows:7, cols:24 }); if(cL.length){ let best=cL[0], worst=cL[0]; for(const x of cL){ if(x.r>best.r) {best=x;} if(x.r<worst.r) {worst=x;} } const lab=(x)=> ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'][x.d]+' '+String(x.h).padStart(2,'0')+'h'; setNote('detailDOWHourLongNote', `Best: ${lab(best)} (${best.r.toFixed(2)}%) â€¢ Worst: ${lab(worst)} (${worst.r.toFixed(2)}%)`); } } }catch(__){}
-    try{ if(canDOWHourShort){ const cS=mkCells('short'); dhShortCells=cS.slice(); drawDOWHourHeatmap(canDOWHourShort, cS); registerChart('detailDOWHourShort', { type:'heatmap', cells:cS.slice(), rows:7, cols:24 }); if(cS.length){ let best=cS[0], worst=cS[0]; for(const x of cS){ if(x.r>best.r) {best=x;} if(x.r<worst.r) {worst=x;} } const lab=(x)=> ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'][x.d]+' '+String(x.h).padStart(2,'0')+'h'; setNote('detailDOWHourShortNote', `Best: ${lab(best)} (${best.r.toFixed(2)}%) â€¢ Worst: ${lab(worst)} (${worst.r.toFixed(2)}%)`); } } }catch(__){}
+    try{ if(canDOWHourLong){ const cL=mkCells('long'); dhLongCells=cL.slice(); drawDOWHourHeatmap(canDOWHourLong, cL); registerChart('detailDOWHourLong', { type:'heatmap', cells:cL.slice(), rows:7, cols:24 }); if(cL.length){ let best=cL[0], worst=cL[0]; for(const x of cL){ if(x.r>best.r) best=x; if(x.r<worst.r) worst=x; } const lab=(x)=> ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'][x.d]+' '+String(x.h).padStart(2,'0')+'h'; setNote('detailDOWHourLongNote', `Best: ${lab(best)} (${best.r.toFixed(2)}%) • Worst: ${lab(worst)} (${worst.r.toFixed(2)}%)`); } } }catch(__){}
+    try{ if(canDOWHourShort){ const cS=mkCells('short'); dhShortCells=cS.slice(); drawDOWHourHeatmap(canDOWHourShort, cS); registerChart('detailDOWHourShort', { type:'heatmap', cells:cS.slice(), rows:7, cols:24 }); if(cS.length){ let best=cS[0], worst=cS[0]; for(const x of cS){ if(x.r>best.r) best=x; if(x.r<worst.r) worst=x; } const lab=(x)=> ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'][x.d]+' '+String(x.h).padStart(2,'0')+'h'; setNote('detailDOWHourShortNote', `Best: ${lab(best)} (${best.r.toFixed(2)}%) • Worst: ${lab(worst)} (${worst.r.toFixed(2)}%)`); } } }catch(__){}
   }catch(_){ }
-  // Heaven DOWÃ—Heure â€” Long/Short
+  // Heaven DOW×Heure — Long/Short
   try{ if(typeof H!=='undefined' && H){ const cl=ensureHeavenClone('detailDOWHourLong'); if(cl){ drawDOWHourHeatmap(cl, H.dowHourLong||[]); registerChart('detailDOWHourLongHeaven', { type:'heatmap', cells:(H.dowHourLong||[]).slice(), rows:7, cols:24 }); } const cs=ensureHeavenClone('detailDOWHourShort'); if(cs){ drawDOWHourHeatmap(cs, H.dowHourShort||[]); registerChart('detailDOWHourShortHeaven', { type:'heatmap', cells:(H.dowHourShort||[]).slice(), rows:7, cols:24 }); } } }catch(_){ }
-  // Regime heatmap (Trend Ã— Vol)
+  // Regime heatmap (Trend × Vol)
   try{
     const prd=Math.max(2, lbcOpts.prd|0); const lb=computeLineBreakState(bars, Math.max(1, lbcOpts.nol|0));
     // ATR% (Wilder 14)
@@ -4307,17 +4306,17 @@ drawWeeklyHeatmap(canWeekly, cells);
     const atrP = atrPct(bars, 14); const vals=atrP.filter(x=> Number.isFinite(x)); const sorted=vals.slice().sort((a,b)=>a-b); const q1=sorted[Math.floor(sorted.length*0.33)]||0, q2=sorted[Math.floor(sorted.length*0.66)]||0;
     const bucketVol=(x)=> x<=q1? 'Low' : (x>=q2? 'High' : 'Med'); const bucketTrend=(i)=> lb.trend[i]===1? 'Up':'Down';
     const mat={ Up:{Low:{pf:0,gp:0,gl:0,count:0}, Med:{pf:0,gp:0,gl:0,count:0}, High:{pf:0,gp:0,gl:0,count:0}}, Down:{Low:{pf:0,gp:0,gl:0,count:0}, Med:{pf:0,gp:0,gl:0,count:0}, High:{pf:0,gp:0,gl:0,count:0}} };
-    const idxOfTime=(ts)=>{ let lo=0, hi=bars.length-1, ans=0; while(lo<=hi){ const mid=(lo+hi)>>1; if(bars[mid].time<=ts){ ans=mid; lo=mid+1; } else {hi=mid-1;} } return ans; };
-    for(const g of groups){ const i=idxOfTime(g.entryTime); const tr=bucketTrend(Math.min(i, lb.trend.length-1)); const vol=bucketVol(atrP[Math.min(i, atrP.length-1)]||0); const cell=mat[tr][vol]; cell.count++; if((g.net||0)>=0) {cell.gp += (g.net||0);} else {cell.gl += (g.net||0);} }
+    const idxOfTime=(ts)=>{ let lo=0, hi=bars.length-1, ans=0; while(lo<=hi){ const mid=(lo+hi)>>1; if(bars[mid].time<=ts){ ans=mid; lo=mid+1; } else hi=mid-1; } return ans; };
+    for(const g of groups){ const i=idxOfTime(g.entryTime); const tr=bucketTrend(Math.min(i, lb.trend.length-1)); const vol=bucketVol(atrP[Math.min(i, atrP.length-1)]||0); const cell=mat[tr][vol]; cell.count++; if((g.net||0)>=0) cell.gp += (g.net||0); else cell.gl += (g.net||0); }
     for(const r of ['Up','Down']){ for(const c of ['Low','Med','High']){ const cell=mat[r][c]; cell.pf = (cell.gl<0? cell.gp/Math.abs(cell.gl) : (cell.count>0? Infinity:0)); } }
 drawRegimeHeatmap(canRegime, mat);
-    try{ regimeMat = mat; let best={r:'',c:'',pf:-Infinity,count:0}, worst={r:'',c:'',pf:Infinity,count:0}; for(const rr of ['Up','Down']){ for(const cc of ['Low','Med','High']){ const cell=mat[rr][cc]; const pf=(cell.pf===Infinity? 5: cell.pf||0); if(pf>best.pf){ best={r:rr,c:cc,pf, count:cell.count}; } if(pf<worst.pf){ worst={r:rr,c:cc,pf, count:cell.count}; } } } setNote('detailRegimeNote', `Meilleur rÃ©gime: ${best.r}/${best.c} (PF ${best.pf.toFixed(2)}, n=${best.count}) â€¢ Pire: ${worst.r}/${worst.c}`); }catch(__){}
+    try{ regimeMat = mat; let best={r:'',c:'',pf:-Infinity,count:0}, worst={r:'',c:'',pf:Infinity,count:0}; for(const rr of ['Up','Down']){ for(const cc of ['Low','Med','High']){ const cell=mat[rr][cc]; const pf=(cell.pf===Infinity? 5: cell.pf||0); if(pf>best.pf){ best={r:rr,c:cc,pf, count:cell.count}; } if(pf<worst.pf){ worst={r:rr,c:cc,pf, count:cell.count}; } } } setNote('detailRegimeNote', `Meilleur régime: ${best.r}/${best.c} (PF ${best.pf.toFixed(2)}, n=${best.count}) • Pire: ${worst.r}/${worst.c}`); }catch(__){}
   }catch(_){ }
   // Heaven regime
   try{ if(typeof H!=='undefined' && H && H.regime){ const c=ensureHeavenClone('detailRegime'); if(c){ drawRegimeHeatmap(c, H.regime); } } }catch(_){ }
-  // Pareto (PalmarÃ¨s)
+  // Pareto (Palmarès)
   try{
-    const pal = (Array.isArray(window.labPalmaresCache) && window.labPalmaresCache.length)? window.labPalmaresCache.slice() : [];
+    let pal = (Array.isArray(window.labPalmaresCache) && window.labPalmaresCache.length)? window.labPalmaresCache.slice() : [];
     const drawFrom = (arr)=>{
       const pts=[]; if(Array.isArray(arr)){
         for(const it of arr){ const st=it.res||{}; const score=(typeof it.score==='number')? it.score : 0; if(Number.isFinite(st.maxDDAbs)&&Number.isFinite(st.totalPnl)){ pts.push({ dd:+st.maxDDAbs, pnl:+st.totalPnl, score }); } }
@@ -4325,7 +4324,7 @@ drawRegimeHeatmap(canRegime, mat);
       if(!pts.length){ pts.push({ dd: Math.max(0, +res.maxDDAbs||0), pnl: +res.totalPnl||0, score: (Number.isFinite(res.score)? res.score:0) }); }
       drawPareto(canPareto, pts);
       try{ registerChart('detailPareto', { type:'pareto', points: pts.slice() }); }catch(__){}
-      try{ const dd=+res.maxDDAbs||0, pnl=+res.totalPnl||0; const ratio = dd>0? (pnl/Math.abs(dd)) : Infinity; setNote('detailParetoNote', `Point courant: P&L ${pnl.toFixed(0)} â€¢ Max DD ${dd.toFixed(0)} â€¢ Ratio P&L/DD ${ratio===Infinity?'âˆž':ratio.toFixed(2)}`); }catch(__){}
+      try{ const dd=+res.maxDDAbs||0, pnl=+res.totalPnl||0; const ratio = dd>0? (pnl/Math.abs(dd)) : Infinity; setNote('detailParetoNote', `Point courant: P&L ${pnl.toFixed(0)} • Max DD ${dd.toFixed(0)} • Ratio P&L/DD ${ratio===Infinity?'∞':ratio.toFixed(2)}`); }catch(__){}
     };
     if(pal.length){ drawFrom(pal); }
     else if(window.SUPA && typeof SUPA.fetchPalmares==='function'){
@@ -4333,9 +4332,9 @@ drawRegimeHeatmap(canRegime, mat);
     } else { drawFrom([]); }
   }catch(_){ }
   // Heaven Pareto
-  try{ if(typeof resCmp!=='undefined' && resCmp){ const pal = (Array.isArray(window.labPalmaresCache) && window.labPalmaresCache.length)? window.labPalmaresCache.slice() : []; const pts=[]; if(Array.isArray(pal)){ for(const it of pal){ const st=it.res||{}; const score=(typeof it.score==='number')? it.score : 0; if(Number.isFinite(st.maxDDAbs)&&Number.isFinite(st.totalPnl)){ pts.push({ dd:+st.maxDDAbs, pnl:+st.totalPnl, score }); } } } if(!pts.length){ pts.push({ dd: Math.max(0, +resCmp.maxDDAbs||0), pnl: +resCmp.totalPnl||0, score: (Number.isFinite(resCmp.score)? resCmp.score:0) }); } const c=ensureHeavenClone('detailPareto'); if(c){ drawPareto(c, pts); try{ registerChart('detailParetoHeaven', { type:'pareto', points: pts.slice() }); }catch(__){} } } }catch(_){ }
+  try{ if(typeof resCmp!=='undefined' && resCmp){ let pal = (Array.isArray(window.labPalmaresCache) && window.labPalmaresCache.length)? window.labPalmaresCache.slice() : []; const pts=[]; if(Array.isArray(pal)){ for(const it of pal){ const st=it.res||{}; const score=(typeof it.score==='number')? it.score : 0; if(Number.isFinite(st.maxDDAbs)&&Number.isFinite(st.totalPnl)){ pts.push({ dd:+st.maxDDAbs, pnl:+st.totalPnl, score }); } } } if(!pts.length){ pts.push({ dd: Math.max(0, +resCmp.maxDDAbs||0), pnl: +resCmp.totalPnl||0, score: (Number.isFinite(resCmp.score)? resCmp.score:0) }); } const c=ensureHeavenClone('detailPareto'); if(c){ drawPareto(c, pts); try{ registerChart('detailParetoHeaven', { type:'pareto', points: pts.slice() }); }catch(__){} } } }catch(_){ }
   // CI bars
-  try{ if(canCIs && ciBoot){ drawCIBars(canCIs, ciBoot); try{ const w=ciBoot.win||[0,0], p=ciBoot.pf||[0,0], e=ciBoot.exp||[0,0]; setNote('detailCIsNote', `Win% [${w[0].toFixed(1)} ; ${w[1].toFixed(1)}] â€¢ PF [${p[0].toFixed(2)} ; ${p[1].toFixed(2)}] â€¢ Exp [${e[0].toFixed(2)} ; ${e[1].toFixed(2)}]`); }catch(__){} } }catch(_){ }
+  try{ if(canCIs && ciBoot){ drawCIBars(canCIs, ciBoot); try{ const w=ciBoot.win||[0,0], p=ciBoot.pf||[0,0], e=ciBoot.exp||[0,0]; setNote('detailCIsNote', `Win% [${w[0].toFixed(1)} ; ${w[1].toFixed(1)}] • PF [${p[0].toFixed(2)} ; ${p[1].toFixed(2)}] • Exp [${e[0].toFixed(2)} ; ${e[1].toFixed(2)}]`); }catch(__){} } }catch(_){ }
   // Heaven CI bars
   try{ if(typeof H!=='undefined' && H){ const c=ensureHeavenClone('detailCIs'); if(c){ drawCIBars(c, H.ci||{ win:[0,0], pf:[0,0], exp:[0,0] }); } } }catch(_){ }
 // Monte Carlo fan (bootstrap trades)
@@ -4346,20 +4345,20 @@ drawRegimeHeatmap(canRegime, mat);
       // compute percentiles per step
       const steps=paths[0].length; const p10=[], p50=[], p90=[]; for(let i=0;i<steps;i++){ const col=paths.map(p=> p[i]); col.sort((a,b)=>a-b); const q=(q)=> col[Math.max(0, Math.min(col.length-1, Math.floor((col.length-1)*q)))]; p10.push(q(0.10)); p50.push(q(0.50)); p90.push(q(0.90)); }
       // draw
-      const ctx=canMC.getContext('2d'); const w=canMC.width, h=canMC.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, "Monte Carlo â€” Ã©ventail d'Ã©quity", 'center'); const padL=56, padR=12, padT=22, padB=28; const min=Math.min(...p10), max=Math.max(...p90); const x=(i)=> i/(steps-1)*(w-padL-padR)+padL; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB); // axes
+      const ctx=canMC.getContext('2d'); const w=canMC.width, h=canMC.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, "Monte Carlo — éventail d'équity", 'center'); const padL=56, padR=12, padT=22, padB=28; const min=Math.min(...p10), max=Math.max(...p90); const x=(i)=> i/(steps-1)*(w-padL-padR)+padL; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB); // axes
       ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke();
       // grid + ticks
       const ticks=4; for(let t=0;t<=ticks;t++){ const yy=h-padB - (h-padT-padB)*t/ticks; const val=(min + (max-min)*t/ticks); ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-8, yy, val.toFixed(0), 'right'); }
       for(let t=0;t<=ticks;t++){ const xx=padL + (w-padL-padR)*t/ticks; ctx.beginPath(); ctx.moveTo(xx, padT); ctx.lineTo(xx, h-padB); ctx.stroke(); __drawText(ctx, xx, h-8, String(Math.round((steps-1)*t/ticks)), 'center'); }
       // band 10-90
-      ctx.fillStyle='rgba(37,99,235,0.15)'; ctx.beginPath(); ctx.moveTo(x(0), y(p10[0])); for(let i=1;i<steps;i++) {ctx.lineTo(x(i), y(p10[i]));} for(let i=steps-1;i>=0;i--) {ctx.lineTo(x(i), y(p90[i]));} ctx.closePath(); ctx.fill();
+      ctx.fillStyle='rgba(37,99,235,0.15)'; ctx.beginPath(); ctx.moveTo(x(0), y(p10[0])); for(let i=1;i<steps;i++) ctx.lineTo(x(i), y(p10[i])); for(let i=steps-1;i>=0;i--) ctx.lineTo(x(i), y(p90[i])); ctx.closePath(); ctx.fill();
       // median
-      ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<steps;i++){ const xx=x(i), yy=y(p50[i]); if(i===0) {ctx.moveTo(xx,yy);} else {ctx.lineTo(xx,yy);} } ctx.stroke(); __drawText(ctx, padL, h-8, 'Trades (bootstrap) â†’', 'left');
-      try{ mcBands = { p10, p50, p90, startCap }; const medEnd=p50[p50.length-1], p10e=p10[p10.length-1], p90e=p90[p90.length-1]; const g=((medEnd-startCap)/Math.max(1e-9,startCap))*100; setNote('detailMCNote', `Median fin: ${medEnd.toFixed(0)} (${g.toFixed(1)}%) â€¢ Bande [${p10e.toFixed(0)} ; ${p90e.toFixed(0)}]`); }catch(__){}
+      ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<steps;i++){ const xx=x(i), yy=y(p50[i]); if(i===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy); } ctx.stroke(); __drawText(ctx, padL, h-8, 'Trades (bootstrap) →', 'left');
+      try{ mcBands = { p10, p50, p90, startCap }; const medEnd=p50[p50.length-1], p10e=p10[p10.length-1], p90e=p90[p90.length-1]; const g=((medEnd-startCap)/Math.max(1e-9,startCap))*100; setNote('detailMCNote', `Median fin: ${medEnd.toFixed(0)} (${g.toFixed(1)}%) • Bande [${p10e.toFixed(0)} ; ${p90e.toFixed(0)}]`); }catch(__){}
     }
   }catch(_){ }
   // Heaven Monte Carlo
-  try{ if(typeof H!=='undefined' && H){ const startCap = Number(conf.startCap)||10000; const rp = (H.retLong.concat(H.retShort)).filter(Number.isFinite); const L = Math.min(300, rp.length||0); const N = Math.min(50, 5 + Math.floor((rp.length||0)/2)); if(L>5 && N>1){ const paths=[]; for(let s=0;s<N;s++){ let eq=startCap; const path=[eq]; for(let i=0;i<L;i++){ const r = rp[Math.floor(Math.random()*rp.length)]/100; eq = eq*(1+r); path.push(eq); } paths.push(path); } const steps=paths[0].length; const p10=[], p50=[], p90=[]; for(let i=0;i<steps;i++){ const col=paths.map(p=> p[i]); col.sort((a,b)=>a-b); const q=(q)=> col[Math.max(0, Math.min(col.length-1, Math.floor((col.length-1)*q)))]; p10.push(q(0.10)); p50.push(q(0.50)); p90.push(q(0.90)); } mcBandsH = { p10:p10.slice(), p50:p50.slice(), p90:p90.slice(), startCap }; const c=ensureHeavenClone('detailMC'); if(c){ const ctx=c.getContext('2d'); const w=c.width, h=c.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, "Monte Carlo â€” Ã©ventail d'Ã©quity", 'center'); const padL=56, padR=12, padT=22, padB=28; const min=Math.min(...p10), max=Math.max(...p90); const x=(i)=> i/(steps-1)*(w-padL-padR)+padL; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; for(let t=0;t<=ticks;t++){ const yy=h-padB - (h-padT-padB)*t/ticks; const val=(min + (max-min)*t/ticks); ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-8, yy, val.toFixed(0), 'right'); } for(let t=0;t<=ticks;t++){ const xx=padL + (w-padL-padR)*t/ticks; ctx.beginPath(); ctx.moveTo(xx, padT); ctx.lineTo(xx, h-padB); ctx.stroke(); __drawText(ctx, xx, h-8, String(Math.round((steps-1)*t/ticks)), 'center'); } ctx.fillStyle='rgba(37,99,235,0.15)'; ctx.beginPath(); ctx.moveTo(x(0), y(p10[0])); for(let i=1;i<steps;i++) {ctx.lineTo(x(i), y(p10[i]));} for(let i=steps-1;i>=0;i--) {ctx.lineTo(x(i), y(p90[i]));} ctx.closePath(); ctx.fill(); ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<steps;i++){ const xx=x(i), yy=y(p50[i]); if(i===0) {ctx.moveTo(xx,yy);} else {ctx.lineTo(xx,yy);} } ctx.stroke(); } } } }catch(_){ }
+  try{ if(typeof H!=='undefined' && H){ const startCap = Number(conf.startCap)||10000; const rp = (H.retLong.concat(H.retShort)).filter(Number.isFinite); const L = Math.min(300, rp.length||0); const N = Math.min(50, 5 + Math.floor((rp.length||0)/2)); if(L>5 && N>1){ const paths=[]; for(let s=0;s<N;s++){ let eq=startCap; const path=[eq]; for(let i=0;i<L;i++){ const r = rp[Math.floor(Math.random()*rp.length)]/100; eq = eq*(1+r); path.push(eq); } paths.push(path); } const steps=paths[0].length; const p10=[], p50=[], p90=[]; for(let i=0;i<steps;i++){ const col=paths.map(p=> p[i]); col.sort((a,b)=>a-b); const q=(q)=> col[Math.max(0, Math.min(col.length-1, Math.floor((col.length-1)*q)))]; p10.push(q(0.10)); p50.push(q(0.50)); p90.push(q(0.90)); } mcBandsH = { p10:p10.slice(), p50:p50.slice(), p90:p90.slice(), startCap }; const c=ensureHeavenClone('detailMC'); if(c){ const ctx=c.getContext('2d'); const w=c.width, h=c.height; ctx.clearRect(0,0,w,h); __drawText(ctx, w/2, 12, "Monte Carlo — éventail d'équity", 'center'); const padL=56, padR=12, padT=22, padB=28; const min=Math.min(...p10), max=Math.max(...p90); const x=(i)=> i/(steps-1)*(w-padL-padR)+padL; const y=(v)=> h-padB - (v-min)/(max-min+1e-9)*(h-padT-padB); ctx.strokeStyle=__clr().border; ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h-padB); ctx.lineTo(w-padR, h-padB); ctx.stroke(); const ticks=4; for(let t=0;t<=ticks;t++){ const yy=h-padB - (h-padT-padB)*t/ticks; const val=(min + (max-min)*t/ticks); ctx.beginPath(); ctx.moveTo(padL-3, yy); ctx.lineTo(w-padR, yy); ctx.stroke(); __drawText(ctx, padL-8, yy, val.toFixed(0), 'right'); } for(let t=0;t<=ticks;t++){ const xx=padL + (w-padL-padR)*t/ticks; ctx.beginPath(); ctx.moveTo(xx, padT); ctx.lineTo(xx, h-padB); ctx.stroke(); __drawText(ctx, xx, h-8, String(Math.round((steps-1)*t/ticks)), 'center'); } ctx.fillStyle='rgba(37,99,235,0.15)'; ctx.beginPath(); ctx.moveTo(x(0), y(p10[0])); for(let i=1;i<steps;i++) ctx.lineTo(x(i), y(p10[i])); for(let i=steps-1;i>=0;i--) ctx.lineTo(x(i), y(p90[i])); ctx.closePath(); ctx.fill(); ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<steps;i++){ const xx=x(i), yy=y(p50[i]); if(i===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy); } ctx.stroke(); } } } }catch(_){ }
   // QQ & ACF
   try{
     const retsAll = (retLong.concat(retShort)).slice();
@@ -4372,7 +4371,7 @@ drawRegimeHeatmap(canRegime, mat);
       const sd=Math.sqrt(mean(retsAll.map(x=>(x-m)*(x-m))));
       const skew = (sd>0? mean(retsAll.map(x=>Math.pow((x-m)/sd,3))) : 0);
       const kurt = (sd>0? mean(retsAll.map(x=>Math.pow((x-m)/sd,4))) : 0);
-      setNote('detailQQNote', `Skew ${skew.toFixed(2)} â€¢ Kurtosis ${kurt.toFixed(2)} (3â‰ˆnormal)`);
+      setNote('detailQQNote', `Skew ${skew.toFixed(2)} • Kurtosis ${kurt.toFixed(2)} (3≈normal)`);
     }catch(__){}
     try{
       if(typeof H!=='undefined' && H){
@@ -4396,9 +4395,9 @@ drawRegimeHeatmap(canRegime, mat);
       const varr=retsAll.reduce((s,x)=>s+(x-m)*(x-m),0);
       for(let k=1;k<=maxLag;k++){
         let num=0; for(let i=0;i<n-k;i++){ num += (retsAll[i]-m)*(retsAll[i+k]-m); }
-        const r = num/(varr||1); if(Math.abs(r)>z) {sig++;}
+        const r = num/(varr||1); if(Math.abs(r)>z) sig++;
       }
-      setNote('detailACFNote', `${sig} lags significatifs (>Â±${z.toFixed(2)})`);
+      setNote('detailACFNote', `${sig} lags significatifs (>±${z.toFixed(2)})`);
     }catch(__){}
     try{
       if(typeof H!=='undefined' && H){
@@ -4416,25 +4415,25 @@ drawRegimeHeatmap(canRegime, mat);
     const N=4; if(eq && eq.length>10){ const t0=eq[0].time, t1=eq[eq.length-1].time; const bounds=[]; for(let k=0;k<=N;k++){ bounds.push(t0 + Math.round((t1-t0)*k/N)); }
       const segs=[]; for(let k=0;k<N;k++){ const a=bounds[k], b=bounds[k+1]; const gg=groups.filter(g=> Number.isFinite(g.exitTime) && g.exitTime>=a && g.exitTime<b); const L=gg.length; let gp=0, gl=0, wins=0; let exp=0, pnl=0; for(const g of gg){ const net=Number(g.net)||0; pnl+=net; if(net>=0){ gp+=net; wins++; } else { gl+=net; } } if(L>0){ exp = pnl/L; }
         const pf = gl<0? (gp/Math.abs(gl)) : (L>0? Infinity:0); const win = L>0? (wins/L*100):0; segs.push({ pf: Number.isFinite(pf)? pf: Infinity, win, exp, pnl }); }
-      drawWFTable(canWF, segs); try{ wfSegs = segs.slice(); const ok=segs.filter(s=> (s.pf===Infinity || s.pf>=1.0)).length; const best=Math.max(...segs.map(s=> (s.pf===Infinity? 9 : s.pf))); const worst=Math.min(...segs.map(s=> (s.pf===Infinity? 9 : s.pf))); setNote('detailWFNote', `${ok}/${segs.length} splits PFâ‰¥1 â€¢ PF min ${worst.toFixed(2)} / max ${best.toFixed(2)}`); registerChart('detailWF', { type:'wf', splits: segs.slice() }); }catch(__){} }
+      drawWFTable(canWF, segs); try{ wfSegs = segs.slice(); const ok=segs.filter(s=> (s.pf===Infinity || s.pf>=1.0)).length; const best=Math.max(...segs.map(s=> (s.pf===Infinity? 9 : s.pf))); const worst=Math.min(...segs.map(s=> (s.pf===Infinity? 9 : s.pf))); setNote('detailWFNote', `${ok}/${segs.length} splits PF≥1 • PF min ${worst.toFixed(2)} / max ${best.toFixed(2)}`); registerChart('detailWF', { type:'wf', splits: segs.slice() }); }catch(__){} }
   }catch(_){ }
   // Heaven WF
   try{ if(typeof H!=='undefined' && H){ const c=ensureHeavenClone('detailWF'); if(c){ drawWFTable(c, H.wf||[]); try{ registerChart('detailWFHeaven', { type:'wf', splits: (H.wf||[]).slice() }); }catch(__){} } } }catch(_){ }
 if(detailCtxEl){
-  const gtxt = (ctx && ctx.gen && ctx.gen>1)? ` â€¢ Gen ${ctx.gen}` : '';
-  const capStr = Number.isFinite(conf.startCap)? ` â€¢ Cap ${conf.startCap.toFixed ? conf.startCap.toFixed(0) : Number(conf.startCap).toFixed(0)}` : '';
-  const feeStr = Number.isFinite(conf.fee)? ` â€¢ Frais ${Number(conf.fee).toFixed(2)}%` : '';
-  const levStr = Number.isFinite(conf.lev)? ` â€¢ Lev x${Number(conf.lev).toFixed(1)}` : '';
+  const gtxt = (ctx && ctx.gen && ctx.gen>1)? ` • Gen ${ctx.gen}` : '';
+  const capStr = Number.isFinite(conf.startCap)? ` • Cap ${conf.startCap.toFixed ? conf.startCap.toFixed(0) : Number(conf.startCap).toFixed(0)}` : '';
+  const feeStr = Number.isFinite(conf.fee)? ` • Frais ${Number(conf.fee).toFixed(2)}%` : '';
+  const levStr = Number.isFinite(conf.lev)? ` • Lev x${Number(conf.lev).toFixed(1)}` : '';
   let header = '';
   try{
-    header = `${symbolToDisplay(sym)} â€¢ ${tf} â€” ${name}${gtxt}${capStr}${feeStr}${levStr} â€” PF ${(res.profitFactor===Infinity?'âˆž':(+res.profitFactor||0).toFixed(2))} â€¢ Trades ${res.tradesCount}`;
+    header = `${symbolToDisplay(sym)} • ${tf} — ${name}${gtxt}${capStr}${feeStr}${levStr} — PF ${(res.profitFactor===Infinity?'∞':(+res.profitFactor||0).toFixed(2))} • Trades ${res.tradesCount}`;
   }catch(_){
-    header = `${sym} â€¢ ${tf} â€” ${name}${gtxt}${capStr}${feeStr}${levStr} â€” PF ${(res.profitFactor===Infinity?'âˆž':(+res.profitFactor||0).toFixed(2))} â€¢ Trades ${res.tradesCount}`;
+    header = `${sym} • ${tf} — ${name}${gtxt}${capStr}${feeStr}${levStr} — PF ${(res.profitFactor===Infinity?'∞':(+res.profitFactor||0).toFixed(2))} • Trades ${res.tradesCount}`;
   }
-  // Ajout d'un rappel explicite de la stratÃ©gie comparÃ©e (Heaven / PalmarÃ¨s)
+  // Ajout d'un rappel explicite de la stratégie comparée (Heaven / Palmarès)
   try{
     const cmpMode = (compCfg && compCfg.mode) || 'heaven';
-    const prefix = (typeof t==='function') ? t('detail.compare.label') : 'Comparer Ã ';
+    const prefix = (typeof t==='function') ? t('detail.compare.label') : 'Comparer à';
     if(cmpMode === 'palmares'){
       const rawSym = (compCfg && compCfg.symbol) || sym;
       let csymDisp = rawSym;
@@ -4444,28 +4443,28 @@ if(detailCtxEl){
       if(!cprof){
         try{ cprof = localStorage.getItem('heaven:profile') || localStorage.getItem('labWeightsProfile') || 'balancee'; }catch(_){ cprof = null; }
       }
-      const meta = cprof ? ` (${csymDisp} â€¢ ${ctf} â€¢ ${cprof})` : ` (${csymDisp} â€¢ ${ctf})`;
-      header += ` â€” ${prefix}: ${cmpLabel}${meta}`;
+      const meta = cprof ? ` (${csymDisp} • ${ctf} • ${cprof})` : ` (${csymDisp} • ${ctf})`;
+      header += ` — ${prefix}: ${cmpLabel}${meta}`;
     } else {
       const heavenTxt = (typeof t==='function') ? t('detail.compare.source.heaven') : 'Heaven';
-      header += ` â€” ${prefix}: ${heavenTxt}`;
+      header += ` — ${prefix}: ${heavenTxt}`;
     }
   }catch(_){ }
   detailCtxEl.textContent = header;
 }
   // Summary/commentary (pass advanced metrics)
   try{ const sum = generateStrategySummary(res, ctx, { timeInMkt, freq, expectancy: expNet, avgDurMin, bestNet, worstNet, r2, pf: (res.profitFactor===Infinity? Infinity : (+res.profitFactor||0)), winrate, avgRR, maxDDAbs: +res.maxDDAbs||0, ci: ciBoot }); if(detailSummaryEl){ let full=sum; if(compareSummaryText){ full += "\n\n"+compareSummaryText; } detailSummaryEl.innerHTML = full; } }catch(_){ }
-  // Slippage whatâ€‘if (bps)
+  // Slippage what‑if (bps)
   try{
     const slipInp=document.getElementById('detailSlipBps'); const slipBtn=document.getElementById('detailSlipApply'); const slipNote=document.getElementById('detailSlipNote'); const slipInfo=document.getElementById('detailSlipInfo');
     if(slipBtn && slipInp && (!slipBtn.dataset || slipBtn.dataset.wired!=='1')){
-      slipBtn.addEventListener('click', ()=>{ try{ const bps=Math.max(0, parseFloat(slipInp.value||'0')); if(!(bps>=0)) {return;} const evs=Array.isArray(res.trades)? res.trades.slice():[]; // compute adjusted nets per position
+      slipBtn.addEventListener('click', ()=>{ try{ const bps=Math.max(0, parseFloat(slipInp.value||'0')); if(!(bps>=0)) return; const evs=Array.isArray(res.trades)? res.trades.slice():[]; // compute adjusted nets per position
         const map=new Map(); function keyOf(e){ return `${e.dir}|${e.entryTime}|${e.entry}|${e.initSL}`; }
         for(const ev of evs){ const k=keyOf(ev); let g=map.get(k); if(!g){ g={ net:0 }; map.set(k,g); } const qty=Math.abs(Number(ev.qty)||0); const pe=Math.abs(Number(ev.entry)||0); const px=Math.abs(Number(ev.exit)||0); const extra=(pe*qty + px*qty)*(bps/10000); const newNet=(Number(ev.net)||0) - extra; g.net += newNet; }
         const gs=Array.from(map.values()); const L=gs.length; let gp=0, gl=0, wins=0, sum=0; for(const g of gs){ const v=Number(g.net)||0; sum+=v; if(v>=0){ gp+=v; wins++; } else { gl+=v; } }
-        const pf = gl<0? (gp/Math.abs(gl)) : (L>0? Infinity:0); const win = L>0? (wins/L*100):0; const exp = L>0? (sum/L):0; if(slipNote){ slipNote.textContent = `â†’ PF ${(pf===Infinity?'âˆž':pf.toFixed(2))}, Win% ${win.toFixed(1)}%, Exp ${exp.toFixed(2)} USD`; }
+        const pf = gl<0? (gp/Math.abs(gl)) : (L>0? Infinity:0); const win = L>0? (wins/L*100):0; const exp = L>0? (sum/L):0; if(slipNote){ slipNote.textContent = `→ PF ${(pf===Infinity?'∞':pf.toFixed(2))}, Win% ${win.toFixed(1)}%, Exp ${exp.toFixed(2)} USD`; }
       }catch(__){} });
-      if(!slipBtn.dataset) {slipBtn.dataset={};}
+      if(!slipBtn.dataset) slipBtn.dataset={};
       slipBtn.dataset.wired='1';
     }
     if(slipInfo && (!slipInfo.dataset || slipInfo.dataset.wired!=='1')){
@@ -4476,17 +4475,17 @@ if(detailCtxEl){
           }
         }catch(__){}
       });
-      if(!slipInfo.dataset) {slipInfo.dataset={};}
+      if(!slipInfo.dataset) slipInfo.dataset={};
       slipInfo.dataset.wired='1';
     }
   }catch(_){ }
   // Exports + tooltips wiring
   try{
     // PNG/CSV buttons on notes
-    function addExportBtns(canvasId){ const note=document.getElementById(canvasId+'Note'); const can=document.getElementById(canvasId); if(!note||!can) {return;} if(note.dataset&&note.dataset.exp==='1') {return;} const span=document.createElement('span'); span.style.float='right'; span.style.display='inline-flex'; span.style.gap='6px'; span.innerHTML = `<button class="btn" data-exp="png" data-target="${canvasId}">PNG</button><button class="btn" data-exp="csv" data-target="${canvasId}">CSV</button>`; note.appendChild(span); note.dataset.exp='1'; }
+    function addExportBtns(canvasId){ const note=document.getElementById(canvasId+'Note'); const can=document.getElementById(canvasId); if(!note||!can) return; if(note.dataset&&note.dataset.exp==='1') return; const span=document.createElement('span'); span.style.float='right'; span.style.display='inline-flex'; span.style.gap='6px'; span.innerHTML = `<button class="btn" data-exp="png" data-target="${canvasId}">PNG</button><button class="btn" data-exp="csv" data-target="${canvasId}">CSV</button>`; note.appendChild(span); note.dataset.exp='1'; }
     const __baseExp=['detailEquity','detailHist','detailRollPF','detailRollWin','detailRollRR','detailRollExp','detailWeekly','detailDOWHour','detailDOWHourLong','detailDOWHourShort','detailCIs','detailMC','detailQQ','detailACF','detailWF','detailPareto','detailDurHist','detailStreaks','detailLSHist','detailMAEMFE','detailDOW'];
     __baseExp.concat(__baseExp.map(x=> x+'Heaven')).forEach(addExportBtns);
-    if(detailModalEl && !detailModalEl.__expWired){ detailModalEl.addEventListener('click', (e)=>{ const t=e.target; if(!t||!t.getAttribute) {return;} const exp=t.getAttribute('data-exp'); const id=t.getAttribute('data-target'); if(!exp||!id) {return;} const can=document.getElementById(id); if(!can) {return;} if(exp==='png'){ try{ const a=document.createElement('a'); a.href=can.toDataURL('image/png'); a.download=id+'.png'; a.click(); }catch(_){ } return; } if(exp==='csv'){ try{ const spec=chartReg[id]||{}; let csv=''; if(spec.type==='equity'){ const t1=spec.eq1||[]; const t2=spec.eq2||[]; csv='idx,time,eq1'+(t2.length?',eq2':'')+'\n'; for(let i=0;i<Math.max(t1.length,t2.length);i++){ const e1=t1[i]||{}; const e2=t2[i]||{}; csv+=`${i},${e1.time||''},${e1.equity||''}`+(t2.length?`,`+(e2.equity||''):'')+'\n'; } }
+    if(detailModalEl && !detailModalEl.__expWired){ detailModalEl.addEventListener('click', (e)=>{ const t=e.target; if(!t||!t.getAttribute) return; const exp=t.getAttribute('data-exp'); const id=t.getAttribute('data-target'); if(!exp||!id) return; const can=document.getElementById(id); if(!can) return; if(exp==='png'){ try{ const a=document.createElement('a'); a.href=can.toDataURL('image/png'); a.download=id+'.png'; a.click(); }catch(_){ } return; } if(exp==='csv'){ try{ const spec=chartReg[id]||{}; let csv=''; if(spec.type==='equity'){ const t1=spec.eq1||[]; const t2=spec.eq2||[]; csv='idx,time,eq1'+(t2.length?',eq2':'')+'\n'; for(let i=0;i<Math.max(t1.length,t2.length);i++){ const e1=t1[i]||{}; const e2=t2[i]||{}; csv+=`${i},${e1.time||''},${e1.equity||''}`+(t2.length?`,`+(e2.equity||''):'')+'\n'; } }
           else if(spec.type==='rets'){ csv='idx,ret%\n'; (spec.values||[]).forEach((v,i)=>{ csv+=`${i},${v}\n`; }); }
           else if(spec.type==='rolling'){ csv='idx,'+(spec.name||'value')+'\n'; (spec.values||[]).forEach((v,i)=>{ csv+=`${i},${v}\n`; }); }
           else if(spec.type==='weekly'){ csv='year,week,ret%\n'; (spec.cells||[]).forEach(c=>{ csv+=`${c.y},${c.w},${c.r}\n`; }); }
@@ -4501,45 +4500,45 @@ if(detailCtxEl){
     }); detailModalEl.__expWired=true; }
     // Equity tooltip
     try{
-      if(canEquity && !canEquity.__tipWired){ const handler=(ev)=>{ try{ const rect=canEquity.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canEquity.width; const padL=46, padR=18; const n=(eq||[]).length; if(n<=1) {return;} const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const p=eq[i]; const t=new Date((p.time||0)*1000).toLocaleString(); let html=`${t}<br/>Sel: ${p.equity.toFixed(0)}`; if(eqCmp&&eqCmp.length){ const j=Math.max(0, Math.min(eqCmp.length-1, i)); html+=` â€¢ ${cmpLabel}: ${eqCmp[j].equity.toFixed(0)}`; } updateCrosshair(canEquity, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
+      if(canEquity && !canEquity.__tipWired){ const handler=(ev)=>{ try{ const rect=canEquity.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canEquity.width; const padL=46, padR=18; const n=(eq||[]).length; if(n<=1) return; const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const p=eq[i]; const t=new Date((p.time||0)*1000).toLocaleString(); let html=`${t}<br/>Sel: ${p.equity.toFixed(0)}`; if(eqCmp&&eqCmp.length){ const j=Math.max(0, Math.min(eqCmp.length-1, i)); html+=` • ${cmpLabel}: ${eqCmp[j].equity.toFixed(0)}`; } updateCrosshair(canEquity, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
         canEquity.addEventListener('mousemove', handler); canEquity.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(canEquity); }); canEquity.__tipWired=true; }
     }catch(_){ }
     // Equity tooltip (comparateur)
     try{
       const canEquityH=document.getElementById('detailEquityHeaven');
-      if(canEquityH && eqCmp && !canEquityH.__tipWired){ const handlerH=(ev)=>{ try{ const rect=canEquityH.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canEquityH.width; const padL=46, padR=18; const n=eqCmp.length||0; if(n<=1) {return;} const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const p=eqCmp[i]; const t=new Date((p.time||0)*1000).toLocaleString(); const html=`${t}<br/>${cmpLabel}: ${p.equity.toFixed(0)}`; updateCrosshair(canEquityH, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
+      if(canEquityH && eqCmp && !canEquityH.__tipWired){ const handlerH=(ev)=>{ try{ const rect=canEquityH.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canEquityH.width; const padL=46, padR=18; const n=eqCmp.length||0; if(n<=1) return; const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const p=eqCmp[i]; const t=new Date((p.time||0)*1000).toLocaleString(); const html=`${t}<br/>${cmpLabel}: ${p.equity.toFixed(0)}`; updateCrosshair(canEquityH, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
         canEquityH.addEventListener('mousemove', handlerH); canEquityH.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(canEquityH); }); canEquityH.__tipWired=true; }
     }catch(_){ }
     // Heatmap tooltips + click filter on long/short
-    function heatHover(can, lab){ if(!can) {return;} if(can.__heatTipWired) {return;} can.addEventListener('mousemove', (ev)=>{ try{ const cfg=can.__heatCfg; if(!cfg) {return;} const rect=can.getBoundingClientRect(); const x=ev.clientX-rect.left, y=ev.clientY-rect.top; const c=Math.floor((x-cfg.padL)/cfg.cw), r=Math.floor((y-cfg.padT)/cfg.ch); if(c<0||c>=cfg.cols||r<0||r>=cfg.rows) {hideTip(); return;} const cell=cfg.cells[r*cfg.cols+c]; if(!cell) {hideTip(); return;} const dnames=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']; const html=`${lab}: ${dnames[r]} ${String(c).padStart(2,'0')}h â€” ${Number(cell.r).toFixed(2)}%`; updateCrosshair(can, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } }); can.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(can); }); can.__heatTipWired=true; }
-    heatHover(canDOWHour, 'JourÃ—Heure'); heatHover(canDOWHourLong, 'Long'); heatHover(canDOWHourShort, 'Short');
-    heatHover(document.getElementById('detailDOWHourHeaven'), `JourÃ—Heure (${cmpLabel})`);
+    function heatHover(can, lab){ if(!can) return; if(can.__heatTipWired) return; can.addEventListener('mousemove', (ev)=>{ try{ const cfg=can.__heatCfg; if(!cfg) return; const rect=can.getBoundingClientRect(); const x=ev.clientX-rect.left, y=ev.clientY-rect.top; const c=Math.floor((x-cfg.padL)/cfg.cw), r=Math.floor((y-cfg.padT)/cfg.ch); if(c<0||c>=cfg.cols||r<0||r>=cfg.rows) return hideTip(); const cell=cfg.cells[r*cfg.cols+c]; if(!cell) return hideTip(); const dnames=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']; const html=`${lab}: ${dnames[r]} ${String(c).padStart(2,'0')}h — ${Number(cell.r).toFixed(2)}%`; updateCrosshair(can, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } }); can.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(can); }); can.__heatTipWired=true; }
+    heatHover(canDOWHour, 'Jour×Heure'); heatHover(canDOWHourLong, 'Long'); heatHover(canDOWHourShort, 'Short');
+    heatHover(document.getElementById('detailDOWHourHeaven'), `Jour×Heure (${cmpLabel})`);
     heatHover(document.getElementById('detailDOWHourLongHeaven'), `Long (${cmpLabel})`);
     heatHover(document.getElementById('detailDOWHourShortHeaven'), `Short (${cmpLabel})`);
     // DD tooltip (absolu USD)
     try{
-      if(canDD && ddSeries && Array.isArray(eq) && !canDD.__tipWired){ const handlerDD=(ev)=>{ try{ const rect=canDD.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canDD.width; const padL=46, padR=18; const n=eq.length; if(n<=1) {return;} const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const p=eq[i]; const t=new Date((p.time||0)*1000).toLocaleString(); const dd=ddSeries[i]||0; const html=`${t}<br/>DD: ${dd.toFixed(0)} USD`; updateCrosshair(canDD, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
+      if(canDD && ddSeries && Array.isArray(eq) && !canDD.__tipWired){ const handlerDD=(ev)=>{ try{ const rect=canDD.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canDD.width; const padL=46, padR=18; const n=eq.length; if(n<=1) return; const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const p=eq[i]; const t=new Date((p.time||0)*1000).toLocaleString(); const dd=ddSeries[i]||0; const html=`${t}<br/>DD: ${dd.toFixed(0)} USD`; updateCrosshair(canDD, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
         canDD.addEventListener('mousemove', handlerDD); canDD.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(canDD); }); canDD.__tipWired=true; }
     }catch(_){ }
     try{
       const canDDH=document.getElementById('detailDDHeaven');
-      if(canDDH && ddSeriesCmp && Array.isArray(eqCmp) && !canDDH.__tipWired){ const handlerDDH=(ev)=>{ try{ const rect=canDDH.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canDDH.width; const padL=46, padR=18; const n=eqCmp.length; if(n<=1) {return;} const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const p=eqCmp[i]; const t=new Date((p.time||0)*1000).toLocaleString(); const dd=ddSeriesCmp[i]||0; const html=`${t}<br/>DD (${cmpLabel}): ${dd.toFixed(0)} USD`; updateCrosshair(canDDH, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
+      if(canDDH && ddSeriesCmp && Array.isArray(eqCmp) && !canDDH.__tipWired){ const handlerDDH=(ev)=>{ try{ const rect=canDDH.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canDDH.width; const padL=46, padR=18; const n=eqCmp.length; if(n<=1) return; const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const p=eqCmp[i]; const t=new Date((p.time||0)*1000).toLocaleString(); const dd=ddSeriesCmp[i]||0; const html=`${t}<br/>DD (${cmpLabel}): ${dd.toFixed(0)} USD`; updateCrosshair(canDDH, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
         canDDH.addEventListener('mousemove', handlerDDH); canDDH.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(canDDH); }); canDDH.__tipWired=true; }
     }catch(_){ }
     // Underwater tooltip (DD%)
     try{
       const canUnder=document.getElementById('detailUnder');
-      if(canUnder && uwSeries && Array.isArray(eq) && !canUnder.__tipWired){ const handlerUW=(ev)=>{ try{ const rect=canUnder.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canUnder.width; const padL=46, padR=12; const n=eq.length; if(n<=1) {return;} const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const p=eq[i]; const t=new Date((p.time||0)*1000).toLocaleString(); const ddPct=uwSeries[i]||0; const html=`${t}<br/>Drawdown: ${ddPct.toFixed(2)}%`; updateCrosshair(canUnder, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
+      if(canUnder && uwSeries && Array.isArray(eq) && !canUnder.__tipWired){ const handlerUW=(ev)=>{ try{ const rect=canUnder.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canUnder.width; const padL=46, padR=12; const n=eq.length; if(n<=1) return; const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const p=eq[i]; const t=new Date((p.time||0)*1000).toLocaleString(); const ddPct=uwSeries[i]||0; const html=`${t}<br/>Drawdown: ${ddPct.toFixed(2)}%`; updateCrosshair(canUnder, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
         canUnder.addEventListener('mousemove', handlerUW); canUnder.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(canUnder); }); canUnder.__tipWired=true; }
     }catch(_){ }
     try{
       const canUnderH=document.getElementById('detailUnderHeaven');
-      if(canUnderH && uwSeriesCmp && Array.isArray(eqCmp) && !canUnderH.__tipWired){ const handlerUWH=(ev)=>{ try{ const rect=canUnderH.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canUnderH.width; const padL=46, padR=12; const n=eqCmp.length; if(n<=1) {return;} const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const p=eqCmp[i]; const t=new Date((p.time||0)*1000).toLocaleString(); const ddPct=uwSeriesCmp[i]||0; const html=`${t}<br/>Drawdown (${cmpLabel}): ${ddPct.toFixed(2)}%`; updateCrosshair(canUnderH, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
+      if(canUnderH && uwSeriesCmp && Array.isArray(eqCmp) && !canUnderH.__tipWired){ const handlerUWH=(ev)=>{ try{ const rect=canUnderH.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canUnderH.width; const padL=46, padR=12; const n=eqCmp.length; if(n<=1) return; const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const p=eqCmp[i]; const t=new Date((p.time||0)*1000).toLocaleString(); const ddPct=uwSeriesCmp[i]||0; const html=`${t}<br/>Drawdown (${cmpLabel}): ${ddPct.toFixed(2)}%`; updateCrosshair(canUnderH, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
         canUnderH.addEventListener('mousemove', handlerUWH); canUnderH.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(canUnderH); }); canUnderH.__tipWired=true; }
     }catch(_){ }
     // Rolling charts tooltips (PF, Win, RR, Exp)
     try{
-      const wireRoll=(can, data, label)=>{ if(!can || !Array.isArray(data) || data.length<2 || can.__rollTipWired) {return;} const handler=(ev)=>{ try{ const rect=can.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=can.width; const padL=40, padR=10; const n=data.length; const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const val=data[i]; const html=`Pos ${i+1}<br/>${label}: ${typeof val==='number'? val.toFixed(2):val}`; updateCrosshair(can, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
+      const wireRoll=(can, data, label)=>{ if(!can || !Array.isArray(data) || data.length<2 || can.__rollTipWired) return; const handler=(ev)=>{ try{ const rect=can.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=can.width; const padL=40, padR=10; const n=data.length; const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const val=data[i]; const html=`Pos ${i+1}<br/>${label}: ${typeof val==='number'? val.toFixed(2):val}`; updateCrosshair(can, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
         can.addEventListener('mousemove', handler); can.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(can); }); can.__rollTipWired=true; };
       wireRoll(canRollPF, rollPF, 'PF');
       wireRoll(canRollWin, rollWin, 'Win%');
@@ -4553,26 +4552,26 @@ if(detailCtxEl){
     }catch(_){ }
     // Monte Carlo tooltip
     try{
-      if(canMC && mcBands && mcBands.p50 && mcBands.p50.length && !canMC.__tipWired){ const handlerMC=(ev)=>{ try{ const rect=canMC.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canMC.width; const padL=56, padR=12; const n=mcBands.p50.length; if(n<=1) {return;} const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const t=i; const eMed=mcBands.p50[i]; const eLo=mcBands.p10[i]; const eHi=mcBands.p90[i]; const html=`Trade bootstrap ${t}<br/>P10: ${eLo.toFixed(0)} â€¢ Median: ${eMed.toFixed(0)} â€¢ P90: ${eHi.toFixed(0)}`; updateCrosshair(canMC, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
+      if(canMC && mcBands && mcBands.p50 && mcBands.p50.length && !canMC.__tipWired){ const handlerMC=(ev)=>{ try{ const rect=canMC.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canMC.width; const padL=56, padR=12; const n=mcBands.p50.length; if(n<=1) return; const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const t=i; const eMed=mcBands.p50[i]; const eLo=mcBands.p10[i]; const eHi=mcBands.p90[i]; const html=`Trade bootstrap ${t}<br/>P10: ${eLo.toFixed(0)} • Median: ${eMed.toFixed(0)} • P90: ${eHi.toFixed(0)}`; updateCrosshair(canMC, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
         canMC.addEventListener('mousemove', handlerMC); canMC.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(canMC); }); canMC.__tipWired=true; }
     }catch(_){ }
     try{
       const canMCH=document.getElementById('detailMCHeaven');
-      if(canMCH && mcBandsH && mcBandsH.p50 && mcBandsH.p50.length && !canMCH.__tipWired){ const handlerMCH=(ev)=>{ try{ const rect=canMCH.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canMCH.width; const padL=56, padR=12; const n=mcBandsH.p50.length; if(n<=1) {return;} const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const t=i; const eMed=mcBandsH.p50[i]; const eLo=mcBandsH.p10[i]; const eHi=mcBandsH.p90[i]; const html=`Trade bootstrap ${t} (${cmpLabel})<br/>P10: ${eLo.toFixed(0)} â€¢ Median: ${eMed.toFixed(0)} â€¢ P90: ${eHi.toFixed(0)}`; updateCrosshair(canMCH, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
+      if(canMCH && mcBandsH && mcBandsH.p50 && mcBandsH.p50.length && !canMCH.__tipWired){ const handlerMCH=(ev)=>{ try{ const rect=canMCH.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=canMCH.width; const padL=56, padR=12; const n=mcBandsH.p50.length; if(n<=1) return; const i=Math.max(0, Math.min(n-1, Math.round((x-padL)/Math.max(1,(w-padL-padR))*(n-1)))); const t=i; const eMed=mcBandsH.p50[i]; const eLo=mcBandsH.p10[i]; const eHi=mcBandsH.p90[i]; const html=`Trade bootstrap ${t} (${cmpLabel})<br/>P10: ${eLo.toFixed(0)} • Median: ${eMed.toFixed(0)} • P90: ${eHi.toFixed(0)}`; updateCrosshair(canMCH, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html); }catch(_){ } };
         canMCH.addEventListener('mousemove', handlerMCH); canMCH.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(canMCH); }); canMCH.__tipWired=true; }
     }catch(_){ }
     // Histograms, DOW, Pareto, QQ, ACF, WF tooltips
     try{
       // Distribution des rendements (%)
       const wireHistRets=(id, label)=>{
-        const can=document.getElementById(id); if(!can || can.__histTipWired) {return;}
-        const spec=chartReg[id]||{}; if(spec.type!=='rets' || !Array.isArray(spec.values) || !spec.values.length) {return;}
+        const can=document.getElementById(id); if(!can || can.__histTipWired) return;
+        const spec=chartReg[id]||{}; if(spec.type!=='rets' || !Array.isArray(spec.values) || !spec.values.length) return;
         const vals=spec.values.slice(); const bins=20;
         if(!spec.__hist){
           const min=Math.min(...vals), max=Math.max(...vals);
           const range=max-min; const step=(range/(bins||1))||1;
           const hist=new Array(bins).fill(0);
-          for(const v of vals){ let b=Math.floor((v-min)/step); if(b<0) {b=0;} if(b>=bins) {b=bins-1;} hist[b]++; }
+          for(const v of vals){ let b=Math.floor((v-min)/step); if(b<0) b=0; if(b>=bins) b=bins-1; hist[b]++; }
           spec.__hist={ min, max, step, hist };
         }
         const cfg=spec.__hist; const padL=36, padR=10;
@@ -4582,7 +4581,7 @@ if(detailCtxEl){
           const rel=x-left; const width=Math.max(1, right-left); const binsz=width/bins;
           const b=Math.max(0, Math.min(bins-1, Math.floor(rel/binsz)));
           const from=cfg.min + cfg.step*b; const to=cfg.min + cfg.step*(b+1); const count=(cfg.hist[b]||0);
-          const html=`${label}<br/>[${from.toFixed(2)} ; ${to.toFixed(2)}]% â€¢ n=${count}`;
+          const html=`${label}<br/>[${from.toFixed(2)} ; ${to.toFixed(2)}]% • n=${count}`;
           updateCrosshair(can, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html);
         }catch(_){ } };
         can.addEventListener('mousemove', handler); can.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(can); });
@@ -4592,9 +4591,9 @@ if(detailCtxEl){
       wireHistRets('detailHistHeaven',`Rendements (${cmpLabel})`);
       // Day-of-week bars
       const wireDOW=(id, label)=>{
-        const can=document.getElementById(id); if(!can || can.__dowTipWired) {return;}
-        const spec=chartReg[id]||{}; if(spec.type!=='bars') {return;}
-        const labs=spec.labels||[], vals=spec.values||[]; if(!labs.length) {return;}
+        const can=document.getElementById(id); if(!can || can.__dowTipWired) return;
+        const spec=chartReg[id]||{}; if(spec.type!=='bars') return;
+        const labs=spec.labels||[], vals=spec.values||[]; if(!labs.length) return;
         const padL=46, padR=12; const n=labs.length;
         const handler=(ev)=>{ try{
           const rect=can.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=can.width;
@@ -4610,8 +4609,8 @@ if(detailCtxEl){
       wireDOW('detailDOWHeaven',`Jour (${cmpLabel})`);
       // Pareto (P&L vs Max DD)
       const wirePareto=(id, label)=>{
-        const can=document.getElementById(id); if(!can || can.__paretoTipWired) {return;}
-        const spec=chartReg[id]||{}; if(spec.type!=='pareto' || !Array.isArray(spec.points) || !spec.points.length) {return;}
+        const can=document.getElementById(id); if(!can || can.__paretoTipWired) return;
+        const spec=chartReg[id]||{}; if(spec.type!=='pareto' || !Array.isArray(spec.points) || !spec.points.length) return;
         const pts=spec.points; const minX=0, maxX=Math.max(1, ...pts.map(p=>p.dd||0)); const padL=56, padR=12;
         const handler=(ev)=>{ try{
           const rect=can.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=can.width;
@@ -4620,8 +4619,8 @@ if(detailCtxEl){
           let best=null, bestD=Infinity, idx=-1;
           for(let i=0;i<pts.length;i++){ const p=pts[i]; const d=Math.abs((p.dd||0)-xVal); if(d<bestD){ bestD=d; best=p; idx=i; } }
           if(!best){ hideTip(); hideCrosshair(can); return; }
-          const scorePart = Number.isFinite(best.score) ? (' â€¢ Score: ' + best.score.toFixed(1)) : '';
-          const html=`${label} #${idx+1}<br/>Max DD: ${(best.dd||0).toFixed(0)} â€¢ P&L: ${(best.pnl||0).toFixed(0)}${scorePart}`;
+          const scorePart = Number.isFinite(best.score) ? (' • Score: ' + best.score.toFixed(1)) : '';
+          const html=`${label} #${idx+1}<br/>Max DD: ${(best.dd||0).toFixed(0)} • P&L: ${(best.pnl||0).toFixed(0)}${scorePart}`;
           updateCrosshair(can, ev.clientX, ev.clientY);
         }catch(_){ } };
         can.addEventListener('mousemove', handler); can.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(can); });
@@ -4631,14 +4630,14 @@ if(detailCtxEl){
       wirePareto('detailParetoHeaven',`Point (${cmpLabel})`);
       // QQ-plot
       const wireQQTip=(id, label)=>{
-        const can=document.getElementById(id); if(!can || can.__qqTipWired) {return;}
-        const spec=chartReg[id]||{}; if(spec.type!=='qq' || !Array.isArray(spec.values) || !spec.values.length) {return;}
+        const can=document.getElementById(id); if(!can || can.__qqTipWired) return;
+        const spec=chartReg[id]||{}; if(spec.type!=='qq' || !Array.isArray(spec.values) || !spec.values.length) return;
         const ensureQQ=(s)=>{
-          if(s.theo && s.zs) {return;}
+          if(s.theo && s.zs) return;
           const vals=s.values.slice().filter(Number.isFinite).sort((a,b)=>a-b); const n=vals.length; if(n<3){ s.theo=[]; s.zs=[]; return; }
           const mean=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length:0; const m=mean(vals);
           const sd=Math.sqrt(mean(vals.map(x=>(x-m)*(x-m)))); const zs=vals.map(x=> (x-m)/(sd||1));
-          function qnorm(p){ const a=[-39.696830,220.946098,-275.928510,138.357751,-30.664798,2.506628]; const b=[-54.476098,161.585836,-155.698979,66.801311,-13.280681]; const c=[-0.007784894, -0.322396, -2.400758, -2.549732, 4.374664, 2.938163]; const d=[0.007784695, 0.322467, 2.445134, 3.754408]; const plow=0.02425, phigh=1-plow; let q; if(p<plow){ q=Math.sqrt(-2*Math.log(p)); return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); } if(p>phigh){ q=Math.sqrt(-2*Math.log(1-p)); return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); } q=p-0.5; const r=q*q; return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*1; }
+          function qnorm(p){ const a=[-39.696830,220.946098,-275.928510,138.357751,-30.664798,2.506628]; const b=[-54.476098,161.585836,-155.698979,66.801311,-13.280681]; const c=[-0.007784894, -0.322396, -2.400758, -2.549732, 4.374664, 2.938163]; const d=[0.007784695, 0.322467, 2.445134, 3.754408]; const plow=0.02425, phigh=1-plow; let q,r; if(p<plow){ q=Math.sqrt(-2*Math.log(p)); return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); } if(p>phigh){ q=Math.sqrt(-2*Math.log(1-p)); return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); } q=p-0.5; r=q*q; return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*1; }
           const theo=[]; for(let i=1;i<=n;i++){ const p=(i-0.5)/n; theo.push(qnorm(p)); }
           s.theo=theo; s.zs=zs;
         };
@@ -4648,7 +4647,7 @@ if(detailCtxEl){
           const left=padL, right=w-padR; if(x<left || x>right || !spec.theo.length){ hideTip(); hideCrosshair(can); return; }
           const n=spec.theo.length; const rel=x-left; const width=Math.max(1,right-left); const idx=Math.max(0, Math.min(n-1, Math.round(rel/width*(n-1))));
           const theo=spec.theo[idx], zs=spec.zs[idx];
-          const html=`${label} ${idx+1}/${n}<br/>ThÃ©orique: ${theo.toFixed(2)} â€¢ ObservÃ©: ${zs.toFixed(2)}`;
+          const html=`${label} ${idx+1}/${n}<br/>Théorique: ${theo.toFixed(2)} • Observé: ${zs.toFixed(2)}`;
           updateCrosshair(can, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html);
         }catch(_){ } };
         can.addEventListener('mousemove', handler); can.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(can); });
@@ -4658,10 +4657,10 @@ if(detailCtxEl){
       wireQQTip('detailQQHeaven',`Quantile (${cmpLabel})`);
       // ACF
       const wireACFTip=(id, label)=>{
-        const can=document.getElementById(id); if(!can || can.__acfTipWired) {return;}
-        const spec=chartReg[id]||{}; if(spec.type!=='acf' || !Array.isArray(spec.values) || !spec.values.length) {return;}
+        const can=document.getElementById(id); if(!can || can.__acfTipWired) return;
+        const spec=chartReg[id]||{}; if(spec.type!=='acf' || !Array.isArray(spec.values) || !spec.values.length) return;
         const ensureACF=(s)=>{
-          if(s.lags && s.lags.length) {return;}
+          if(s.lags && s.lags.length) return;
           const xs=s.values.slice().filter(Number.isFinite); const n=xs.length; if(n<3){ s.lags=[]; return; }
           const mean=(a)=> a.length? a.reduce((x,y)=>x+y,0)/a.length:0; const m=mean(xs); const varr=xs.reduce((r,x)=>r+(x-m)*(x-m),0);
           const maxLag=s.maxLag||10; const acf=[]; for(let k=1;k<=maxLag;k++){ let num=0; for(let i=0;i<n-k;i++){ num += (xs[i]-m)*(xs[i+k]-m); } acf.push(num/(varr||1)); } s.lags=acf; s.maxLag=maxLag;
@@ -4681,14 +4680,14 @@ if(detailCtxEl){
       wireACFTip('detailACFHeaven',`ACF (${cmpLabel})`);
       // Walk-forward
       const wireWFTip=(id, label)=>{
-        const can=document.getElementById(id); if(!can || can.__wfTipWired) {return;}
-        const spec=chartReg[id]||{}; if(spec.type!=='wf' || !Array.isArray(spec.splits) || !spec.splits.length) {return;}
+        const can=document.getElementById(id); if(!can || can.__wfTipWired) return;
+        const spec=chartReg[id]||{}; if(spec.type!=='wf' || !Array.isArray(spec.splits) || !spec.splits.length) return;
         const splits=spec.splits; const padL=60, padR=10; const N=splits.length;
         const handler=(ev)=>{ try{
           const rect=can.getBoundingClientRect(); const x=ev.clientX-rect.left; const w=can.width;
           const left=padL, right=w-padR; if(x<left || x>right){ hideTip(); hideCrosshair(can); return; }
           const rel=x-left; const width=Math.max(1,right-left); const idx=Math.max(0, Math.min(N-1, Math.floor(rel/(width/N))));
-          const s=splits[idx]; const html=`${label} S${idx+1}<br/>PF: ${(s.pf===Infinity?'âˆž':(s.pf||0).toFixed(2))} â€¢ Win: ${(s.win||0).toFixed(1)}% â€¢ Exp: ${(s.exp||0).toFixed(2)} â€¢ P&L: ${(s.pnl||0).toFixed(0)}`;
+          const s=splits[idx]; const html=`${label} S${idx+1}<br/>PF: ${(s.pf===Infinity?'∞':(s.pf||0).toFixed(2))} • Win: ${(s.win||0).toFixed(1)}% • Exp: ${(s.exp||0).toFixed(2)} • P&L: ${(s.pnl||0).toFixed(0)}`;
           updateCrosshair(can, ev.clientX, ev.clientY); showTip(ev.clientX, ev.clientY, html);
         }catch(_){ } };
         can.addEventListener('mousemove', handler); can.addEventListener('mouseleave', ()=>{ hideTip(); hideCrosshair(can); });
@@ -4697,14 +4696,14 @@ if(detailCtxEl){
       wireWFTip('detailWF','WF');
       wireWFTip('detailWFHeaven',`WF (${cmpLabel})`);
     }catch(_){ }
-    function filterTradesByDOWHour(dir, r,c){ try{ const dnames=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']; const selGroups = groups.filter(g=>{ if(dir && g.dir!==dir) {return false;} const dt=new Date((g.entryTime||0)*1000); const dow=(dt.getUTCDay()+6)%7; const hr=dt.getUTCHours(); return dow===r && hr===c; }); const evs=[]; const keyOf=(e)=> `${e.dir}|${e.entryTime}|${e.entry}|${e.initSL}`; const map=new Map(); for(const ev of (res.trades||[])){ const k=keyOf(ev); map.set(k, (map.get(k)||[]).concat([ev])); }
+    function filterTradesByDOWHour(dir, r,c){ try{ const dnames=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']; const selGroups = groups.filter(g=>{ if(dir && g.dir!==dir) return false; const dt=new Date((g.entryTime||0)*1000); const dow=(dt.getUTCDay()+6)%7; const hr=dt.getUTCHours(); return dow===r && hr===c; }); const evs=[]; const keyOf=(e)=> `${e.dir}|${e.entryTime}|${e.entry}|${e.initSL}`; const map=new Map(); for(const ev of (res.trades||[])){ const k=keyOf(ev); map.set(k, (map.get(k)||[]).concat([ev])); }
       for(const g of selGroups){ const k=keyOf({dir:g.dir, entryTime:g.entryTime, entry:g.entry, initSL:g.initSL}); const arr=map.get(k)||[]; for(const ev of arr){ evs.push(ev); } }
       if(!evs.length){ setStatus && setStatus(`Aucun trade pour ${dnames[r]} ${String(c).padStart(2,'0')}h ${dir||''}`); return; }
       const state={ trades: evs, symbol: sym, tf, startCap: conf.startCap, equityFinal: conf.startCap + evs.reduce((s,e)=> s+(Number(e.net)||0),0), totalPnl: evs.reduce((s,e)=> s+(Number(e.net)||0),0) };
       populateTradesModal(state); openModalEl(tradesModalEl); try{ ensureFloatingModal(tradesModalEl, 'trades', { left: 540, top: 40, width: 720, height: 360, zIndex: bumpZ() }); }catch(_){ }
     }catch(_){ }
     }
-    function heatClick(can, dir){ if(!can) {return;} can.addEventListener('click', (ev)=>{ try{ const cfg=can.__heatCfg; if(!cfg) {return;} const rect=can.getBoundingClientRect(); const x=ev.clientX-rect.left, y=ev.clientY-rect.top; const c=Math.floor((x-cfg.padL)/cfg.cw), r=Math.floor((y-cfg.padT)/cfg.ch); if(c<0||c>=cfg.cols||r<0||r>=cfg.rows) {return;} filterTradesByDOWHour(dir, r, c); }catch(_){ } }); }
+    function heatClick(can, dir){ if(!can) return; can.addEventListener('click', (ev)=>{ try{ const cfg=can.__heatCfg; if(!cfg) return; const rect=can.getBoundingClientRect(); const x=ev.clientX-rect.left, y=ev.clientY-rect.top; const c=Math.floor((x-cfg.padL)/cfg.cw), r=Math.floor((y-cfg.padT)/cfg.ch); if(c<0||c>=cfg.cols||r<0||r>=cfg.rows) return; filterTradesByDOWHour(dir, r, c); }catch(_){ } }); }
     heatClick(canDOWHourLong, 'long'); heatClick(canDOWHourShort, 'short');
   }catch(_){ }
  }catch(_){ if(detailCtxEl){ detailCtxEl.textContent = t('detail.error'); } } }
@@ -4716,12 +4715,12 @@ if(labTFSelect){ labTFSelect.addEventListener('change', async ()=>{ try{ localSt
 if(labSymbolSelect){ labSymbolSelect.addEventListener('change', async ()=>{ try{ localStorage.setItem('lab:sym', labSymbolSelect.value); await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
 if(labSortModeEl){ labSortModeEl.addEventListener('change', async ()=>{ try{ localStorage.setItem('lab:sortMode', labSortModeEl.value||'score'); await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
 if(labProfileEl){ labProfileEl.addEventListener('change', async ()=>{ try{
-  // Quand l'utilisateur change de profil dans le Lab, on le considÃ¨re comme profil actif global
+  // Quand l'utilisateur change de profil dans le Lab, on le considère comme profil actif global
   const prof = (labProfileEl && labProfileEl.value) || 'balancee';
   try{ localStorage.setItem('labWeightsProfile', prof); }catch(_){ }
-  // Garder le sÃ©lecteur de la modale PondÃ©rations alignÃ© si elle est ouverte
+  // Garder le sélecteur de la modale Pondérations aligné si elle est ouverte
   try{ if(typeof weightsProfile!=='undefined' && weightsProfile){ weightsProfile.value = prof; } }catch(_){ }
-  // Optionnel: mettre Ã  jour les pondÃ©rations locales depuis Supabase pour ce profil
+  // Optionnel: mettre à jour les pondérations locales depuis Supabase pour ce profil
   try{
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchLabProfileWeights==='function'){
       try{
@@ -4733,7 +4732,7 @@ if(labProfileEl){ labProfileEl.addEventListener('change', async ()=>{ try{
     }
   }catch(_){ }
   updateLabAlgoPlaceholders();
-  // RafraÃ®chir immÃ©diatement le palmarÃ¨s + les KPIs pour le nouveau profil
+  // Rafraîchir immédiatement le palmarès + les KPIs pour le nouveau profil
   try{ await renderLabFromStorage(); }catch(_){ }
   try{ await computeLabBenchmarkAndUpdate(); }catch(_){ }
 }catch(_){ } }); }
@@ -4743,18 +4742,18 @@ try{
   const labFromEl=document.getElementById('labFrom');
   const labToEl=document.getElementById('labTo');
   if(labRangeModeEl){ labRangeModeEl.addEventListener('change', ()=>{ try{ computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
-  function wireDate(el){ if(!el) {return;} const h=()=>{ try{ computeLabBenchmarkAndUpdate(); }catch(_){ } }; el.addEventListener('change', h); el.addEventListener('input', h); }
+  function wireDate(el){ if(!el) return; const h=()=>{ try{ computeLabBenchmarkAndUpdate(); }catch(_){ } }; el.addEventListener('change', h); el.addEventListener('input', h); }
   wireDate(labFromEl); wireDate(labToEl);
 }catch(_){ }
 if(labRunNewBtn){ labRunNewBtn.addEventListener('click', ()=>{ try{ window.__labGoalOverride='new'; if(labRunBtn){ labRunBtn.click(); } }catch(_){ } }); }
-if(labExportBtn){ labExportBtn.addEventListener('click', ()=>{ try{ const tf=(labTFSelect&&labTFSelect.value)||(intervalSelect&&intervalSelect.value)||''; const sym=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol; const arr=Array.isArray(window.labPalmaresCache)? window.labPalmaresCache : []; if(!arr.length){ setStatus('Rien Ã  exporter'); return; }
+if(labExportBtn){ labExportBtn.addEventListener('click', ()=>{ try{ const tf=(labTFSelect&&labTFSelect.value)||(intervalSelect&&intervalSelect.value)||''; const sym=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol; const arr=Array.isArray(window.labPalmaresCache)? window.labPalmaresCache : []; if(!arr.length){ setStatus('Rien à exporter'); return; }
   const DL=';';
-  function esc(v){ let s=(v==null?'':String(v)); if(s.includes('"')) {s=s.replace(/"/g,'""');} if(s.includes(DL)||s.includes('\n')) {s='"'+s+'"';} return s; }
+  function esc(v){ let s=(v==null?'':String(v)); if(s.includes('"')) s=s.replace(/"/g,'""'); if(s.includes(DL)||s.includes('\n')) s='"'+s+'"'; return s; }
   function tpColsHdr(){ const cols=[]; for(let i=1;i<=10;i++){ cols.push(`TP${i}_type`,`TP${i}_val`,`TP${i}_qty`,`TP${i}_beOn`,`TP${i}_trail_mode`,`TP${i}_trail_emaLen`,`TP${i}_trail_pct`,`TP${i}_SL_type`,`TP${i}_SL_val`,`TP${i}_SL_trail_mode`,`TP${i}_SL_trail_emaLen`,`TP${i}_SL_trail_pct`); } return cols; }
   function slColsHdr(){ const cols=[]; for(let i=1;i<=10;i++){ cols.push(`SL${i}_type`,`SL${i}_val`,`SL${i}_trail_mode`,`SL${i}_trail_emaLen`,`SL${i}_trail_pct`); } return cols; }
   const baseHdr=['idx','name','gen','score','pf','totalPnl','eqFinal','trades','winrate','avgRR','maxDDAbs','nol','prd','slInitPct','beAfterBars','beLockPct','emaLen','entryMode','useFibRet','confirmMode','ent382','ent500','ent618','ent786','tpCompound','tpCloseAllLast','tp1R'];
   const header=baseHdr.concat(tpColsHdr()).concat(['slEnable']).concat(slColsHdr());
-  const lines=['\uFEFF'+header.join(DL)];
+  let lines=['\uFEFF'+header.join(DL)];
   let idx=1; const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
   for(const r of arr){ const p=r.params||{}; const st=r.res||{}; const score = Number.isFinite(r.score)? r.score : scoreResult(st, weights); const row=[idx, r.name||'', r.gen||1, (Number.isFinite(score)? score.toFixed(2):''), (st.profitFactor===Infinity?'Infinity':(st.profitFactor??'')), (st.totalPnl??''), (st.equityFinal??''), (st.tradesCount??''), (st.winrate??''), (st.avgRR??''), (st.maxDDAbs??''), (p.nol??''),(p.prd??''),(p.slInitPct??''),(p.beAfterBars??''),(p.beLockPct??''),(p.emaLen??''),(p.entryMode??''),(p.useFibRet??''),(p.confirmMode??''),(p.ent382??''),(p.ent500??''),(p.ent618??''),(p.ent786??''),(p.tpCompound??''),(p.tpCloseAllLast??''),(p.tp1R??'')]; const tp=Array.isArray(p.tp)? p.tp.slice(0,10):[]; for(let i=0;i<10;i++){ const t=tp[i]||{}; const typ=t.type||''; const val=(typ==='Fib')? (t.fib??t.value??'') : (typ==='Percent'? (t.pct??t.value??'') : (typ==='EMA'? (t.emaLen??'') : '')); const qty=(t.qty!=null)? t.qty:''; const beOn=t.beOn?1:''; const tr=t.trail||{}; const trMode=tr.mode||''; const trEL=tr.emaLen??''; const trPct=tr.pct??''; const sl=t.sl||{}; const slTyp=sl.type||''; const slVal=(slTyp==='Fib')? (sl.fib??sl.value??'') : (slTyp==='Percent'? (sl.pct??sl.value??'') : (slTyp==='EMA'? (sl.emaLen??'') : '')); const slTr=sl.trail||{}; const slTrMode=slTr.mode||''; const slTrEL=slTr.emaLen??''; const slTrPct=slTr.pct??''; row.push(typ,val,qty,beOn,trMode,trEL,trPct,slTyp,slVal,slTrMode,slTrEL,slTrPct); }
   row.push(p.slEnable??''); const sl=Array.isArray(p.sl)? p.sl.slice(0,10):[]; for(let i=0;i<10;i++){ const s=sl[i]||{}; const slTyp=s.type||''; const slVal=(slTyp==='Fib')? (s.fib??s.value??'') : (slTyp==='Percent'? (s.pct??s.value??'') : (slTyp==='EMA'? (s.emaLen??'') : '')); const slTr=s.trail||{}; const slTrMode=slTr.mode||''; const slTrEL=slTr.emaLen??''; const slTrPct=slTr.pct??''; row.push(slTyp, slVal, slTrMode, slTrEL, slTrPct); }
@@ -4762,73 +4761,73 @@ if(labExportBtn){ labExportBtn.addEventListener('click', ()=>{ try{ const tf=(la
   const csv=lines.join('\r\n'); const blob=new Blob([csv], {type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`palmares_${sym}_${tf}.csv`; a.click(); }catch(_){ } }); }
 const WEIGHTS_HELP = {
   pf: {
-    fr: "Profit Factor : rapport entre gains bruts et pertes brutes. Un poids Ã©levÃ© favorise les stratÃ©gies oÃ¹ les pertes sont petites par rapport aux gains, mÃªme si le P&L absolu est modÃ©rÃ©.",
+    fr: "Profit Factor : rapport entre gains bruts et pertes brutes. Un poids élevé favorise les stratégies où les pertes sont petites par rapport aux gains, même si le P&L absolu est modéré.",
     en: "Profit Factor: ratio between gross profits and gross losses. A high weight favors strategies where losses are small relative to gains, even if absolute P&L is moderate.",
-    es: "Profit Factor: relaciÃ³n entre ganancias brutas y pÃ©rdidas brutas. Un peso alto favorece estrategias donde las pÃ©rdidas son pequeÃ±as en relaciÃ³n con las ganancias, incluso si el P&L absoluto es moderado.",
+    es: "Profit Factor: relación entre ganancias brutas y pérdidas brutas. Un peso alto favorece estrategias donde las pérdidas son pequeñas en relación con las ganancias, incluso si el P&L absoluto es moderado.",
   },
   wr: {
-    fr: "Win % : pourcentage de trades gagnants. Un poids Ã©levÃ© privilÃ©gie les stratÃ©gies confortables psychologiquement (plus de trades gagnants), au dÃ©triment Ã©ventuel du R:R.",
+    fr: "Win % : pourcentage de trades gagnants. Un poids élevé privilégie les stratégies confortables psychologiquement (plus de trades gagnants), au détriment éventuel du R:R.",
     en: "Win %: percentage of winning trades. A high weight emphasizes psychologically comfortable strategies (more winning trades), sometimes at the expense of risk/reward.",
-    es: "Win %: porcentaje de operaciones ganadoras. Un peso alto favorece estrategias cÃ³modas psicolÃ³gicamente (mÃ¡s operaciones ganadoras), a veces en detrimento del ratio riesgo/beneficio.",
+    es: "Win %: porcentaje de operaciones ganadoras. Un peso alto favorece estrategias cómodas psicológicamente (más operaciones ganadoras), a veces en detrimento del ratio riesgo/beneficio.",
   },
   rr: {
-    fr: "Risk/Reward (Avg RR) : gain moyen par unitÃ© de risque. Un poids Ã©levÃ© favorise les stratÃ©gies avec des gains importants par rapport aux pertes (R:R Ã©levÃ©s).",
+    fr: "Risk/Reward (Avg RR) : gain moyen par unité de risque. Un poids élevé favorise les stratégies avec des gains importants par rapport aux pertes (R:R élevés).",
     en: "Risk/Reward (Avg RR): average gain per unit of risk. A high weight favors strategies with large gains relative to losses (high R:R).",
-    es: "Risk/Reward (RR medio): ganancia media por unidad de riesgo. Un peso alto favorece estrategias con grandes ganancias en relaciÃ³n con las pÃ©rdidas (R:R altos).",
+    es: "Risk/Reward (RR medio): ganancia media por unidad de riesgo. Un peso alto favorece estrategias con grandes ganancias en relación con las pérdidas (R:R altos).",
   },
   pnl: {
-    fr: "P&L net : rÃ©sultat total sur la pÃ©riode (en dollars). Un poids Ã©levÃ© pousse lâ€™algorithme vers les stratÃ©gies avec le P&L absolu le plus Ã©levÃ©.",
+    fr: "P&L net : résultat total sur la période (en dollars). Un poids élevé pousse l’algorithme vers les stratégies avec le P&L absolu le plus élevé.",
     en: "Net P&L: total result over the period (in currency). A high weight pushes the algorithm towards strategies with the highest absolute P&L.",
-    es: "P&L neto: resultado total en el perÃ­odo (en divisa). Un peso alto empuja al algoritmo hacia las estrategias con el P&L absoluto mÃ¡s alto.",
+    es: "P&L neto: resultado total en el período (en divisa). Un peso alto empuja al algoritmo hacia las estrategias con el P&L absoluto más alto.",
   },
   eq: {
-    fr: "Capital final : valeur finale du portefeuille. Similaire au P&L, mais prend en compte le capital de dÃ©part et permet de comparer diffÃ©rentes configurations.",
+    fr: "Capital final : valeur finale du portefeuille. Similaire au P&L, mais prend en compte le capital de départ et permet de comparer différentes configurations.",
     en: "Final equity: final value of the account. Similar to P&L but takes starting capital into account, making different configurations comparable.",
     es: "Capital final: valor final de la cuenta. Similar al P&L, pero tiene en cuenta el capital inicial y permite comparar diferentes configuraciones.",
   },
   trades: {
-    fr: "Trades : nombre de trades. Un poids modÃ©rÃ© permet de privilÃ©gier des stratÃ©gies avec assez de trades pour Ãªtre statistiquement crÃ©dibles, sans basculer dans lâ€™overâ€‘trading.",
+    fr: "Trades : nombre de trades. Un poids modéré permet de privilégier des stratégies avec assez de trades pour être statistiquement crédibles, sans basculer dans l’over‑trading.",
     en: "Trades: number of trades. A moderate weight favors strategies with enough trades to be statistically credible, without drifting into over-trading.",
-    es: "Trades: nÃºmero de operaciones. Un peso moderado favorece estrategias con suficientes operaciones para ser estadÃ­sticamente creÃ­bles, sin caer en sobre-operar.",
+    es: "Trades: número de operaciones. Un peso moderado favorece estrategias con suficientes operaciones para ser estadísticamente creíbles, sin caer en sobre-operar.",
   },
   dd: {
-    fr: "Max DD (inverse) : drawdown maximal en valeur absolue, pris Ã  lâ€™envers (plus il est faible, mieux câ€™est). Un poids Ã©levÃ© favorise les stratÃ©gies qui protÃ¨gent fortement le capital.",
+    fr: "Max DD (inverse) : drawdown maximal en valeur absolue, pris à l’envers (plus il est faible, mieux c’est). Un poids élevé favorise les stratégies qui protègent fortement le capital.",
     en: "Max DD (inverse): maximum drawdown in absolute value, used inversely (the smaller, the better). A high weight favors strategies that strongly protect capital.",
-    es: "Max DD (inverso): drawdown mÃ¡ximo en valor absoluto, usado de forma inversa (cuanto mÃ¡s pequeÃ±o, mejor). Un peso alto favorece estrategias que protegen mucho el capital.",
+    es: "Max DD (inverso): drawdown máximo en valor absoluto, usado de forma inversa (cuanto más pequeño, mejor). Un peso alto favorece estrategias que protegen mucho el capital.",
   },
   sharpe: {
-    fr: "Sharpe Ratio : rendement ajustÃ© de la volatilitÃ© des rÃ©sultats. Un poids Ã©levÃ© privilÃ©gie les courbes dâ€™Ã©quitÃ© rÃ©guliÃ¨res plutÃ´t que les profils en dents de scie.",
+    fr: "Sharpe Ratio : rendement ajusté de la volatilité des résultats. Un poids élevé privilégie les courbes d’équité régulières plutôt que les profils en dents de scie.",
     en: "Sharpe Ratio: return adjusted for volatility of results. A high weight favors smooth equity curves over very choppy ones.",
     es: "Ratio de Sharpe: rendimiento ajustado por la volatilidad de los resultados. Un peso alto favorece curvas de equity suaves frente a perfiles muy irregulares.",
   },
   recov: {
-    fr: "Recovery Factor : P&L total divisÃ© par le plus gros drawdown. Un poids Ã©levÃ© met en avant les stratÃ©gies qui gÃ©nÃ¨rent beaucoup de gains pour chaque unitÃ© de drawdown subie.",
+    fr: "Recovery Factor : P&L total divisé par le plus gros drawdown. Un poids élevé met en avant les stratégies qui génèrent beaucoup de gains pour chaque unité de drawdown subie.",
     en: "Recovery Factor: total P&L divided by the largest drawdown. A high weight highlights strategies that generate a lot of profit per unit of drawdown endured.",
     es: "Recovery Factor: P&L total dividido por el mayor drawdown. Un peso alto resalta estrategias que generan muchas ganancias por cada unidad de drawdown soportado.",
   },
   slope: {
-    fr: "Equity Slope : pente moyenne de la courbe dâ€™Ã©quitÃ©. Plus la pente est forte et rÃ©guliÃ¨re, plus la stratÃ©gie a une tendance haussiÃ¨re nette.",
+    fr: "Equity Slope : pente moyenne de la courbe d’équité. Plus la pente est forte et régulière, plus la stratégie a une tendance haussière nette.",
     en: "Equity Slope: average slope of the equity curve. The steeper and more regular the slope, the clearer the upward trend.",
-    es: "Pendiente de la equity: pendiente media de la curva de equity. Cuanto mÃ¡s pronunciada y regular es la pendiente, mÃ¡s clara es la tendencia alcista.",
+    es: "Pendiente de la equity: pendiente media de la curva de equity. Cuanto más pronunciada y regular es la pendiente, más clara es la tendencia alcista.",
   },
   cons: {
-    fr: "Consistence / StabilitÃ© : proportion de trades non perdants et rÃ©gularitÃ© des rÃ©sultats. Un poids Ã©levÃ© favorise les stratÃ©gies stables plutÃ´t que celles qui alternent gros gains et grosses pertes.",
+    fr: "Consistence / Stabilité : proportion de trades non perdants et régularité des résultats. Un poids élevé favorise les stratégies stables plutôt que celles qui alternent gros gains et grosses pertes.",
     en: "Consistency / Stability: proportion of non-losing trades and regularity of results. A high weight favors stable strategies over those alternating big wins and big losses.",
-    es: "Consistencia / Estabilidad: proporciÃ³n de operaciones no perdedoras y regularidad de los resultados. Un peso alto favorece estrategias estables frente a las que alternan grandes ganancias y grandes pÃ©rdidas.",
+    es: "Consistencia / Estabilidad: proporción de operaciones no perdedoras y regularidad de los resultados. Un peso alto favorece estrategias estables frente a las que alternan grandes ganancias y grandes pérdidas.",
   },
   exp: {
-    fr: "EspÃ©rance (Expectancy) : gain moyen par trade (en % ou en valeur). Un poids Ã©levÃ© pousse vers des stratÃ©gies avec un avantage statistique fort sur chaque trade.",
+    fr: "Espérance (Expectancy) : gain moyen par trade (en % ou en valeur). Un poids élevé pousse vers des stratégies avec un avantage statistique fort sur chaque trade.",
     en: "Expectancy: average gain per trade (in % or value). A high weight pushes towards strategies with a strong statistical edge on each trade.",
-    es: "Esperanza (Expectancy): ganancia media por operaciÃ³n (en % o en valor). Un peso alto impulsa estrategias con una fuerte ventaja estadÃ­stica en cada operaciÃ³n.",
+    es: "Esperanza (Expectancy): ganancia media por operación (en % o en valor). Un peso alto impulsa estrategias con una fuerte ventaja estadística en cada operación.",
   },
   ret: {
-    fr: "Return / pÃ©riode (%) : rendement total sur la pÃ©riode (ou annualisÃ©). Un poids Ã©levÃ© favorise les stratÃ©gies agressives avec une croissance rapide du capital.",
+    fr: "Return / période (%) : rendement total sur la période (ou annualisé). Un poids élevé favorise les stratégies agressives avec une croissance rapide du capital.",
     en: "Return / period (%): total return over the period (or annualized). A high weight favors aggressive strategies with fast capital growth.",
-    es: "Retorno / perÃ­odo (%): rendimiento total en el perÃ­odo (o anualizado). Un peso alto favorece estrategias agresivas con un crecimiento rÃ¡pido del capital.",
+    es: "Retorno / período (%): rendimiento total en el período (o anualizado). Un peso alto favorece estrategias agresivas con un crecimiento rápido del capital.",
   },
 };
 
-function buildWeightsUI(){ if(!weightsBody) {return;} const prof=(weightsProfile&&weightsProfile.value)||(localStorage.getItem('labWeightsProfile')||'balancee'); const w=getWeights(prof); weightsBody.innerHTML = `
+function buildWeightsUI(){ if(!weightsBody) return; const prof=(weightsProfile&&weightsProfile.value)||(localStorage.getItem('labWeightsProfile')||'balancee'); const w=getWeights(prof); weightsBody.innerHTML = `
   <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
     <label>
       <span style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
@@ -4929,7 +4928,7 @@ function buildWeightsUI(){ if(!weightsBody) {return;} const prof=(weightsProfile
       const el=document.getElementById(id);
       if(el && (!el.dataset || el.dataset.wiredTotal!=='1')){
         el.addEventListener('input', ()=>{ try{ updateWeightsTotalInfo(); }catch(_){ } });
-        if(!el.dataset) {el.dataset={};}
+        if(!el.dataset) el.dataset={};
         el.dataset.wiredTotal='1';
       }
     }
@@ -4937,7 +4936,7 @@ function buildWeightsUI(){ if(!weightsBody) {return;} const prof=(weightsProfile
     const infoBox=document.getElementById('weightsInfoText');
     const btns=weightsBody.querySelectorAll('.weightInfoBtn');
     btns.forEach((btn)=>{
-      if(!btn || (btn.dataset && btn.dataset.wiredInfo==='1')) {return;}
+      if(!btn || (btn.dataset && btn.dataset.wiredInfo==='1')) return;
       btn.addEventListener('click', ()=>{
         try{
           const key=btn.getAttribute('data-factor');
@@ -4947,7 +4946,7 @@ function buildWeightsUI(){ if(!weightsBody) {return;} const prof=(weightsProfile
           if(infoBox && txt){ infoBox.textContent = txt; }
         }catch(_){ }
       });
-      if(!btn.dataset) {btn.dataset={};}
+      if(!btn.dataset) btn.dataset={};
       btn.dataset.wiredInfo='1';
     });
   }catch(_){ }
@@ -4973,32 +4972,32 @@ function readWeightsFromUI(){
 function updateWeightsTotalInfo(){
   try{
     const info=document.getElementById('weightsTotalInfo');
-    if(!info) {return;}
+    if(!info) return;
     const w=readWeightsFromUI();
     const total=(w.pf+w.wr+w.rr+w.pnl+w.eq+w.trades+w.dd+w.sharpe+w.recov+w.slope+w.cons+w.exp+w.ret)||0;
     const remaining=100-total;
     const totalLbl=t('lab.weights.totalPrefix');
     const remLbl=t('lab.weights.remainingPrefix');
     const ptsLbl=t('lab.weights.pointsSuffix');
-    info.textContent = `${totalLbl} ${total.toFixed(1)} ${ptsLbl} â€¢ ${remLbl} ${remaining.toFixed(1)} ${ptsLbl}`;
+    info.textContent = `${totalLbl} ${total.toFixed(1)} ${ptsLbl} • ${remLbl} ${remaining.toFixed(1)} ${ptsLbl}`;
   }catch(_){ }
 }
 if(labWeightsBtn){ labWeightsBtn.addEventListener('click', async ()=>{ try{
-  // Profil actif prioritaire: sÃ©lecteur du Lab s'il est prÃ©sent, sinon dernier profil utilisÃ©
-  const prof = (labProfileEl && labProfileEl.value) || localStorage.getItem('labWeightsProfile') || 'balancee';
+  // Profil actif prioritaire: sélecteur du Lab s'il est présent, sinon dernier profil utilisé
+  let prof = (labProfileEl && labProfileEl.value) || localStorage.getItem('labWeightsProfile') || 'balancee';
   try{ localStorage.setItem('labWeightsProfile', prof); }catch(_){ }
   if(weightsProfile){ weightsProfile.value=prof; }
-  try{ if(typeof addLabLog==='function') {addLabLog(`Ouverture PondÃ©rations (profil ${prof})`);} }catch(_){ }
-  // Si Supabase est configurÃ©, rÃ©cupÃ©rer la version distante des pondÃ©rations en best-effort
-  // et la considÃ©rer comme source de vÃ©ritÃ© (Ã©crase le cache local).
+  try{ if(typeof addLabLog==='function') addLabLog(`Ouverture Pondérations (profil ${prof})`); }catch(_){ }
+  // Si Supabase est configuré, récupérer la version distante des pondérations en best-effort
+  // et la considérer comme source de vérité (écrase le cache local).
   try{
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchLabProfileWeights==='function'){
       const row = await SUPA.fetchLabProfileWeights(prof);
       if(row && row.weights && typeof row.weights==='object'){
         saveWeights(prof, row.weights);
-        try{ if(typeof addLabLog==='function') {addLabLog(`PondÃ©rations chargÃ©es depuis Supabase pour ${prof}`);} }catch(_){ }
+        try{ if(typeof addLabLog==='function') addLabLog(`Pondérations chargées depuis Supabase pour ${prof}`); }catch(_){ }
       } else {
-        try{ if(typeof addLabLog==='function') {addLabLog(`Aucune pondÃ©ration Supabase trouvÃ©e pour ${prof} (utilisation du cache local)`);} }catch(_){ }
+        try{ if(typeof addLabLog==='function') addLabLog(`Aucune pondération Supabase trouvée pour ${prof} (utilisation du cache local)`); }catch(_){ }
       }
     }
   }catch(_){ }
@@ -5008,9 +5007,9 @@ if(labWeightsBtn){ labWeightsBtn.addEventListener('click', async ()=>{ try{
 }catch(_){ } }); }
 if(weightsProfile){ weightsProfile.addEventListener('change', ()=>{ try{
   const prof = (weightsProfile && weightsProfile.value) || 'balancee';
-  // Quand on change de profil dans la modale PondÃ©rations, on met aussi Ã  jour le profil actif global
+  // Quand on change de profil dans la modale Pondérations, on met aussi à jour le profil actif global
   try{ localStorage.setItem('labWeightsProfile', prof); }catch(_){ }
-  // Maintenir le sÃ©lecteur de profil du Lab alignÃ© s'il est prÃ©sent
+  // Maintenir le sélecteur de profil du Lab aligné s'il est présent
   try{ if(typeof labProfileEl!=='undefined' && labProfileEl){ labProfileEl.value = prof; } }catch(_){ }
   buildWeightsUI();
   updateWeightsTotalInfo();
@@ -5019,18 +5018,18 @@ if(weightsClose){ weightsClose.addEventListener('click', ()=> closeModalEl(weigh
 if(weightsSave){ weightsSave.addEventListener('click', async ()=>{ try{
   const prof = (weightsProfile&&weightsProfile.value)||'balancee';
   const w = readWeightsFromUI();
-  // Toujours sauvegarder en local comme filet de sÃ©curitÃ©
+  // Toujours sauvegarder en local comme filet de sécurité
   saveWeights(prof, w);
   localStorage.setItem('labWeightsProfile', prof);
   let supaOk = true;
-  // Persistance Supabase best-effort (si configurÃ© + connectÃ©)
+  // Persistance Supabase best-effort (si configuré + connecté)
   try{
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.upsertLabProfileWeights==='function'){
       const ok = await SUPA.upsertLabProfileWeights(prof, w);
       if(!ok){
         supaOk = false;
       } else if(typeof SUPA.fetchLabProfileWeights==='function'){
-        // Roundâ€‘trip de vÃ©rification: recharger ce que Supabase renvoie comme source de vÃ©ritÃ©
+        // Round‑trip de vérification: recharger ce que Supabase renvoie comme source de vérité
         try{
           const row2 = await SUPA.fetchLabProfileWeights(prof);
           if(row2 && row2.weights && typeof row2.weights==='object'){
@@ -5045,7 +5044,7 @@ if(weightsSave){ weightsSave.addEventListener('click', async ()=>{ try{
   try{ renderLabFromStorage(); computeLabBenchmarkAndUpdate(); }catch(_){ }
 }catch(_){ } }); }
 
-// Lab â€” EntraÃ®ner
+// Lab — Entraîner
 const labRunBtn=document.getElementById('labRun');
 if(labRunBtn){ labRunBtn.addEventListener('click', async ()=>{ try{
   const profSel = (document.getElementById('labProfile') && document.getElementById('labProfile').value) || (localStorage.getItem('labWeightsProfile')||'balancee');
@@ -5057,11 +5056,11 @@ if(labRunBtn){ labRunBtn.addEventListener('click', async ()=>{ try{
   try{ window.__labGoalOverride = null; }catch(_){ }
   const strategy=(document.getElementById('labStrategy')&&document.getElementById('labStrategy').value)||'hybrid';
 const conf=readLabRiskConf();
-  // Log mode (Nouvelle stratÃ©gie vs EntraÃ®ner) for clarity
+  // Log mode (Nouvelle stratégie vs Entraîner) for clarity
   try{
     if(typeof addBtLog==='function'){
-      if(goal==='new') {addBtLog('Mode Lab: Nouvelle stratÃ©gie (exploration alÃ©atoire guidÃ©e)');}
-      else {addBtLog('Mode Lab: EntraÃ®ner (amÃ©lioration du palmarÃ¨s existant)');}
+      if(goal==='new') addBtLog('Mode Lab: Nouvelle stratégie (exploration aléatoire guidée)');
+      else addBtLog('Mode Lab: Entraîner (amélioration du palmarès existant)');
     }
   }catch(_){ }
   try{
@@ -5073,10 +5072,10 @@ const conf=readLabRiskConf();
       if(mode==='fixed'){
         addBtLog(`Max % par trade: ${mpStr}% (fixe)`);
       } else {
-        // Auto: borne dÃ©rivÃ©e du profil (SÃ»re/BalancÃ©e/Agressive)
+        // Auto: borne dérivée du profil (Sûre/Balancée/Agressive)
         let prof='balancee';
         try{ prof = (labProfileEl && labProfileEl.value) || localStorage.getItem('labWeightsProfile') || 'balancee'; }catch(_){ }
-        addBtLog(`Max % par trade: Auto (profil ${prof}, plafond â‰ˆ ${mpStr}% du capital de rÃ©fÃ©rence)`);
+        addBtLog(`Max % par trade: Auto (profil ${prof}, plafond ≈ ${mpStr}% du capital de référence)`);
       }
     }
   }catch(_){ }
@@ -5084,44 +5083,44 @@ const conf=readLabRiskConf();
   try{
     if(typeof openBtProgress==='function'){ openBtProgress(t('bt.progress.initShort')); }
     if(btProgressEl){ openModalEl(btProgressEl); }
-    if(btProgText) {btProgText.textContent=t('bt.progress.initShort');}
-    if(btProgBar) {btProgBar.style.width='0%';}
+    if(btProgText) btProgText.textContent=t('bt.progress.initShort');
+    if(btProgBar) btProgBar.style.width='0%';
     const pe=document.getElementById('btProgress'); if(pe){ pe.style.zIndex=String(bumpModalZ()); const pc=pe.querySelector('.modal-content'); if(pc){ pc.style.zIndex=String(bumpModalZ()); } }
   }catch(_){ }
-  try{ if(btProgText) {btProgText.textContent=t('bt.progress.trainingShort');} if(btProgNote) {btProgNote.textContent='';} }catch(_){ }
-  try{ const tl=(timeLimitSec>0? `${timeLimitSec}s`:'âˆž'); const mq=(maxEvals>0? `${maxEvals}`:'âˆž'); addBtLog(`Limites: temps ${tl}, max Ã©vals ${mq}`); }catch(_){ }
+  try{ if(btProgText) btProgText.textContent=t('bt.progress.trainingShort'); if(btProgNote) btProgNote.textContent=''; }catch(_){ }
+  try{ const tl=(timeLimitSec>0? `${timeLimitSec}s`:'∞'); const mq=(maxEvals>0? `${maxEvals}`:'∞'); addBtLog(`Limites: temps ${tl}, max évals ${mq}`); }catch(_){ }
   let bars=null;
   const rangeMode=(document.getElementById('labRangeMode')&&document.getElementById('labRangeMode').value)||'visible';
   if(sym===currentSymbol && tfSel===currentInterval){
     if(rangeMode==='all'){
-      // Plage = "Tout l'historique" pour le symbole/TF courant â†’ charger l'historique complet disponible
+      // Plage = "Tout l'historique" pour le symbole/TF courant → charger l'historique complet disponible
       try{
         bars = await fetchAllKlines(sym, tfSel, REMOTE_MAX_BARS);
         try{ saveMemSeries(sym, tfSel, bars, bars.length); }catch(_){ }
-        try{ addBtLog(`Chargement des donnÃ©es (tout l'historique): ${sym} @ ${tfSel} â€” ${bars.length} bougies`); }catch(_){ }
+        try{ addBtLog(`Chargement des données (tout l'historique): ${sym} @ ${tfSel} — ${bars.length} bougies`); }catch(_){ }
       }catch(_){
-        // Fallback : on se rabat sur la fenÃªtre actuellement en mÃ©moire (Ã©ventuellement coupÃ©e par le Live)
+        // Fallback : on se rabat sur la fenêtre actuellement en mémoire (éventuellement coupée par le Live)
         bars = __baseAfterCutoff();
-        try{ addBtLog(`DonnÃ©es (fallback, fenÃªtre active): ${bars.length} bougies`); }catch(__){}
+        try{ addBtLog(`Données (fallback, fenêtre active): ${bars.length} bougies`); }catch(__){}
       }
     } else {
-      // Modes "Visible" ou "Dates" : on part de la base affichÃ©e (aprÃ¨s Ã©ventuel cutoff Live)
+      // Modes "Visible" ou "Dates" : on part de la base affichée (après éventuel cutoff Live)
       bars = __baseAfterCutoff();
-      try{ addBtLog(`DonnÃ©es chargÃ©es: ${bars.length} bougies`); }catch(_){ }
+      try{ addBtLog(`Données chargées: ${bars.length} bougies`); }catch(_){ }
     }
   } else {
     const mem = loadMemSeries(sym, tfSel);
     if(mem && Array.isArray(mem.bars) && mem.bars.length){
       bars = mem.bars;
-      try{ addBtLog(`DonnÃ©es chargÃ©es: ${bars.length} bougies`); }catch(_){ }
+      try{ addBtLog(`Données chargées: ${bars.length} bougies`); }catch(_){ }
     } else {
       try{
         bars = await fetchAllKlines(sym, tfSel, REMOTE_MAX_BARS);
         try{ saveMemSeries(sym, tfSel, bars, bars.length); }catch(_){ }
-        try{ addBtLog(`Chargement des donnÃ©es: ${sym} @ ${tfSel} â€” ${bars.length} bougies`); }catch(_){ }
+        try{ addBtLog(`Chargement des données: ${sym} @ ${tfSel} — ${bars.length} bougies`); }catch(_){ }
       }catch(_){
         bars = [];
-        try{ addBtLog('Ã‰chec du chargement â€” aucune donnÃ©e Lab pour ce symbole/TF'); }catch(__){}
+        try{ addBtLog('Échec du chargement — aucune donnée Lab pour ce symbole/TF'); }catch(__){}
       }
     }
   }
@@ -5132,8 +5131,8 @@ const conf=readLabRiskConf();
   else { from=null; to=null; }
   const idxFromTimeLocal=(bars,from,to)=>{ let s=0,e=bars.length-1; if(from!=null){ for(let i=0;i<bars.length;i++){ if(bars[i].time>=from){ s=i; break; } } } if(to!=null){ for(let j=bars.length-1;j>=0;j--){ if(bars[j].time<=to){ e=j; break; } } } return [s,e]; };
   const [sIdx,eIdx]=idxFromTimeLocal(bars,from,to);
-  try{ const span = (from!=null||to!=null)? `${new Date((from||bars[sIdx]?.time||0)*1000).toLocaleString()} â†’ ${new Date((to||bars[eIdx]?.time||0)*1000).toLocaleString()}` : `${new Date((bars[sIdx]?.time||0)*1000).toLocaleString()} â†’ ${new Date((bars[eIdx]?.time||0)*1000).toLocaleString()}`; addBtLog(`PÃ©riode: idx ${sIdx}-${eIdx} (${Math.max(0,eIdx-sIdx+1)} barres) â€¢ ${span}`); }catch(_){ }
-  // RafraÃ®chir les pondÃ©rations depuis Supabase (source de vÃ©ritÃ©) juste avant l'entraÃ®nement
+  try{ const span = (from!=null||to!=null)? `${new Date((from||bars[sIdx]?.time||0)*1000).toLocaleString()} → ${new Date((to||bars[eIdx]?.time||0)*1000).toLocaleString()}` : `${new Date((bars[sIdx]?.time||0)*1000).toLocaleString()} → ${new Date((bars[eIdx]?.time||0)*1000).toLocaleString()}`; addBtLog(`Période: idx ${sIdx}-${eIdx} (${Math.max(0,eIdx-sIdx+1)} barres) • ${span}`); }catch(_){ }
+  // Rafraîchir les pondérations depuis Supabase (source de vérité) juste avant l'entraînement
   try{
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchLabProfileWeights==='function'){
       const rowW = await SUPA.fetchLabProfileWeights(profSel);
@@ -5146,20 +5145,20 @@ const conf=readLabRiskConf();
   try{
     if(typeof addBtLog==='function'){
       const tot=(weights.pf+weights.wr+weights.rr+weights.pnl+weights.eq+weights.trades+weights.dd+weights.sharpe+weights.recov+weights.slope+weights.cons+weights.exp+weights.ret)||0;
-      addBtLog(`PondÃ©rations actives (profil ${profSel}): PF=${weights.pf} WR=${weights.wr} RR=${weights.rr} PNL=${weights.pnl} EQ=${weights.eq} TR=${weights.trades} DD=${weights.dd} Sharpe=${weights.sharpe} Recov=${weights.recov} Slope=${weights.slope} Cons=${weights.cons} Exp=${weights.exp} Ret=${weights.ret} â€¢ Total=${tot.toFixed(1)} pts`);
+      addBtLog(`Pondérations actives (profil ${profSel}): PF=${weights.pf} WR=${weights.wr} RR=${weights.rr} PNL=${weights.pnl} EQ=${weights.eq} TR=${weights.trades} DD=${weights.dd} Sharpe=${weights.sharpe} Recov=${weights.recov} Slope=${weights.slope} Cons=${weights.cons} Exp=${weights.exp} Ret=${weights.ret} • Total=${tot.toFixed(1)} pts`);
     }
   }catch(_){ }
   const allTested=[]; // accumulate every evaluated strategy for Supabase persistence
   // Global simulation progress (for ETA)
   let __labSimTotal=0, __labSimDone=0, __labSimDtSum=0, __labSimDtCnt=0, __labConc=1, __labSimPlanned=0;
-  function __fmtETA(ms){ if(!(ms>0)) {return 'â€”';} const s=Math.round(ms/1000); const m=Math.floor(s/60); const ss=String(s%60).padStart(2,'0'); const mm=String(m%60).padStart(2,'0'); const hh=Math.floor(m/60); return (hh>0? (String(hh).padStart(2,'0')+':'):'')+mm+':'+ss; }
+  function __fmtETA(ms){ if(!(ms>0)) return '—'; const s=Math.round(ms/1000); const m=Math.floor(s/60); const ss=String(s%60).padStart(2,'0'); const mm=String(m%60).padStart(2,'0'); const hh=Math.floor(m/60); return (hh>0? (String(hh).padStart(2,'0')+':'):'')+mm+':'+ss; }
 function updateGlobalProgressUI(){ try{ const plannedDen = (__labSimPlanned>0)? __labSimPlanned : (maxEvals>0? maxEvals : Math.max(1,__labSimTotal)); let dn=Math.max(0,__labSimDone); const tot=Math.max(1, plannedDen); if(maxEvals>0){ dn = Math.min(dn, maxEvals); }
-  const pct = Math.max(0, Math.min(100, Math.round(dn/tot*100))); if(btProgGlobalBar) {btProgGlobalBar.style.width=pct+'%';} let eta='â€”'; if(tot>0){ let avg=null; try{ const fallback=Number(localStorage.getItem('lab:avgEvalMs')); avg = (Number.isFinite(fallback)&&fallback>0)? fallback : null; }catch(_){ avg=null; } if(__labSimDtCnt>0){ avg = __labSimDtSum/Math.max(1,__labSimDtCnt); } if(!(avg>0)) {avg = 1000;} const effConc=Math.max(1,__labConc|0); const remain=Math.max(0, tot-dn); eta=__fmtETA((remain*avg)/effConc); }
-  const quotaStr = (maxEvals>0? ` â€¢ ${t('bt.progress.quotaPrefix')} ${dn}/${maxEvals}` : ''); if(btProgGlobalText) {btProgGlobalText.textContent = `${t('bt.progress.globalLabel')}: ${pct}% (${dn}/${tot}) â€” ${t('bt.progress.etaLabel')} ${eta}${quotaStr}`;} }catch(_){ } }
+  const pct = Math.max(0, Math.min(100, Math.round(dn/tot*100))); if(btProgGlobalBar) btProgGlobalBar.style.width=pct+'%'; let eta='—'; if(tot>0){ let avg=null; try{ const fallback=Number(localStorage.getItem('lab:avgEvalMs')); avg = (Number.isFinite(fallback)&&fallback>0)? fallback : null; }catch(_){ avg=null; } if(__labSimDtCnt>0){ avg = __labSimDtSum/Math.max(1,__labSimDtCnt); } if(!(avg>0)) avg = 1000; const effConc=Math.max(1,__labConc|0); const remain=Math.max(0, tot-dn); eta=__fmtETA((remain*avg)/effConc); }
+  const quotaStr = (maxEvals>0? ` • ${t('bt.progress.quotaPrefix')} ${dn}/${maxEvals}` : ''); if(btProgGlobalText) btProgGlobalText.textContent = `${t('bt.progress.globalLabel')}: ${pct}% (${dn}/${tot}) — ${t('bt.progress.etaLabel')} ${eta}${quotaStr}`; }catch(_){ } }
   __lastLabTested = allTested;
   // Preload known keys from Supabase to avoid retest across sessions
   let seenCanon = new Set();
-  try{ if(window.SUPA && typeof SUPA.fetchKnownKeys==='function'){ const profSel=(document.getElementById('labProfile') && document.getElementById('labProfile').value) || (localStorage.getItem('labWeightsProfile')||'balancee'); seenCanon = await SUPA.fetchKnownKeys(sym, tfSel, profSel) || new Set(); addBtLog && addBtLog(`DÃ©duplication (${profSel}): ${seenCanon.size} stratÃ©gies dÃ©jÃ  en base`); } }catch(_){ }
+  try{ if(window.SUPA && typeof SUPA.fetchKnownKeys==='function'){ const profSel=(document.getElementById('labProfile') && document.getElementById('labProfile').value) || (localStorage.getItem('labWeightsProfile')||'balancee'); seenCanon = await SUPA.fetchKnownKeys(sym, tfSel, profSel) || new Set(); addBtLog && addBtLog(`Déduplication (${profSel}): ${seenCanon.size} stratégies déjà en base`); } }catch(_){ }
   // Stopping conditions
   const timeLimitSec = Math.max(0, parseInt((document.getElementById('labTimeLimitSec')&&document.getElementById('labTimeLimitSec').value)||'0',10));
   const maxEvals = Math.max(0, parseInt((document.getElementById('labMaxEvals')&&document.getElementById('labMaxEvals').value)||'0',10));
@@ -5179,9 +5178,9 @@ function updateGlobalProgressUI(){ try{ const plannedDen = (__labSimPlanned>0)? 
     const estInitN = Math.max(1, Math.round(estInitBase * (tune.bayInitMul||1)));
     const bayBatch = Math.max(50, estInitN, 10); // typical batch size per iter
     let plan=0;
-    if(strategy==='ea' || strategy==='hybrid') {plan += estPop + estGens*estPop;}
-    if(strategy==='bayes' || strategy==='hybrid') {plan += estInitN + estIters*bayBatch;}
-    if(maxEvals>0) {plan = Math.min(plan, maxEvals);}
+    if(strategy==='ea' || strategy==='hybrid') plan += estPop + estGens*estPop;
+    if(strategy==='bayes' || strategy==='hybrid') plan += estInitN + estIters*bayBatch;
+    if(maxEvals>0) plan = Math.min(plan, maxEvals);
     __labSimPlanned = Math.max(0, plan|0);
     __labSimTotal = 0; __labSimDone=0; __labSimDtSum=0; __labSimDtCnt=0; // reset counters
     updateGlobalProgressUI();
@@ -5195,17 +5194,17 @@ function updateGlobalProgressUI(){ try{ const plannedDen = (__labSimPlanned>0)? 
   let rEMALen=[]; for(let v=21; v<=89; v+=4){ rEMALen.push(v); }
   // Plage de Max % par trade en fonction du profil Lab (simple mode)
   const riskRange = labProfileRiskRange();
-  const rMaxPct=[]; for(let v=riskRange.min; v<=riskRange.max+1e-9; v+=1){ rMaxPct.push(+v.toFixed(1)); }
+  let rMaxPct=[]; for(let v=riskRange.min; v<=riskRange.max+1e-9; v+=1){ rMaxPct.push(+v.toFixed(1)); }
   if(isLabAdvMode()){
     const get=(id,def)=>{ const el=document.getElementById(id); const x=parseFloat(el?.value||''); return Number.isFinite(x)? x : def; };
     const makeRange=(min,max,step,prec=6)=>{ const out=[]; const s=Math.max(+(step||1),1e-9); for(let v=+min; v<=+max+1e-9; v+=s){ out.push(+v.toFixed(prec)); } return out; };
     const vars = readLabVarToggles();
-    if(vars.varNol) {rNol = makeRange(get('labNolMin',2),get('labNolMax',5),get('labNolStep',1),0).map(x=>x|0);}
-    if(vars.varPrd) {rPrd = makeRange(get('labPrdMin',8),get('labPrdMax',34),get('labPrdStep',2),0).map(x=>x|0);}
-    if(vars.varSLInit) {rSL = makeRange(get('labSLInitMin',0.5),get('labSLInitMax',3.0),get('labSLInitStep',0.5),3);}
-    if(vars.varBEBars) {rBEb = makeRange(get('labBEBarsMin',3),get('labBEBarsMax',8),get('labBEBarsStep',1),0).map(x=>x|0);}
-    if(vars.varBELock) {rBEL = makeRange(get('labBELockMin',3),get('labBELockMax',10),get('labBELockStep',1),3);}
-    if(vars.varEMALen) {rEMALen = makeRange(get('labEMALenMin',21),get('labEMALenMax',89),get('labEMALenStep',4),0).map(x=>x|0);}
+    if(vars.varNol) rNol = makeRange(get('labNolMin',2),get('labNolMax',5),get('labNolStep',1),0).map(x=>x|0);
+    if(vars.varPrd) rPrd = makeRange(get('labPrdMin',8),get('labPrdMax',34),get('labPrdStep',2),0).map(x=>x|0);
+    if(vars.varSLInit) rSL = makeRange(get('labSLInitMin',0.5),get('labSLInitMax',3.0),get('labSLInitStep',0.5),3);
+    if(vars.varBEBars) rBEb = makeRange(get('labBEBarsMin',3),get('labBEBarsMax',8),get('labBEBarsStep',1),0).map(x=>x|0);
+    if(vars.varBELock) rBEL = makeRange(get('labBELockMin',3),get('labBELockMax',10),get('labBELockStep',1),3);
+    if(vars.varEMALen) rEMALen = makeRange(get('labEMALenMin',21),get('labEMALenMax',89),get('labEMALenStep',4),0).map(x=>x|0);
   }
   // Pre-flight summary log (advanced mode, toggles, ranges, TP/SL Opt, EA/Bayes)
   try{
@@ -5213,7 +5212,7 @@ function updateGlobalProgressUI(){ try{ const plannedDen = (__labSimPlanned>0)? 
     const vars = readLabVarToggles();
     const b = (v)=> v?'on':'off';
     const gv=(id)=>{ const el=document.getElementById(id); return (el&&el.value!=null)? String(el.value):''; };
-    const rng=(a,b2,c)=> `${gv(a)}â€“${gv(b2)}:${gv(c)}`;
+    const rng=(a,b2,c)=> `${gv(a)}–${gv(b2)}:${gv(c)}`;
     const tpCfg = readTPOpt();
     const slCfg = readSLOpt();
     const strat = (document.getElementById('labStrategy')&&document.getElementById('labStrategy').value)||'hybrid';
@@ -5231,12 +5230,12 @@ function updateGlobalProgressUI(){ try{ const plannedDen = (__labSimPlanned>0)? 
     const bayItersEff = Math.max(0, Math.round(bayItersBase * (tune.bayItersMul||1)));
     const bayInitEff  = Math.max(1, Math.round(bayInitBase * (tune.bayInitMul||1)));
     const bayEliteEff = Math.max(5, Math.min(80, (tune.eliteOverride!=null? tune.eliteOverride : bayEliteBase)));
-    addBtLog(`PrÃ©-vol: AvancÃ© ${adv?'on':'off'} â€¢ Vars NOL ${b(vars.varNol)} PRD ${b(vars.varPrd)} SL% ${b(vars.varSLInit)} BEbars ${b(vars.varBEBars)} BElock ${b(vars.varBELock)} EMA ${b(vars.varEMALen)} TP ${b(vars.varTP)} SL ${b(vars.varSL)} EntrÃ©es ${b(vars.varEntries)}`);
+    addBtLog(`Pré-vol: Avancé ${adv?'on':'off'} • Vars NOL ${b(vars.varNol)} PRD ${b(vars.varPrd)} SL% ${b(vars.varSLInit)} BEbars ${b(vars.varBEBars)} BElock ${b(vars.varBELock)} EMA ${b(vars.varEMALen)} TP ${b(vars.varTP)} SL ${b(vars.varSL)} Entrées ${b(vars.varEntries)}`);
     if(adv){
       addBtLog(`Plages: NOL ${rng('labNolMin','labNolMax','labNolStep')} PRD ${rng('labPrdMin','labPrdMax','labPrdStep')} SL% ${rng('labSLInitMin','labSLInitMax','labSLInitStep')} BEbars ${rng('labBEBarsMin','labBEBarsMax','labBEBarsStep')} BElock ${rng('labBELockMin','labBELockMax','labBELockStep')} EMA ${rng('labEMALenMin','labEMALenMax','labEMALenStep')}`);
     }
-    addBtLog(`TPOpt ${tpCfg.en?'on':'off'} (n=${tpCfg.count}, fib=${tpCfg.allowFib?1:0}, pct=${tpCfg.allowPct?1:0}, ema=${tpCfg.allowEMA?1:0}, % ${tpCfg.pctMin}â€“${tpCfg.pctMax}, fibs=${(tpCfg.fibs||[]).length}) â€¢ SLOpt ${slCfg.en?'on':'off'} (n=${slCfg.count}, fib=${slCfg.allowFib?1:0}, pct=${slCfg.allowPct?1:0}, ema=${slCfg.allowEMA?1:0}, % ${slCfg.pctMin}â€“${slCfg.pctMax}, fibs=${(slCfg.fibs||[]).length})`);
-    addBtLog(`StratÃ©gie ${strat} â€¢ EA pop=${eaPopEff} gen=${eaGenEff} mut%=${eaMutEff} cx%=${eaCx} â€¢ Bayes iters=${bayItersEff} init=${bayInitEff} elite%=${bayEliteEff}`);
+    addBtLog(`TPOpt ${tpCfg.en?'on':'off'} (n=${tpCfg.count}, fib=${tpCfg.allowFib?1:0}, pct=${tpCfg.allowPct?1:0}, ema=${tpCfg.allowEMA?1:0}, % ${tpCfg.pctMin}–${tpCfg.pctMax}, fibs=${(tpCfg.fibs||[]).length}) • SLOpt ${slCfg.en?'on':'off'} (n=${slCfg.count}, fib=${slCfg.allowFib?1:0}, pct=${slCfg.allowPct?1:0}, ema=${slCfg.allowEMA?1:0}, % ${slCfg.pctMin}–${slCfg.pctMax}, fibs=${(slCfg.fibs||[]).length})`);
+    addBtLog(`Stratégie ${strat} • EA pop=${eaPopEff} gen=${eaGenEff} mut%=${eaMutEff} cx%=${eaCx} • Bayes iters=${bayItersEff} init=${bayInitEff} elite%=${bayEliteEff}`);
   }catch(_){ }
   const keyOf=(p)=> JSON.stringify([p.nol,p.prd,p.slInitPct,p.beAfterBars,p.beLockPct,p.emaLen,p.entryMode,p.useFibRet,p.confirmMode,p.ent382,p.ent500,p.ent618,p.ent786,Array.isArray(p.tp)? p.tp.slice(0,10):[], Array.isArray(p.sl)? p.sl.slice(0,10):[]]);
 const canonKey=(p)=>{ try{
@@ -5259,12 +5258,12 @@ const canonKey=(p)=>{ try{
           tp_r[i] = Number(t.fib != null ? t.fib : t.value) || 0;
         }
         let w = t.qty;
-        if(w != null) {w = (w > 1 ? Number(w) : Number(w) * 100);}
+        if(w != null) w = (w > 1 ? Number(w) : Number(w) * 100);
         tp_p[i] = Number.isFinite(w) ? Math.max(0, w) : 0;
         sumW += tp_p[i];
       }
       if(sumW > 0){
-        for(let i=0;i<10;i++) {tp_p[i] = +(tp_p[i] / sumW * 100).toFixed(6);}
+        for(let i=0;i<10;i++) tp_p[i] = +(tp_p[i] / sumW * 100).toFixed(6);
       }
       const obj = {
         nol: p.nol|0,
@@ -5285,8 +5284,8 @@ function readTPOpt(){
     try{
       const adv = (typeof isLabAdvMode==='function') ? isLabAdvMode() : false;
       const enRaw = !!document.getElementById('labTPOptEn')?.checked;
-      // En mode simple (non avancÃ©), on considÃ¨re toujours que l'optimisation TP est active
-      // afin de rester fidÃ¨le Ã  l'essence du Lab (optimiser les sorties Heaven).
+      // En mode simple (non avancé), on considère toujours que l'optimisation TP est active
+      // afin de rester fidèle à l'essence du Lab (optimiser les sorties Heaven).
       const en = adv ? enRaw : true;
       // Prefer the Heaven TP count unless the user explicitly overrides the Lab field.
       const cntEl = document.getElementById('labTPCount');
@@ -5303,7 +5302,7 @@ function readTPOpt(){
       const allowEMA = !!document.getElementById('labTPAllowEMA')?.checked;
       const pctMin = parseFloat(document.getElementById('labTPPctMin')?.value||'0.5');
       const pctMax = parseFloat(document.getElementById('labTPPctMax')?.value||'5');
-      const fibs = (function(){ try{ const w=document.getElementById('labTPFibWrap'); if(!w) {return null;} const cs=w.querySelectorAll('input[type="checkbox"][data-r]'); const arr=[]; cs.forEach(cb=>{ if(cb.checked){ const v=parseFloat(cb.getAttribute('data-r')||''); if(isFinite(v)) {arr.push(v);} } }); return arr.length? arr : null; }catch(_){ return null; } })() || [0.236,0.382,0.5,0.618,0.786,1.0,1.272,1.382,1.414,1.618,2.0,2.236,2.618,3.0];
+      const fibs = (function(){ try{ const w=document.getElementById('labTPFibWrap'); if(!w) return null; const cs=w.querySelectorAll('input[type="checkbox"][data-r]'); const arr=[]; cs.forEach(cb=>{ if(cb.checked){ const v=parseFloat(cb.getAttribute('data-r')||''); if(isFinite(v)) arr.push(v); } }); return arr.length? arr : null; }catch(_){ return null; } })() || [0.236,0.382,0.5,0.618,0.786,1.0,1.272,1.382,1.414,1.618,2.0,2.236,2.618,3.0];
       return { en, count, allowFib, allowPct, allowEMA, pctMin, pctMax, fibs };
     }catch(_){
       return { en:true, count:10, allowFib:true, allowPct:true, allowEMA:true, pctMin:0.5, pctMax:5, fibs:[0.236,0.382,0.5,0.618,0.786,1.0,1.272,1.382,1.414,1.618,2.0,2.236,2.618,3.0] };
@@ -5311,13 +5310,13 @@ function readTPOpt(){
   }
   function randWeights(n){ const arr=new Array(n).fill(0).map(()=> Math.random()+0.05); const s=arr.reduce((a,b)=>a+b,0); return arr.map(x=> x/s); }
 // Lab advanced toggles helpers
-function isLabAdvMode(){ try{ const cb=document.getElementById('labAdvEn'); if(cb && cb.checked) {return true;} const btn=document.getElementById('labAdvancedToggle'); if(btn && btn.dataset && btn.dataset.on==='1') {return true;} return localStorage.getItem('lab.advanced')==='1'; }catch(_){ return false; } }
+function isLabAdvMode(){ try{ const cb=document.getElementById('labAdvEn'); if(cb && cb.checked) return true; const btn=document.getElementById('labAdvancedToggle'); if(btn && btn.dataset && btn.dataset.on==='1') return true; return localStorage.getItem('lab.advanced')==='1'; }catch(_){ return false; } }
 
 // Advanced container + toggle wiring
 function ensureLabAdvContainer(){
   try{
     let c=document.getElementById('labAdvContainer');
-    if(c) {return c;}
+    if(c) return c;
     const lev=document.getElementById('labLev');
     const levLabel = lev && lev.closest ? lev.closest('label') : null;
     const t=document.getElementById('labTimeLimitSec');
@@ -5325,7 +5324,7 @@ function ensureLabAdvContainer(){
     // Prefer the Lab modal grid explicitly to avoid grabbing other grids
     const labGrid = (typeof labModalEl!=='undefined' && labModalEl) ? labModalEl.querySelector('.form-grid') : null;
     const parent=(tLabel&&tLabel.closest && tLabel.closest('.form-grid')) || (levLabel&&levLabel.closest && levLabel.closest('.form-grid')) || labGrid || document.querySelector('.form-grid');
-    if(!parent) {return null;}
+    if(!parent) return null;
     c=document.createElement('div');
     c.id='labAdvContainer';
     c.style.display='none';
@@ -5344,7 +5343,7 @@ function ensureLabAdvContainer(){
 }
 function moveLabAdvBlocks(){
   try{
-    const container=ensureLabAdvContainer(); if(!container) {return;}
+    const container=ensureLabAdvContainer(); if(!container) return;
     const sels=['#labAdvPanel','#labCoreRanges','#labTPOptBlock','#labTPFibWrap','#labSLOptBlock','#labSLFibWrap','#labEAConfig','#labBayesConfig'];
     for(const sel of sels){ const n=document.querySelector(sel); if(n && n!==container && !container.contains(n)){ container.appendChild(n); try{ console.debug('[lab:adv] moved', sel); }catch(_){ } } }
   }catch(_){ }
@@ -5354,7 +5353,7 @@ function __toggleLabAdvanced(next){
     const btn=document.getElementById('labAdvancedToggle'); if(!btn) { try{ console.log('[lab:adv] button not found'); }catch(_){ } return; }
     const cur = (btn.dataset && btn.dataset.on==='1');
     const val = (typeof next==='boolean')? next : !cur;
-    if(!btn.dataset) {btn.dataset={};}
+    if(!btn.dataset) btn.dataset={};
     btn.dataset.on = val? '1':'0';
     btn.setAttribute('aria-checked', val? 'true':'false');
     try{ btn.classList.toggle('primary', val); }catch(_){ }
@@ -5370,7 +5369,7 @@ function __toggleLabAdvanced(next){
         btn.style.color = '';
       }
     }catch(_){ }
-    try{ if(val) {localStorage.setItem('lab.advanced','1');} else {localStorage.removeItem('lab.advanced');} }catch(_){ }
+    try{ if(val) localStorage.setItem('lab.advanced','1'); else localStorage.removeItem('lab.advanced'); }catch(_){ }
     try{ ensureLabAdvContainer(); moveLabAdvBlocks(); updateLabAdvVisibility(); }catch(_){ }
     try{ console.log('[lab:adv] toggle ->', val); }catch(_){ }
   }catch(_){ }
@@ -5378,9 +5377,9 @@ function __toggleLabAdvanced(next){
 function initLabAdvancedToggle(){
   try{
     const btn=document.getElementById('labAdvancedToggle'); if(!btn) { try{ console.log('[lab:adv] init: button not in DOM'); }catch(_){ } return; }
-    if(btn.dataset && btn.dataset.wired==='1') {return;}
+    if(btn.dataset && btn.dataset.wired==='1') return;
     const on = (localStorage.getItem('lab.advanced')==='1');
-    if(!btn.dataset) {btn.dataset={};}
+    if(!btn.dataset) btn.dataset={};
     btn.dataset.on = on ? '1':'0';
     btn.setAttribute('aria-checked', on ? 'true':'false');
     try{ btn.classList.toggle('primary', on); }catch(_){ }
@@ -5393,7 +5392,7 @@ function initLabAdvancedToggle(){
     // Global capture fallback in case direct listener fails (safety net)
     if(!document.__labAdvGlobalWired){
       try{
-        const handler=(e)=>{ const t=e.target; if(!t) {return;} const b=(t.id==='labAdvancedToggle')? t : (t.closest? t.closest('#labAdvancedToggle') : null); if(b){ try{ __toggleLabAdvanced(); }catch(_){ } e.preventDefault(); e.stopPropagation(); } };
+        const handler=(e)=>{ const t=e.target; if(!t) return; const b=(t.id==='labAdvancedToggle')? t : (t.closest? t.closest('#labAdvancedToggle') : null); if(b){ try{ __toggleLabAdvanced(); }catch(_){ } e.preventDefault(); e.stopPropagation(); } };
         document.addEventListener('click', handler, true);
         document.addEventListener('pointerdown', handler, true);
         document.__labAdvGlobalWired = true;
@@ -5405,7 +5404,7 @@ btn.dataset.wired='1';
 }
 
 function readLabVarToggles(){
-  // Default: core + ladders vary in Simple; entries remain fixed unless AvancÃ©e + enabled
+  // Default: core + ladders vary in Simple; entries remain fixed unless Avancée + enabled
   try{
     if(!isLabAdvMode()){
       return { varNol:true, varPrd:true, varSLInit:true, varBEBars:true, varBELock:true, varEMALen:true, varTP:true, varSL:true, varEntries:false };
@@ -5433,37 +5432,37 @@ function labProfileTuning(){
     const prof=(el&&el.value) || (localStorage.getItem('labWeightsProfile')||'balancee');
     const p=String(prof||'').toLowerCase();
     if(p==='sure'){
-      // StratÃ©gie sÃ»re: variations plus douces, Bayes un peu plus profond
-      // Capital trÃ¨s protÃ©gÃ© : BE tÃ´t dans la ladder
+      // Stratégie sûre: variations plus douces, Bayes un peu plus profond
+      // Capital très protégé : BE tôt dans la ladder
       return {
         eaPopMul:0.8, eaGenMul:0.8, mutMul:0.7,
         bayItersMul:1.3, bayInitMul:1.1, eliteOverride:40, varIntMul:0.85,
-        // BE quasiment toujours prÃ©sent, dÃ¨s les premiers TP
+        // BE quasiment toujours présent, dès les premiers TP
         beBaseProb:0.9,
         beMutMul:0.8,
-        // fraction de la ladder Ã  partir de laquelle BE doit Ãªtre quasi systÃ©matique
-        // 0.0 â‡’ on peut poser le BE dÃ¨s TP1
+        // fraction de la ladder à partir de laquelle BE doit être quasi systématique
+        // 0.0 ⇒ on peut poser le BE dès TP1
         beStartFrac:0.0,
       };
     }
     if(p==='agressive'){
-      // StratÃ©gie agressive: EA plus large, mutation plus forte
-      // Capital toujours protÃ©gÃ©, mais BE posÃ© plus tard dans la ladder
+      // Stratégie agressive: EA plus large, mutation plus forte
+      // Capital toujours protégé, mais BE posé plus tard dans la ladder
       return {
         eaPopMul:1.3, eaGenMul:1.3, mutMul:1.3,
         bayItersMul:1.0, bayInitMul:1.0, eliteOverride:25, varIntMul:1.2,
-        // BE encore frÃ©quent, mais un peu moins que SÃ»re/BalancÃ©e
+        // BE encore fréquent, mais un peu moins que Sûre/Balancée
         beBaseProb:0.7,
         beMutMul:1.2,
-        // 0.4 â‡’ en moyenne BE commence plutÃ´t vers le milieu de la ladder
+        // 0.4 ⇒ en moyenne BE commence plutôt vers le milieu de la ladder
         beStartFrac:0.4,
       };
     }
-    // StratÃ©gie balancÃ©e (par dÃ©faut)
+    // Stratégie balancée (par défaut)
     return {
       eaPopMul:1.0, eaGenMul:1.0, mutMul:1.0,
       bayItersMul:1.0, bayInitMul:1.0, eliteOverride:null, varIntMul:1.0,
-      // BE bien prÃ©sent, avec dÃ©marrage plutÃ´t sur les TP intermÃ©diaires
+      // BE bien présent, avec démarrage plutôt sur les TP intermédiaires
       beBaseProb:0.8,
       beMutMul:1.0,
       beStartFrac:0.2,
@@ -5486,22 +5485,22 @@ function varIntensityFactor(){
     if(tune && typeof tune.varIntMul==='number'){
       f *= tune.varIntMul;
     }
-    if(f<0.3) {f=0.3;}
-    if(f>2.0) {f=2.0;}
+    if(f<0.3) f=0.3;
+    if(f>2.0) f=2.0;
     return f;
   }catch(_){ return 1.0; }
 }
-// Met Ã  jour les placeholders EA/Bayes et les hints en fonction du profil
+// Met à jour les placeholders EA/Bayes et les hints en fonction du profil
 function updateLabAlgoPlaceholders(){
   try{
     const tune = labProfileTuning();
     const profEl = (typeof labProfileEl!=='undefined' && labProfileEl) ? labProfileEl : document.getElementById('labProfile');
     const profVal = (profEl && profEl.value) || 'balancee';
-    const label = profVal==='sure' ? 'StratÃ©gie sÃ»re' : (profVal==='agressive' ? 'StratÃ©gie agressive' : 'StratÃ©gie balancÃ©e');
+    const label = profVal==='sure' ? 'Stratégie sûre' : (profVal==='agressive' ? 'Stratégie agressive' : 'Stratégie balancée');
     function baseOf(id, def){
       const el=document.getElementById(id);
-      if(!el) {return def;}
-      if(!el.dataset) {el.dataset={};}
+      if(!el) return def;
+      if(!el.dataset) el.dataset={};
       if(el.dataset.base){ const v=parseFloat(el.dataset.base); return Number.isFinite(v)? v: def; }
       const v=parseFloat(el.value||String(def));
       const b=Number.isFinite(v)? v: def;
@@ -5520,7 +5519,7 @@ function updateLabAlgoPlaceholders(){
     const bayItersEff= Math.max(0, Math.round(bayItersBase * (tune.bayItersMul||1)));
     const bayInitEff = Math.max(1, Math.round(bayInitBase * (tune.bayInitMul||1)));
     const bayEliteEff= Math.max(5, Math.min(80, (tune.eliteOverride!=null? tune.eliteOverride : bayEliteBase)));
-    function setPh(id,v){ const el=document.getElementById(id); if(el) {el.placeholder=String(v);} }
+    function setPh(id,v){ const el=document.getElementById(id); if(el) el.placeholder=String(v); }
     setPh('labEAPop', eaPopEff);
     setPh('labEAGen', eaGenEff);
     setPh('labEAMut', eaMutEff);
@@ -5528,37 +5527,37 @@ function updateLabAlgoPlaceholders(){
     setPh('labBayInit', bayInitEff);
     setPh('labBayElitePct', bayEliteEff);
     const eaHint=document.getElementById('labEAProfileHint');
-    if(eaHint){ eaHint.textContent = `${label} : EA popâ‰ˆ${eaPopEff}, genâ‰ˆ${eaGenEff}, mutâ‰ˆ${eaMutEff}%`; }
+    if(eaHint){ eaHint.textContent = `${label} : EA pop≈${eaPopEff}, gen≈${eaGenEff}, mut≈${eaMutEff}%`; }
     const bayHint=document.getElementById('labBayesProfileHint');
-    if(bayHint){ bayHint.textContent = `${label} : Bayes itersâ‰ˆ${bayItersEff}, initâ‰ˆ${bayInitEff}, Ã©liteâ‰ˆ${bayEliteEff}%`; }
+    if(bayHint){ bayHint.textContent = `${label} : Bayes iters≈${bayItersEff}, init≈${bayInitEff}, élite≈${bayEliteEff}%`; }
   }catch(_){ }
 }
 function updateLabAdvVisibility(){
   try{
     const showAdv = isLabAdvMode();
-    const advPanel = document.getElementById('labAdvPanel'); if(advPanel) {advPanel.style.display = showAdv? 'flex':'none';}
-    const advContainer = document.getElementById('labAdvContainer'); if(advContainer) {advContainer.style.display = showAdv? 'block':'none';}
+    const advPanel = document.getElementById('labAdvPanel'); if(advPanel) advPanel.style.display = showAdv? 'flex':'none';
+    const advContainer = document.getElementById('labAdvContainer'); if(advContainer) advContainer.style.display = showAdv? 'block':'none';
     const varTP = !!document.getElementById('labVarTP')?.checked;
     const varSL = !!document.getElementById('labVarSL')?.checked;
-    const tpBlock = document.getElementById('labTPOptBlock'); if(tpBlock) {tpBlock.style.display = (showAdv && varTP)? 'flex':'none';}
-    const slBlock = document.getElementById('labSLOptBlock'); if(slBlock) {slBlock.style.display = (showAdv && varSL)? 'flex':'none';}
+    const tpBlock = document.getElementById('labTPOptBlock'); if(tpBlock) tpBlock.style.display = (showAdv && varTP)? 'flex':'none';
+    const slBlock = document.getElementById('labSLOptBlock'); if(slBlock) slBlock.style.display = (showAdv && varSL)? 'flex':'none';
     const tpAllowFib = !!document.getElementById('labTPAllowFib')?.checked;
     const slAllowFib = !!document.getElementById('labSLAllowFib')?.checked;
-    const tpFibWrap = document.getElementById('labTPFibWrap'); if(tpFibWrap) {tpFibWrap.style.display = (showAdv && varTP && tpAllowFib)? 'flex':'none';}
-    const slFibWrap = document.getElementById('labSLFibWrap'); if(slFibWrap) {slFibWrap.style.display = (showAdv && varSL && slAllowFib)? 'flex':'none';}
+    const tpFibWrap = document.getElementById('labTPFibWrap'); if(tpFibWrap) tpFibWrap.style.display = (showAdv && varTP && tpAllowFib)? 'flex':'none';
+    const slFibWrap = document.getElementById('labSLFibWrap'); if(slFibWrap) slFibWrap.style.display = (showAdv && varSL && slAllowFib)? 'flex':'none';
     // Keep Lab TP count synced once with Heaven when the block first becomes visible
     try{
       if(showAdv && varTP){
         const labTPC=document.getElementById('labTPCount');
         if(labTPC && (!labTPC.dataset || labTPC.dataset.heavenSync!=='1')){
           labTPC.value = String(clampTPCount((lbcOpts && lbcOpts.tpCount)!=null? lbcOpts.tpCount : labTPC.value||10));
-          if(!labTPC.dataset) {labTPC.dataset={};}
+          if(!labTPC.dataset) labTPC.dataset={};
           labTPC.dataset.heavenSync='1';
         }
       }
     }catch(_){ }
     // Individually show core ranges only when the corresponding toggle is ON
-    function showLabelByInputId(inputId, show){ try{ const el=document.getElementById(inputId); if(!el) {return;} const lab = el.closest ? el.closest('label') : null; if(lab){ lab.style.display = show? 'inline-flex':'none'; } }catch(_){ } }
+    function showLabelByInputId(inputId, show){ try{ const el=document.getElementById(inputId); if(!el) return; const lab = el.closest ? el.closest('label') : null; if(lab){ lab.style.display = show? 'inline-flex':'none'; } }catch(_){ } }
     const vN=!!document.getElementById('labVarNol')?.checked;
     const vP=!!document.getElementById('labVarPrd')?.checked;
     const vSL=!!document.getElementById('labVarSLInit')?.checked;
@@ -5568,7 +5567,7 @@ function updateLabAdvVisibility(){
     // core ranges container
     const coreRanges = document.getElementById('labCoreRanges');
     const coreAny = vN||vP||vSL||vBEb||vBEL||vEMA;
-    if(coreRanges) {coreRanges.style.display = (showAdv && coreAny)? 'flex':'none';}
+    if(coreRanges) coreRanges.style.display = (showAdv && coreAny)? 'flex':'none';
     if(showAdv){
       showLabelByInputId('labNolMin', vN); showLabelByInputId('labNolMax', vN); showLabelByInputId('labNolStep', vN);
       showLabelByInputId('labPrdMin', vP); showLabelByInputId('labPrdMax', vP); showLabelByInputId('labPrdStep', vP);
@@ -5578,7 +5577,7 @@ function updateLabAdvVisibility(){
       showLabelByInputId('labEMALenMin', vEMA); showLabelByInputId('labEMALenMax', vEMA); showLabelByInputId('labEMALenStep', vEMA);
     }
     // TP/SL percent range labels visibility per allowPct
-    function showParentLabel(id, show){ try{ const el=document.getElementById(id); if(!el) {return;} const lab=el.closest? el.closest('label'):null; if(lab) {lab.style.display = show? 'inline-flex':'none';} }catch(_){ } }
+    function showParentLabel(id, show){ try{ const el=document.getElementById(id); if(!el) return; const lab=el.closest? el.closest('label'):null; if(lab) lab.style.display = show? 'inline-flex':'none'; }catch(_){ } }
     const tpAllowPct = !!document.getElementById('labTPAllowPct')?.checked;
     showParentLabel('labTPPctMin', (showAdv && varTP && tpAllowPct));
     showParentLabel('labTPPctMax', (showAdv && varTP && tpAllowPct));
@@ -5590,9 +5589,9 @@ function updateLabAdvVisibility(){
     const eaCfg = document.getElementById('labEAConfig'); const bayCfg = document.getElementById('labBayesConfig');
     const showEA = showAdv && (strat==='ea' || strat==='hybrid');
     const showBay = showAdv && (strat==='bayes' || strat==='hybrid');
-    if(eaCfg) {eaCfg.style.display = showEA? 'flex':'none';}
-    if(bayCfg) {bayCfg.style.display = showBay? 'flex':'none';}
-    // Show the optional 'EntrÃ©es' toggle in advanced mode
+    if(eaCfg) eaCfg.style.display = showEA? 'flex':'none';
+    if(bayCfg) bayCfg.style.display = showBay? 'flex':'none';
+    // Show the optional 'Entrées' toggle in advanced mode
     const varEntInput = document.getElementById('labVarEntries');
     const varEntLabel = varEntInput && varEntInput.closest ? varEntInput.closest('label') : null;
     if(varEntLabel){ varEntLabel.style.display = showAdv? '': 'none'; }
@@ -5605,42 +5604,42 @@ function setupLabAdvUI(){
     const advCB=document.getElementById('labAdvEn');
     if(advCB && (!advCB.dataset || advCB.dataset.wired!=='1')){
       // init from localStorage
-      try{ const s=localStorage.getItem('lab.advanced'); if(s==='1') {advCB.checked=true;} }catch(_){ }
-      advCB.addEventListener('change', ()=>{ try{ if(advCB.checked) {localStorage.setItem('lab.advanced','1');} else {localStorage.removeItem('lab.advanced');} updateLabAdvVisibility(); }catch(_){ } });
-      if(!advCB.dataset) {advCB.dataset={};} advCB.dataset.wired='1';
+      try{ const s=localStorage.getItem('lab.advanced'); if(s==='1') advCB.checked=true; }catch(_){ }
+      advCB.addEventListener('change', ()=>{ try{ if(advCB.checked) localStorage.setItem('lab.advanced','1'); else localStorage.removeItem('lab.advanced'); updateLabAdvVisibility(); }catch(_){ } });
+      if(!advCB.dataset) advCB.dataset={}; advCB.dataset.wired='1';
     }
   }catch(_){ }
   const ids=['labStrategy','labVarNol','labVarPrd','labVarSLInit','labVarBEBars','labVarBELock','labVarEMALen','labVarTP','labVarSL','labTPAllowFib','labSLAllowFib'];
-  for(const id of ids){ const el=document.getElementById(id); if(el && (!el.dataset || el.dataset.wiredAdv!=='1')){ try{ el.addEventListener('change', ()=>{ try{ updateLabAdvVisibility(); }catch(_){ } }); }catch(_){ } if(!el.dataset) {el.dataset={};} el.dataset.wiredAdv='1'; } }
+  for(const id of ids){ const el=document.getElementById(id); if(el && (!el.dataset || el.dataset.wiredAdv!=='1')){ try{ el.addEventListener('change', ()=>{ try{ updateLabAdvVisibility(); }catch(_){ } }); }catch(_){ } if(!el.dataset) el.dataset={}; el.dataset.wiredAdv='1'; } }
   // Sync Lab TP count once from Heaven, allow user override afterwards
   try{
     const labTPC=document.getElementById('labTPCount');
     if(labTPC && (!labTPC.dataset || labTPC.dataset.heavenSync!=='1')){
       labTPC.value = String(clampTPCount((lbcOpts && lbcOpts.tpCount)!=null? lbcOpts.tpCount : labTPC.value||10));
-      if(!labTPC.dataset) {labTPC.dataset={};}
+      if(!labTPC.dataset) labTPC.dataset={};
       labTPC.dataset.heavenSync='1';
       // mark override on user change so subsequent reads honor the Lab-specific value
-      labTPC.addEventListener('change', ()=>{ try{ if(!labTPC.dataset) {labTPC.dataset={};} labTPC.dataset.override='1'; labTPC.value = String(clampTPCount(labTPC.value)); }catch(_){ } });
-      labTPC.addEventListener('input', ()=>{ try{ if(!labTPC.dataset) {labTPC.dataset={};} labTPC.dataset.override='1'; }catch(_){ } });
+      labTPC.addEventListener('change', ()=>{ try{ if(!labTPC.dataset) labTPC.dataset={}; labTPC.dataset.override='1'; labTPC.value = String(clampTPCount(labTPC.value)); }catch(_){ } });
+      labTPC.addEventListener('input', ()=>{ try{ if(!labTPC.dataset) labTPC.dataset={}; labTPC.dataset.override='1'; }catch(_){ } });
     }
   }catch(_){ }
   // Force refresh when toggling Strategy by any interaction (click/input/change)
   const stratSel=document.getElementById('labStrategy');
-  function wireRefresh(el, key){ if(!el) {return;} if(el.dataset && el.dataset[key]==='1') {return;} ['change','input','click'].forEach(ev=>{ try{ el.addEventListener(ev, ()=>{ try{ updateLabAdvVisibility(); }catch(_){ } }); }catch(_){ } }); if(!el.dataset) {el.dataset={};} el.dataset[key]='1'; }
+  function wireRefresh(el, key){ if(!el) return; if(el.dataset && el.dataset[key]==='1') return; ['change','input','click'].forEach(ev=>{ try{ el.addEventListener(ev, ()=>{ try{ updateLabAdvVisibility(); }catch(_){ } }); }catch(_){ } }); if(!el.dataset) el.dataset={}; el.dataset[key]='1'; }
   wireRefresh(stratSel, 'wiredAdvStrat');
   // Also refresh on toggle click (redundant with init wiring but safe)
   const advBtn=document.getElementById('labAdvancedToggle');
-  if(advBtn && (!advBtn.dataset || advBtn.dataset.wiredAdvRefresh!=='1')){ advBtn.addEventListener('click', ()=>{ try{ updateLabAdvVisibility(); }catch(_){ } }); if(!advBtn.dataset) {advBtn.dataset={};} advBtn.dataset.wiredAdvRefresh='1'; }
+  if(advBtn && (!advBtn.dataset || advBtn.dataset.wiredAdvRefresh!=='1')){ advBtn.addEventListener('click', ()=>{ try{ updateLabAdvVisibility(); }catch(_){ } }); if(!advBtn.dataset) advBtn.dataset={}; advBtn.dataset.wiredAdvRefresh='1'; }
 }
 // Global helper to compute a unique key for a TP rung
-function keyOfTP(t){ try{ if(!t) {return '';} const typ=t.type||'Fib'; if(typ==='Fib') {return `F:${t.fib}`;} if(typ==='Percent') {return `P:${t.pct}`;} if(typ==='EMA') {return `E:${t.emaLen}`;} return String(typ); }catch(_){ return ''; } }
+function keyOfTP(t){ try{ if(!t) return ''; const typ=t.type||'Fib'; if(typ==='Fib') return `F:${t.fib}`; if(typ==='Percent') return `P:${t.pct}`; if(typ==='EMA') return `E:${t.emaLen}`; return String(typ); }catch(_){ return ''; } }
   function sampleTPList(tpCfg){
     const { allowFib, allowPct, allowEMA, pctMin, pctMax, fibs } = tpCfg || {};
     const n = Math.max(1, Math.min(10, Number(tpCfg && tpCfg.count) || 10));
-    const types=[]; if(allowFib) {types.push('Fib');} if(allowPct) {types.push('Percent');} if(allowEMA) {types.push('EMA');} if(!types.length) {types.push('Fib');}
+    const types=[]; if(allowFib) types.push('Fib'); if(allowPct) types.push('Percent'); if(allowEMA) types.push('EMA'); if(!types.length) types.push('Fib');
     const ws=randWeights(n);
     const list=[];
-    // Bias BE par profil Lab : mÃªme probabilitÃ© globale Ã©levÃ©e, mais TP de dÃ©part diffÃ©rent
+    // Bias BE par profil Lab : même probabilité globale élevée, mais TP de départ différent
     const tune = labProfileTuning();
     const beBase = (tune && typeof tune.beBaseProb==='number') ? Math.max(0, Math.min(1, tune.beBaseProb)) : 0.8;
     const beStartFrac = (tune && typeof tune.beStartFrac==='number') ? Math.max(0, Math.min(1, tune.beStartFrac)) : 0.2;
@@ -5651,11 +5650,11 @@ function keyOfTP(t){ try{ if(!t) {return '';} const typ=t.type||'Fib'; if(typ===
       if(pos < beStartFrac){
         // Avant la zone "normale" de BE : faible proba mais non nulle
         const rel = pos / Math.max(1e-6, beStartFrac);
-        p = beBase * (0.2 + 0.8 * rel); // de 0.2*base Ã  ~base au seuil
+        p = beBase * (0.2 + 0.8 * rel); // de 0.2*base à ~base au seuil
       } else {
-        // AprÃ¨s le TP cible de dÃ©marrage : BE quasi systÃ©matique
+        // Après le TP cible de démarrage : BE quasi systématique
         const rel = (pos - beStartFrac) / Math.max(1e-6, 1 - beStartFrac);
-        // 0.7*base â†’ base
+        // 0.7*base → base
         p = beBase * (0.7 + 0.3 * Math.min(1, Math.max(0, rel)));
       }
       return Math.max(0, Math.min(1, p));
@@ -5664,12 +5663,12 @@ function keyOfTP(t){ try{ if(!t) {return '';} const typ=t.type||'Fib'; if(typ===
     const trailPctMin = 0.1, trailPctMax = 100.0;
     const slCfgLocal = readSLOpt();
     const usedKeys=new Set();
-    function pickFibUnique(){ const pool=fibs.slice(); for(let k=0;k<pool.length;k++){ const i=(Math.random()*pool.length)|0; const v=pool[i]; const key=`F:${v}`; if(!usedKeys.has(key)) {return v;} pool.splice(i,1); k--; }
+    function pickFibUnique(){ const pool=fibs.slice(); for(let k=0;k<pool.length;k++){ const i=(Math.random()*pool.length)|0; const v=pool[i]; const key=`F:${v}`; if(!usedKeys.has(key)) return v; pool.splice(i,1); k--; }
       return fibs[(Math.random()*fibs.length)|0]; }
-    function pickPctUnique(min,max){ let tries=0; while(tries++<20){ const p = min + Math.random()*Math.max(0,max-min); const val=+p.toFixed(3); const key=`P:${val}`; if(!usedKeys.has(key)) {return val;} } return +(min + Math.random()*Math.max(0,max-min)).toFixed(3); }
-    function pickEmaUnique(){ let tries=0; while(tries++<20){ const len = rEMALen[(Math.random()*rEMALen.length)|0]; const key=`E:${len}`; if(!usedKeys.has(key)) {return len;} } return rEMALen[(Math.random()*rEMALen.length)|0]; }
+    function pickPctUnique(min,max){ let tries=0; while(tries++<20){ const p = min + Math.random()*Math.max(0,max-min); const val=+p.toFixed(3); const key=`P:${val}`; if(!usedKeys.has(key)) return val; } return +(min + Math.random()*Math.max(0,max-min)).toFixed(3); }
+    function pickEmaUnique(){ let tries=0; while(tries++<20){ const len = rEMALen[(Math.random()*rEMALen.length)|0]; const key=`E:${len}`; if(!usedKeys.has(key)) return len; } return rEMALen[(Math.random()*rEMALen.length)|0]; }
     function sampleAttachedSL(){
-    const allowSTypes=[]; if(slCfgLocal.allowFib) {allowSTypes.push('Fib');} if(slCfgLocal.allowPct) {allowSTypes.push('Percent');} if(slCfgLocal.allowEMA) {allowSTypes.push('EMA');} if(!allowSTypes.length) {allowSTypes.push('Percent');}
+    const allowSTypes=[]; if(slCfgLocal.allowFib) allowSTypes.push('Fib'); if(slCfgLocal.allowPct) allowSTypes.push('Percent'); if(slCfgLocal.allowEMA) allowSTypes.push('EMA'); if(!allowSTypes.length) allowSTypes.push('Percent');
     const st=allowSTypes[(Math.random()*allowSTypes.length)|0];
     if(st==='Fib'){
       const r=slCfgLocal.fibs[(Math.random()*slCfgLocal.fibs.length)|0];
@@ -5685,16 +5684,16 @@ function keyOfTP(t){ try{ if(!t) {return '';} const typ=t.type||'Fib'; if(typ===
   function sampleTrailTP(){
     const modes=['none','be','prev','ema','percent'];
     const m = modes[(Math.random()*modes.length)|0];
-    if(m==='none') {return null;}
-    if(m==='ema') {return { mode:'ema', emaLen: rEMALen[(Math.random()*rEMALen.length)|0] };}
+    if(m==='none') return null;
+    if(m==='ema') return { mode:'ema', emaLen: rEMALen[(Math.random()*rEMALen.length)|0] };
     if(m==='percent'){ const p = trailPctMin + Math.random()*(trailPctMax-trailPctMin); return { mode:'percent', pct:+p.toFixed(3) }; }
     return { mode:m };
   }
   function sampleTrailSL(){
     const modes=['none','ema','percent'];
     const m = modes[(Math.random()*modes.length)|0];
-    if(m==='none') {return null;}
-    if(m==='ema') {return { mode:'ema', emaLen: rEMALen[(Math.random()*rEMALen.length)|0] };}
+    if(m==='none') return null;
+    if(m==='ema') return { mode:'ema', emaLen: rEMALen[(Math.random()*rEMALen.length)|0] };
     if(m==='percent'){ const p = 0.1 + Math.random()*(100.0-0.1); return { mode:'percent', pct:+p.toFixed(3) }; }
     return null;
   }
@@ -5712,21 +5711,21 @@ function keyOfTP(t){ try{ if(!t) {return '';} const typ=t.type||'Fib'; if(typ===
         entry={ type:'EMA', emaLen: len, qty: ws[i] };
       }
       key=keyOfTP(entry); usedKeys.add(key);
-      // BE par TP: proba dÃ©pend du profil ET de l'index (profil = TP Ã  partir duquel on pose BE)
+      // BE par TP: proba dépend du profil ET de l'index (profil = TP à partir duquel on pose BE)
       const beProb = beProbForIndex(i);
       entry.beOn = Math.random() < beProb;
-      const tr = sampleTrailTP(); if(tr) {entry.trail = tr;}
+      const tr = sampleTrailTP(); if(tr) entry.trail = tr;
       const atSL = sampleAttachedSL(); if(atSL){ entry.sl = atSL; const st=sampleTrailSL(); if(st){ entry.sl.trail = st; } }
       list.push(entry);
     }
-    // Invariant: au moins un TP doit poser le BE pour protÃ©ger le capital
+    // Invariant: au moins un TP doit poser le BE pour protéger le capital
     if(list.length && !list.some(t=> t && t.beOn)){
       list[list.length-1].beOn = true;
     }
     return list;
 }
 function mutateTP(list,tpCfg){
-  if(!Array.isArray(list)||!list.length) {return list;}
+  if(!Array.isArray(list)||!list.length) return list;
   const out=list.map(x=> ({...x}));
   const n=out.length;
   const i=(Math.random()*n)|0;
@@ -5757,7 +5756,7 @@ function mutateTP(list,tpCfg){
   } else if(t.type==='EMA' && (r<0.5)){
     let tries=0; while(tries++<20){ const len = rEMALen[(Math.random()*rEMALen.length)|0]; const key=`E:${len}`; if(!used.has(key)){ out[i].emaLen=len; used.add(key); break; } }
   } else { // change type
-    const types=[]; if(tpCfg.allowFib) {types.push('Fib');} if(tpCfg.allowPct) {types.push('Percent');} if(tpCfg.allowEMA) {types.push('EMA');}
+    const types=[]; if(tpCfg.allowFib) types.push('Fib'); if(tpCfg.allowPct) types.push('Percent'); if(tpCfg.allowEMA) types.push('EMA');
     if(types.length){
       const nt=types[(Math.random()*types.length)|0];
       const baseQty = t.qty||null;
@@ -5775,16 +5774,16 @@ function mutateTP(list,tpCfg){
       used.add(keyOfTP(out[i]));
     }
   }
-  // Mutation BE: resample en fonction du profil ET de l'index (dÃ©caler le TP de dÃ©part du BE)
+  // Mutation BE: resample en fonction du profil ET de l'index (décaler le TP de départ du BE)
   if(Math.random() < beMutRate){
     const prob = beProbForIndex(i);
     out[i].beOn = (Math.random() < prob);
   }
   if(Math.random()<0.3){ const modes=['none','be','prev','ema','percent']; const m=modes[(Math.random()*modes.length)|0]; if(m==='none'){ delete out[i].trail; } else if(m==='ema'){ out[i].trail={ mode:'ema', emaLen: rEMALen[(Math.random()*rEMALen.length)|0] }; } else if(m==='percent'){ const p = 0.1 + Math.random()*(100.0-0.1); out[i].trail={ mode:'percent', pct:+p.toFixed(3) }; } else { out[i].trail={ mode:m }; } }
-  function mutAttachedSL(s){ const slCfg=readSLOpt(); const u={ ...(s||{}) }; const rr=Math.random(); if((u.type||'Percent')==='Fib' && rr<0.5){ const fibs=slCfg.fibs; u.fib = fibs[(Math.random()*fibs.length)|0]; u.value=u.fib; } else if((u.type||'Percent')==='Percent' && rr<0.5){ const p = slCfg.pctMin + Math.random()*(Math.max(0,slCfg.pctMax-slCfg.pctMin)); u.pct=+p.toFixed(3); u.value=u.pct; } else if((u.type||'Percent')==='EMA' && rr<0.5){ u.emaLen = rEMALen[(Math.random()*rEMALen.length)|0]; } else { const types=[]; if(slCfg.allowFib) {types.push('Fib');} if(slCfg.allowPct) {types.push('Percent');} if(slCfg.allowEMA) {types.push('EMA');} if(types.length){ const nt=types[(Math.random()*types.length)|0]; if(nt==='Fib'){ const fibs=slCfg.fibs; return { type:'Fib', fib:fibs[(Math.random()*fibs.length)|0] }; } else if(nt==='Percent'){ const p=slCfg.pctMin + Math.random()*(Math.max(0,slCfg.pctMax-slCfg.pctMin)); return { type:'Percent', pct:+p.toFixed(3) }; } else { return { type:'EMA', emaLen: rEMALen[(Math.random()*rEMALen.length)|0] }; } } }
+  function mutAttachedSL(s){ const slCfg=readSLOpt(); const u={ ...(s||{}) }; const rr=Math.random(); if((u.type||'Percent')==='Fib' && rr<0.5){ const fibs=slCfg.fibs; u.fib = fibs[(Math.random()*fibs.length)|0]; u.value=u.fib; } else if((u.type||'Percent')==='Percent' && rr<0.5){ const p = slCfg.pctMin + Math.random()*(Math.max(0,slCfg.pctMax-slCfg.pctMin)); u.pct=+p.toFixed(3); u.value=u.pct; } else if((u.type||'Percent')==='EMA' && rr<0.5){ u.emaLen = rEMALen[(Math.random()*rEMALen.length)|0]; } else { const types=[]; if(slCfg.allowFib) types.push('Fib'); if(slCfg.allowPct) types.push('Percent'); if(slCfg.allowEMA) types.push('EMA'); if(types.length){ const nt=types[(Math.random()*types.length)|0]; if(nt==='Fib'){ const fibs=slCfg.fibs; return { type:'Fib', fib:fibs[(Math.random()*fibs.length)|0] }; } else if(nt==='Percent'){ const p=slCfg.pctMin + Math.random()*(Math.max(0,slCfg.pctMax-slCfg.pctMin)); return { type:'Percent', pct:+p.toFixed(3) }; } else { return { type:'EMA', emaLen: rEMALen[(Math.random()*rEMALen.length)|0] }; } } }
     return u; }
   if(Math.random()<0.3){ out[i].sl = mutAttachedSL(out[i].sl); }
-  if(Math.random()<0.3){ const modes=['none','ema','percent']; const m=modes[(Math.random()*modes.length)|0]; if(!out[i].sl) {out[i].sl={ type:'Percent', pct:1.0 };} if(m==='none'){ if(out[i].sl) {delete out[i].sl.trail;} } else if(m==='ema'){ out[i].sl.trail={ mode:'ema', emaLen: rEMALen[(Math.random()*rEMALen.length)|0] }; } else { const p=0.1 + Math.random()*(100.0-0.1); out[i].sl.trail={ mode:'percent', pct:+p.toFixed(3) }; } }
+  if(Math.random()<0.3){ const modes=['none','ema','percent']; const m=modes[(Math.random()*modes.length)|0]; if(!out[i].sl) out[i].sl={ type:'Percent', pct:1.0 }; if(m==='none'){ if(out[i].sl) delete out[i].sl.trail; } else if(m==='ema'){ out[i].sl.trail={ mode:'ema', emaLen: rEMALen[(Math.random()*rEMALen.length)|0] }; } else { const p=0.1 + Math.random()*(100.0-0.1); out[i].sl.trail={ mode:'percent', pct:+p.toFixed(3) }; } }
   const ws=out.map(x=> x.qty||0); const j=(Math.random()*ws.length)|0; ws[j] = Math.max(0.01, ws[j] + (Math.random()*0.2-0.1)); const s=ws.reduce((a,b)=>a+b,0); for(let k=0;k<out.length;k++){ out[k].qty = ws[k]/s; }
   // ensure uniqueness of TP rungs
   const seen=new Set(); for(let k=0;k<out.length;k++){ const key=keyOfTP(out[k]); if(seen.has(key)){ // try to re-sample a different value for this rung if possible
@@ -5804,14 +5803,14 @@ function mutateTP(list,tpCfg){
       const adv = (typeof isLabAdvMode==='function') ? isLabAdvMode() : false;
       const enRaw = !!document.getElementById('labSLOptEn')?.checked;
       // En mode simple, on active toujours l'optimisation SL pour explorer des ladders de sortie
-      // mÃªme si la case dÃ©diÃ©e n'est pas cochÃ©e, tout en respectant le rÃ©glage explicite en mode avancÃ©.
+      // même si la case dédiée n'est pas cochée, tout en respectant le réglage explicite en mode avancé.
       const en = adv ? enRaw : true;
       const allowFib = !!document.getElementById('labSLAllowFib')?.checked;
       const allowPct = !!document.getElementById('labSLAllowPct')?.checked;
       const allowEMA = !!document.getElementById('labSLAllowEMA')?.checked;
       const pctMin = parseFloat(document.getElementById('labSLPctMin')?.value||'0.5');
       const pctMax = parseFloat(document.getElementById('labSLPctMax')?.value||'5');
-      const fibs = (function(){ try{ const w=document.getElementById('labSLFibWrap'); if(!w) {return null;} const cs=w.querySelectorAll('input[type="checkbox"][data-r]'); const arr=[]; cs.forEach(cb=>{ if(cb.checked){ const v=parseFloat(cb.getAttribute('data-r')||''); if(isFinite(v)) {arr.push(v);} } }); return arr.length? arr : null; }catch(_){ return null; } })() || [0.236,0.382,0.5,0.618,0.786,1.0,1.272,1.382,1.414,1.618,2.0,2.236,2.618,3.0];
+      const fibs = (function(){ try{ const w=document.getElementById('labSLFibWrap'); if(!w) return null; const cs=w.querySelectorAll('input[type="checkbox"][data-r]'); const arr=[]; cs.forEach(cb=>{ if(cb.checked){ const v=parseFloat(cb.getAttribute('data-r')||''); if(isFinite(v)) arr.push(v); } }); return arr.length? arr : null; }catch(_){ return null; } })() || [0.236,0.382,0.5,0.618,0.786,1.0,1.272,1.382,1.414,1.618,2.0,2.236,2.618,3.0];
       const count = Math.max(1, Math.min(10, parseInt(document.getElementById('labSLCount')?.value||'1',10)));
       return { en, allowFib, allowPct, allowEMA, pctMin, pctMax, fibs, count };
     }catch(_){
@@ -5821,12 +5820,12 @@ function mutateTP(list,tpCfg){
 function sampleSLList(slCfg){
     const { allowFib, allowPct, allowEMA, pctMin, pctMax, fibs } = slCfg || {};
     const n = Math.max(1, Math.min(10, Number(slCfg && slCfg.count) || 1));
-    const types=[]; if(allowFib) {types.push('Fib');} if(allowPct) {types.push('Percent');} if(allowEMA) {types.push('EMA');} if(!types.length) {types.push('Percent');}
+    const types=[]; if(allowFib) types.push('Fib'); if(allowPct) types.push('Percent'); if(allowEMA) types.push('EMA'); if(!types.length) types.push('Percent');
     const list=[]; const used=new Set();
-    function keyOfSL(s){ const typ=s.type||'Percent'; if(typ==='Fib') {return `F:${s.fib}`;} if(typ==='Percent') {return `P:${s.pct}`;} return `E:${s.emaLen}`; }
-    function pickFib(){ const pool=fibs.slice(); for(let k=0;k<pool.length;k++){ const i=(Math.random()*pool.length)|0; const v=pool[i]; const key=`F:${v}`; if(!used.has(key)) {return v;} pool.splice(i,1); k--; } return fibs[(Math.random()*fibs.length)|0]; }
-    function pickPct(){ let tries=0; while(tries++<20){ const p=pctMin + Math.random()*(Math.max(0,pctMax-pctMin)); const val=+p.toFixed(3); const key=`P:${val}`; if(!used.has(key)) {return val;} } return +(pctMin + Math.random()*(Math.max(0,pctMax-pctMin))).toFixed(3); }
-    function pickEma(){ let tries=0; while(tries++<20){ const len=rEMALen[(Math.random()*rEMALen.length)|0]; const key=`E:${len}`; if(!used.has(key)) {return len;} } return rEMALen[(Math.random()*rEMALen.length)|0]; }
+    function keyOfSL(s){ const typ=s.type||'Percent'; if(typ==='Fib') return `F:${s.fib}`; if(typ==='Percent') return `P:${s.pct}`; return `E:${s.emaLen}`; }
+    function pickFib(){ const pool=fibs.slice(); for(let k=0;k<pool.length;k++){ const i=(Math.random()*pool.length)|0; const v=pool[i]; const key=`F:${v}`; if(!used.has(key)) return v; pool.splice(i,1); k--; } return fibs[(Math.random()*fibs.length)|0]; }
+    function pickPct(){ let tries=0; while(tries++<20){ const p=pctMin + Math.random()*(Math.max(0,pctMax-pctMin)); const val=+p.toFixed(3); const key=`P:${val}`; if(!used.has(key)) return val; } return +(pctMin + Math.random()*(Math.max(0,pctMax-pctMin))).toFixed(3); }
+    function pickEma(){ let tries=0; while(tries++<20){ const len=rEMALen[(Math.random()*rEMALen.length)|0]; const key=`E:${len}`; if(!used.has(key)) return len; } return rEMALen[(Math.random()*rEMALen.length)|0]; }
     for(let i=0;i<n;i++){
       const t=types[(Math.random()*types.length)|0];
       if(t==='Fib'){
@@ -5847,7 +5846,7 @@ function sampleSLList(slCfg){
     else if((t.type||'Percent')==='Percent' && r<0.5){ const p = slCfg.pctMin + Math.random()*(Math.max(0,slCfg.pctMax-slCfg.pctMin)); out[i].pct=+p.toFixed(3); out[i].value=out[i].pct; }
     else if((t.type||'Percent')==='EMA' && r<0.5){ out[i].emaLen = rEMALen[(Math.random()*rEMALen.length)|0]; }
     else {
-      const types=[]; if(slCfg.allowFib) {types.push('Fib');} if(slCfg.allowPct) {types.push('Percent');} if(slCfg.allowEMA) {types.push('EMA');} if(types.length){ const nt=types[(Math.random()*types.length)|0]; if(nt==='Fib'){ const fibs=slCfg.fibs; out[i]={ type:'Fib', fib:fibs[(Math.random()*fibs.length)|0] }; } else if(nt==='Percent'){ const p=slCfg.pctMin + Math.random()*(Math.max(0,slCfg.pctMax-slCfg.pctMin)); out[i]={ type:'Percent', pct:+p.toFixed(3) }; } else { out[i]={ type:'EMA', emaLen: rEMALen[(Math.random()*rEMALen.length)|0] }; } }
+      const types=[]; if(slCfg.allowFib) types.push('Fib'); if(slCfg.allowPct) types.push('Percent'); if(slCfg.allowEMA) types.push('EMA'); if(types.length){ const nt=types[(Math.random()*types.length)|0]; if(nt==='Fib'){ const fibs=slCfg.fibs; out[i]={ type:'Fib', fib:fibs[(Math.random()*fibs.length)|0] }; } else if(nt==='Percent'){ const p=slCfg.pctMin + Math.random()*(Math.max(0,slCfg.pctMax-slCfg.pctMin)); out[i]={ type:'Percent', pct:+p.toFixed(3) }; } else { out[i]={ type:'EMA', emaLen: rEMALen[(Math.random()*rEMALen.length)|0] }; } }
     }
     // occasionally add or remove a rung
     if(Math.random()<0.2 && out.length<10){ out.push(sampleSLList(slCfg)[0]); }
@@ -5866,8 +5865,8 @@ function sampleSLList(slCfg){
   }
 function crossoverTP(a,b,tpCfg){ const n=Math.max(1, tpCfg.count|0); const res=[]; const used=new Set(); for(let i=0;i<n;i++){ const as=a[i%Math.max(1,a.length||1)], bs=b[i%Math.max(1,b.length||1)]; const src=(Math.random()<0.5? as:bs); let t = src? {...src}: null; if(!t){ t = { type:'Fib', fib:(tpCfg.fibs[0]||0.382), qty: 1/n }; }
   const other = (src===as? bs: as) || {};
-  if(Math.random()<0.5) {t.beOn = !!(other.beOn);}
-  if(Math.random()<0.5) {t.trail = other.trail? {...other.trail} : t.trail;}
+  if(Math.random()<0.5) t.beOn = !!(other.beOn);
+  if(Math.random()<0.5) t.trail = other.trail? {...other.trail} : t.trail;
   if(Math.random()<0.5){ t.sl = other.sl? {...other.sl} : t.sl; if(other.sl && other.sl.trail){ t.sl.trail = {...other.sl.trail}; } }
   // enforce uniqueness by resampling minimally
   let tries=0; while(tries++<20){ const key=keyOfTP(t); if(!used.has(key)) { used.add(key); break; }
@@ -5878,21 +5877,21 @@ function crossoverTP(a,b,tpCfg){ const n=Math.max(1, tpCfg.count|0); const res=[
   res[i]=t; }
   const s=res.reduce((u,x)=> u+(x.qty||0),0)||1; for(const x of res){ x.qty = (x.qty||0)/s; } return res; }
 
-function __sampleEntries(p){ try{ const modes=['Both','Original','Fib Retracement']; const cmodes=['Bounce','Touch']; const em = modes[(Math.random()*modes.length)|0]; let ufr = Math.random()<0.6; if(em==='Original') {ufr=false;} if(em==='Fib Retracement') {ufr=true;} const cf = cmodes[(Math.random()*cmodes.length)|0]; return { entryMode: em, useFibRet: ufr, confirmMode: cf, ent382: Math.random()<0.7, ent500: Math.random()<0.7, ent618: Math.random()<0.7, ent786: Math.random()<0.4 }; }catch(_){ return { entryMode:p.entryMode, useFibRet:p.useFibRet, confirmMode:p.confirmMode, ent382:p.ent382, ent500:p.ent500, ent618:p.ent618, ent786:p.ent786 }; } }
+function __sampleEntries(p){ try{ const modes=['Both','Original','Fib Retracement']; const cmodes=['Bounce','Touch']; const em = modes[(Math.random()*modes.length)|0]; let ufr = Math.random()<0.6; if(em==='Original') ufr=false; if(em==='Fib Retracement') ufr=true; const cf = cmodes[(Math.random()*cmodes.length)|0]; return { entryMode: em, useFibRet: ufr, confirmMode: cf, ent382: Math.random()<0.7, ent500: Math.random()<0.7, ent618: Math.random()<0.7, ent786: Math.random()<0.4 }; }catch(_){ return { entryMode:p.entryMode, useFibRet:p.useFibRet, confirmMode:p.confirmMode, ent382:p.ent382, ent500:p.ent500, ent618:p.ent618, ent786:p.ent786 }; } }
 function randomParams(){ const vars=readLabVarToggles(); const tpCfg=readTPOpt(); const slCfg=readSLOpt(); const p={ nol: pick(rNol), prd: pick(rPrd), slInitPct: pick(rSL), beAfterBars: pick(rBEb), beLockPct: pick(rBEL), emaLen: pick(rEMALen), entryMode: lbcOpts.entryMode||'Both', useFibRet: !!lbcOpts.useFibRet, confirmMode: lbcOpts.confirmMode||'Bounce', ent382: !!lbcOpts.ent382, ent500: !!lbcOpts.ent500, ent618: !!lbcOpts.ent618, ent786: !!lbcOpts.ent786, tpEnable: true, tpCompound: (Math.random()<0.6), tpCloseAllLast: (Math.random()<0.7), tp: [], slEnable: true, sl: [] };
-    if(!vars.varNol) {p.nol = lbcOpts.nol|0;}
-    if(!vars.varPrd) {p.prd = lbcOpts.prd|0;}
-    if(!vars.varSLInit) {p.slInitPct = +lbcOpts.slInitPct;}
-    if(!vars.varBEBars) {p.beAfterBars = lbcOpts.beAfterBars|0;}
-    if(!vars.varBELock) {p.beLockPct = +lbcOpts.beLockPct;}
-    if(!vars.varEMALen) {p.emaLen = lbcOpts.emaLen|0;}
+    if(!vars.varNol) p.nol = lbcOpts.nol|0;
+    if(!vars.varPrd) p.prd = lbcOpts.prd|0;
+    if(!vars.varSLInit) p.slInitPct = +lbcOpts.slInitPct;
+    if(!vars.varBEBars) p.beAfterBars = lbcOpts.beAfterBars|0;
+    if(!vars.varBELock) p.beLockPct = +lbcOpts.beLockPct;
+    if(!vars.varEMALen) p.emaLen = lbcOpts.emaLen|0;
     if(vars.varEntries){ const e=__sampleEntries(p); Object.assign(p, e); }
     if(vars.varTP && tpCfg.en){
-      // Cas normal: on Ã©chantillonne une nouvelle ladder TP selon la config Lab
+      // Cas normal: on échantillonne une nouvelle ladder TP selon la config Lab
       p.tp = sampleTPList(tpCfg).slice(0,10);
       p.tpEnable=true;
     } else {
-      // Fallback: on reprend la ladder Heaven existante, sinon on en gÃ©nÃ¨re une par dÃ©faut
+      // Fallback: on reprend la ladder Heaven existante, sinon on en génère une par défaut
       p.tp = Array.isArray(lbcOpts.tp)? lbcOpts.tp.slice(0,10):[];
       if(!p.tp.length && tpCfg && tpCfg.en){
         p.tp = sampleTPList(tpCfg).slice(0,10);
@@ -5910,8 +5909,8 @@ function randomParams(){ const vars=readLabVarToggles(); const tpCfg=readTPOpt()
       p.slEnable=!!p.sl.length;
     }
     return p; }
-  function neighbor(arr, v){ const i=arr.indexOf(v); const out=[]; if(i>0) {out.push(arr[i-1]);} out.push(v); if(i>=0 && i<arr.length-1) {out.push(arr[i+1]);} return pick(out.length?out:arr); }
-function mutate(p, rate){ const vars=readLabVarToggles(); const tpCfg=readTPOpt(); const slCfg=readSLOpt(); const q={...p}; if(vars.varNol && Math.random()<rate) {q.nol = neighbor(rNol, q.nol);} if(vars.varPrd && Math.random()<rate) {q.prd = neighbor(rPrd, q.prd);} if(vars.varSLInit && Math.random()<rate) {q.slInitPct = neighbor(rSL, q.slInitPct);} if(vars.varBEBars && Math.random()<rate) {q.beAfterBars = neighbor(rBEb, q.beAfterBars);} if(vars.varBELock && Math.random()<rate) {q.beLockPct = neighbor(rBEL, q.beLockPct);} if(vars.varEMALen && Math.random()<rate) {q.emaLen = neighbor(rEMALen, q.emaLen);} if(Math.random()<rate){ q.maxPct = neighbor(rMaxPct, (q.maxPct!=null? q.maxPct : labProfileRiskPct())); } if(vars.varEntries && Math.random()<rate){ const e=__sampleEntries(q); Object.assign(q, e); }
+  function neighbor(arr, v){ const i=arr.indexOf(v); const out=[]; if(i>0) out.push(arr[i-1]); out.push(v); if(i>=0 && i<arr.length-1) out.push(arr[i+1]); return pick(out.length?out:arr); }
+function mutate(p, rate){ const vars=readLabVarToggles(); const tpCfg=readTPOpt(); const slCfg=readSLOpt(); const q={...p}; if(vars.varNol && Math.random()<rate) q.nol = neighbor(rNol, q.nol); if(vars.varPrd && Math.random()<rate) q.prd = neighbor(rPrd, q.prd); if(vars.varSLInit && Math.random()<rate) q.slInitPct = neighbor(rSL, q.slInitPct); if(vars.varBEBars && Math.random()<rate) q.beAfterBars = neighbor(rBEb, q.beAfterBars); if(vars.varBELock && Math.random()<rate) q.beLockPct = neighbor(rBEL, q.beLockPct); if(vars.varEMALen && Math.random()<rate) q.emaLen = neighbor(rEMALen, q.emaLen); if(Math.random()<rate){ q.maxPct = neighbor(rMaxPct, (q.maxPct!=null? q.maxPct : labProfileRiskPct())); } if(vars.varEntries && Math.random()<rate){ const e=__sampleEntries(q); Object.assign(q, e); }
   if(vars.varTP && Math.random()<rate){ q.tp = mutateTP(Array.isArray(q.tp)? q.tp: [], tpCfg).slice(0,10); q.tpEnable=true; }
   if(vars.varSL && Math.random()<rate){ q.sl = mutateSL(Array.isArray(q.sl)? q.sl: [], slCfg).slice(0,10); q.slEnable=true; }
   if(Math.random()<rate){ q.tpCompound = !q.tpCompound; }
@@ -5920,7 +5919,7 @@ function mutate(p, rate){ const vars=readLabVarToggles(); const tpCfg=readTPOpt(
 function crossover(a,b){ const tpCfg=readTPOpt(); const slCfg=readSLOpt(); return { nol: Math.random()<0.5?a.nol:b.nol, prd: Math.random()<0.5?a.prd:b.prd, slInitPct: Math.random()<0.5?a.slInitPct:b.slInitPct, beAfterBars: Math.random()<0.5?a.beAfterBars:b.beAfterBars, beLockPct: Math.random()<0.5?a.beLockPct:b.beLockPct, emaLen: Math.random()<0.5?a.emaLen:b.emaLen, maxPct: (Math.random()<0.5? (a.maxPct!=null?a.maxPct:b.maxPct) : (b.maxPct!=null?b.maxPct:a.maxPct)), entryMode: a.entryMode, useFibRet: a.useFibRet, confirmMode: a.confirmMode, ent382:a.ent382, ent500:a.ent500, ent618:a.ent618, ent786:a.ent786, tpEnable:true, tpCompound: (Math.random()<0.5? a.tpCompound : b.tpCompound), tpCloseAllLast: (Math.random()<0.5? a.tpCloseAllLast : b.tpCloseAllLast), tp: crossoverTP(a.tp||[], b.tp||[], tpCfg).slice(0,10), slEnable:true, sl: crossoverSL(a.sl||[], b.sl||[], slCfg).slice(0,10) }; }
 async function evalParamsList(list, phase='Eval'){
     const out=[]; let idx=0; const N=list.length||0;
-    function fmtTP(tp){ try{ if(!Array.isArray(tp)||!tp.length) {return 'â€”';} return tp.map(t=>{ const typ=(t.type||'Fib'); if(typ==='Fib'){ return `F:${t.fib}`; } if(typ==='Percent'){ return `P:${t.pct}%`; } if(typ==='EMA'){ return `E:${t.emaLen}`; } return typ; }).slice(0,10).join(';'); }catch(_){ return 'â€”'; } }
+    function fmtTP(tp){ try{ if(!Array.isArray(tp)||!tp.length) return '—'; return tp.map(t=>{ const typ=(t.type||'Fib'); if(typ==='Fib'){ return `F:${t.fib}`; } if(typ==='Percent'){ return `P:${t.pct}%`; } if(typ==='EMA'){ return `E:${t.emaLen}`; } return typ; }).slice(0,10).join(';'); }catch(_){ return '—'; } }
     function fmtParams(p){ try{ return `nol=${p.nol} prd=${p.prd} sl=${p.slInitPct}% be=${p.beAfterBars}/${p.beLockPct}% ema=${p.emaLen} entry=${p.entryMode||'Both'} fibRet=${p.useFibRet?1:0} confirm=${p.confirmMode||'Bounce'} ent=[${p.ent382?'382':''}${p.ent500? (p.ent382?',500':'500'):''}${p.ent618? (p.ent382||p.ent500?',618':'618'):''}${p.ent786? ((p.ent382||p.ent500||p.ent618)?',786':'786'):''}] tp=${fmtTP(p.tp)}`; }catch(_){ return ''; } }
 
     // Worker pool for parallel evals
@@ -5945,12 +5944,12 @@ async function evalParamsList(list, phase='Eval'){
         w.postMessage({ type:'init', payload:{ bars, sIdx, eIdx, conf } });
         workers.push(w);
       }
-      for(let i=0;i<conc;i++) {spawn();}
+      for(let i=0;i<conc;i++) spawn();
       if(failed || workers.length===0){ return null; }
       const queue=[];
-      function trySchedule(){ if(closed) {return;} while(idle.length && queue.length){ const w=idle.shift(); const job=queue.shift(); if(!w) {break;} w._busy=true; w._state='eval'; w._cb=job.cb; try{ w.postMessage({ type:'eval', payload:{ params: job.params } }); }catch(e){ w._busy=false; w._state='idle'; job.cb.reject(e); idle.push(w); } } }
+      function trySchedule(){ if(closed) return; while(idle.length && queue.length){ const w=idle.shift(); const job=queue.shift(); if(!w) break; w._busy=true; w._state='eval'; w._cb=job.cb; try{ w.postMessage({ type:'eval', payload:{ params: job.params } }); }catch(e){ w._busy=false; w._state='idle'; job.cb.reject(e); idle.push(w); } } }
       return {
-        eval(params){ if(closed) {return Promise.reject(new Error('pool closed'));}
+        eval(params){ if(closed) return Promise.reject(new Error('pool closed'));
           return new Promise((resolve,reject)=>{ queue.push({ params, cb:{resolve,reject} }); trySchedule(); }); },
         close(){ closed=true; while(workers.length){ try{ workers.pop().terminate(); }catch(_){} } }
       };
@@ -5959,13 +5958,13 @@ async function evalParamsList(list, phase='Eval'){
     const fallbackPool = { eval: (params)=> Promise.resolve(runBacktestSliceFor(bars, sIdx, eIdx, conf, params)), close(){ } };
     let pool=null;
     try{ pool = makePool(CONC); }catch(_){ pool=null; }
-    if(!pool){ try{ addBtLog(`[${phase}] mode sÃ©quentiel (fallback, workers indisponibles)`); }catch(_){ }
+    if(!pool){ try{ addBtLog(`[${phase}] mode séquentiel (fallback, workers indisponibles)`); }catch(_){ }
       pool = fallbackPool; __labConc=1; }
     let done=0;
     const tasks = list.map(async (item)=>{
-      if(btAbort) {return null;}
-      while(btPaused && !btAbort){ if(labRunStatusEl) {labRunStatusEl.textContent='Pause';} await new Promise(r=> setTimeout(r, 150)); }
-      if(btAbort) {return null;} if(quotaReached()) {return null;}
+      if(btAbort) return null;
+      while(btPaused && !btAbort){ if(labRunStatusEl) labRunStatusEl.textContent='Pause'; await new Promise(r=> setTimeout(r, 150)); }
+      if(btAbort) return null; if(quotaReached()) return null;
       const t0=performance.now();
       try{
 const res = await pool.eval(item.p);
@@ -5978,8 +5977,8 @@ const res = await pool.eval(item.p);
         out.push(rec);
         try{ allTested.push({ params: rec.p, metrics: rec.res, score: rec.score }); }catch(_){ }
         idx++; done++;
-        try{ if(btProgNote) {btProgNote.textContent = `${phase} â€¢ ${Math.round(dt)} ms`;} }catch(_){ }
-try{ const pfStr = (res.profitFactor===Infinity?'âˆž':(Number(res.profitFactor||0)).toFixed(2)); addBtLog(`[${phase}] ${done}/${N} ${fmtParams(item.p)} => score ${score.toFixed(2)} PF ${pfStr} trades ${res.tradesCount} win ${Number(res.winrate||0).toFixed(1)}% (${Math.round(dt)} ms)`); }catch(_){ }
+        try{ if(btProgNote) btProgNote.textContent = `${phase} • ${Math.round(dt)} ms`; }catch(_){ }
+try{ const pfStr = (res.profitFactor===Infinity?'∞':(Number(res.profitFactor||0)).toFixed(2)); addBtLog(`[${phase}] ${done}/${N} ${fmtParams(item.p)} => score ${score.toFixed(2)} PF ${pfStr} trades ${res.tradesCount} win ${Number(res.winrate||0).toFixed(1)}% (${Math.round(dt)} ms)`); }catch(_){ }
       }catch(e){ try{ addBtLog(`[${phase}] error: ${e&&e.message?e.message:e}`); }catch(_){ } }
       if(btProgBar && btProgText){ const pct=Math.round(done/Math.max(1,N)*100); btProgBar.style.width=pct+'%'; btProgText.textContent=`${phase} ${pct}% (${done}/${N})`; }
       await new Promise(r=> setTimeout(r, 0));
@@ -5989,7 +5988,7 @@ try{ const pfStr = (res.profitFactor===Infinity?'âˆž':(Number(res.profitFacto
     try{ pool.close(); }catch(_){ }
     return out;
   }
-  function updateProgress(text, pct){ if(btProgText) {btProgText.textContent=text;} if(btProgBar) {btProgBar.style.width = Math.max(0,Math.min(100,Math.round(pct)))+'%';} }
+  function updateProgress(text, pct){ if(btProgText) btProgText.textContent=text; if(btProgBar) btProgBar.style.width = Math.max(0,Math.min(100,Math.round(pct)))+'%'; }
 
   async function runEA(seed){
     const tune = labProfileTuning();
@@ -6000,27 +5999,27 @@ try{ const pfStr = (res.profitFactor===Infinity?'âˆž':(Number(res.profitFacto
     const pop = Math.max(4, Math.round(popBase * (tune.eaPopMul||1)));
     const gens = Math.max(1, Math.round(gensBase * (tune.eaGenMul||1)));
     let mutPct = mutBase * (tune.mutMul||1);
-    if(mutPct<0.01) {mutPct=0.01;}
-    if(mutPct>0.99) {mutPct=0.99;}
-    const seen=new Set(); const isDup=(p)=>{ const k=keyOf(p); if(seen.has(k)) {return true;} const ck=canonKey(p); if(seenCanon.has(ck)) {return true;} return false; }; const pushSeen=(p)=>{ seen.add(keyOf(p)); seenCanon.add(canonKey(p)); };
-    const pool=[];
+    if(mutPct<0.01) mutPct=0.01;
+    if(mutPct>0.99) mutPct=0.99;
+    const seen=new Set(); const isDup=(p)=>{ const k=keyOf(p); if(seen.has(k)) return true; const ck=canonKey(p); if(seenCanon.has(ck)) return true; return false; }; const pushSeen=(p)=>{ seen.add(keyOf(p)); seenCanon.add(canonKey(p)); };
+    let pool=[];
     // init population
-    const init=[]; if(Array.isArray(seed)&&seed.length){ for(const s of seed){ if(isDup(s.p)) {continue;} pushSeen(s.p); init.push({ p:s.p, owner:s.owner||null }); if(init.length>=pop) {break;} } }
+    const init=[]; if(Array.isArray(seed)&&seed.length){ for(const s of seed){ if(isDup(s.p)) continue; pushSeen(s.p); init.push({ p:s.p, owner:s.owner||null }); if(init.length>=pop) break; } }
     while(init.length<pop){ let p=null; if(Array.isArray(seed)&&seed.length){ const base = seed[(Math.random()*seed.length)|0]; p = mutate(base.p, Math.max(0.05, Math.min(0.99, 0.7*varIntensityFactor()))); } else { p=randomParams(); }
-      if(isDup(p)) {continue;} pushSeen(p); init.push({ p }); }
+      if(isDup(p)) continue; pushSeen(p); init.push({ p }); }
 __labSimTotal += init.length; updateGlobalProgressUI();
-try{ addBtLog && addBtLog(`EA:init â€” scheduling ${init.length} Ã©vals`); }catch(_){ }
+try{ addBtLog && addBtLog(`EA:init — scheduling ${init.length} évals`); }catch(_){ }
     let cur = await evalParamsList(init, 'EA:init');
-    // Taguer les Ã©valuations initiales comme gÃ©nÃ©ration 1 si non dÃ©fini
-    try{ cur.forEach(r=>{ if(r && r.gen==null) {r.gen = 1;} }); }catch(_){ }
+    // Taguer les évaluations initiales comme génération 1 si non défini
+    try{ cur.forEach(r=>{ if(r && r.gen==null) r.gen = 1; }); }catch(_){ }
     cur.sort((a,b)=> b.score-a.score);
-try{ const top=cur[0]; if(top){ addBtLog(`EA init â€” best score ${top.score.toFixed(2)} â€¢ PF ${(top.res.profitFactor===Infinity?'âˆž':(top.res.profitFactor||0).toFixed(2))} â€¢ Trades ${top.res.tradesCount} â€¢ Win ${(top.res.winrate||0).toFixed(1)}%`); } }catch(_){ }
+try{ const top=cur[0]; if(top){ addBtLog(`EA init — best score ${top.score.toFixed(2)} • PF ${(top.res.profitFactor===Infinity?'∞':(top.res.profitFactor||0).toFixed(2))} • Trades ${top.res.tradesCount} • Win ${(top.res.winrate||0).toFixed(1)}%`); } }catch(_){ }
     bestGlobal = Math.max(bestGlobal, (cur[0]?.score ?? -Infinity));
-    if(timeUp() || goalReached() || quotaReached()) {return cur;}
+    if(timeUp() || goalReached() || quotaReached()) return cur;
     updateProgress(`EA g 1/${gens}`, 100*(1/(gens+1)));
 for(let g=2; g<=gens+1 && !btAbort; g++){
-      while(btPaused && !btAbort){ if(labRunStatusEl) {labRunStatusEl.textContent='Pause';} await new Promise(r=> setTimeout(r, 200)); }
-      if(timeUp() || goalReached() || quotaReached()) {break;}
+      while(btPaused && !btAbort){ if(labRunStatusEl) labRunStatusEl.textContent='Pause'; await new Promise(r=> setTimeout(r, 200)); }
+      if(timeUp() || goalReached() || quotaReached()) break;
       const elites = cur.slice(0, Math.max(2, Math.floor(pop*0.3)));
       // children
       const children=[];
@@ -6030,20 +6029,20 @@ for(let g=2; g<=gens+1 && !btAbort; g++){
         const hasElites = elites && elites.length>0;
         const a = hasElites? pick(elites) : null;
         const b = hasElites? pick(elites) : null;
-        const baseP = hasElites && a && a.p ? a.p : randomParams();
+        let baseP = hasElites && a && a.p ? a.p : randomParams();
         let child = (hasElites && a && b && (Math.random()<cxPct))? crossover(a.p, b.p) : { ...baseP };
         child = mutate(child, Math.max(0.01, Math.min(0.99, mutPct*varIntensityFactor())));
-        if(isDup(child)) {continue;} pushSeen(child); children.push({ p:child, owner: (a&&a.owner) || (b&&b.owner) || null }); }
+        if(isDup(child)) continue; pushSeen(child); children.push({ p:child, owner: (a&&a.owner) || (b&&b.owner) || null }); }
 const t0g=performance.now();
       __labSimTotal += children.length; updateGlobalProgressUI();
       const evald = await evalParamsList(children, 'EA'); if(!Array.isArray(evald)||!evald.length){ if(!elites.length){ // nothing to build upon
           break; }
         }
-      // Taguer cette gÃ©nÃ©ration EA
-      try{ evald.forEach(r=>{ if(r && r.gen==null) {r.gen = g;} }); }catch(_){ }
+      // Taguer cette génération EA
+      try{ evald.forEach(r=>{ if(r && r.gen==null) r.gen = g; }); }catch(_){ }
       const dtg=performance.now()-t0g;
       cur = elites.concat(evald).sort((x,y)=> y.score-x.score).slice(0,pop);
-try{ const top=cur[0]; if(top){ addBtLog(`EA g ${g-1}â†’${g-1} done â€” ${children.length} Ã©vals en ${Math.round(dtg)} ms (${Math.round(dtg/Math.max(1,children.length))} ms/Ã©val) â€” best ${top.score.toFixed(2)} PF ${(top.res.profitFactor===Infinity?'âˆž':(top.res.profitFactor||0).toFixed(2))} Trades ${top.res.tradesCount}`); } }catch(_){ }
+try{ const top=cur[0]; if(top){ addBtLog(`EA g ${g-1}→${g-1} done — ${children.length} évals en ${Math.round(dtg)} ms (${Math.round(dtg/Math.max(1,children.length))} ms/éval) — best ${top.score.toFixed(2)} PF ${(top.res.profitFactor===Infinity?'∞':(top.res.profitFactor||0).toFixed(2))} Trades ${top.res.tradesCount}`); } }catch(_){ }
       bestGlobal = Math.max(bestGlobal, (cur[0]?.score ?? -Infinity));
       updateProgress(`EA g ${g}/${gens}`, 100*(g/(gens+1)));
     }
@@ -6057,24 +6056,24 @@ try{ const top=cur[0]; if(top){ addBtLog(`EA g ${g-1}â†’${g-1} done â€�
     const iters = Math.max(0, Math.round(baseIters * (tune.bayItersMul||1)));
     const initN = Math.max(1, Math.round(baseInitN * (tune.bayInitMul||1)));
     const elitePct = Math.max(5, Math.min(80, (tune.eliteOverride!=null? tune.eliteOverride : baseElite)));
-    const seen=new Set(); const isDup=(p)=>{ const k=keyOf(p); if(seen.has(k)) {return true;} const ck=canonKey(p); if(seenCanon.has(ck)) {return true;} return false; }; const pushSeen=(p)=>{ seen.add(keyOf(p)); seenCanon.add(canonKey(p)); };
-    const pool=[];
+    const seen=new Set(); const isDup=(p)=>{ const k=keyOf(p); if(seen.has(k)) return true; const ck=canonKey(p); if(seenCanon.has(ck)) return true; return false; }; const pushSeen=(p)=>{ seen.add(keyOf(p)); seenCanon.add(canonKey(p)); };
+    let pool=[];
     const seeds = Array.isArray(seed)? seed.slice(0) : [];
-    const start=[]; for(const s of seeds){ if(isDup(s.p)) {continue;} pushSeen(s.p); start.push({ p:s.p, owner:s.owner||null }); if(start.length>=initN) {break;} }
-    while(start.length<initN){ const p=randomParams(); if(isDup(p)) {continue;} pushSeen(p); start.push({ p }); }
-    try{ setBtTitle('Bayes (EDA)'); addBtLog('Bayes: dÃ©marrage'); }catch(_){ }
+    const start=[]; for(const s of seeds){ if(isDup(s.p)) continue; pushSeen(s.p); start.push({ p:s.p, owner:s.owner||null }); if(start.length>=initN) break; }
+    while(start.length<initN){ const p=randomParams(); if(isDup(p)) continue; pushSeen(p); start.push({ p }); }
+    try{ setBtTitle('Bayes (EDA)'); addBtLog('Bayes: démarrage'); }catch(_){ }
 __labSimTotal += start.length; updateGlobalProgressUI();
-try{ addBtLog && addBtLog(`Bayes:init â€” scheduling ${start.length} Ã©vals`); }catch(_){ }
+try{ addBtLog && addBtLog(`Bayes:init — scheduling ${start.length} évals`); }catch(_){ }
     let cur = (await evalParamsList(start, 'Bayes:init')).sort((a,b)=> b.score - a.score);
-    // GÃ©nÃ©ration Bayes init = 1 si non dÃ©fini
-    try{ cur.forEach(r=>{ if(r && r.gen==null) {r.gen = 1;} }); }catch(_){ }
-try{ const top=cur[0]; if(top){ addBtLog(`Bayes init â€” best ${top.score.toFixed(2)} PF ${(top.res.profitFactor===Infinity?'âˆž':(top.res.profitFactor||0).toFixed(2))}`); } }catch(_){ }
+    // Génération Bayes init = 1 si non défini
+    try{ cur.forEach(r=>{ if(r && r.gen==null) r.gen = 1; }); }catch(_){ }
+try{ const top=cur[0]; if(top){ addBtLog(`Bayes init — best ${top.score.toFixed(2)} PF ${(top.res.profitFactor===Infinity?'∞':(top.res.profitFactor||0).toFixed(2))}`); } }catch(_){ }
     bestGlobal = Math.max(bestGlobal, (cur[0]?.score ?? -Infinity));
     updateProgress(`Bayes 0/${iters}`, 0);
     function baseFromLbc(){ return { nol:lbcOpts.nol|0, prd:lbcOpts.prd|0, slInitPct:+lbcOpts.slInitPct||0, beAfterBars:lbcOpts.beAfterBars|0, beLockPct:+lbcOpts.beLockPct||0, emaLen:lbcOpts.emaLen|0, entryMode:lbcOpts.entryMode||'Both', useFibRet:!!lbcOpts.useFibRet, confirmMode:lbcOpts.confirmMode||'Bounce', ent382:!!lbcOpts.ent382, ent500:!!lbcOpts.ent500, ent618:!!lbcOpts.ent618, ent786:!!lbcOpts.ent786, tpEnable:!!lbcOpts.tpEnable, tp:(Array.isArray(lbcOpts.tp)? lbcOpts.tp.slice(0,10):[]), slEnable:!!lbcOpts.slEnable, sl:(Array.isArray(lbcOpts.sl)? lbcOpts.sl.slice(0,10):[]) }; }
     for(let it=1; it<=iters && !btAbort; it++){
-      while(btPaused && !btAbort){ if(labRunStatusEl) {labRunStatusEl.textContent='Pause';} await new Promise(r=> setTimeout(r, 200)); }
-      if(timeUp() || goalReached() || quotaReached()) {break;}
+      while(btPaused && !btAbort){ if(labRunStatusEl) labRunStatusEl.textContent='Pause'; await new Promise(r=> setTimeout(r, 200)); }
+      if(timeUp() || goalReached() || quotaReached()) break;
       const eliteN = Math.max(1, Math.floor(cur.length * elitePct/100));
       const elite = cur.slice(0, eliteN);
       // build categorical distributions (frequency)
@@ -6090,7 +6089,7 @@ try{ const top=cur[0]; if(top){ addBtLog(`Bayes init â€” best ${top.score.t
         };
       }
       const D=distFrom(elite);
-      function sampleFrom(list){ const tot=list.reduce((s,a)=>s+a.w,0); let r=Math.random()*tot; for(const it of list){ r-=it.w; if(r<=0) {return it.v;} } return list[list.length-1].v; }
+      function sampleFrom(list){ const tot=list.reduce((s,a)=>s+a.w,0); let r=Math.random()*tot; for(const it of list){ r-=it.w; if(r<=0) return it.v; } return list[list.length-1].v; }
       const tpCfg = readTPOpt();
       const slCfg = readSLOpt();
 const vars = readLabVarToggles();
@@ -6100,22 +6099,22 @@ const vars = readLabVarToggles();
         const p={ nol: vars.varNol? sampleFrom(D.nol) : (baseP0.nol|0), prd: vars.varPrd? sampleFrom(D.prd) : (baseP0.prd|0), slInitPct: vars.varSLInit? sampleFrom(D.sl) : (+baseP0.slInitPct||0), beAfterBars: vars.varBEBars? sampleFrom(D.beb) : (baseP0.beAfterBars|0), beLockPct: vars.varBELock? sampleFrom(D.bel) : (+baseP0.beLockPct||0), emaLen: vars.varEMALen? sampleFrom(D.ema) : (baseP0.emaLen|0), maxPct: sampleFrom(D.risk), entryMode: baseP0.entryMode||'Both', useFibRet: !!baseP0.useFibRet, confirmMode: baseP0.confirmMode||'Bounce', ent382: !!baseP0.ent382, ent500: !!baseP0.ent500, ent618: !!baseP0.ent618, ent786: !!baseP0.ent786, tpEnable: true, tp: [], slEnable: true, sl: [] };
         if(vars.varTP && tpCfg.en){ p.tp = sampleTPList(tpCfg).slice(0,10); } else { p.tp = Array.isArray(baseP0.tp)? baseP0.tp.slice(0,10):[]; p.tpEnable=!!p.tp.length; }
         if(vars.varSL && slCfg.en){ p.sl = sampleSLList(slCfg).slice(0,10); } else { p.sl = Array.isArray(baseP0.sl)? baseP0.sl.slice(0,10):[]; p.slEnable=!!p.sl.length; }
-        if(isDup(p)) {continue;} pushSeen(p); batch.push({ p }); }
+        if(isDup(p)) continue; pushSeen(p); batch.push({ p }); }
       const t0=performance.now();
       __labSimTotal += batch.length; updateGlobalProgressUI();
       const evald = await evalParamsList(batch, `Bayes`);
-      // GÃ©nÃ©ration Bayes = it+1 pour les nouveaux Ã©chantillons (init = 1)
-      try{ evald.forEach(r=>{ if(r && r.gen==null) {r.gen = (it+1);} }); }catch(_){ }
+      // Génération Bayes = it+1 pour les nouveaux échantillons (init = 1)
+      try{ evald.forEach(r=>{ if(r && r.gen==null) r.gen = (it+1); }); }catch(_){ }
       const dt=performance.now()-t0;
       cur = cur.concat(evald).sort((a,b)=> b.score-a.score).slice(0, Math.max(50, initN));
-try{ const top=cur[0]; if(top && (it===1 || it%5===0 || it===iters)){ addBtLog(`Bayes it ${it}/${iters} â€” batch ${batch.length} Ã©vals en ${Math.round(dt)} ms â€” best ${top.score.toFixed(2)} PF ${(top.res.profitFactor===Infinity?'âˆž':(top.res.profitFactor||0).toFixed(2))}`); } }catch(_){ }
+try{ const top=cur[0]; if(top && (it===1 || it%5===0 || it===iters)){ addBtLog(`Bayes it ${it}/${iters} — batch ${batch.length} évals en ${Math.round(dt)} ms — best ${top.score.toFixed(2)} PF ${(top.res.profitFactor===Infinity?'∞':(top.res.profitFactor||0).toFixed(2))}`); } }catch(_){ }
       bestGlobal = Math.max(bestGlobal, (cur[0]?.score ?? -Infinity));
       updateProgress(`Bayes ${it}/${iters}`, 100*it/iters);
     }
     return cur; }
     
-  // Build seeds (prefer Supabase-backed palmarÃ¨s cache when available)
-  const seeds=[];
+  // Build seeds (prefer Supabase-backed palmarès cache when available)
+  let seeds=[];
   if(goal==='improve'){
     let pal = (Array.isArray(window.labPalmaresCache) && window.labPalmaresCache.length)
       ? window.labPalmaresCache.slice(0,25)
@@ -6126,25 +6125,25 @@ try{ const top=cur[0]; if(top && (it===1 || it%5===0 || it===iters)){ addBtLog(`
     for(const it of pal){ seeds.push({ p:{ ...(it.params||{}) }, owner:it }); }
   }
 
-btAbort=false; btPaused=false; updateProgress('EntraÃ®nement...', 0);
-  if(labRunStatusEl) {labRunStatusEl.textContent='En cours';}
+btAbort=false; btPaused=false; updateProgress('Entraînement...', 0);
+  if(labRunStatusEl) labRunStatusEl.textContent='En cours';
   let eaOut=[], bayOut=[];
   if(strategy==='ea' || strategy==='hybrid'){ eaOut = await runEA(seeds); }
   if(strategy==='bayes'){ bayOut = await runBayes(seeds); }
 if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(eaOut); }
   const results = (strategy==='ea'? eaOut : (strategy==='bayes'? bayOut : ((eaOut||[]).concat(bayOut||[]))));
-  try{ addBtLog && addBtLog(`RÃ©sultats finaux â€” EA:${(eaOut||[]).length} Bayes:${(bayOut||[]).length} Choisi:${(results||[]).length}`); }catch(_){ }
-  // Fallback: si aucun rÃ©sultat (cas rare), prendre le top des Ã©valuations accumulÃ©es
+  try{ addBtLog && addBtLog(`Résultats finaux — EA:${(eaOut||[]).length} Bayes:${(bayOut||[]).length} Choisi:${(results||[]).length}`); }catch(_){ }
+  // Fallback: si aucun résultat (cas rare), prendre le top des évaluations accumulées
   let finalResults = Array.isArray(results)? results.slice() : [];
-  // Toujours trier par score dÃ©croissant avant de persister
+  // Toujours trier par score décroissant avant de persister
   try{ finalResults.sort((a,b)=> (Number(b&&b.score)||0) - (Number(a&&a.score)||0)); }catch(_){ }
   if(!finalResults.length && Array.isArray(allTested) && allTested.length){
-    try{ const sorted = allTested.slice().sort((a,b)=> (b.score||0)-(a.score||0)); finalResults = sorted.slice(0, Math.min(10, sorted.length)).map(it=>({ p: it.params||{}, res: it.metrics||{}, score: it.score||0, gen:1, name:null })); addBtLog && addBtLog(`Fallback best depuis Ã©valuations: ${finalResults.length}`); }catch(_){ }
+    try{ const sorted = allTested.slice().sort((a,b)=> (b.score||0)-(a.score||0)); finalResults = sorted.slice(0, Math.min(10, sorted.length)).map(it=>({ p: it.params||{}, res: it.metrics||{}, score: it.score||0, gen:1, name:null })); addBtLog && addBtLog(`Fallback best depuis évaluations: ${finalResults.length}`); }catch(_){ }
   }
 
   if(goal==='new'){
     const MAX_BEST = 10;
-    const bestOut = finalResults.slice(0, Math.min(MAX_BEST, finalResults.length)).map(x=>({
+    let bestOut = finalResults.slice(0, Math.min(MAX_BEST, finalResults.length)).map(x=>({
       params:x.p,
       metrics:x.res,
       score:x.score,
@@ -6152,26 +6151,26 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
       name: x.name || (x.owner && x.owner.name) || null,
     }));
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.persistLabResults==='function'){
-      // Tout passe par Supabase (naming + persistance gÃ©rÃ©s cÃ´tÃ© SUPA)
+      // Tout passe par Supabase (naming + persistance gérés côté SUPA)
       try{ await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut, profileName: (localStorage.getItem('labWeightsProfile')||'balancee') }); }catch(_){ }
       try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
     } else {
-      // Fallback local uniquement si Supabase non configurÃ©
+      // Fallback local uniquement si Supabase non configuré
       try{
         const existing = readPalmares(sym, tfSel) || [];
-        // Donner un nom unique aux nouvelles stratÃ©gies si absent
+        // Donner un nom unique aux nouvelles stratégies si absent
         const namedNew = bestOut.map((it)=>{
-          if(it.name && typeof it.name==='string') {return it;}
+          if(it.name && typeof it.name==='string') return it;
           let base='strat';
           try{ base = randomName(); }catch(_){ base='strat'; }
           const nm = uniqueNameFor(sym, tfSel, base);
           return { ...it, name: nm };
         });
-        // Fusionner ancien palmarÃ¨s et nouvelles entrÃ©es en dÃ©dupliquant par params
+        // Fusionner ancien palmarès et nouvelles entrées en dédupliquant par params
         const weightsLocal = getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
         const byKey = new Map();
         const pushOrUpdate = (item)=>{
-          if(!item || !item.params) {return;}
+          if(!item || !item.params) return;
           const key = paramsKey(item.params||{});
           const st = item.res || item.metrics || {};
           const sc = Number.isFinite(item.score)? item.score : scoreResult(st, weightsLocal);
@@ -6185,7 +6184,7 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
         let merged = Array.from(byKey.values());
         merged.sort((a,b)=> (Number(b.score)||0) - (Number(a.score)||0));
         const MAX_LOCAL = 50;
-        if(merged.length>MAX_LOCAL) {merged = merged.slice(0, MAX_LOCAL);}
+        if(merged.length>MAX_LOCAL) merged = merged.slice(0, MAX_LOCAL);
         writePalmares(sym, tfSel, merged);
       }catch(_){ }
       try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
@@ -6194,7 +6193,7 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
     maybeScheduleLabAutoLoop();
   } else {
     const MAX_BEST = 10;
-    // Construire un "nouveau" top Ã  partir du run courant
+    // Construire un "nouveau" top à partir du run courant
     const bestNew = finalResults.slice(0, Math.min(MAX_BEST, finalResults.length)).map(x=>({
       params:x.p,
       metrics:x.res,
@@ -6202,10 +6201,10 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
       gen:(x.gen!=null? x.gen : ((x.owner&&x.owner.gen)||1)),
       name: x.name || (x.owner && x.owner.name) || null,
     }));
-    // RÃ©cupÃ©rer l'ancien palmarÃ¨s pour ce profil/symbole/TF et fusionner sans dÃ©grader
-    const mergedMap = new Map();
+    // Récupérer l'ancien palmarès pour ce profil/symbole/TF et fusionner sans dégrader
+    let mergedMap = new Map();
     const pushOrUpdate = (item)=>{
-      if(!item || !item.params) {return;}
+      if(!item || !item.params) return;
       try{
         const key = paramsKey(item.params||{});
         const sc = Number(item.score)||0;
@@ -6227,7 +6226,7 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
       }
     }catch(_){ }
     bestNew.forEach(pushOrUpdate);
-    const merged = Array.from(mergedMap.values());
+    let merged = Array.from(mergedMap.values());
     try{ merged.sort((a,b)=> (Number(b.score)||0) - (Number(a.score)||0)); }catch(_){ }
     const bestOut = merged.slice(0, Math.min(MAX_BEST, merged.length));
     if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.persistLabResults==='function'){
@@ -6240,7 +6239,7 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
     setStatus(t('status.improveDone')); try{ __labSimDone = Math.max(__labSimDone, __labSimPlanned||__labSimDone); updateGlobalProgressUI(); }catch(_){ } closeBtProgress();
     maybeScheduleLabAutoLoop();
   }
- }catch(e){ try{ addBtLog(`Erreur entraÃ®nement: ${e&&e.message?e.message:e}`); }catch(_){ } setStatus(t('status.trainingError')); try{ closeBtProgress(); }catch(_){ } try{ if(labAutoLoopEl){ labAutoLoopEl.checked=false; } }catch(_){ } } }); }
+ }catch(e){ try{ addBtLog(`Erreur entraînement: ${e&&e.message?e.message:e}`); }catch(_){ } setStatus(t('status.trainingError')); try{ closeBtProgress(); }catch(_){ } try{ if(labAutoLoopEl){ labAutoLoopEl.checked=false; } }catch(_){ } } }); }
 
 // Lab Pause/Stop controls are now on the progress popup (btPause/btStop)
 
@@ -6249,13 +6248,13 @@ const lbcPresetName=document.getElementById('lbcPresetName'); const lbcPresetSav
 function loadPresetList(){ try{ const s=localStorage.getItem('lbcPresetList'); const names=s? JSON.parse(s): []; if(lbcPresetSelect){ lbcPresetSelect.innerHTML = names.map(n=>`<option value=\"${n}\">${n}</option>`).join(''); } return names; }catch(_){ return []; } }
 function savePresetList(names){ try{ localStorage.setItem('lbcPresetList', JSON.stringify(names)); }catch(_){ } }
 function savePreset(name){ const names=loadPresetList(); const idx=names.indexOf(name); if(idx===-1){ names.push(name); savePresetList(names); loadPresetList(); } try{ localStorage.setItem('lbcPreset:'+name, JSON.stringify(lbcOpts)); }catch(_){ } }
-function loadPresetByName(name){ try{ const s=localStorage.getItem('lbcPreset:'+name); if(!s) {return false;} lbcOpts = { ...defaultLBC, ...JSON.parse(s) }; normalizeLBCOpts(); saveLBCOpts(); renderLBC(); return true; }catch(_){ return false; } }
+function loadPresetByName(name){ try{ const s=localStorage.getItem('lbcPreset:'+name); if(!s) return false; lbcOpts = { ...defaultLBC, ...JSON.parse(s) }; normalizeLBCOpts(); saveLBCOpts(); renderLBC(); return true; }catch(_){ return false; } }
 function deletePreset(name){ try{ localStorage.removeItem('lbcPreset:'+name); const names=loadPresetList().filter(n=>n!==name); savePresetList(names); loadPresetList(); }catch(_){} }
 loadPresetList();
-if(lbcPresetSave){ lbcPresetSave.addEventListener('click', ()=>{ const name=(lbcPresetName&&lbcPresetName.value||'').trim(); if(!name){ setStatus('Nom du preset requis'); return; } savePreset(name); setStatus('Preset sauvegardÃ©'); }); }
-if(lbcPresetLoad){ lbcPresetLoad.addEventListener('click', ()=>{ const name=(lbcPresetSelect&&lbcPresetSelect.value)||''; if(!name){ setStatus('Aucun preset'); return; } if(loadPresetByName(name)){ try{ populateHeavenModal(); }catch(_){ } setStatus('Preset chargÃ©'); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } } }); }
-if(lbcPresetDelete){ lbcPresetDelete.addEventListener('click', ()=>{ const name=(lbcPresetSelect&&lbcPresetSelect.value)||''; if(!name) {return;} if(confirm(`Supprimer le preset \"${name}\" ?`)){ deletePreset(name); setStatus('Preset supprimÃ©'); } }); }
-if(lbcResetBtn){ lbcResetBtn.addEventListener('click', ()=>{ lbcOpts = { ...defaultLBC }; normalizeLBCOpts(); saveLBCOpts(); renderLBC(); try{ populateHeavenModal(); }catch(_){ } setStatus('ParamÃ¨tres rÃ©initialisÃ©s'); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
+if(lbcPresetSave){ lbcPresetSave.addEventListener('click', ()=>{ const name=(lbcPresetName&&lbcPresetName.value||'').trim(); if(!name){ setStatus('Nom du preset requis'); return; } savePreset(name); setStatus('Preset sauvegardé'); }); }
+if(lbcPresetLoad){ lbcPresetLoad.addEventListener('click', ()=>{ const name=(lbcPresetSelect&&lbcPresetSelect.value)||''; if(!name){ setStatus('Aucun preset'); return; } if(loadPresetByName(name)){ try{ populateHeavenModal(); }catch(_){ } setStatus('Preset chargé'); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } } }); }
+if(lbcPresetDelete){ lbcPresetDelete.addEventListener('click', ()=>{ const name=(lbcPresetSelect&&lbcPresetSelect.value)||''; if(!name) return; if(confirm(`Supprimer le preset \"${name}\" ?`)){ deletePreset(name); setStatus('Preset supprimé'); } }); }
+if(lbcResetBtn){ lbcResetBtn.addEventListener('click', ()=>{ lbcOpts = { ...defaultLBC }; normalizeLBCOpts(); saveLBCOpts(); renderLBC(); try{ populateHeavenModal(); }catch(_){ } setStatus('Paramètres réinitialisés'); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
 
 // Supabase-backed Heaven strategies
 const lbcSupaName=document.getElementById('lbcSupaName');
@@ -6277,85 +6276,61 @@ function currentHeavenParamsForPersist(){ try{
   };
 }catch(_){ return {}; }}
 function applyHeavenParams(p){ try{
-  if(p==null || typeof p!=='object') {return;}
-  if(p.nol!=null) {lbcOpts.nol = p.nol|0;}
-  if(p.prd!=null) {lbcOpts.prd = p.prd|0;}
-  if(p.slInitPct!=null) {lbcOpts.slInitPct = +p.slInitPct;}
-  if(p.beAfterBars!=null) {lbcOpts.beAfterBars = p.beAfterBars|0;}
-  if(p.beLockPct!=null) {lbcOpts.beLockPct = +p.beLockPct;}
-  if(p.emaLen!=null) {lbcOpts.emaLen = p.emaLen|0;}
-  if(p.entryMode!=null) {lbcOpts.entryMode = String(p.entryMode);}
-  if(p.useFibRet!=null) {lbcOpts.useFibRet = !!p.useFibRet;}
-  if(p.confirmMode!=null) {lbcOpts.confirmMode = String(p.confirmMode);}
-  if(p.ent382!=null) {lbcOpts.ent382 = !!p.ent382;}
-  if(p.ent500!=null) {lbcOpts.ent500 = !!p.ent500;}
-  if(p.ent618!=null) {lbcOpts.ent618 = !!p.ent618;}
-  if(p.ent786!=null) {lbcOpts.ent786 = !!p.ent786;}
-  if(p.tpEnable!=null) {lbcOpts.tpEnable = !!p.tpEnable;}
-  if(Array.isArray(p.tp)) {lbcOpts.tp = p.tp.slice(0,10);}
-  if(p.slEnable!=null) {lbcOpts.slEnable = !!p.slEnable;}
-  if(Array.isArray(p.sl)) {lbcOpts.sl = p.sl.slice(0,10);}
-  if(p.tp1R!=null) {lbcOpts.tp1R = +p.tp1R;}
-  if(p.tpCompound!=null) {lbcOpts.tpCompound = !!p.tpCompound;}
-  if(p.tpCloseAllLast!=null) {lbcOpts.tpCloseAllLast = !!p.tpCloseAllLast;}
+  if(p==null || typeof p!=='object') return;
+  if(p.nol!=null) lbcOpts.nol = p.nol|0;
+  if(p.prd!=null) lbcOpts.prd = p.prd|0;
+  if(p.slInitPct!=null) lbcOpts.slInitPct = +p.slInitPct;
+  if(p.beAfterBars!=null) lbcOpts.beAfterBars = p.beAfterBars|0;
+  if(p.beLockPct!=null) lbcOpts.beLockPct = +p.beLockPct;
+  if(p.emaLen!=null) lbcOpts.emaLen = p.emaLen|0;
+  if(p.entryMode!=null) lbcOpts.entryMode = String(p.entryMode);
+  if(p.useFibRet!=null) lbcOpts.useFibRet = !!p.useFibRet;
+  if(p.confirmMode!=null) lbcOpts.confirmMode = String(p.confirmMode);
+  if(p.ent382!=null) lbcOpts.ent382 = !!p.ent382;
+  if(p.ent500!=null) lbcOpts.ent500 = !!p.ent500;
+  if(p.ent618!=null) lbcOpts.ent618 = !!p.ent618;
+  if(p.ent786!=null) lbcOpts.ent786 = !!p.ent786;
+  if(p.tpEnable!=null) lbcOpts.tpEnable = !!p.tpEnable;
+  if(Array.isArray(p.tp)) lbcOpts.tp = p.tp.slice(0,10);
+  if(p.slEnable!=null) lbcOpts.slEnable = !!p.slEnable;
+  if(Array.isArray(p.sl)) lbcOpts.sl = p.sl.slice(0,10);
+  if(p.tp1R!=null) lbcOpts.tp1R = +p.tp1R;
+  if(p.tpCompound!=null) lbcOpts.tpCompound = !!p.tpCompound;
+  if(p.tpCloseAllLast!=null) lbcOpts.tpCloseAllLast = !!p.tpCloseAllLast;
   normalizeLBCOpts();
   saveLBCOpts(); renderLBC();
 }catch(_){ }}
 async function populateHeavenSupaList(){ try{
-  if(!(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured())){ if(lbcSupaSelect) {lbcSupaSelect.innerHTML='';} return; }
+  if(!(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured())){ if(lbcSupaSelect) lbcSupaSelect.innerHTML=''; return; }
   const sym = (symbolSelect&&symbolSelect.value)||currentSymbol;
   const tf = (intervalSelect&&intervalSelect.value)||currentInterval;
   let rows=[]; try{ rows = await SUPA.fetchHeavenStrategies(sym, tf, 50); }catch(_){ rows=[]; }
   window.__heavenSupaList = Array.isArray(rows)? rows.slice() : [];
-  if(lbcSupaSelect){ lbcSupaSelect.innerHTML = (rows||[]).map(r=>`<option value=\"${r.id}\">${(r.name||'(sans nom)')} â€” ${new Date(r.created_at).toLocaleString()}</option>`).join(''); }
+  if(lbcSupaSelect){ lbcSupaSelect.innerHTML = (rows||[]).map(r=>`<option value=\"${r.id}\">${(r.name||'(sans nom)')} — ${new Date(r.created_at).toLocaleString()}</option>`).join(''); }
 }catch(_){ }}
 // Heaven TF and unified loader elements
 const heavenTFSelect=document.getElementById('heavenTFSelect');
 const heavenLoadSelect=document.getElementById('heavenLoadSelect');
 const heavenLoadBtn=document.getElementById('heavenLoadBtn');
 
-function populateHeavenTFOptions(){ try{ if(!heavenTFSelect) {return;} if(intervalSelect && intervalSelect.innerHTML){ heavenTFSelect.innerHTML = intervalSelect.innerHTML; } else { const tfs=['1m','5m','15m','1h','4h','1d']; heavenTFSelect.innerHTML = tfs.map(tf=>`<option value="${tf}">${tf}</option>`).join(''); } const saved=localStorage.getItem('heaven:tf'); if(saved){ try{ heavenTFSelect.value=saved; }catch(_){ } } if(!heavenTFSelect.value){ try{ heavenTFSelect.value = (intervalSelect&&intervalSelect.value)||currentInterval||''; }catch(_){ } } }catch(_){ } }
+function populateHeavenTFOptions(){ try{ if(!heavenTFSelect) return; if(intervalSelect && intervalSelect.innerHTML){ heavenTFSelect.innerHTML = intervalSelect.innerHTML; } else { const tfs=['1m','5m','15m','1h','4h','1d']; heavenTFSelect.innerHTML = tfs.map(tf=>`<option value="${tf}">${tf}</option>`).join(''); } const saved=localStorage.getItem('heaven:tf'); if(saved){ try{ heavenTFSelect.value=saved; }catch(_){ } } if(!heavenTFSelect.value){ try{ heavenTFSelect.value = (intervalSelect&&intervalSelect.value)||currentInterval||''; }catch(_){ } } }catch(_){ } }
 
-async function populateHeavenLoadOptions(){ try{ if(!heavenLoadSelect) {return;} const tf=(heavenTFSelect&&heavenTFSelect.value)||((intervalSelect&&intervalSelect.value)||currentInterval)||''; const sym=(symbolSelect&&symbolSelect.value)||currentSymbol; const profSel=(document.getElementById('heavenProfileSelect')&&document.getElementById('heavenProfileSelect').value)|| (localStorage.getItem('heaven:profile')|| localStorage.getItem('labWeightsProfile')||'balancee'); const opts=['<option value="">â€”</option>'];
-  // Supabase â€” Heaven strategies
+async function populateHeavenLoadOptions(){ try{ if(!heavenLoadSelect) return; const tf=(heavenTFSelect&&heavenTFSelect.value)||((intervalSelect&&intervalSelect.value)||currentInterval)||''; const sym=(symbolSelect&&symbolSelect.value)||currentSymbol; const profSel=(document.getElementById('heavenProfileSelect')&&document.getElementById('heavenProfileSelect').value)|| (localStorage.getItem('heaven:profile')|| localStorage.getItem('labWeightsProfile')||'balancee'); const opts=['<option value="">—</option>'];
+  // Supabase — Heaven strategies
   let supa = [];
   if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured()){ try{ await populateHeavenSupaList(); supa = Array.isArray(window.__heavenSupaList)? window.__heavenSupaList.slice(): []; }catch(_){ supa=[]; } }
-  if(supa.length){ for(const r of supa){ opts.push(`<option value="supa:${r.id}">Supa: ${(r.name||'(sans nom)')} â€” ${new Date(r.created_at).toLocaleString()}</option>`); } }
+  if(supa.length){ for(const r of supa){ opts.push(`<option value="supa:${r.id}">Supa: ${(r.name||'(sans nom)')} — ${new Date(r.created_at).toLocaleString()}</option>`); } }
   // Local presets
   let localNames=[]; try{ localNames = loadPresetList(); }catch(_){ localNames=[]; }
   if(Array.isArray(localNames) && localNames.length){ for(const n of localNames){ opts.push(`<option value="local:${n}">Preset: ${n}</option>`); } }
-  // PalmarÃ¨s (Lab)
+  // Palmarès (Lab)
   let pal=[]; if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured()){ try{ pal = await SUPA.fetchPalmares(sym, tf, 25, profSel); }catch(_){ pal=[]; } } else { try{ pal = readPalmares(sym, tf)||[]; }catch(_){ pal=[]; } }
   window.__heavenPalmaresList = Array.isArray(pal)? pal.slice() : [];
-  try{ const w=getWeights(profSel||'balancee'); window.__heavenPalmaresList.sort((a,b)=>{ const sa=Number.isFinite(a&&a.score)? Number(a.score) : scoreResult((a&&a.res)||{}, w); const sb=Number.isFinite(b&&b.score)? Number(b.score) : scoreResult((b&&b.res)||{}, w); return sb-sa; }); }catch(_){ }
-  if(window.__heavenPalmaresList.length){ let idx=0; for(const it of window.__heavenPalmaresList){ const sc = Number.isFinite(it.score)? it.score.toFixed(2) : (it.res? (function(){ try{ const w=getWeights(profSel||'balancee'); return scoreResult(it.res, w).toFixed(2);}catch(_){ return 'â€”'; } })() : 'â€”'); const nm = it.name || `PalmarÃ¨s #${idx+1}`; opts.push(`<option value="pal:${idx}">PalmarÃ¨s: ${nm} â€” ${sc}</option>`); idx++; } }
+  if(window.__heavenPalmaresList.length){ let idx=0; for(const it of window.__heavenPalmaresList){ const sc = Number.isFinite(it.score)? it.score.toFixed(2) : (it.res? (function(){ try{ const w=getWeights(profSel||'balancee'); return scoreResult(it.res, w).toFixed(2);}catch(_){ return '—'; } })() : '—'); const nm = it.name || `Palmarès #${idx+1}`; opts.push(`<option value="pal:${idx}">Palmarès: ${nm} — ${sc}</option>`); idx++; } }
   heavenLoadSelect.innerHTML = opts.join('');
 }catch(_){ } }
 
-let __heavenAutoBestApplied=false;
-async function applyBestPalmaresDefaultOnLaunch(){
-  try{
-    if(__heavenAutoBestApplied) {return;}
-    const profile=((document.getElementById('heavenProfileSelect')&&document.getElementById('heavenProfileSelect').value) || localStorage.getItem('heaven:profile') || localStorage.getItem('labWeightsProfile') || 'balancee');
-    // Respect user override if they already set one in this browser
-    const userLocked = localStorage.getItem('heaven:manualOverride')==='1';
-    if(userLocked) { __heavenAutoBestApplied=true; return; }
-    if(!Array.isArray(window.__heavenPalmaresList) || !window.__heavenPalmaresList.length){
-      await populateHeavenLoadOptions();
-    }
-    const arr = Array.isArray(window.__heavenPalmaresList)? window.__heavenPalmaresList : [];
-    if(!arr.length) {return;}
-    const best = arr[0];
-    if(best && best.params){
-      applyHeavenParams(best.params);
-      try{ if(heavenLoadSelect){ heavenLoadSelect.value='pal:0'; } }catch(_){ }
-      try{ localStorage.setItem('heaven:autoAppliedProfile', profile); }catch(_){ }
-      __heavenAutoBestApplied=true;
-    }
-  }catch(_){ }
-}
-
-if(heavenTFSelect && (!heavenTFSelect.dataset || heavenTFSelect.dataset.wired!=='1')){ heavenTFSelect.addEventListener('change', ()=>{ try{ localStorage.setItem('heaven:tf', heavenTFSelect.value||''); }catch(_){ } populateHeavenLoadOptions(); }); if(!heavenTFSelect.dataset) {heavenTFSelect.dataset={};} heavenTFSelect.dataset.wired='1'; }
+if(heavenTFSelect && (!heavenTFSelect.dataset || heavenTFSelect.dataset.wired!=='1')){ heavenTFSelect.addEventListener('change', ()=>{ try{ localStorage.setItem('heaven:tf', heavenTFSelect.value||''); }catch(_){ } populateHeavenLoadOptions(); }); if(!heavenTFSelect.dataset) heavenTFSelect.dataset={}; heavenTFSelect.dataset.wired='1'; }
 // Profile selector wiring (persist + refresh)
 try{
   const heavenProfileSelect=document.getElementById('heavenProfileSelect');
@@ -6367,23 +6342,23 @@ try{
     }catch(_){ }
     if(!heavenProfileSelect.dataset || heavenProfileSelect.dataset.wired!=='1'){
       heavenProfileSelect.addEventListener('change', ()=>{ try{ localStorage.setItem('heaven:profile', heavenProfileSelect.value||'balancee'); }catch(_){ } populateHeavenLoadOptions(); });
-      if(!heavenProfileSelect.dataset) {heavenProfileSelect.dataset={};}
+      if(!heavenProfileSelect.dataset) heavenProfileSelect.dataset={};
       heavenProfileSelect.dataset.wired='1';
     }
   }
 }catch(_){ }
-if(heavenLoadBtn && (!heavenLoadBtn.dataset || heavenLoadBtn.dataset.wired!=='1')){ heavenLoadBtn.addEventListener('click', async ()=>{ try{ try{ localStorage.setItem('heaven:manualOverride','1'); }catch(_){ } const v=(heavenLoadSelect&&heavenLoadSelect.value)||''; if(!v) {return;} const parts=String(v).split(':'); const kind=parts[0]||''; const id=parts.slice(1).join(':'); if(kind==='local'){ if(id){ if(loadPresetByName(id)){ try{ populateHeavenModal(); }catch(_){ } } } }
+if(heavenLoadBtn && (!heavenLoadBtn.dataset || heavenLoadBtn.dataset.wired!=='1')){ heavenLoadBtn.addEventListener('click', async ()=>{ try{ const v=(heavenLoadSelect&&heavenLoadSelect.value)||''; if(!v) return; const parts=String(v).split(':'); const kind=parts[0]||''; const id=parts.slice(1).join(':'); if(kind==='local'){ if(id){ if(loadPresetByName(id)){ try{ populateHeavenModal(); }catch(_){ } } } }
   else if(kind==='supa'){ const rows=Array.isArray(window.__heavenSupaList)? window.__heavenSupaList:[]; const it=rows.find(r=> String(r.id)===String(id)); if(it && it.params){ applyHeavenParams(it.params||{}); try{ if(heavenTFSelect && it.tf){ heavenTFSelect.value = it.tf; try{ localStorage.setItem('heaven:tf', it.tf); }catch(_){ } } }catch(_){ } try{ populateHeavenModal(); }catch(_){ } } }
   else if(kind==='pal'){ const idx=parseInt(id,10); const arr=Array.isArray(window.__heavenPalmaresList)? window.__heavenPalmaresList:[]; const it=arr[idx]; if(it && it.params){ applyHeavenParams(it.params||{}); try{ populateHeavenModal(); }catch(_){ } } }
   // Switch chart TF to selected Heaven TF
-  try{ const tfSel=(heavenTFSelect&&heavenTFSelect.value)||''; if(tfSel && tfSel!==currentInterval){ try{ if(intervalSelect) {intervalSelect.value=tfSel;} localStorage.setItem('chart:tf', tfSel); }catch(_){ } currentInterval=tfSel; closeWs(); await load(currentSymbol, currentInterval); openWs(currentSymbol, currentInterval); } }catch(_){ }
-}catch(_){ } }); if(!heavenLoadBtn.dataset) {heavenLoadBtn.dataset={};} heavenLoadBtn.dataset.wired='1'; }
+  try{ const tfSel=(heavenTFSelect&&heavenTFSelect.value)||''; if(tfSel && tfSel!==currentInterval){ try{ if(intervalSelect) intervalSelect.value=tfSel; localStorage.setItem('chart:tf', tfSel); }catch(_){ } currentInterval=tfSel; closeWs(); await load(currentSymbol, currentInterval); openWs(currentSymbol, currentInterval); } }catch(_){ }
+}catch(_){ } }); if(!heavenLoadBtn.dataset) heavenLoadBtn.dataset={}; heavenLoadBtn.dataset.wired='1'; }
 
 if(lbcSupaSave){ lbcSupaSave.addEventListener('click', async ()=>{ try{
-  if(!(window.SUPA && SUPA.isConfigured && SUPA.isConfigured())){ setStatus('Supabase non configurÃ©'); return; }
+  if(!(window.SUPA && SUPA.isConfigured && SUPA.isConfigured())){ setStatus('Supabase non configuré'); return; }
   let name=(lbcSupaName&&lbcSupaName.value||'').trim(); if(!name){ try{ name=randomName(); }catch(_){ name='heaven'; } }
   const params=currentHeavenParamsForPersist();
-  // Optional metrics snapshot over visible range (sur l'intÃ©gralitÃ© des bougies chargÃ©es)
+  // Optional metrics snapshot over visible range (sur l'intégralité des bougies chargées)
   let metrics=null; try{
     const conf={ startCap: 10000, fee: 0.1, lev: 1, maxPct:100, base:'initial' };
     let from=null, to=null; const r=getVisibleRange(); if(r){ from=r.from; to=r.to; }
@@ -6396,33 +6371,33 @@ if(lbcSupaSave){ lbcSupaSave.addEventListener('click', async ()=>{ try{
   }catch(_){ metrics=null; }
   const tfSel = (heavenTFSelect&&heavenTFSelect.value) || ((intervalSelect&&intervalSelect.value)||currentInterval);
   const ok = await SUPA.persistHeavenStrategy({ symbol: ((symbolSelect&&symbolSelect.value)||currentSymbol), tf: tfSel, name, params, metrics });
-  if(ok){ setStatus('Heaven sauvegardÃ©e (Supabase)'); await populateHeavenSupaList(); }
+  if(ok){ setStatus('Heaven sauvegardée (Supabase)'); await populateHeavenSupaList(); }
 }catch(_){ setStatus('Erreur sauvegarde Supabase'); } }); }
 
 // Also switch TF when clicking the primary button in Heaven modal
-try{ const lbcSaveBtn2=document.getElementById('lbcSave'); if(lbcSaveBtn2 && (!lbcSaveBtn2.dataset || lbcSaveBtn2.dataset.tfWired!=='1')){ lbcSaveBtn2.addEventListener('click', ()=>{ try{ const tfSel=(heavenTFSelect&&heavenTFSelect.value)||''; if(tfSel && tfSel!==currentInterval){ try{ if(intervalSelect) {intervalSelect.value=tfSel;} localStorage.setItem('chart:tf', tfSel); }catch(_){ } currentInterval=tfSel; closeWs(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval)); } }catch(_){ } }); if(!lbcSaveBtn2.dataset) {lbcSaveBtn2.dataset={};} lbcSaveBtn2.dataset.tfWired='1'; } }catch(_){ }
+try{ const lbcSaveBtn2=document.getElementById('lbcSave'); if(lbcSaveBtn2 && (!lbcSaveBtn2.dataset || lbcSaveBtn2.dataset.tfWired!=='1')){ lbcSaveBtn2.addEventListener('click', ()=>{ try{ const tfSel=(heavenTFSelect&&heavenTFSelect.value)||''; if(tfSel && tfSel!==currentInterval){ try{ if(intervalSelect) intervalSelect.value=tfSel; localStorage.setItem('chart:tf', tfSel); }catch(_){ } currentInterval=tfSel; closeWs(); load(currentSymbol, currentInterval).then(()=> openWs(currentSymbol, currentInterval)); } }catch(_){ } }); if(!lbcSaveBtn2.dataset) lbcSaveBtn2.dataset={}; lbcSaveBtn2.dataset.tfWired='1'; } }catch(_){ }
 if(lbcSupaLoad){ lbcSupaLoad.addEventListener('click', ()=>{ try{
-  const id=(lbcSupaSelect&&lbcSupaSelect.value)||''; if(!id) {return;} const rows=Array.isArray(window.__heavenSupaList)? window.__heavenSupaList:[]; const it=rows.find(r=> r.id===id); if(!it) {return;} applyHeavenParams(it.params||{}); try{ populateHeavenModal(); }catch(_){ } try{ computeLabBenchmarkAndUpdate(); }catch(_){ } setStatus('StratÃ©gie Heaven chargÃ©e');
+  const id=(lbcSupaSelect&&lbcSupaSelect.value)||''; if(!id) return; const rows=Array.isArray(window.__heavenSupaList)? window.__heavenSupaList:[]; const it=rows.find(r=> r.id===id); if(!it) return; applyHeavenParams(it.params||{}); try{ populateHeavenModal(); }catch(_){ } try{ computeLabBenchmarkAndUpdate(); }catch(_){ } setStatus('Stratégie Heaven chargée');
 }catch(_){ } }); }
 if(lbcSupaDelete){ lbcSupaDelete.addEventListener('click', async ()=>{ try{
-  const id=(lbcSupaSelect&&lbcSupaSelect.value)||''; if(!id) {return;} if(!confirm('Supprimer cette stratÃ©gie Supabase ?')) {return;} const ok=await SUPA.deleteHeavenStrategy(id); if(ok){ setStatus('SupprimÃ©e'); await populateHeavenSupaList(); }
+  const id=(lbcSupaSelect&&lbcSupaSelect.value)||''; if(!id) return; if(!confirm('Supprimer cette stratégie Supabase ?')) return; const ok=await SUPA.deleteHeavenStrategy(id); if(ok){ setStatus('Supprimée'); await populateHeavenSupaList(); }
 }catch(_){ } }); }
 
 // Live (paper) minimal
 let liveSession=null; const liveStartBtn=document.getElementById('liveStart'); const liveStopBtn=document.getElementById('liveStop'); const liveStartCap=document.getElementById('liveStartCap'); const liveFee=document.getElementById('liveFee'); const liveLev=document.getElementById('liveLev');
 // Multi-wallet sessions support
-const liveSessions = {}; let activeLiveId=null;
+let liveSessions = {}; let activeLiveId=null;
 // Headless (Supabase) monitoring state
 let __headlessActiveName=null, __headlessSessionId=null, __headlessPollTimer=null, __headlessLastAt=null;
 let __headlessTrades=[], __headlessMarkers={ entries:[], tps:[], sls:[], bes:[] };
 let __headlessRTSub=null;
 function anyLiveActive(){ return false; }
-function ensureLiveDrawer(){ try{ if(document.getElementById('liveDrawer')) {return;} // Drawer
+function ensureLiveDrawer(){ try{ if(document.getElementById('liveDrawer')) return; // Drawer
   const d=document.createElement('div'); d.id='liveDrawer'; d.style.position='fixed'; d.style.left='0'; d.style.top='60px'; d.style.bottom='0'; d.style.width='260px'; d.style.background= isDark()? '#0b0f1a' : '#f9fafb'; d.style.borderRight= isDark()? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)'; d.style.transform='translateX(-240px)'; d.style.transition='transform .2s ease'; d.style.zIndex='1500'; d.style.padding='8px';
   // Header with collapse icon moved to the right
   d.innerHTML = '<div style=\"display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;\">'+
                 '<div style=\"font-weight:600; display:flex; align-items:center; gap:6px;\">Live wallets <button id=\"liveDrawerNew\" class=\"btn\" style=\"padding:2px 6px; font-size:12px;\" title=\"Nouveau wallet\">Nouveau</button> <button id=\"liveDrawerHistory\" class=\"btn\" style=\"padding:2px 6px; font-size:12px;\" title=\"Historique\">Historique</button></div>'+
-                '<button id=\"liveDrawerCollapse\" class=\"icon-btn\" title=\"Replier\">âŸ¨</button>'+
+                '<button id=\"liveDrawerCollapse\" class=\"icon-btn\" title=\"Replier\">⟨</button>'+
                 '</div>'+
                 '<div id=\"liveDrawerList\" style=\"overflow:auto; max-height: calc(100% - 10px);\"></div>';
   document.body.appendChild(d);
@@ -6431,11 +6406,11 @@ function ensureLiveDrawer(){ try{ if(document.getElementById('liveDrawer')) {ret
   // Wire history button
   try{ const hb=document.getElementById('liveDrawerHistory'); if(hb){ hb.addEventListener('click', ()=>{ try{ openLiveHistoryModal(); }catch(_){ } }); } }catch(_){ }
   // Wire new wallet button
-  try{ const nb=document.getElementById('liveDrawerNew'); if(nb){ nb.addEventListener('click', ()=>{ try{ const sel=document.getElementById('liveWalletSel'); const nm=document.getElementById('liveWalletName'); const cap=document.getElementById('liveStartCap'); const fee=document.getElementById('liveFee'); const lev=document.getElementById('liveLev'); if(sel) {sel.value='__new__';} if(nm) {nm.value='';} if(cap) {cap.value='10000';} if(fee) {fee.value='0.10';} if(lev) {lev.value='1';} // Set chart min-time to "now" for new wallet creation
+  try{ const nb=document.getElementById('liveDrawerNew'); if(nb){ nb.addEventListener('click', ()=>{ try{ const sel=document.getElementById('liveWalletSel'); const nm=document.getElementById('liveWalletName'); const cap=document.getElementById('liveStartCap'); const fee=document.getElementById('liveFee'); const lev=document.getElementById('liveLev'); if(sel) sel.value='__new__'; if(nm) nm.value=''; if(cap) cap.value='10000'; if(fee) fee.value='0.10'; if(lev) lev.value='1'; // Set chart min-time to "now" for new wallet creation
   try{ window.__liveChartMinTimeSec = Math.floor(Date.now()/1000); window.__liveChartMinTimeBaseSec = window.__liveChartMinTimeSec; }catch(_){ }
   // Apply filter immediately
 try{ if(Array.isArray(candles)){ candles = candles.filter(b=> b.time>=window.__liveChartMinTimeSec); candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge(); } }catch(_){ }
-  if(typeof populateLiveWalletsUI==='function') {populateLiveWalletsUI();} if(typeof populateLiveTFOptions==='function') {populateLiveTFOptions();} if(typeof populateLiveStrategyOptions==='function') {populateLiveStrategyOptions();} openModalEl(liveModalEl); }catch(_){ } }); } }catch(_){ }
+  if(typeof populateLiveWalletsUI==='function') populateLiveWalletsUI(); if(typeof populateLiveTFOptions==='function') populateLiveTFOptions(); if(typeof populateLiveStrategyOptions==='function') populateLiveStrategyOptions(); openModalEl(liveModalEl); }catch(_){ } }); } }catch(_){ }
   // Collapse button toggles drawer
   try{ const col=document.getElementById('liveDrawerCollapse'); if(col){ col.addEventListener('click', ()=>{ const wasOpen = d.dataset.open==='1'; const nowOpen = !wasOpen; updateLiveDrawerOpen(nowOpen);
     // Sync Live button highlight with drawer state (visual only)
@@ -6443,16 +6418,16 @@ try{ if(Array.isArray(candles)){ candles = candles.filter(b=> b.time>=window.__l
   }); } }catch(_){ }
 }catch(_){ } }
 // Update drawer open/close state + tab arrow
-function updateLiveDrawerOpen(open){ try{ const d=document.getElementById('liveDrawer'); if(!d) {return;} d.dataset.open = open?'1':'0'; d.style.transform = open? 'translateX(0)' : 'translateX(-240px)'; }catch(_){ }
+function updateLiveDrawerOpen(open){ try{ const d=document.getElementById('liveDrawer'); if(!d) return; d.dataset.open = open?'1':'0'; d.style.transform = open? 'translateX(0)' : 'translateX(-240px)'; }catch(_){ }
 }
 // Update tab content (name + active)
-function updateLiveDrawerTab(){ try{ const nameEl=document.getElementById('liveDrawerTabName'); const actEl=document.getElementById('liveDrawerTabActive'); if(nameEl){ nameEl.textContent = __headlessActiveName || 'â€”'; } if(actEl){ /* status updated on list refresh */ } }catch(_){ } }
-async function renderLiveDrawer(){ try{ ensureLiveDrawer(); const list=document.getElementById('liveDrawerList'); if(!list) {return;} let arr=[]; if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured()){ try{ arr = await SUPA.fetchHeadlessSessions(100); }catch(_){ arr=[]; } } list.innerHTML = (arr||[]).map(s=>{ const on=!!s.active; const sel=(s.name===__headlessActiveName); return `<div data-name=\"${s.name}\" class=\"lw-item\" style=\"padding:6px; margin:4px 0; border-radius:6px; cursor:pointer; background:${sel? (isDark()? '#111827':'#e5e7eb') : 'transparent'};\">`+
+function updateLiveDrawerTab(){ try{ const nameEl=document.getElementById('liveDrawerTabName'); const actEl=document.getElementById('liveDrawerTabActive'); if(nameEl){ nameEl.textContent = __headlessActiveName || '—'; } if(actEl){ /* status updated on list refresh */ } }catch(_){ } }
+async function renderLiveDrawer(){ try{ ensureLiveDrawer(); const list=document.getElementById('liveDrawerList'); if(!list) return; let arr=[]; if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured()){ try{ arr = await SUPA.fetchHeadlessSessions(100); }catch(_){ arr=[]; } } list.innerHTML = (arr||[]).map(s=>{ const on=!!s.active; const sel=(s.name===__headlessActiveName); return `<div data-name=\"${s.name}\" class=\"lw-item\" style=\"padding:6px; margin:4px 0; border-radius:6px; cursor:pointer; background:${sel? (isDark()? '#111827':'#e5e7eb') : 'transparent'};\">`+
   `<div style=\"display:flex; align-items:center; justify-content:space-between; gap:8px;\"><div style=\"font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;\">${s.name}</div>`+
   `<label data-act=\"1\" style=\"font-size:12px; display:flex; align-items:center; gap:6px; user-select:none; cursor:pointer;\">Actif <input type=\"checkbox\" data-act=\"1\" ${on?'checked':''} /></label></div>`+
-  `<div style=\"font-size:12px; color:${isDark()? '#9ca3af':'#4b5563'};\">${symbolToDisplay(s.symbol)} â€¢ ${s.tf}</div>`+
+  `<div style=\"font-size:12px; color:${isDark()? '#9ca3af':'#4b5563'};\">${symbolToDisplay(s.symbol)} • ${s.tf}</div>`+
   `</div>`; }).join('');
-  list.querySelectorAll('.lw-item').forEach(el=>{ const name=el.getAttribute('data-name'); el.addEventListener('click', async (e)=>{ const t=e.target; try{ if(t && (t.closest && (t.closest('label[data-act]') || t.closest('input[data-act]')))) {return;} }catch(_){ if(t && t.getAttribute && t.getAttribute('data-act')==='1') {return;} } await headlessActivate(name); }); const ck=el.querySelector('input[type=checkbox][data-act]'); if(ck){ ck.addEventListener('click', (ev)=> ev.stopPropagation()); ck.addEventListener('change', async ()=>{ if(ck.checked){ const sess=await SUPA.fetchHeadlessSessionByName(name); const sym=(sess&&sess.symbol)||currentSymbol; const tf=(sess&&sess.tf)||currentInterval; await SUPA.startHeadlessLive({ name, symbol:sym, tf, startCap:(sess&&sess.start_cap)||10000, fee:0.1, lev:1, params: currentHeavenParamsForPersist() }); } else { await SUPA.stopHeadlessLiveByName(name); } renderLiveDrawer(); }); } });
+  list.querySelectorAll('.lw-item').forEach(el=>{ const name=el.getAttribute('data-name'); el.addEventListener('click', async (e)=>{ const t=e.target; try{ if(t && (t.closest && (t.closest('label[data-act]') || t.closest('input[data-act]')))) return; }catch(_){ if(t && t.getAttribute && t.getAttribute('data-act')==='1') return; } await headlessActivate(name); }); const ck=el.querySelector('input[type=checkbox][data-act]'); if(ck){ ck.addEventListener('click', (ev)=> ev.stopPropagation()); ck.addEventListener('change', async ()=>{ if(ck.checked){ const sess=await SUPA.fetchHeadlessSessionByName(name); const sym=(sess&&sess.symbol)||currentSymbol; const tf=(sess&&sess.tf)||currentInterval; await SUPA.startHeadlessLive({ name, symbol:sym, tf, startCap:(sess&&sess.start_cap)||10000, fee:0.1, lev:1, params: currentHeavenParamsForPersist() }); } else { await SUPA.stopHeadlessLiveByName(name); } renderLiveDrawer(); }); } });
   // UX enhancements for live wallets list (hover, buttons, accent)
   try{
     list.querySelectorAll('.lw-item').forEach(el=>{ try{
@@ -6464,24 +6439,24 @@ async function renderLiveDrawer(){ try{ ensureLiveDrawer(); const list=document.
       if(header){
         const lbl = header.querySelector('label[data-act]') || header.querySelector('label');
         if(!header.querySelector('button[data-play]')){
-          const b=document.createElement('button'); b.className='icon-btn'; b.setAttribute('data-act','1'); b.setAttribute('data-play','1'); b.title='DÃ©marrer'; b.textContent='â–¶';
+          const b=document.createElement('button'); b.className='icon-btn'; b.setAttribute('data-act','1'); b.setAttribute('data-play','1'); b.title='Démarrer'; b.textContent='▶';
           b.addEventListener('click', async (ev)=>{ ev.stopPropagation(); const sess=await SUPA.fetchHeadlessSessionByName(name); const sym=(sess&&sess.symbol)||currentSymbol; const tf=(sess&&sess.tf)||currentInterval; await SUPA.startHeadlessLive({ name, symbol:sym, tf, startCap:(sess&&sess.start_cap)||10000, fee:0.1, lev:1, params: currentHeavenParamsForPersist() }); renderLiveDrawer(); });
           if(lbl){ header.insertBefore(b, lbl); } else { header.appendChild(b); }
         }
         if(!header.querySelector('button[data-stop]')){
-          const b2=document.createElement('button'); b2.className='icon-btn'; b2.setAttribute('data-act','1'); b2.setAttribute('data-stop','1'); b2.title='ArrÃªter'; b2.textContent='â– ';
+          const b2=document.createElement('button'); b2.className='icon-btn'; b2.setAttribute('data-act','1'); b2.setAttribute('data-stop','1'); b2.title='Arrêter'; b2.textContent='■';
           b2.addEventListener('click', async (ev)=>{ ev.stopPropagation(); await SUPA.stopHeadlessLiveByName(name); renderLiveDrawer(); });
           const ref = header.querySelector('label[data-act]') || header.querySelector('label');
           if(ref){ header.insertBefore(b2, ref); } else { header.appendChild(b2); }
         }
         // Delete wallet button
         if(!header.querySelector('button[data-del]')){
-          const bd=document.createElement('button'); bd.className='icon-btn'; bd.setAttribute('data-act','1'); bd.setAttribute('data-del','1'); bd.title='Supprimer le wallet'; bd.textContent='ðŸ—‘';
+          const bd=document.createElement('button'); bd.className='icon-btn'; bd.setAttribute('data-act','1'); bd.setAttribute('data-del','1'); bd.title='Supprimer le wallet'; bd.textContent='🗑';
           bd.addEventListener('click', async (ev)=>{
             try{
               ev.stopPropagation();
-              if(!name) {return;}
-              if(!confirm(`Supprimer le wallet "${name}" ?`)) {return;}
+              if(!name) return;
+              if(!confirm(`Supprimer le wallet "${name}" ?`)) return;
               let ok=false;
               try{
                 if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.deleteLiveWallet==='function'){
@@ -6489,13 +6464,13 @@ async function renderLiveDrawer(){ try{ ensureLiveDrawer(); const list=document.
                 } else {
                   // local fallback
                   let arr = (typeof readLiveWallets==='function')? readLiveWallets() : [];
-                  if(Array.isArray(arr)) {arr = arr.filter(x=> x && x.name!==name);}
-                  if(typeof writeLiveWallets==='function') {writeLiveWallets(arr);}
+                  if(Array.isArray(arr)) arr = arr.filter(x=> x && x.name!==name);
+                  if(typeof writeLiveWallets==='function') writeLiveWallets(arr);
                   ok = true;
                 }
               }catch(_){ ok=false; }
-              if(ok){ try{ setStatus && setStatus('Wallet supprimÃ©'); }catch(_){ } try{ if(typeof populateLiveWalletsUI==='function') {await populateLiveWalletsUI();} }catch(_){ } renderLiveDrawer(); }
-              else { try{ setStatus && setStatus('Suppression Ã©chouÃ©e'); }catch(_){ } }
+              if(ok){ try{ setStatus && setStatus('Wallet supprimé'); }catch(_){ } try{ if(typeof populateLiveWalletsUI==='function') await populateLiveWalletsUI(); }catch(_){ } renderLiveDrawer(); }
+              else { try{ setStatus && setStatus('Suppression échouée'); }catch(_){ } }
             }catch(_){ }
           });
           const ref2 = header.querySelector('label[data-act]') || header.querySelector('label');
@@ -6504,29 +6479,29 @@ async function renderLiveDrawer(){ try{ ensureLiveDrawer(); const list=document.
       }
       const ck=el.querySelector('input[type=checkbox][data-act]');
       if(ck){ ck.addEventListener('click', (ev)=> ev.stopPropagation()); }
-      el.addEventListener('mouseenter', ()=>{ try{ if(el.getAttribute('data-sel')==='1') {return;} el.style.background = isDark()? '#0b1220' : '#f3f4f6'; el.style.borderColor = isDark()? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'; }catch(_){ } });
-      el.addEventListener('mouseleave', ()=>{ try{ if(el.getAttribute('data-sel')==='1') {return;} el.style.background = 'transparent'; el.style.borderColor = isDark()? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'; }catch(_){ } });
+      el.addEventListener('mouseenter', ()=>{ try{ if(el.getAttribute('data-sel')==='1') return; el.style.background = isDark()? '#0b1220' : '#f3f4f6'; el.style.borderColor = isDark()? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'; }catch(_){ } });
+      el.addEventListener('mouseleave', ()=>{ try{ if(el.getAttribute('data-sel')==='1') return; el.style.background = 'transparent'; el.style.borderColor = isDark()? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'; }catch(_){ } });
     }catch(_){ }});
   }catch(_){ }
   updateLiveDrawerTab();
 }catch(_){ } }
-async function setActiveLive(id){ try{ const s=liveSessions[id]; if(!s) {return;} activeLiveId=id; liveSession=s; // adopt TF/symbol/strategy
+async function setActiveLive(id){ try{ const s=liveSessions[id]; if(!s) return; activeLiveId=id; liveSession=s; // adopt TF/symbol/strategy
   if(s.strategy){ lbcOpts = { ...defaultLBC, ...s.strategy }; normalizeLBCOpts(); saveLBCOpts(); }
   const needSwitch = (s.symbol!==currentSymbol) || (s.tf!==currentInterval);
-  if(needSwitch){ currentSymbol=s.symbol; currentInterval=s.tf; try{ if(symbolSelect) {symbolSelect.value=currentSymbol;} if(intervalSelect) {intervalSelect.value=currentInterval;} localStorage.setItem('chart:tf', currentInterval); updateTitle(currentSymbol); updateWatermark(); }catch(_){ }
+  if(needSwitch){ currentSymbol=s.symbol; currentInterval=s.tf; try{ if(symbolSelect) symbolSelect.value=currentSymbol; if(intervalSelect) intervalSelect.value=currentInterval; localStorage.setItem('chart:tf', currentInterval); updateTitle(currentSymbol); updateWatermark(); }catch(_){ }
     closeWs(); await load(currentSymbol, currentInterval); openWs(currentSymbol, currentInterval);
   }
   try{ tpHitMarkers=(s.markers&&s.markers.tps)||[]; slHitMarkers=(s.markers&&s.markers.sls)||[]; beHitMarkers=(s.markers&&s.markers.bes)||[]; liveEntryMarkers=(s.markers&&s.markers.entries)||[]; }catch(_){ }
 renderLBC(); renderLiveHUD(); refreshLiveTradesUI(); renderLiveDrawer();
   try{ updateLiveDrawerTab(); }catch(_){ }
-  // Re-open the two floating popups (RÃ©sultats + Trades) when switching wallet via left menu
+  // Re-open the two floating popups (Résultats + Trades) when switching wallet via left menu
   try{ openModalEl(stratModalEl); openModalEl(tradesModalEl); ensureFloatingModal(stratModalEl, 'strat', { left: 40, top: 40, width: 480, height: 300, zIndex: bumpZ() }); ensureFloatingModal(tradesModalEl, 'trades', { left: 540, top: 40, width: 720, height: 360, zIndex: bumpZ() }); }catch(_){ }
 }catch(_){ } }
 function multiLiveOnBar(bar){ }
 // Live state for markers and position mgmt (with equity and trade events)
 let livePos=null; let livePendingFib=null; let liveTrades=[];
 function clearLiveTrades(){ liveTrades=[]; }
-function renderLiveHUD(){ try{ if(!liveSession||!liveSession.active) {return;} if(stratTitle){ stratTitle.textContent = `${symbolToDisplay(liveSession.symbol)} â€¢ ${liveSession.tf} â€” Live`; } if(stratTBody){ const eq=Number(liveSession.equity)||0; const start=Number(liveSession.startCap)||0; const pnl=eq-start; const rows=[]; rows.push(`<tr><td style=\"text-align:left\">Capital</td><td>â€”</td><td style=\"text-align:right\">${eq.toFixed(2)}</td></tr>`); rows.push(`<tr><td style=\"text-align:left\">P&L net</td><td>â€”</td><td style=\"text-align:right\">${pnl.toFixed(2)}</td></tr>`); stratTBody.innerHTML = rows.join(''); } }catch(_){ } }function refreshLiveMonitoringUI(){ try{ renderLiveHUD(); const state={ trades: __headlessTrades.slice(), symbol: liveSession.symbol, tf: liveSession.tf, startCap: liveSession.startCap, equityFinal: liveSession.equity, totalPnl: (Number(liveSession.equity)||0) - (Number(liveSession.startCap)||0) }; lastTradesCtx=state; populateTradesModal(state); }catch(_){ } } async function headlessPollOnce(){ try{ if(!(window.SUPA && SUPA.fetchHeadlessSessionByName && SUPA.fetchLiveEvents)) {return;} if(!__headlessActiveName) {return;} const sess=await SUPA.fetchHeadlessSessionByName(__headlessActiveName); if(!sess){ return; } liveSession = { ...(liveSession||{}), active:true, symbol:sess.symbol, tf:sess.tf, equity: Number(sess.equity||sess.start_cap||0)||0, startCap: Number(sess.start_cap||0)||0 };
+function renderLiveHUD(){ try{ if(!liveSession||!liveSession.active) return; if(stratTitle){ stratTitle.textContent = `${symbolToDisplay(liveSession.symbol)} • ${liveSession.tf} — Live`; } if(stratTBody){ const eq=Number(liveSession.equity)||0; const start=Number(liveSession.startCap)||0; const pnl=eq-start; const rows=[]; rows.push(`<tr><td style=\"text-align:left\">Capital</td><td>—</td><td style=\"text-align:right\">${eq.toFixed(2)}</td></tr>`); rows.push(`<tr><td style=\"text-align:left\">P&L net</td><td>—</td><td style=\"text-align:right\">${pnl.toFixed(2)}</td></tr>`); stratTBody.innerHTML = rows.join(''); } }catch(_){ } }function refreshLiveMonitoringUI(){ try{ renderLiveHUD(); const state={ trades: __headlessTrades.slice(), symbol: liveSession.symbol, tf: liveSession.tf, startCap: liveSession.startCap, equityFinal: liveSession.equity, totalPnl: (Number(liveSession.equity)||0) - (Number(liveSession.startCap)||0) }; lastTradesCtx=state; populateTradesModal(state); }catch(_){ } } async function headlessPollOnce(){ try{ if(!(window.SUPA && SUPA.fetchHeadlessSessionByName && SUPA.fetchLiveEvents)) return; if(!__headlessActiveName) return; const sess=await SUPA.fetchHeadlessSessionByName(__headlessActiveName); if(!sess){ return; } liveSession = { ...(liveSession||{}), active:true, symbol:sess.symbol, tf:sess.tf, equity: Number(sess.equity||sess.start_cap||0)||0, startCap: Number(sess.start_cap||0)||0 };
   const events = await SUPA.fetchLiveEvents(sess.id, __headlessLastAt||null, 500);
   if(Array.isArray(events) && events.length){ for(const ev of events){ const p=ev.payload||{}; const tsSec = (p.time!=null)? Number(p.time) : Math.floor(new Date(ev.at_time).getTime()/1000); if(ev.kind==='entry'){ try{ addLiveEntryMarker(tsSec, p.dir); }catch(_){ } try{ __headlessTrades.push({ dir:p.dir, entryTime:tsSec, entry:p.entry, initSL:p.sl, exitTime:tsSec, exit:p.entry, reason:'Entry', qty:p.qty, pnl:0, fees:0, net:0, rr:null }); }catch(_){ } }
     else if(ev.kind==='tp'){ try{ addTPHitMarker(tsSec, p.dir); }catch(_){ } try{ __headlessTrades.push({ dir:p.dir, entryTime:tsSec, entry:p.entry, initSL:p.initSL||p.sl||null, exitTime:tsSec, exit:p.exit, reason:`TP${(p.idx||'')}`, qty:p.qty, pnl:p.pnl, fees:p.fees, net:p.net, rr:null }); }catch(_){ } }
@@ -6541,9 +6516,9 @@ function renderLiveHUD(){ try{ if(!liveSession||!liveSession.active) {return;} i
 }catch(_){ } }
 function refreshLiveTradesUI(){ try{ const state={ trades: liveTrades.slice(), symbol: liveSession.symbol, tf: liveSession.tf, startCap: liveSession.startCap, equityFinal: liveSession.equity, totalPnl: (Number(liveSession.equity)||0) - (Number(liveSession.startCap)||0) }; lastTradesCtx = state; populateTradesModal(state); }catch(_){ } }
 function liveOnBar(bar){
-  if(!liveSession||!liveSession.active) {return;}
+  if(!liveSession||!liveSession.active) return;
   try{
-    const i=candles.length-1; if(i<1) {return;}
+    const i=candles.length-1; if(i<1) return;
     const lb=computeLineBreakState(candles, Math.max(1, lbcOpts.nol|0));
     const prd=Math.max(2, lbcOpts.prd|0);
     const pivAll=computePivots(candles, prd);
@@ -6552,23 +6527,23 @@ function liveOnBar(bar){
     const feePct=(Number.isFinite(liveSession.fee)? liveSession.fee: 0.1)/100;
     const lev=Number.isFinite(liveSession.lev)? liveSession.lev:1;
     const slEmaCache=new Map(); clearTPHitMarkers();
-function computeSLFromLadder(dir, entry, i){ try{ if(!(lbcOpts.slEnable && Array.isArray(lbcOpts.sl) && lbcOpts.sl.length)) {return null;} const seg=segLast; const A=seg?seg.a.price:null, B=seg?seg.b.price:null, move=seg?Math.abs(B-A):null; const cands=[]; for(const t of lbcOpts.sl){ const typ=(t&&t.type)||'Percent'; let price=null; if(typ==='Fib' && seg && move!=null){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)) {price = (seg.dir==='up')? (B - move*r) : (B + move*r);} } else if(typ==='Percent'){ const p=parseFloat(t.pct!=null? t.pct : t.value); if(isFinite(p)) {price = dir==='long'? (entry*(1 - p/100)) : (entry*(1 + p/100));} } else if(typ==='EMA'){ const len=Math.max(1, parseInt(((t&&t.emaLen)!=null? t.emaLen : (lbcOpts.emaLen||55)),10)); let ema=slEmaCache.get(len); if(!ema){ ema=emaCalc(candles, len); slEmaCache.set(len, ema); } const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) {price=v;} } if(price!=null){ if(dir==='long'){ if(price<=entry) {cands.push(price);} } else { if(price>=entry) {cands.push(price);} } } } if(!cands.length) {return null;} return dir==='long'? Math.max(...cands) : Math.min(...cands); }catch(_){ return null; } }
+function computeSLFromLadder(dir, entry, i){ try{ if(!(lbcOpts.slEnable && Array.isArray(lbcOpts.sl) && lbcOpts.sl.length)) return null; const seg=segLast; const A=seg?seg.a.price:null, B=seg?seg.b.price:null, move=seg?Math.abs(B-A):null; const cands=[]; for(const t of lbcOpts.sl){ const typ=(t&&t.type)||'Percent'; let price=null; if(typ==='Fib' && seg && move!=null){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)) price = (seg.dir==='up')? (B - move*r) : (B + move*r); } else if(typ==='Percent'){ const p=parseFloat(t.pct!=null? t.pct : t.value); if(isFinite(p)) price = dir==='long'? (entry*(1 - p/100)) : (entry*(1 + p/100)); } else if(typ==='EMA'){ const len=Math.max(1, parseInt(((t&&t.emaLen)!=null? t.emaLen : (lbcOpts.emaLen||55)),10)); let ema=slEmaCache.get(len); if(!ema){ ema=emaCalc(candles, len); slEmaCache.set(len, ema); } const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) price=v; } if(price!=null){ if(dir==='long'){ if(price<=entry) cands.push(price); } else { if(price>=entry) cands.push(price); } } } if(!cands.length) return null; return dir==='long'? Math.max(...cands) : Math.min(...cands); }catch(_){ return null; } }
   function liveBuildTargets(dir, entry, riskAbs, i){
       let list=[];
       if(lbcOpts.tpEnable && Array.isArray(lbcOpts.tp) && lbcOpts.tp.length){
         const A=segLast?segLast.a.price:null, B=segLast?segLast.b.price:null, move=segLast?Math.abs(B-A):null;
         for(let idx=0; idx<lbcOpts.tp.length; idx++){ const t=lbcOpts.tp[idx]; let price=null; const typ=(t.type||'Fib');
-          if(typ==='Fib' && segLast && move!=null){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)) {price = (segLast.dir==='up')? (B + move*r) : (B - move*r);} }
-          else if(typ==='Percent'){ const p=parseFloat(t.pct!=null? t.pct : t.value); if(isFinite(p)) {price = dir==='long'? (entry*(1+p/100)) : (entry*(1-p/100));} }
-          else if(typ==='EMA'){ const len=Math.max(1, parseInt(((t&&t.emaLen)!=null? t.emaLen : (lbcOpts.emaLen||55)),10)); const ema=emaCalc(candles, len); const v=ema[ema.length-1]; if(isFinite(v)) {price=v;} }
-          if(price!=null){ if((dir==='long' && price>entry) || (dir==='short' && price<entry)){ let w=null; const q=t.qty; if(q!=null && isFinite(q)) {w=(q>1? q/100 : q);} list.push({price, w, srcIdx: idx}); } }
+          if(typ==='Fib' && segLast && move!=null){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)) price = (segLast.dir==='up')? (B + move*r) : (B - move*r); }
+          else if(typ==='Percent'){ const p=parseFloat(t.pct!=null? t.pct : t.value); if(isFinite(p)) price = dir==='long'? (entry*(1+p/100)) : (entry*(1-p/100)); }
+          else if(typ==='EMA'){ const len=Math.max(1, parseInt(((t&&t.emaLen)!=null? t.emaLen : (lbcOpts.emaLen||55)),10)); const ema=emaCalc(candles, len); const v=ema[ema.length-1]; if(isFinite(v)) price=v; }
+          if(price!=null){ if((dir==='long' && price>entry) || (dir==='short' && price<entry)){ let w=null; const q=t.qty; if(q!=null && isFinite(q)) w=(q>1? q/100 : q); list.push({price, w, srcIdx: idx}); } }
         }
-        if(dir==='long') {list.sort((a,b)=>a.price-b.price);} else {list.sort((a,b)=>b.price-a.price);}
+        if(dir==='long') list.sort((a,b)=>a.price-b.price); else list.sort((a,b)=>b.price-a.price);
         let sumW=0, hasW=false; for(const it of list){ if(it.w!=null && it.w>0){ sumW+=it.w; hasW=true; } }
         if(!hasW){ if(list.length){ const even=1/list.length; list=list.map(it=>({ price:it.price, w:even, srcIdx: it.srcIdx })); }
           else { list=[{price: (dir==='long'? entry + riskAbs*(lbcOpts.tp1R||1) : entry - riskAbs*(lbcOpts.tp1R||1)), w:1, srcIdx: 0}]; }
         } else {
-          if(sumW>1){ const k=1/sumW; for(const it of list){ if(it.w!=null) {it.w*=k;} } }
+          if(sumW>1){ const k=1/sumW; for(const it of list){ if(it.w!=null) it.w*=k; } }
           else if(lbcOpts.tpCloseAllLast && sumW<1 && list.length){ list[list.length-1].w = (list[list.length-1].w||0) + (1-sumW); }
         }
       } else {
@@ -6576,21 +6551,21 @@ function computeSLFromLadder(dir, entry, i){ try{ if(!(lbcOpts.slEnable && Array
       }
       return list;
     }
-    function __liveComputeQty(entry, sl){ if(!(isFinite(entry)&&isFinite(sl))) {return 0;} const equity=Number(liveSession.equity)||0; if(equity<=0) {return 0;} const budget=Math.max(0, equity); const notional=budget*lev; const qty0 = notional/Math.max(1e-12, entry); const riskAbs=Math.abs(entry-sl); const perUnitWorstLoss = riskAbs + ((Math.abs(entry)+Math.abs(sl)) * feePct); const qtyRisk = perUnitWorstLoss>0? (equity / perUnitWorstLoss) : 0; const q=Math.max(0, Math.min(qty0, qtyRisk)); return q; }
+    function __liveComputeQty(entry, sl){ if(!(isFinite(entry)&&isFinite(sl))) return 0; const equity=Number(liveSession.equity)||0; if(equity<=0) return 0; const budget=Math.max(0, equity); const notional=budget*lev; const qty0 = notional/Math.max(1e-12, entry); const riskAbs=Math.abs(entry-sl); const perUnitWorstLoss = riskAbs + ((Math.abs(entry)+Math.abs(sl)) * feePct); const qtyRisk = perUnitWorstLoss>0? (equity / perUnitWorstLoss) : 0; const q=Math.max(0, Math.min(qty0, qtyRisk)); return q; }
     let dirty=false, uiDirty=false;
     // Entry logic (trend flip and optional Fib retracement)
     if(!livePos){
       if(trendNow!==trendPrev){
         if(segLast){
           const A=segLast.a.price, B=segLast.b.price; const up=segLast.dir==='up'; const move=Math.abs(B-A);
-          const levels=[]; if(lbcOpts.ent382) {levels.push(up? (B - move*0.382) : (B + move*0.382));} if(lbcOpts.ent500) {levels.push(up? (B - move*0.5) : (B + move*0.5));} if(lbcOpts.ent618) {levels.push(up? (B - move*0.618) : (B + move*0.618));} if(lbcOpts.ent786) {levels.push(up? (B - move*0.786) : (B + move*0.786));}
+          const levels=[]; if(lbcOpts.ent382) levels.push(up? (B - move*0.382) : (B + move*0.382)); if(lbcOpts.ent500) levels.push(up? (B - move*0.5) : (B + move*0.5)); if(lbcOpts.ent618) levels.push(up? (B - move*0.618) : (B + move*0.618)); if(lbcOpts.ent786) levels.push(up? (B - move*0.786) : (B + move*0.786));
           livePendingFib = { dir:(trendNow===1?'long':'short'), levels, mode: lbcOpts.confirmMode||'Bounce' };
         }
         if(lbcOpts.entryMode!=='Fib Retracement'){
           const dir=(trendNow===1)?'long':'short';
           const entry=bar.close;
           let sl=computeSLFromLadder(dir, entry, i);
-          if(sl==null){ const riskPx=entry*(lbcOpts.slInitPct/100); sl=dir==='long'?(entry-riskPx):(entry+riskPx); } else { if(dir==='long' && sl>entry) {sl=entry;} if(dir==='short' && sl<entry) {sl=entry;} }
+          if(sl==null){ const riskPx=entry*(lbcOpts.slInitPct/100); sl=dir==='long'?(entry-riskPx):(entry+riskPx); } else { if(dir==='long' && sl>entry) sl=entry; if(dir==='short' && sl<entry) sl=entry; }
           const qty=__liveComputeQty(entry, sl);
           if(qty>1e-12 && isFinite(qty)){
             const targets=liveBuildTargets(dir, entry, Math.abs(entry-sl), i);
@@ -6603,7 +6578,7 @@ function computeSLFromLadder(dir, entry, i){ try{ if(!(lbcOpts.slEnable && Array
       }
       if(!livePos && lbcOpts.useFibRet && (lbcOpts.entryMode!=='Original') && livePendingFib && livePendingFib.levels && livePendingFib.levels.length){
         for(const lv of livePendingFib.levels){ const dir=livePendingFib.dir; let ok=false; if(dir==='long'){ ok=(livePendingFib.mode==='Touch')? (bar.low<=lv) : (bar.low<=lv && bar.close>lv); } else { ok=(livePendingFib.mode==='Touch')? (bar.high>=lv) : (bar.high>=lv && bar.close<lv); }
-          if(ok){ const entry=bar.close; let sl=computeSLFromLadder(dir, entry, i); if(sl==null){ const riskPx=entry*(lbcOpts.slInitPct/100); sl=dir==='long'?(entry-riskPx):(entry+riskPx); } else { if(dir==='long' && sl>entry) {sl=entry;} if(dir==='short' && sl<entry) {sl=entry;} } const qty=__liveComputeQty(entry, sl); if(qty>1e-12 && isFinite(qty)){ const targets=liveBuildTargets(dir, entry, Math.abs(entry-sl), i); livePos={ dir, entry, sl, initSL:sl, qty:qty, initQty:qty, entryIdx:i, beActive:false, anyTP:false, tpIdx:0, targets, hiSince: bar.high, loSince: bar.low, lastTpIdx: 0, tpTrailCfg: null, slTrailCfg: null }; try{ addLiveEntryMarker(candles[i].time, dir); }catch(_){ } dirty=true; uiDirty=true; livePendingFib=null; break; } }
+          if(ok){ const entry=bar.close; let sl=computeSLFromLadder(dir, entry, i); if(sl==null){ const riskPx=entry*(lbcOpts.slInitPct/100); sl=dir==='long'?(entry-riskPx):(entry+riskPx); } else { if(dir==='long' && sl>entry) sl=entry; if(dir==='short' && sl<entry) sl=entry; } const qty=__liveComputeQty(entry, sl); if(qty>1e-12 && isFinite(qty)){ const targets=liveBuildTargets(dir, entry, Math.abs(entry-sl), i); livePos={ dir, entry, sl, initSL:sl, qty:qty, initQty:qty, entryIdx:i, beActive:false, anyTP:false, tpIdx:0, targets, hiSince: bar.high, loSince: bar.low, lastTpIdx: 0, tpTrailCfg: null, slTrailCfg: null }; try{ addLiveEntryMarker(candles[i].time, dir); }catch(_){ } dirty=true; uiDirty=true; livePendingFib=null; break; } }
         }
       }
     } else {
@@ -6616,45 +6591,45 @@ function computeSLFromLadder(dir, entry, i){ try{ if(!(lbcOpts.slEnable && Array
         if(movePct >= lbcOpts.beLockPct){ livePos.beActive=true; livePos.sl = livePos.entry; }
       }
       // Continuous per-TP trailing (ema/percent)
-      if(livePos.tpTrailCfg){ try{ let cand=null; if(livePos.tpTrailCfg.mode==='ema'){ const len=Math.max(1, parseInt((livePos.tpTrailCfg.emaLen!=null? livePos.tpTrailCfg.emaLen : (lbcOpts.emaLen||55)),10)); const ema=emaCalc(candles, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) {cand=v;} } else if(livePos.tpTrailCfg.mode==='percent'){ const pct=Number(livePos.tpTrailCfg.pct)||0; if(livePos.dir==='long'){ cand=(livePos.hiSince||bar.high)*(1 - pct/100); } else { cand=(livePos.loSince||bar.low)*(1 + pct/100); } } if(cand!=null){ let b=cand; if(!livePos.beActive){ b=(livePos.dir==='long')? Math.min(cand, livePos.entry) : Math.max(cand, livePos.entry); } livePos.sl = (livePos.dir==='long')? Math.max(livePos.sl, b) : Math.min(livePos.sl, b); } }catch(_){ } }
+      if(livePos.tpTrailCfg){ try{ let cand=null; if(livePos.tpTrailCfg.mode==='ema'){ const len=Math.max(1, parseInt((livePos.tpTrailCfg.emaLen!=null? livePos.tpTrailCfg.emaLen : (lbcOpts.emaLen||55)),10)); const ema=emaCalc(candles, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) cand=v; } else if(livePos.tpTrailCfg.mode==='percent'){ const pct=Number(livePos.tpTrailCfg.pct)||0; if(livePos.dir==='long'){ cand=(livePos.hiSince||bar.high)*(1 - pct/100); } else { cand=(livePos.loSince||bar.low)*(1 + pct/100); } } if(cand!=null){ let b=cand; if(!livePos.beActive){ b=(livePos.dir==='long')? Math.min(cand, livePos.entry) : Math.max(cand, livePos.entry); } livePos.sl = (livePos.dir==='long')? Math.max(livePos.sl, b) : Math.min(livePos.sl, b); } }catch(_){ } }
       // Continuous SL-attached trailing (ema/percent)
-      if(livePos.slTrailCfg){ try{ let cand=null; if(livePos.slTrailCfg.mode==='ema'){ const len=Math.max(1, parseInt((livePos.slTrailCfg.emaLen!=null? livePos.slTrailCfg.emaLen : (lbcOpts.emaLen||55)),10)); const ema=emaCalc(candles, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) {cand=v;} } else if(livePos.slTrailCfg.mode==='percent'){ const pct=Number(livePos.slTrailCfg.pct)||0; if(livePos.dir==='long'){ cand=(livePos.hiSince||bar.high)*(1 - pct/100); } else { cand=(livePos.loSince||bar.low)*(1 + pct/100); } } if(cand!=null){ let b=cand; if(!livePos.beActive){ b=(livePos.dir==='long')? Math.min(cand, livePos.entry) : Math.max(cand, livePos.entry); } livePos.sl = (livePos.dir==='long')? Math.max(livePos.sl, b) : Math.min(livePos.sl, b); } }catch(_){ } }
+      if(livePos.slTrailCfg){ try{ let cand=null; if(livePos.slTrailCfg.mode==='ema'){ const len=Math.max(1, parseInt((livePos.slTrailCfg.emaLen!=null? livePos.slTrailCfg.emaLen : (lbcOpts.emaLen||55)),10)); const ema=emaCalc(candles, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) cand=v; } else if(livePos.slTrailCfg.mode==='percent'){ const pct=Number(livePos.slTrailCfg.pct)||0; if(livePos.dir==='long'){ cand=(livePos.hiSince||bar.high)*(1 - pct/100); } else { cand=(livePos.loSince||bar.low)*(1 + pct/100); } } if(cand!=null){ let b=cand; if(!livePos.beActive){ b=(livePos.dir==='long')? Math.min(cand, livePos.entry) : Math.max(cand, livePos.entry); } livePos.sl = (livePos.dir==='long')? Math.max(livePos.sl, b) : Math.min(livePos.sl, b); } }catch(_){ } }
       // SL ladder merge
       { const sl2=computeSLFromLadder(livePos.dir, livePos.entry, i); if(sl2!=null){ let b=sl2; if(!livePos.beActive){ b=(livePos.dir==='long')? Math.min(sl2, livePos.entry) : Math.max(sl2, livePos.entry); } livePos.sl = (livePos.dir==='long')? Math.max(livePos.sl, b) : Math.min(livePos.sl, b); } }
       // SL check
       if(livePos.dir==='long'){
-        if(bar.low <= livePos.sl){ const portionQty = livePos.qty; const pnl = (livePos.sl - livePos.entry) * portionQty; const fees = (livePos.entry*portionQty + livePos.sl*portionQty) * feePct; const net=pnl-fees; liveSession.equity += net; if(liveSession.equity<0) {liveSession.equity=0;} liveTrades.push({ dir:livePos.dir, entryTime:candles[livePos.entryIdx].time, entry:livePos.entry, initSL:livePos.initSL, exitTime:candles[i].time, exit:livePos.sl, reason:'SL', qty:portionQty, pnl, fees, net, rr: (Math.abs(livePos.entry-livePos.initSL)*portionQty>0? net/(Math.abs(livePos.entry-livePos.initSL)*portionQty) : null) }); if(Math.abs(livePos.sl - livePos.entry) <= 1e-8){ addBEHitMarker(candles[i].time, livePos.dir); } else { addSLHitMarker(candles[i].time, livePos.dir); } livePos=null; dirty=true; uiDirty=true; }
+        if(bar.low <= livePos.sl){ const portionQty = livePos.qty; const pnl = (livePos.sl - livePos.entry) * portionQty; const fees = (livePos.entry*portionQty + livePos.sl*portionQty) * feePct; const net=pnl-fees; liveSession.equity += net; if(liveSession.equity<0) liveSession.equity=0; liveTrades.push({ dir:livePos.dir, entryTime:candles[livePos.entryIdx].time, entry:livePos.entry, initSL:livePos.initSL, exitTime:candles[i].time, exit:livePos.sl, reason:'SL', qty:portionQty, pnl, fees, net, rr: (Math.abs(livePos.entry-livePos.initSL)*portionQty>0? net/(Math.abs(livePos.entry-livePos.initSL)*portionQty) : null) }); if(Math.abs(livePos.sl - livePos.entry) <= 1e-8){ addBEHitMarker(candles[i].time, livePos.dir); } else { addSLHitMarker(candles[i].time, livePos.dir); } livePos=null; dirty=true; uiDirty=true; }
       } else {
-        if(bar.high >= livePos.sl){ const portionQty = livePos.qty; const pnl = (livePos.entry - livePos.sl) * portionQty; const fees = (livePos.entry*portionQty + livePos.sl*portionQty) * feePct; const net=pnl-fees; liveSession.equity += net; if(liveSession.equity<0) {liveSession.equity=0;} liveTrades.push({ dir:livePos.dir, entryTime:candles[livePos.entryIdx].time, entry:livePos.entry, initSL:livePos.initSL, exitTime:candles[i].time, exit:livePos.sl, reason:'SL', qty:portionQty, pnl, fees, net, rr: (Math.abs(livePos.entry-livePos.initSL)*portionQty>0? net/(Math.abs(livePos.entry-livePos.initSL)*portionQty) : null) }); if(Math.abs(livePos.sl - livePos.entry) <= 1e-8){ addBEHitMarker(candles[i].time, livePos.dir); } else { addSLHitMarker(candles[i].time, livePos.dir); } livePos=null; dirty=true; uiDirty=true; }
+        if(bar.high >= livePos.sl){ const portionQty = livePos.qty; const pnl = (livePos.entry - livePos.sl) * portionQty; const fees = (livePos.entry*portionQty + livePos.sl*portionQty) * feePct; const net=pnl-fees; liveSession.equity += net; if(liveSession.equity<0) liveSession.equity=0; liveTrades.push({ dir:livePos.dir, entryTime:candles[livePos.entryIdx].time, entry:livePos.entry, initSL:livePos.initSL, exitTime:candles[i].time, exit:livePos.sl, reason:'SL', qty:portionQty, pnl, fees, net, rr: (Math.abs(livePos.entry-livePos.initSL)*portionQty>0? net/(Math.abs(livePos.entry-livePos.initSL)*portionQty) : null) }); if(Math.abs(livePos.sl - livePos.entry) <= 1e-8){ addBEHitMarker(candles[i].time, livePos.dir); } else { addSLHitMarker(candles[i].time, livePos.dir); } livePos=null; dirty=true; uiDirty=true; }
       }
       // TP sequential
       if(livePos && livePos.targets && livePos.tpIdx < livePos.targets.length){
-        while(livePos && livePos.tpIdx < livePos.targets.length){ const tp=livePos.targets[livePos.tpIdx]; const hit = livePos.dir==='long'? (bar.high >= tp.price) : (bar.low <= tp.price); if(!hit) {break;} const portionFrac = lbcOpts.tpCompound? (tp.w||1) : 1; const portionQty = livePos.initQty * portionFrac; const usedQty = Math.min(portionQty, livePos.qty); const exitPx = tp.price; const pnl = (livePos.dir==='long'? (exitPx - livePos.entry) : (livePos.entry - exitPx)) * usedQty; const fees = (livePos.entry*usedQty + exitPx*usedQty) * feePct; const net = pnl - fees; liveSession.equity += net; if(liveSession.equity<0) {liveSession.equity=0;} liveTrades.push({ dir:livePos.dir, entryTime:candles[livePos.entryIdx].time, entry:livePos.entry, initSL:livePos.initSL, exitTime:candles[i].time, exit:exitPx, reason:`TP${livePos.tpIdx+1}`, qty:usedQty, pnl, fees, net, rr: (Math.abs(livePos.entry-livePos.initSL)*usedQty>0? net/(Math.abs(livePos.entry-livePos.initSL)*usedQty) : null) }); addTPHitMarker(candles[i].time, livePos.dir); livePos.qty -= usedQty; livePos.anyTP=true; // Per-TP actions
+        while(livePos && livePos.tpIdx < livePos.targets.length){ const tp=livePos.targets[livePos.tpIdx]; const hit = livePos.dir==='long'? (bar.high >= tp.price) : (bar.low <= tp.price); if(!hit) break; const portionFrac = lbcOpts.tpCompound? (tp.w||1) : 1; const portionQty = livePos.initQty * portionFrac; const usedQty = Math.min(portionQty, livePos.qty); const exitPx = tp.price; const pnl = (livePos.dir==='long'? (exitPx - livePos.entry) : (livePos.entry - exitPx)) * usedQty; const fees = (livePos.entry*usedQty + exitPx*usedQty) * feePct; const net = pnl - fees; liveSession.equity += net; if(liveSession.equity<0) liveSession.equity=0; liveTrades.push({ dir:livePos.dir, entryTime:candles[livePos.entryIdx].time, entry:livePos.entry, initSL:livePos.initSL, exitTime:candles[i].time, exit:exitPx, reason:`TP${livePos.tpIdx+1}`, qty:usedQty, pnl, fees, net, rr: (Math.abs(livePos.entry-livePos.initSL)*usedQty>0? net/(Math.abs(livePos.entry-livePos.initSL)*usedQty) : null) }); addTPHitMarker(candles[i].time, livePos.dir); livePos.qty -= usedQty; livePos.anyTP=true; // Per-TP actions
           let tCfg = (Array.isArray(lbcOpts.tp) && tp.srcIdx!=null)? lbcOpts.tp[tp.srcIdx] : null; if(!tCfg){ tCfg={}; }
           if(tCfg.beOn){ livePos.sl = livePos.entry; }
-          const slNew=(function(){ try{ const s=tCfg.sl; if(!(s)) {return null;} let price=null; if(s.type==='Fib' && segLast){ const A=segLast.a.price, B=segLast.b.price; const move=Math.abs(B-A); const r=parseFloat(s.fib!=null? s.fib : s.value); if(isFinite(r)) {price = (segLast.dir==='up')? (B - move*r) : (B + move*r);} } else if(s.type==='Percent'){ const p=parseFloat(s.pct!=null? s.pct : s.value); if(isFinite(p)) {price = livePos.dir==='long'? (livePos.entry*(1 - p/100)) : (livePos.entry*(1 + p/100));} } else if(s.type==='EMA'){ const len=Math.max(1, parseInt(((s&&s.emaLen)!=null? s.emaLen : (lbcOpts.emaLen||55)),10)); const ema=emaCalc(candles, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) {price=v;} } return price; }catch(_){ return null; } })();
+          const slNew=(function(){ try{ const s=tCfg.sl; if(!(s)) return null; let price=null; if(s.type==='Fib' && segLast){ const A=segLast.a.price, B=segLast.b.price; const move=Math.abs(B-A); const r=parseFloat(s.fib!=null? s.fib : s.value); if(isFinite(r)) price = (segLast.dir==='up')? (B - move*r) : (B + move*r); } else if(s.type==='Percent'){ const p=parseFloat(s.pct!=null? s.pct : s.value); if(isFinite(p)) price = livePos.dir==='long'? (livePos.entry*(1 - p/100)) : (livePos.entry*(1 + p/100)); } else if(s.type==='EMA'){ const len=Math.max(1, parseInt(((s&&s.emaLen)!=null? s.emaLen : (lbcOpts.emaLen||55)),10)); const ema=emaCalc(candles, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) price=v; } return price; }catch(_){ return null; } })();
           if(slNew!=null){ let b=slNew; if(!livePos.beActive){ b=(livePos.dir==='long')? Math.min(slNew, livePos.entry) : Math.max(slNew, livePos.entry); } livePos.sl = (livePos.dir==='long')? Math.max(livePos.sl, b) : Math.min(livePos.sl, b); }
-          if(tCfg.trail && tCfg.trail.mode){ let cand=null; const m=tCfg.trail.mode; if(m==='be'){ cand=livePos.entry; } else if(m==='prev'){ cand=exitPx; } else if(m==='ema'){ const len=Math.max(1, parseInt(((tCfg.trail.emaLen!=null? tCfg.trail.emaLen : (lbcOpts.emaLen||55))),10)); const ema=emaCalc(candles, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) {cand=v;} } else if(m==='percent'){ const pct=Number(tCfg.trail.pct)||0; if(livePos.dir==='long'){ cand=(livePos.hiSince||bar.high)*(1 - pct/100); } else { cand=(livePos.loSince||bar.low)*(1 + pct/100); } } if(cand!=null){ let b=cand; if(!livePos.beActive){ b=(livePos.dir==='long')? Math.min(cand, livePos.entry) : Math.max(cand, livePos.entry); } livePos.sl = (livePos.dir==='long')? Math.max(livePos.sl, b) : Math.min(livePos.sl, b); } if(m==='ema' || m==='percent'){ livePos.tpTrailCfg = { mode:m, emaLen: tCfg.trail.emaLen, pct: tCfg.trail.pct }; } }
+          if(tCfg.trail && tCfg.trail.mode){ let cand=null; const m=tCfg.trail.mode; if(m==='be'){ cand=livePos.entry; } else if(m==='prev'){ cand=exitPx; } else if(m==='ema'){ const len=Math.max(1, parseInt(((tCfg.trail.emaLen!=null? tCfg.trail.emaLen : (lbcOpts.emaLen||55))),10)); const ema=emaCalc(candles, len); const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) cand=v; } else if(m==='percent'){ const pct=Number(tCfg.trail.pct)||0; if(livePos.dir==='long'){ cand=(livePos.hiSince||bar.high)*(1 - pct/100); } else { cand=(livePos.loSince||bar.low)*(1 + pct/100); } } if(cand!=null){ let b=cand; if(!livePos.beActive){ b=(livePos.dir==='long')? Math.min(cand, livePos.entry) : Math.max(cand, livePos.entry); } livePos.sl = (livePos.dir==='long')? Math.max(livePos.sl, b) : Math.min(livePos.sl, b); } if(m==='ema' || m==='percent'){ livePos.tpTrailCfg = { mode:m, emaLen: tCfg.trail.emaLen, pct: tCfg.trail.pct }; } }
           if(tCfg.sl && tCfg.sl.trail && tCfg.sl.trail.mode){ const m2=tCfg.sl.trail.mode; if(m2==='ema' || m2==='percent'){ livePos.slTrailCfg = { mode:m2, emaLen: tCfg.sl.trail.emaLen, pct: tCfg.sl.trail.pct }; } }
-          livePos.tpIdx++; if(!lbcOpts.tpCompound || livePos.qty<=1e-12){ livePos=null; } dirty=true; uiDirty=true; if(!livePos) {break;} }
+          livePos.tpIdx++; if(!lbcOpts.tpCompound || livePos.qty<=1e-12){ livePos=null; } dirty=true; uiDirty=true; if(!livePos) break; }
       }
       // Flip close (no specific symbol but we record close)
-      if(livePos && ((livePos.dir==='long' && trendNow!==trendPrev && trendNow!==1) || (livePos.dir==='short' && trendNow!==trendPrev && trendNow!==-1))){ const exit=bar.close; const portionQty=livePos.qty; const pnl=(livePos.dir==='long'? (exit - livePos.entry):(livePos.entry - exit))*portionQty; const fees=(livePos.entry*portionQty + exit*portionQty)*feePct; const net=pnl-fees; liveSession.equity+=net; if(liveSession.equity<0) {liveSession.equity=0;} liveTrades.push({ dir:livePos.dir, entryTime:candles[livePos.entryIdx].time, entry:livePos.entry, initSL:livePos.initSL, exitTime:candles[i].time, exit:exit, reason:'Flip', qty:portionQty, pnl, fees, net, rr: (Math.abs(livePos.entry-livePos.initSL)*portionQty>0? net/(Math.abs(livePos.entry-livePos.initSL)*portionQty) : null) }); livePos=null; dirty=true; uiDirty=true; }
+      if(livePos && ((livePos.dir==='long' && trendNow!==trendPrev && trendNow!==1) || (livePos.dir==='short' && trendNow!==trendPrev && trendNow!==-1))){ const exit=bar.close; const portionQty=livePos.qty; const pnl=(livePos.dir==='long'? (exit - livePos.entry):(livePos.entry - exit))*portionQty; const fees=(livePos.entry*portionQty + exit*portionQty)*feePct; const net=pnl-fees; liveSession.equity+=net; if(liveSession.equity<0) liveSession.equity=0; liveTrades.push({ dir:livePos.dir, entryTime:candles[livePos.entryIdx].time, entry:livePos.entry, initSL:livePos.initSL, exitTime:candles[i].time, exit:exit, reason:'Flip', qty:portionQty, pnl, fees, net, rr: (Math.abs(livePos.entry-livePos.initSL)*portionQty>0? net/(Math.abs(livePos.entry-livePos.initSL)*portionQty) : null) }); livePos=null; dirty=true; uiDirty=true; }
     }
     if(dirty){ renderLBC(); }
     if(uiDirty){ renderLiveHUD(); refreshLiveTradesUI(); }
   }catch(_){ }
 }
-if(liveStartBtn){ liveStartBtn.addEventListener('click', async ()=>{ try{ if(!(window.SUPA && SUPA.isConfigured && SUPA.isConfigured())){ setStatus('Supabase requis pour le mode headless'); return; } const name=(liveWalletName&&liveWalletName.value)||randomName(); const cap=Math.max(0, parseFloat(liveStartCap&&liveStartCap.value||'10000')); const fee=Math.max(0, parseFloat(liveFee&&liveFee.value||'0.1')); const lev=Math.max(1, parseFloat(liveLev&&liveLev.value||'1')); const sym=currentSymbol; const tfSel=(liveTFSelect&&liveTFSelect.value)||((intervalSelect&&intervalSelect.value)||currentInterval)||''; let params=currentHeavenParamsForPersist(); try{ const val=(liveStrategySel&&liveStrategySel.value)||''; const cache=(window.__liveStratCache||{}); if(val && Array.isArray(cache.items)){ const it=cache.items.find(x=> String(x.value)===String(val)); if(it && it.params){ params = it.params; } } }catch(_){ } const ok = await SUPA.startHeadlessLive({ name, symbol:sym, tf: tfSel, startCap:cap, fee, lev, params }); if(ok && ok.ok){ setStatus('Session live dÃ©marrÃ©e (headless)'); await headlessActivate(name); ensureLiveDrawer(); renderLiveDrawer(); closeModalEl(liveModalEl); } else { setStatus('Erreur dÃ©marrage headless'); } }catch(_){ } }); }
-if(liveStopBtn){ liveStopBtn.addEventListener('click', async ()=>{ try{ if(!(window.SUPA && SUPA.stopHeadlessLiveByName)) {return;} if(!__headlessActiveName) {return;} const ok=await SUPA.stopHeadlessLiveByName(__headlessActiveName); if(ok){ setStatus('Session headless arrÃªtÃ©e'); } else { setStatus('ArrÃªt Ã©chouÃ©'); } ensureLiveDrawer(); renderLiveDrawer(); }catch(_){ } }); }
+if(liveStartBtn){ liveStartBtn.addEventListener('click', async ()=>{ try{ if(!(window.SUPA && SUPA.isConfigured && SUPA.isConfigured())){ setStatus('Supabase requis pour le mode headless'); return; } const name=(liveWalletName&&liveWalletName.value)||randomName(); const cap=Math.max(0, parseFloat(liveStartCap&&liveStartCap.value||'10000')); const fee=Math.max(0, parseFloat(liveFee&&liveFee.value||'0.1')); const lev=Math.max(1, parseFloat(liveLev&&liveLev.value||'1')); const sym=currentSymbol; const tfSel=(liveTFSelect&&liveTFSelect.value)||((intervalSelect&&intervalSelect.value)||currentInterval)||''; let params=currentHeavenParamsForPersist(); try{ const val=(liveStrategySel&&liveStrategySel.value)||''; const cache=(window.__liveStratCache||{}); if(val && Array.isArray(cache.items)){ const it=cache.items.find(x=> String(x.value)===String(val)); if(it && it.params){ params = it.params; } } }catch(_){ } const ok = await SUPA.startHeadlessLive({ name, symbol:sym, tf: tfSel, startCap:cap, fee, lev, params }); if(ok && ok.ok){ setStatus('Session live démarrée (headless)'); await headlessActivate(name); ensureLiveDrawer(); renderLiveDrawer(); closeModalEl(liveModalEl); } else { setStatus('Erreur démarrage headless'); } }catch(_){ } }); }
+if(liveStopBtn){ liveStopBtn.addEventListener('click', async ()=>{ try{ if(!(window.SUPA && SUPA.stopHeadlessLiveByName)) return; if(!__headlessActiveName) return; const ok=await SUPA.stopHeadlessLiveByName(__headlessActiveName); if(ok){ setStatus('Session headless arrêtée'); } else { setStatus('Arrêt échoué'); } ensureLiveDrawer(); renderLiveDrawer(); }catch(_){ } }); }
 
-async function headlessActivate(name){ try{ if(!name) {return;} __headlessActiveName=name; const sess = (window.SUPA && SUPA.fetchHeadlessSessionByName)? await SUPA.fetchHeadlessSessionByName(name) : null; if(!sess){ setStatus('Session introuvable'); return; } __headlessSessionId = sess.id; __headlessLastAt = null; __headlessTrades = []; __headlessMarkers={ entries:[], tps:[], sls:[], bes:[] }; if(__headlessRTSub && __headlessRTSub.unsubscribe){ try{ __headlessRTSub.unsubscribe(); }catch(_){ } __headlessRTSub=null; } if(__headlessPollTimer){ try{ clearInterval(__headlessPollTimer); }catch(_){ } __headlessPollTimer=null; }
+async function headlessActivate(name){ try{ if(!name) return; __headlessActiveName=name; const sess = (window.SUPA && SUPA.fetchHeadlessSessionByName)? await SUPA.fetchHeadlessSessionByName(name) : null; if(!sess){ setStatus('Session introuvable'); return; } __headlessSessionId = sess.id; __headlessLastAt = null; __headlessTrades = []; __headlessMarkers={ entries:[], tps:[], sls:[], bes:[] }; if(__headlessRTSub && __headlessRTSub.unsubscribe){ try{ __headlessRTSub.unsubscribe(); }catch(_){ } __headlessRTSub=null; } if(__headlessPollTimer){ try{ clearInterval(__headlessPollTimer); }catch(_){ } __headlessPollTimer=null; }
   // Enforce chart min-time at session creation
   try{ if(sess && sess.created_at){ const t=new Date(sess.created_at).getTime(); if(isFinite(t)){ window.__liveChartMinTimeSec = Math.floor(t/1000); window.__liveChartMinTimeBaseSec = window.__liveChartMinTimeSec; updateCutoffBadge(); } } }catch(_){ }
   // If symbol/TF differ, switch chart accordingly before polling
   const needSwitch = (sess.symbol!==currentSymbol) || (sess.tf!==currentInterval);
   if(needSwitch){
-    try{ currentSymbol=sess.symbol; currentInterval=sess.tf; if(symbolSelect) {symbolSelect.value=currentSymbol;} if(intervalSelect) {intervalSelect.value=currentInterval;} localStorage.setItem('chart:tf', currentInterval); updateTitle(currentSymbol); updateWatermark(); }catch(_){ }
+    try{ currentSymbol=sess.symbol; currentInterval=sess.tf; if(symbolSelect) symbolSelect.value=currentSymbol; if(intervalSelect) intervalSelect.value=currentInterval; localStorage.setItem('chart:tf', currentInterval); updateTitle(currentSymbol); updateWatermark(); }catch(_){ }
     closeWs(); await load(currentSymbol, currentInterval); openWs(currentSymbol, currentInterval);
   } else {
     // Apply filter immediately on current candles
@@ -6670,32 +6645,32 @@ try{ if(typeof window.__liveChartMinTimeSec==='number' && isFinite(window.__live
 
 // Live History modal
 function openLiveHistoryModal(){ try{ const m=ensureLiveHistoryModal(); populateLiveHistorySessions().then(()=> refreshLiveHistory()).catch(()=>{}); openModalEl(m); }catch(_){ } }
-function ensureLiveHistoryModal(){ let el=document.getElementById('liveHistoryModal'); if(el) {return el;} try{ el=document.createElement('div'); el.id='liveHistoryModal'; el.className='modal hidden'; el.setAttribute('aria-hidden','true'); const bd=document.createElement('div'); bd.className='modal-backdrop'; bd.dataset.close='1'; el.appendChild(bd); const ct=document.createElement('div'); ct.className='modal-content large'; el.appendChild(ct); const hd=document.createElement('div'); hd.className='modal-header'; ct.appendChild(hd); const h2=document.createElement('h2'); h2.textContent='Historique Live'; hd.appendChild(h2); const x=document.createElement('button'); x.className='icon-btn'; x.setAttribute('aria-label','Fermer'); x.textContent='Ã—'; x.addEventListener('click', ()=> closeModalEl(el)); hd.appendChild(x); const body=document.createElement('div'); body.className='modal-body'; body.innerHTML = `
+function ensureLiveHistoryModal(){ let el=document.getElementById('liveHistoryModal'); if(el) return el; try{ el=document.createElement('div'); el.id='liveHistoryModal'; el.className='modal hidden'; el.setAttribute('aria-hidden','true'); const bd=document.createElement('div'); bd.className='modal-backdrop'; bd.dataset.close='1'; el.appendChild(bd); const ct=document.createElement('div'); ct.className='modal-content large'; el.appendChild(ct); const hd=document.createElement('div'); hd.className='modal-header'; ct.appendChild(hd); const h2=document.createElement('h2'); h2.textContent='Historique Live'; hd.appendChild(h2); const x=document.createElement('button'); x.className='icon-btn'; x.setAttribute('aria-label','Fermer'); x.textContent='×'; x.addEventListener('click', ()=> closeModalEl(el)); hd.appendChild(x); const body=document.createElement('div'); body.className='modal-body'; body.innerHTML = `
   <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:8px;">
     <label>Session <select id="liveHistSessionSel" style="min-width:220px"></select></label>
     <label>De <input id="liveHistFrom" type="datetime-local" /></label>
-    <label>Ã€ <input id="liveHistTo" type="datetime-local" /></label>
+    <label>À <input id="liveHistTo" type="datetime-local" /></label>
     <button id="liveHistRefresh" class="btn">Actualiser</button>
     <button id="liveHistExport" class="btn">Export CSV</button>
   </div>
   <div style="max-height:60vh; overflow:auto;">
     <table class="lbc-table" style="width:100%">
       <thead><tr><th>Heure</th><th>Type</th><th>Dir</th><th>Entry</th><th>Exit/SL/TP</th><th>Qty</th><th>PNL</th><th>Fees</th><th>Net</th></tr></thead>
-      <tbody id="liveHistTBody"><tr><td colspan="9">â€”</td></tr></tbody>
+      <tbody id="liveHistTBody"><tr><td colspan="9">—</td></tr></tbody>
     </table>
   </div>`; ct.appendChild(body); document.body.appendChild(el);
   // wire actions
   const rf=document.getElementById('liveHistRefresh'); if(rf){ rf.addEventListener('click', ()=> refreshLiveHistory()); }
   const ex=document.getElementById('liveHistExport'); if(ex){ ex.addEventListener('click', ()=> exportLiveHistoryCSV()); }
-  el.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) {closeModalEl(el);} });
+  el.addEventListener('click', (e)=>{ const t=e.target; if(t&&t.dataset&&t.dataset.close) closeModalEl(el); });
 } catch(_){ }
   return el; }
-async function populateLiveHistorySessions(){ try{ const sel=document.getElementById('liveHistSessionSel'); if(!sel) {return;} let rows=[]; try{ rows = await (SUPA&&SUPA.fetchHeadlessSessions? SUPA.fetchHeadlessSessions(200): []); }catch(_){ rows=[]; } sel.innerHTML = (rows||[]).map(r=> `<option value="${r.id}">${r.name} â€” ${r.symbol} â€¢ ${r.tf}</option>`).join(''); }catch(_){ } }
-async function refreshLiveHistory(){ try{ const sel=document.getElementById('liveHistSessionSel'); const fromEl=document.getElementById('liveHistFrom'); const toEl=document.getElementById('liveHistTo'); const tb=document.getElementById('liveHistTBody'); if(!tb) {return;} const sid=sel&&sel.value; if(!sid){ tb.innerHTML='<tr><td colspan="9">Aucune session</td></tr>'; return; } const fromIso=fromEl&&fromEl.value? new Date(fromEl.value).toISOString(): null; const toIso=toEl&&toEl.value? new Date(toEl.value).toISOString(): null; const evts = await (SUPA&&SUPA.fetchLiveEvents? SUPA.fetchLiveEvents(sid, fromIso, 5000): []); const rows=[]; for(const ev of (evts||[])){ if(toIso && ev.at_time>toIso) {continue;} const p=ev.payload||{}; const dir=p.dir||''; const entry=(p.entry!=null? p.entry:''); const exit=(p.exit!=null? p.exit:''); const qty=(p.qty!=null? p.qty:''); const pnl=(p.pnl!=null? p.pnl:''); const fees=(p.fees!=null? p.fees:''); const net=(p.net!=null? p.net:''); rows.push(`<tr><td>${new Date(ev.at_time).toLocaleString()}</td><td>${ev.kind}</td><td>${dir}</td><td>${fmtNum(entry)}</td><td>${fmtNum(exit)}</td><td>${fmtNum(qty)}</td><td>${fmtNum(pnl)}</td><td>${fmtNum(fees)}</td><td>${fmtNum(net)}</td></tr>`); }
-  tb.innerHTML = rows.length? rows.join('') : '<tr><td colspan="9">â€”</td></tr>';
+async function populateLiveHistorySessions(){ try{ const sel=document.getElementById('liveHistSessionSel'); if(!sel) return; let rows=[]; try{ rows = await (SUPA&&SUPA.fetchHeadlessSessions? SUPA.fetchHeadlessSessions(200): []); }catch(_){ rows=[]; } sel.innerHTML = (rows||[]).map(r=> `<option value="${r.id}">${r.name} — ${r.symbol} • ${r.tf}</option>`).join(''); }catch(_){ } }
+async function refreshLiveHistory(){ try{ const sel=document.getElementById('liveHistSessionSel'); const fromEl=document.getElementById('liveHistFrom'); const toEl=document.getElementById('liveHistTo'); const tb=document.getElementById('liveHistTBody'); if(!tb) return; const sid=sel&&sel.value; if(!sid){ tb.innerHTML='<tr><td colspan="9">Aucune session</td></tr>'; return; } let fromIso=fromEl&&fromEl.value? new Date(fromEl.value).toISOString(): null; let toIso=toEl&&toEl.value? new Date(toEl.value).toISOString(): null; const evts = await (SUPA&&SUPA.fetchLiveEvents? SUPA.fetchLiveEvents(sid, fromIso, 5000): []); const rows=[]; for(const ev of (evts||[])){ if(toIso && ev.at_time>toIso) continue; const p=ev.payload||{}; const dir=p.dir||''; const entry=(p.entry!=null? p.entry:''); const exit=(p.exit!=null? p.exit:''); const qty=(p.qty!=null? p.qty:''); const pnl=(p.pnl!=null? p.pnl:''); const fees=(p.fees!=null? p.fees:''); const net=(p.net!=null? p.net:''); rows.push(`<tr><td>${new Date(ev.at_time).toLocaleString()}</td><td>${ev.kind}</td><td>${dir}</td><td>${fmtNum(entry)}</td><td>${fmtNum(exit)}</td><td>${fmtNum(qty)}</td><td>${fmtNum(pnl)}</td><td>${fmtNum(fees)}</td><td>${fmtNum(net)}</td></tr>`); }
+  tb.innerHTML = rows.length? rows.join('') : '<tr><td colspan="9">—</td></tr>';
 }catch(_){ } }
 function fmtNum(v){ const n=Number(v); return Number.isFinite(n)? n.toFixed(4):''; }
-function exportLiveHistoryCSV(){ try{ const sel=document.getElementById('liveHistSessionSel'); const tb=document.getElementById('liveHistTBody'); if(!tb) {return;} const rows = Array.from(tb.querySelectorAll('tr')); let csv='time,kind,dir,entry,exit,qty,pnl,fees,net\n'; for(const tr of rows){ const tds=Array.from(tr.querySelectorAll('td')).map(td=> (td.textContent||'').replaceAll(',', '')); if(tds.length===9){ csv += tds.join(',')+'\n'; } }
+function exportLiveHistoryCSV(){ try{ const sel=document.getElementById('liveHistSessionSel'); const tb=document.getElementById('liveHistTBody'); if(!tb) return; const rows = Array.from(tb.querySelectorAll('tr')); let csv='time,kind,dir,entry,exit,qty,pnl,fees,net\n'; for(const tr of rows){ const tds=Array.from(tr.querySelectorAll('td')).map(td=> (td.textContent||'').replaceAll(',', '')); if(tds.length===9){ csv += tds.join(',')+'\n'; } }
   const blob=new Blob([csv], {type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); const name = (sel&&sel.options[sel.selectedIndex]&&sel.options[sel.selectedIndex].text)||'session'; a.download = `live_history_${name.replaceAll(' ','_')}.csv`; a.click(); }catch(_){ }
 }
 
@@ -6715,10 +6690,6 @@ async function populateLiveWalletsUI(){ try{ const locals = readLiveWallets(); i
   if(liveWalletSel){ liveWalletSel.innerHTML = (merged||[]).map(w=>`<option value=\"${w.name}\">${w.name}</option>`).join(''); }
 } else { if(liveWalletSel){ liveWalletSel.innerHTML = (locals||[]).map(w=>`<option value=\"${w.name}\">${w.name}</option>`).join(''); } }
 }catch(_){ } }
-if(liveWalletSave){ liveWalletSave.addEventListener('click', async ()=>{ try{ const name=(liveWalletName&&liveWalletName.value||'').trim(); if(!name){ setStatus('Nom du wallet requis'); return; } const cap=+(liveStartCap&&liveStartCap.value||'10000'); const fee=+(liveFee&&liveFee.value||'0.1'); const lev=+(liveLev&&liveLev.value||'1'); if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.persistLiveWallet==='function'){ const ok = await SUPA.persistLiveWallet({ name, startCap:cap, fee, lev, exchange:'paper', base_currency:'USDC' }); if(ok){ setStatus('Wallet enregistrÃ© (Supabase)'); await populateLiveWalletsUI(); } else { setStatus('Erreur enregistrement Supabase'); } } else { const arr=readLiveWallets(); const idx=arr.findIndex(w=>w.name===name); const item={ name, startCap:cap, fee, lev }; if(idx>=0) {arr[idx]=item;} else {arr.unshift(item);} writeLiveWallets(arr.slice(0,100)); populateLiveWalletsUI(); setStatus('Wallet enregistrÃ©'); } }catch(_){ } }); }
-if(liveWalletLoad){ liveWalletLoad.addEventListener('click', async ()=>{ try{ const sel=(liveWalletSel&&liveWalletSel.value)||''; if(!sel) {return;} if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && Array.isArray(window.__liveWalletsCache)){ const w = window.__liveWalletsCache.find(x=>x.name===sel); if(w){ if(liveStartCap) {liveStartCap.value=String(w.startCap||'');} if(liveFee) {liveFee.value=String(w.fee||'');} if(liveLev) {liveLev.value=String(w.lev||'');} setStatus('Wallet chargÃ© (Supabase)'); return; } } const w=readLiveWallets().find(x=>x.name===sel); if(!w) {return;} if(liveStartCap) {liveStartCap.value=String(w.startCap||'');} if(liveFee) {liveFee.value=String(w.fee||'');} if(liveLev) {liveLev.value=String(w.lev||'');} setStatus('Wallet chargÃ©'); }catch(_){ } }); }
-if(liveWalletDelete){ liveWalletDelete.addEventListener('click', async ()=>{ try{ const sel=(liveWalletSel&&liveWalletSel.value)||''; if(!sel) {return;} if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.deleteLiveWallet==='function'){ const ok = await SUPA.deleteLiveWallet(sel, 'paper'); if(ok){ await populateLiveWalletsUI(); setStatus('Wallet supprimÃ© (Supabase)'); } else { setStatus('Suppression Ã©chouÃ©e (Supabase)'); } } else { const arr=readLiveWallets().filter(x=>x.name!==sel); writeLiveWallets(arr); populateLiveWalletsUI(); setStatus('Wallet supprimÃ©'); } }catch(_){ } }); }
-
-
-
-
+if(liveWalletSave){ liveWalletSave.addEventListener('click', async ()=>{ try{ const name=(liveWalletName&&liveWalletName.value||'').trim(); if(!name){ setStatus('Nom du wallet requis'); return; } const cap=+(liveStartCap&&liveStartCap.value||'10000'); const fee=+(liveFee&&liveFee.value||'0.1'); const lev=+(liveLev&&liveLev.value||'1'); if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.persistLiveWallet==='function'){ const ok = await SUPA.persistLiveWallet({ name, startCap:cap, fee, lev, exchange:'paper', base_currency:'USDC' }); if(ok){ setStatus('Wallet enregistré (Supabase)'); await populateLiveWalletsUI(); } else { setStatus('Erreur enregistrement Supabase'); } } else { let arr=readLiveWallets(); const idx=arr.findIndex(w=>w.name===name); const item={ name, startCap:cap, fee, lev }; if(idx>=0) arr[idx]=item; else arr.unshift(item); writeLiveWallets(arr.slice(0,100)); populateLiveWalletsUI(); setStatus('Wallet enregistré'); } }catch(_){ } }); }
+if(liveWalletLoad){ liveWalletLoad.addEventListener('click', async ()=>{ try{ const sel=(liveWalletSel&&liveWalletSel.value)||''; if(!sel) return; if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && Array.isArray(window.__liveWalletsCache)){ const w = window.__liveWalletsCache.find(x=>x.name===sel); if(w){ if(liveStartCap) liveStartCap.value=String(w.startCap||''); if(liveFee) liveFee.value=String(w.fee||''); if(liveLev) liveLev.value=String(w.lev||''); setStatus('Wallet chargé (Supabase)'); return; } } const w=readLiveWallets().find(x=>x.name===sel); if(!w) return; if(liveStartCap) liveStartCap.value=String(w.startCap||''); if(liveFee) liveFee.value=String(w.fee||''); if(liveLev) liveLev.value=String(w.lev||''); setStatus('Wallet chargé'); }catch(_){ } }); }
+if(liveWalletDelete){ liveWalletDelete.addEventListener('click', async ()=>{ try{ const sel=(liveWalletSel&&liveWalletSel.value)||''; if(!sel) return; if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.deleteLiveWallet==='function'){ const ok = await SUPA.deleteLiveWallet(sel, 'paper'); if(ok){ await populateLiveWalletsUI(); setStatus('Wallet supprimé (Supabase)'); } else { setStatus('Suppression échouée (Supabase)'); } } else { let arr=readLiveWallets().filter(x=>x.name!==sel); writeLiveWallets(arr); populateLiveWalletsUI(); setStatus('Wallet supprimé'); } }catch(_){ } }); }

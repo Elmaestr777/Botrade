@@ -38,6 +38,8 @@ backtest:
   fee_pct: 0.1
   leverage: 1
   risk_max_pct: 1.0
+  max_daily_drawdown_pct: 4.0
+  max_rolling_drawdown_pct: 8.0
 validation:
   walk_forward:
     train_window: 21d
