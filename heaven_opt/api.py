@@ -136,10 +136,13 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
             return {"profitFactor": 0.0, "totalPnl": -1e9, "maxDDPct": 100.0}
         rep = rep_full
         # numeric extraction
+        trades_count = float(len(rep.get("trades", [])))
+        backtest_hours = max((float(end_sec) - float(start_sec)) / 3600.0, 1e-9)
         metrics_numeric = {
             "totalPnl": float(rep.get("totalPnl", 0.0)),
             "profitFactor": float(rep.get("profitFactor", 0.0)),
-            "trades": float(len(rep.get("trades", []))),
+            "trades": trades_count,
+            "tradesPerHour": float(trades_count / backtest_hours) if backtest_hours > 0 else -1.0,
             "winrate": float(rep.get("winrate", 0.0)),
             "avgRR": float(rep.get("avgRR", 0.0)) if rep.get("avgRR") is not None else 0.0,
             "sharpe": float(rep.get("sharpe", 0.0)),
@@ -679,9 +682,27 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
     # Create palmarès set and entries
     set_id = None
 
-    def _strategy_name_for_rank(rank: int, params: dict) -> str:
+    def _strategy_name_for_rank(rank: int, params: dict, generation: int = 1) -> str:
         sig = sha1_of_params(params)[:6]
-        return f"heaven-{rank:02d}-{sig}"
+        # Legacy-style human names: random-like dictionary word (FR/ES/PL) + generation + rank + short signature.
+        # Deterministic mapping from params hash to keep names stable across re-reads.
+        dict_fr = [
+            "aurore", "brise", "cascade", "delta", "eclat", "forge", "galaxie", "horizon", "ivoire", "jardin",
+            "krypton", "lueur", "mirage", "nebuleuse", "onyx", "prisme", "quartz", "rivage", "sillage", "tempete",
+        ]
+        dict_es = [
+            "amanecer", "brisa", "cumbre", "destello", "esfera", "faro", "gacela", "halcon", "isla", "joya",
+            "karma", "lucero", "marea", "nube", "origen", "pulso", "quimera", "rayo", "sendero", "trueno",
+        ]
+        dict_pl = [
+            "zorza", "bryza", "gwiazda", "iskra", "jutrzenka", "kruk", "latarnia", "mewa", "noc", "ognisko",
+            "perla", "rzeka", "sokół", "tarcza", "ulica", "wiatr", "zorza2", "zamek", "źródło", "żagiel",
+        ]
+        pool = dict_fr + dict_es + dict_pl
+        idx = int(sig, 16) % len(pool)
+        word = pool[idx]
+        tf_tag = str(tf).replace('/', '').replace(' ', '').lower()
+        return f"{word}-g{int(generation):02d}-{tf_tag}-{sig}"
 
     persist_empty_set = str(os.getenv("HEAVEN_PERSIST_EMPTY_SET", "0")).strip().lower() in {"1", "true", "yes", "on"}
     can_persist_set = bool(svc_key) and bool(os.getenv("SUPABASE_URL") or os.getenv("SUPABASE_REST_URL"))
@@ -749,7 +770,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
                 ents.append({
                     "set_id": set_id,
                     "rank": rank,
-                    "name": _strategy_name_for_rank(rank, params_r),
+                    "name": _strategy_name_for_rank(rank, params_r, generation_for_entries),
                     "params": params_r,
                     "metrics": _sanitize_metrics(r.get("metrics") or {}),
                     "score": float((_sanitize_metrics(r.get("metrics") or {})).get("score") or 0.0),

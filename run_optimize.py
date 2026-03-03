@@ -2,7 +2,10 @@
 from __future__ import annotations
 
 import argparse
+import os
+import subprocess
 import sys
+import time
 from pathlib import Path
 
 import yaml
@@ -75,11 +78,79 @@ def _runtime_risk_gate_errors(data: dict) -> list[str]:
     return errs
 
 
+def _run_report_refresh(config_path: Path, symbol: str, tf: str) -> bool:
+    report_script = None
+    explicit = os.getenv("HEAVEN_PALMARES_REPORT")
+    if explicit:
+        p = Path(explicit)
+        if p.exists():
+            report_script = p
+
+    if report_script is None:
+        candidates = [
+            Path.home() / ".openclaw/workspace/botrade_dev/tools/report_latest_palmares.py",
+            Path("tools/report_latest_palmares.py"),
+        ]
+        for cand in candidates:
+            if cand.exists():
+                report_script = cand
+                break
+
+    if report_script is None:
+        print("[refresh] report script not found (set HEAVEN_PALMARES_REPORT)")
+        return False
+
+    env_file = os.getenv("HEAVEN_ENV_FILE", str(Path.home() / ".openclaw/workspace/botrade_dev/.env.local"))
+    max_dd = os.getenv("HEAVEN_MAX_DD_PCT", "3.0")
+    max_tph = os.getenv("HEAVEN_MAX_TRADES_PER_HOUR", "2.0")
+    lookback = os.getenv("HEAVEN_COMPARABILITY_LOOKBACK_SETS", "3")
+
+    cmd = [
+        sys.executable,
+        str(report_script),
+        "--symbol",
+        symbol,
+        "--tf",
+        tf,
+        "--limit",
+        "10",
+        "--env-file",
+        env_file,
+        "--max-dd-pct",
+        str(max_dd),
+        "--max-trades-per-hour",
+        str(max_tph),
+        "--comparability-lookback-sets",
+        str(lookback),
+    ]
+    print(f"[refresh] running palmares refresh report: {report_script}")
+    proc = subprocess.run(cmd, check=False)
+    if proc.returncode != 0:
+        print(f"[refresh] report failed with code {proc.returncode}", file=sys.stderr)
+        return False
+    return True
+
+
+def _run_once(config: OptimizationConfig) -> int:
+    try:
+        res = optimize_heaven(config)
+    except PersistencePartialError as e:
+        print(str(e), file=sys.stderr)
+        return 1
+    print(f"Top {len(res.top)} results. Artifacts: {res.artifacts_dir}")
+    return 0
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Heaven Strategy Optimizer")
     parser.add_argument("--config", required=True, help="Path to YAML config")
     parser.add_argument("--fast", action="store_true", help="Fast overrides for quick run")
     parser.add_argument("--no-wf", action="store_true", help="Disable Walk-Forward/Monte-Carlo validation")
+    parser.add_argument(
+        "--cycle-full",
+        action="store_true",
+        help="Run canonical full cycle: NEW -> palmares refresh -> LAB",
+    )
     args = parser.parse_args(argv)
 
     cfg_path = Path(args.config)
@@ -136,17 +207,44 @@ def main(argv=None) -> int:
 
     # runtime flags not in schema
     if args.no_wf:
-        import os
         os.environ["HEAVEN_NO_WF"] = "1"
 
-    try:
-        res = optimize_heaven(config)
-    except PersistencePartialError as e:
-        print(str(e), file=sys.stderr)
-        return 1
+    if not args.cycle_full:
+        return _run_once(config)
 
-    print(f"Top {len(res.top)} results. Artifacts: {res.artifacts_dir}")
-    return 0
+    # Canonical full cycle: NEW -> refresh palmares -> LAB
+    original_run_type = os.getenv("HEAVEN_RUN_TYPE")
+    original_campaign_id = os.getenv("HEAVEN_CAMPAIGN_ID")
+    cycle_campaign_id = original_campaign_id or (
+        f"cmp-{str(config.general.symbol).lower()}-{str(config.general.tf_optim).lower()}-{time.strftime('%Y%m%d%H%M%S')}"
+    )
+    try:
+        os.environ["HEAVEN_CAMPAIGN_ID"] = cycle_campaign_id
+        print(f"[cycle] campaign={cycle_campaign_id}")
+
+        os.environ["HEAVEN_RUN_TYPE"] = "NEW"
+        print("[cycle] step 1/3 NEW")
+        code = _run_once(config)
+        if code != 0:
+            return code
+
+        print("[cycle] step 2/3 Refresh palmares")
+        if not _run_report_refresh(cfg_path, config.general.symbol, config.general.tf_optim):
+            return 1
+
+        os.environ["HEAVEN_RUN_TYPE"] = "LAB"
+        print("[cycle] step 3/3 LAB")
+        return _run_once(config)
+    finally:
+        if original_run_type is None:
+            os.environ.pop("HEAVEN_RUN_TYPE", None)
+        else:
+            os.environ["HEAVEN_RUN_TYPE"] = original_run_type
+
+        if original_campaign_id is None:
+            os.environ.pop("HEAVEN_CAMPAIGN_ID", None)
+        else:
+            os.environ["HEAVEN_CAMPAIGN_ID"] = original_campaign_id
 
 
 if __name__ == "__main__":
