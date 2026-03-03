@@ -4718,7 +4718,7 @@ if(detailCtxEl){
  }catch(_){ if(detailCtxEl){ detailCtxEl.textContent = t('detail.error'); } } }
 
 // Lab actions: refresh/export/weights
-const labExportBtn=document.getElementById('labExport'); const labWeightsBtn=document.getElementById('labWeights'); const labRunNewBtn=document.getElementById('labRunNew'); const labRunCycleBtn=document.getElementById('labRunCycle');
+const labExportBtn=document.getElementById('labExport'); const labReclassifyBtn=document.getElementById('labReclassify'); const labWeightsBtn=document.getElementById('labWeights'); const labRunNewBtn=document.getElementById('labRunNew'); const labRunCycleBtn=document.getElementById('labRunCycle');
 const weightsModalEl=document.getElementById('weightsModal'); const weightsClose=document.getElementById('weightsClose'); const weightsSave=document.getElementById('weightsSave'); const weightsProfile=document.getElementById('weightsProfile'); const weightsBody=document.getElementById('weightsBody');
 if(labTFSelect){ labTFSelect.addEventListener('change', async ()=>{ try{ localStorage.setItem('lab:tf', labTFSelect.value); await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
 if(labSymbolSelect){ labSymbolSelect.addEventListener('change', async ()=>{ try{ localStorage.setItem('lab:sym', labSymbolSelect.value); await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
@@ -4756,6 +4756,72 @@ try{
 }catch(_){ }
 if(labRunNewBtn){ labRunNewBtn.addEventListener('click', ()=>{ try{ __labAutoLoopMode='new'; __labCyclePendingImprove=false; window.__labGoalOverride='new'; if(labRunBtn){ labRunBtn.click(); } }catch(_){ } }); }
 if(labRunCycleBtn){ labRunCycleBtn.addEventListener('click', ()=>{ try{ __labAutoLoopMode='cycle'; __labCycleNextGoal='new'; __labCyclePendingImprove=true; window.__labGoalOverride='new'; if(labRunBtn){ labRunBtn.click(); } }catch(_){ } }); }
+async function reclassifyPalmaresNow(){
+  const tf=(labTFSelect&&labTFSelect.value)||(intervalSelect&&intervalSelect.value)||'';
+  const sym=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol;
+  const prof=(labProfileEl&&labProfileEl.value)||localStorage.getItem('labWeightsProfile')||'balancee';
+  const weights=getWeights(prof||'balancee');
+
+  let source=[];
+  try{
+    if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured() && typeof SUPA.fetchPalmares==='function'){
+      source = await SUPA.fetchPalmares(sym, tf, 200, prof, 'score');
+    } else {
+      source = readPalmares(sym, tf) || [];
+    }
+  }catch(_){ source=[]; }
+  if(!Array.isArray(source) || !source.length){ setStatus('Aucun palmarès à reclasser'); return; }
+
+  const byScore = source.slice().sort((a,b)=> (Number(b.score)||scoreResult((b&&b.res)||{},weights)) - (Number(a.score)||scoreResult((a&&a.res)||{},weights))).slice(0,50);
+  const byPnl = source.slice().sort((a,b)=> Number((b&&b.res&&b.res.totalPnl)||0) - Number((a&&a.res&&a.res.totalPnl)||0)).slice(0,50);
+
+  const uniq = new Map();
+  const push=(it)=>{ if(!it||!it.params) return; const k=paramsKey(it.params||{}); if(!uniq.has(k)) uniq.set(k,it); };
+  byScore.forEach(push); byPnl.forEach(push);
+  const candidates = Array.from(uniq.values());
+  if(!candidates.length){ setStatus('Aucune stratégie candidate à reclasser'); return; }
+
+  let bars=[];
+  try{
+    if(sym===currentSymbol && tf===currentInterval && Array.isArray(candlesAll) && candlesAll.length){ bars = candlesAll.slice(); }
+    else { bars = await fetchAllKlines(sym, tf, API_MAX_BARS); }
+  }catch(_){ bars=[]; }
+  if(!Array.isArray(bars) || bars.length<200){ setStatus('Données insuffisantes pour reclasser'); return; }
+
+  const conf = readLabRiskConf();
+  const rescored=[];
+  const sIdx=0, eIdx=bars.length-1;
+  for(const it of candidates){
+    try{
+      const res = runBacktestSliceFor(bars, sIdx, eIdx, conf, it.params, false);
+      const sc = scoreResult(res, weights);
+      rescored.push({
+        ...it,
+        score: sc,
+        res,
+        metrics: res,
+        gen: it.gen||1,
+        name: it.name||null,
+      });
+    }catch(_){ }
+  }
+
+  rescored.sort((a,b)=> (Number(b.score)||0) - (Number(a.score)||0));
+  const bestOut = rescored.slice(0,50);
+  if(!bestOut.length){ setStatus('Reclassement vide'); return; }
+
+  try{
+    if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured() && typeof SUPA.persistLabResults==='function'){
+      await SUPA.persistLabResults({ symbol:sym, tf, tested: rescored, best: bestOut, profileName: prof });
+    } else {
+      writePalmares(sym, tf, bestOut);
+    }
+    await renderLabFromStorage();
+    await computeLabBenchmarkAndUpdate();
+    setStatus(`Palmarès reclassé (${bestOut.length} stratégies)`);
+  }catch(_){ setStatus('Erreur reclassement palmarès'); }
+}
+if(labReclassifyBtn){ labReclassifyBtn.addEventListener('click', async ()=>{ try{ await reclassifyPalmaresNow(); }catch(_){ setStatus('Erreur reclassement palmarès'); } }); }
 if(labExportBtn){ labExportBtn.addEventListener('click', ()=>{ try{ const tf=(labTFSelect&&labTFSelect.value)||(intervalSelect&&intervalSelect.value)||''; const sym=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol; const arr=Array.isArray(window.labPalmaresCache)? window.labPalmaresCache : []; if(!arr.length){ setStatus('Rien à exporter'); return; }
   const DL=';';
   function esc(v){ let s=(v==null?'':String(v)); if(s.includes('"')) s=s.replace(/"/g,'""'); if(s.includes(DL)||s.includes('\n')) s='"'+s+'"'; return s; }
