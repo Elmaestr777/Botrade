@@ -141,6 +141,25 @@ def _run_once(config: OptimizationConfig) -> int:
     return 0
 
 
+def _run_with_hard_timeout(argv_list: list[str], time_limit_sec: int) -> int:
+    if time_limit_sec <= 0:
+        return -999
+    env = os.environ.copy()
+    env["HEAVEN_INTERNAL_RUN"] = "1"
+    cmd = [sys.executable, str(Path(__file__).resolve()), *argv_list]
+    try:
+        p = subprocess.Popen(cmd, env=env)
+        p.wait(timeout=time_limit_sec)
+        return int(p.returncode or 0)
+    except subprocess.TimeoutExpired:
+        try:
+            p.kill()
+        except Exception:
+            pass
+        print(f"TIMEBOX_STOP after {time_limit_sec}s", file=sys.stderr)
+        return 124
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Heaven Strategy Optimizer")
     parser.add_argument("--config", required=True, help="Path to YAML config")
@@ -151,7 +170,17 @@ def main(argv=None) -> int:
         action="store_true",
         help="Run canonical full cycle: NEW -> palmares refresh -> LAB",
     )
+    parser.add_argument(
+        "--time-limit-sec",
+        type=int,
+        default=int(os.getenv("HEAVEN_TIME_LIMIT_SEC", "0") or "0"),
+        help="Hard timeout (seconds) for the full run process (kills process and returns 124)",
+    )
     args = parser.parse_args(argv)
+
+    if args.time_limit_sec > 0 and os.getenv("HEAVEN_INTERNAL_RUN") != "1" and not args.cycle_full:
+        argv_list = list(argv) if argv is not None else sys.argv[1:]
+        return _run_with_hard_timeout(argv_list, args.time_limit_sec)
 
     cfg_path = Path(args.config)
     if not cfg_path.exists():
@@ -212,29 +241,53 @@ def main(argv=None) -> int:
     if not args.cycle_full:
         return _run_once(config)
 
-    # Canonical full cycle: NEW -> refresh palmares -> LAB
+    # Canonical full cycle: NEW -> refresh palmares -> LAB (+ final refresh)
     original_run_type = os.getenv("HEAVEN_RUN_TYPE")
     original_campaign_id = os.getenv("HEAVEN_CAMPAIGN_ID")
     cycle_campaign_id = original_campaign_id or (
         f"cmp-{str(config.general.symbol).lower()}-{str(config.general.tf_optim).lower()}-{time.strftime('%Y%m%d%H%M%S')}"
     )
+    deadline_ts = time.time() + args.time_limit_sec if args.time_limit_sec > 0 else None
+    reserve_refresh_sec = int(os.getenv("HEAVEN_REFRESH_RESERVE_SEC", "45") or "45")
+    reserve_lab_sec = int(os.getenv("HEAVEN_LAB_MIN_BUDGET_SEC", "120") or "120")
+
+    def _remaining() -> float:
+        if deadline_ts is None:
+            return 10**9
+        return deadline_ts - time.time()
+
     try:
         os.environ["HEAVEN_CAMPAIGN_ID"] = cycle_campaign_id
         print(f"[cycle] campaign={cycle_campaign_id}")
 
+        if _remaining() <= (reserve_refresh_sec + reserve_lab_sec):
+            print("[cycle] not enough time budget to start NEW safely", file=sys.stderr)
+            return 124
+
         os.environ["HEAVEN_RUN_TYPE"] = "NEW"
-        print("[cycle] step 1/3 NEW")
+        print("[cycle] step 1/4 NEW")
         code = _run_once(config)
         if code != 0:
             return code
 
-        print("[cycle] step 2/3 Refresh palmares")
+        print("[cycle] step 2/4 Refresh palmares (post-NEW)")
         if not _run_report_refresh(cfg_path, config.general.symbol, config.general.tf_optim):
             return 1
 
+        if _remaining() <= reserve_refresh_sec:
+            print("TIMEBOX_STOP before LAB (budget preserved for refresh)", file=sys.stderr)
+            return 124
+
         os.environ["HEAVEN_RUN_TYPE"] = "LAB"
-        print("[cycle] step 3/3 LAB")
-        return _run_once(config)
+        print("[cycle] step 3/4 LAB")
+        code = _run_once(config)
+        if code != 0:
+            return code
+
+        print("[cycle] step 4/4 Refresh palmares (post-LAB)")
+        if not _run_report_refresh(cfg_path, config.general.symbol, config.general.tf_optim):
+            return 1
+        return 0
     finally:
         if original_run_type is None:
             os.environ.pop("HEAVEN_RUN_TYPE", None)

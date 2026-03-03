@@ -18,11 +18,11 @@ const __profileIdCacheByName = new Map();
     try{ return { url: localStorage.getItem(LS_URL)||'', anon: localStorage.getItem(LS_ANON)||'' }; }catch(_){ return {url:'',anon:''}; }
   }
   function saveCfg(url, anon){ try{ localStorage.setItem(LS_URL, url||''); localStorage.setItem(LS_ANON, anon||''); }catch(_){} }
- 
+
   function slog(msg){ try{ if(typeof window!=='undefined' && typeof window.addLabLog==='function'){ window.addLabLog(msg); } }catch(_){ }
     try{ console.log('[SUPA]', msg); }catch(_){ }
   }
- 
+
    function ensureClient(){
      const cfg = readCfg();
      if(!cfg.url || !cfg.anon || !window.supabase){ client = null; return null; }
@@ -172,7 +172,7 @@ function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfi
       if(Array.isArray(v)) {return v.map(walk);}
       if(v && typeof v==='object'){
         const o={};
-        for(const [k,val] of Object.entries(v)) {o[k]=walk(val);} 
+        for(const [k,val] of Object.entries(v)) {o[k]=walk(val);}
         return o;
       }
       if(typeof v==='number' && !Number.isFinite(v)) {return null;}
@@ -208,17 +208,17 @@ function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfi
     const c = ensureClient(); if(!c) {return null;}
     try{
       const { data, error } = await c.from('palmares_sets').insert(row).select('id').single();
-      if(error){ slog('Supabase: create palmares_set erreur — '+(error.message||error));
+      if(error){ slog('Supabase: create palmares_set erreur - '+(error.message||error));
         // Fallback: réessayer sans user_id si la colonne est NOT NULL/protégée
         try{
           const r2 = { ...row }; delete r2.user_id;
           const { data: d2, error: e2 } = await c.from('palmares_sets').insert(r2).select('id').single();
-          if(e2){ slog('Supabase: create palmares_set fallback erreur — '+(e2.message||e2)); return null; }
+          if(e2){ slog('Supabase: create palmares_set fallback erreur - '+(e2.message||e2)); return null; }
           return (d2 && d2.id) || null;
-        }catch(e){ slog('Supabase: create palmares_set fallback exception — '+(e&&e.message?e.message:e)); return null; }
+        }catch(e){ slog('Supabase: create palmares_set fallback exception - '+(e&&e.message?e.message:e)); return null; }
       }
       return (data && data.id) || null;
-    }catch(e){ slog('Supabase: create palmares_set exception — '+(e&&e.message?e.message:e)); return null; }
+    }catch(e){ slog('Supabase: create palmares_set exception - '+(e&&e.message?e.message:e)); return null; }
   }
 
   async function insertPalmaresEntries(rows){
@@ -237,7 +237,7 @@ function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfi
     const groups = new Map();
     for(const r of rows){
       const k = [String(r.user_id||'null'), String(r.symbol||''), String(r.tf||''), String(r.profile_id||'null'), String(r.run_id||'null')].join('|');
-      if(!groups.has(k)) {groups.set(k, []);} 
+      if(!groups.has(k)) {groups.set(k, []);}
       groups.get(k).push(r);
     }
 
@@ -248,11 +248,11 @@ function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfi
         let q = c.from('strategy_evaluations').select('id,params').eq('symbol', sym).eq('tf', tf).limit(5000);
         q = (uid==='null') ? q.is('user_id', null) : q.eq('user_id', uid);
         q = (pid==='null') ? q.is('profile_id', null) : q.eq('profile_id', pid);
-        if(runId && runId!=='null') {q = q.eq('run_id', runId);} 
+        if(runId && runId!=='null') {q = q.eq('run_id', runId);}
         const { data, error } = await q;
         if(error){ failed += grp.length; continue; }
         const byKey = new Map();
-        for(const row of (data||[])) {byKey.set(stableStringify(row.params||{}), row.id);} 
+        for(const row of (data||[])) {byKey.set(stableStringify(row.params||{}), row.id);}
 
         for(const r of grp){
           const id = byKey.get(stableStringify(r.params||{}));
@@ -316,10 +316,10 @@ function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfi
     const c = ensureClient(); if(!c){ slog('Supabase: client absent'); return false; }
     try{
       const { error } = await c.from('lab_profiles').select('id').limit(1);
-      if(error){ slog('Supabase: testConnection KO — '+(error.message||error)); return false; }
+      if(error){ slog('Supabase: testConnection KO - '+(error.message||error)); return false; }
       slog('Supabase: connexion OK');
       return true;
-    }catch(e){ slog('Supabase: testConnection exception — '+(e&&e.message?e.message:e)); return false; }
+    }catch(e){ slog('Supabase: testConnection exception - '+(e&&e.message?e.message:e)); return false; }
   }
 
 async function persistLabResults(ctx){
@@ -346,7 +346,7 @@ async function persistLabResults(ctx){
         run_type: runType,
         profile: profName,
       };
- 
+
       // Upsert tested strategies (selected=false)
       const toEval = [];
       // Limiter le volume d'évaluations envoyées à Supabase pour accélérer la fin des runs
@@ -363,7 +363,7 @@ async function persistLabResults(ctx){
         }
       }
       if(toEval.length){ slog(`Supabase: upsert ${toEval.length} évaluations (top) ...`); await upsertStrategyEvaluations(toEval); slog('Supabase: évaluations enregistrées'); }
- 
+
       // Palmarès Top-N
       const best = Array.isArray(ctx.best)? ctx.best.slice() : [];
       if(best.length){
@@ -383,11 +383,11 @@ async function persistLabResults(ctx){
           }
           try{
             await insertPalmaresEntries(entries); slog('Supabase: entrées palmarès insérées');
-          }catch(e){ slog('Supabase: insert palmarès_entries KO — '+(e&&e.message?e.message:e)); }
+          }catch(e){ slog('Supabase: insert palmarès_entries KO - '+(e&&e.message?e.message:e)); }
         } else {
           slog('Supabase: création palmarès_set KO (id absent)');
         }
-        // Mark selected — même si setId est null, on passe selected=true pour pouvoir lire via fetchPalmares
+        // Mark selected - même si setId est null, on passe selected=true pour pouvoir lire via fetchPalmares
         // IMPORTANT: on copie aussi metrics + score dans strategy_evaluations pour que le Palmarès
         // côté UI puisse afficher PF, P&L, etc. à partir de la table strategy_evaluations seule.
         try{
@@ -403,12 +403,12 @@ async function persistLabResults(ctx){
           }));
           await markSelectedForSet(selRows, setId||null);
           slog('Supabase: stratégies marquées selected=true');
-        }catch(e){ slog('Supabase: mark selected KO — '+(e&&e.message?e.message:e)); }
+        }catch(e){ slog('Supabase: mark selected KO - '+(e&&e.message?e.message:e)); }
         slog('Supabase: fin persistance Lab');
       } else {
-        slog('Supabase: aucun “best” à enregistrer');
+        slog('Supabase: aucun "best" à enregistrer');
       }
-    }catch(e){ slog('Supabase: persistLabResults exception — '+(e&&e.message?e.message:e)); console.warn('persistLabResults error', e); }
+    }catch(e){ slog('Supabase: persistLabResults exception - '+(e&&e.message?e.message:e)); console.warn('persistLabResults error', e); }
   }
 
   async function openConfigAndLogin(){
@@ -563,7 +563,7 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
         .order('score', { ascending:false })
         .order('created_at', { ascending:false });
       const { data, error } = await q.limit(Math.max(1, limit));
-      if(error){ slog('Supabase: fetchGlobalPalmares KO — '+(error.message||error)); return []; }
+      if(error){ slog('Supabase: fetchGlobalPalmares KO - '+(error.message||error)); return []; }
       const mapped = mapRows(data||[]);
       // Tri numérique côté client selon le mode demandé
       const sorted = mapped.slice().sort((a,b)=>{
@@ -589,10 +589,10 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
       const c=ensureClient(); if(!c){ slog('Supabase: client indisponible'); return false; }
       const row={ user_id: null, symbol: ctx.symbol, tf: ctx.tf, name: (ctx.name||null), params: ctx.params||{}, metrics: ctx.metrics||null };
       const { error } = await c.from('heaven_strategies').upsert([row], { onConflict: 'symbol,tf,name', ignoreDuplicates: false, returning: 'minimal' });
-      if(error){ slog('Supabase: persistHeavenStrategy KO — '+(error.message||error)); return false; }
+      if(error){ slog('Supabase: persistHeavenStrategy KO - '+(error.message||error)); return false; }
       slog('Supabase: Heaven sauvegardée');
       return true;
-    }catch(e){ slog('Supabase: persistHeavenStrategy exception — '+(e&&e.message?e.message:e)); return false; }
+    }catch(e){ slog('Supabase: persistHeavenStrategy exception - '+(e&&e.message?e.message:e)); return false; }
   }
   async function fetchHeavenStrategies(symbol, tf, limit=50){
     const c=ensureClient(); if(!c) {return [];}
@@ -604,17 +604,17 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
         .eq('tf', tf)
         .order('created_at', { ascending:false })
         .limit(Math.max(1, limit));
-      if(error){ slog('Supabase: fetchHeavenStrategies KO — '+(error.message||error)); return []; }
+      if(error){ slog('Supabase: fetchHeavenStrategies KO - '+(error.message||error)); return []; }
       return Array.isArray(data)? data : [];
     }catch(_){ return []; }
   }
   async function deleteHeavenStrategy(id){
     const c=ensureClient(); if(!c || !id) {return false;}
-    try{ const { error } = await c.from('heaven_strategies').delete().eq('id', id); if(error){ slog('Supabase: deleteHeavenStrategy KO — '+(error.message||error)); return false; } return true; }catch(_){ return false; }
+    try{ const { error } = await c.from('heaven_strategies').delete().eq('id', id); if(error){ slog('Supabase: deleteHeavenStrategy KO - '+(error.message||error)); return false; } return true; }catch(_){ return false; }
   }
   async function renameHeavenStrategy(id, name){
     const c=ensureClient(); if(!c || !id) {return false;}
-    try{ const { error } = await c.from('heaven_strategies').update({ name }).eq('id', id); if(error){ slog('Supabase: renameHeavenStrategy KO — '+(error.message||error)); return false; } return true; }catch(_){ return false; }
+    try{ const { error } = await c.from('heaven_strategies').update({ name }).eq('id', id); if(error){ slog('Supabase: renameHeavenStrategy KO - '+(error.message||error)); return false; } return true; }catch(_){ return false; }
   }
 
   // Headless live sessions API (Supabase)
@@ -651,29 +651,29 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
           .maybeSingle();
         if(!e0 && ex && ex.id){
           const { error: e1 } = await c.from('live_sessions').update(base).eq('id', ex.id);
-          if(e1){ slog('Supabase: startHeadlessLive update KO — '+(e1.message||e1)); }
+          if(e1){ slog('Supabase: startHeadlessLive update KO - '+(e1.message||e1)); }
           else { updated = true; }
         }
       }catch(_){ }
       // 2) If not updated, insert new row
       if(!updated){
         const { error: e2 } = await c.from('live_sessions').insert([base], { returning: 'minimal' });
-        if(e2){ slog('Supabase: startHeadlessLive insert KO — '+(e2.message||e2)); return { ok:false, error:e2.message||String(e2) }; }
+        if(e2){ slog('Supabase: startHeadlessLive insert KO - '+(e2.message||e2)); return { ok:false, error:e2.message||String(e2) }; }
       }
       return { ok:true };
     }catch(e){ return { ok:false, error:(e&&e.message)||String(e) }; }
   }
   async function stopHeadlessLiveByName(name){
     const c=ensureClient(); if(!c||!name) {return false;}
-    try{ const { error } = await c.from('live_sessions').update({ active:false }).eq('name', name); if(error){ slog('Supabase: stopHeadlessLive KO — '+(error.message||error)); return false; } return true; }catch(_){ return false; }
+    try{ const { error } = await c.from('live_sessions').update({ active:false }).eq('name', name); if(error){ slog('Supabase: stopHeadlessLive KO - '+(error.message||error)); return false; } return true; }catch(_){ return false; }
   }
 async function fetchHeadlessSessions(limit=50){
     const c=ensureClient(); if(!c) {return [];}
-    try{ const { data, error } = await c.from('live_sessions').select('id,name,symbol,tf,active,equity,start_cap,created_at,updated_at').order('updated_at',{ascending:false}).limit(Math.max(1,limit)); if(error){ slog('Supabase: fetchHeadlessSessions KO — '+(error.message||error)); return []; } return Array.isArray(data)? data:[]; }catch(_){ return []; }
+    try{ const { data, error } = await c.from('live_sessions').select('id,name,symbol,tf,active,equity,start_cap,fee,lev,created_at,updated_at').order('updated_at',{ascending:false}).limit(Math.max(1,limit)); if(error){ slog('Supabase: fetchHeadlessSessions KO - '+(error.message||error)); return []; } return Array.isArray(data)? data:[]; }catch(_){ return []; }
   }
 async function fetchHeadlessSessionByName(name){
     const c=ensureClient(); if(!c||!name) {return null;}
-    try{ const { data, error } = await c.from('live_sessions').select('id,name,symbol,tf,active,equity,start_cap,last_bar_time,created_at,updated_at').eq('name', name).maybeSingle(); if(error){ slog('Supabase: fetchHeadlessSessionByName KO — '+(error.message||error)); return null; } return data||null; }catch(_){ return null; }
+    try{ const { data, error } = await c.from('live_sessions').select('id,name,symbol,tf,active,equity,start_cap,fee,lev,last_bar_time,created_at,updated_at').eq('name', name).maybeSingle(); if(error){ slog('Supabase: fetchHeadlessSessionByName KO - '+(error.message||error)); return null; } return data||null; }catch(_){ return null; }
   }
   async function fetchLiveEvents(sessionId, sinceIso, limit=500){
     const c=ensureClient(); if(!c||!sessionId) {return [];}
@@ -681,7 +681,7 @@ async function fetchHeadlessSessionByName(name){
       let q = c.from('live_events').select('id,kind,at_time,payload').eq('session_id', sessionId).order('at_time',{ascending:true}).limit(Math.max(1,limit));
       if(sinceIso){ q = q.gt('at_time', sinceIso); }
       const { data, error } = await q;
-      if(error){ slog('Supabase: fetchLiveEvents KO — '+(error.message||error)); return []; }
+      if(error){ slog('Supabase: fetchLiveEvents KO - '+(error.message||error)); return []; }
       return Array.isArray(data)? data:[];
     }catch(_){ return []; }
   }
@@ -711,14 +711,14 @@ async function fetchHeadlessSessionByName(name){
         leverage: Number(ctx.lev||ctx.leverage||1) || 1,
         settings: { start_cap: Number(ctx.startCap||ctx.start_cap||0)||0, fee: Number(ctx.fee||0)||0 }
       };
-      if(!row.name){ slog('Supabase: persistLiveWallet — nom requis'); return false; }
+      if(!row.name){ slog('Supabase: persistLiveWallet - nom requis'); return false; }
       const { error } = await c
         .from('wallets')
         .upsert([row], { onConflict: 'name,exchange', ignoreDuplicates: false, returning: 'minimal' });
-      if(error){ slog('Supabase: persistLiveWallet KO — '+(error.message||error)); return false; }
+      if(error){ slog('Supabase: persistLiveWallet KO - '+(error.message||error)); return false; }
       slog('Supabase: Wallet sauvegardé');
       return true;
-    }catch(e){ slog('Supabase: persistLiveWallet exception — '+(e&&e.message?e.message:e)); return false; }
+    }catch(e){ slog('Supabase: persistLiveWallet exception - '+(e&&e.message?e.message:e)); return false; }
   }
 
   async function fetchLiveWallets(limit=100, exchange='paper'){
@@ -730,7 +730,7 @@ async function fetchHeadlessSessionByName(name){
         .eq('exchange', exchange)
         .order('created_at', { ascending:false })
         .limit(Math.max(1, limit));
-      if(error){ slog('Supabase: fetchLiveWallets KO — '+(error.message||error)); return []; }
+      if(error){ slog('Supabase: fetchLiveWallets KO - '+(error.message||error)); return []; }
       const map = (row)=>({
         id: row.id,
         name: row.name,
@@ -748,9 +748,9 @@ async function fetchHeadlessSessionByName(name){
 
   async function deleteLiveWallet(name, exchange='paper'){
     const c=ensureClient(); if(!c || !name) {return false;}
-    try{ const { error } = await c.from('wallets').delete().eq('name', name).eq('exchange', exchange); if(error){ slog('Supabase: deleteLiveWallet KO — '+(error.message||error)); return false; } return true; }catch(_){ return false; }
+    try{ const { error } = await c.from('wallets').delete().eq('name', name).eq('exchange', exchange); if(error){ slog('Supabase: deleteLiveWallet KO - '+(error.message||error)); return false; } return true; }catch(_){ return false; }
   }
-  
+
   window.SUPA = {
     isConfigured: ()=>{ const c=readCfg(); return !!(c.url && c.anon); },
     configSource: ()=>{ const s=staticCfg(); return (s.url&&s.anon)? 'static' : 'localStorage'; },
