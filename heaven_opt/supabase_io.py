@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Iterable
+from typing import Any, Iterable, Optional
 
 import json
 import requests
@@ -211,3 +211,280 @@ def mark_selected_for_set(rows: list[dict[str, Any]], set_id: str, api_key: str,
         failed,
     )
     return {"rows_total": len(rows), "updated": updated, "missing": missing, "failed": failed}
+
+
+def get_latest_top_params(
+    api_key: str,
+    symbol: str,
+    tf: str,
+    campaign_id: Optional[str] = None,
+    prefer_run_type: str = "NEW",
+) -> dict[str, Any] | None:
+    """
+    Fetch params of the best-ranked (rank=1) entry from the latest palmarès set
+    for the given symbol/tf (+ optional campaign).
+    """
+    base = _rest_base_url()
+    if not base or not api_key or not symbol or not tf:
+        return None
+
+    sets_url = f"{base}/palmares_sets"
+    sets_params = {
+        "select": "id,created_at,run_type,campaign_id",
+        "symbol": f"eq.{symbol}",
+        "tf": f"eq.{tf}",
+        "order": "created_at.desc",
+        "limit": "20",
+    }
+    if campaign_id:
+        sets_params["campaign_id"] = f"eq.{campaign_id}"
+
+    try:
+        rs = requests.get(sets_url, params=sets_params, headers=_headers(api_key), timeout=20)
+        rs.raise_for_status()
+        sets = rs.json() or []
+    except Exception as e:
+        setup_logger().warning(f"Supabase get_latest_top_params sets query failed: {e}")
+        return None
+
+    if not sets:
+        return None
+
+    preferred = (prefer_run_type or "NEW").strip().upper()
+    chosen = None
+    for s in sets:
+        rt = str((s or {}).get("run_type") or "").upper()
+        if preferred and rt == preferred:
+            chosen = s
+            break
+    if not chosen:
+        chosen = sets[0]
+
+    set_id = (chosen or {}).get("id")
+    if not set_id:
+        return None
+
+    ent_url = f"{base}/palmares_entries"
+    ent_params = {
+        "select": "params,rank",
+        "set_id": f"eq.{set_id}",
+        "order": "rank.asc",
+        "limit": "1",
+    }
+    try:
+        re = requests.get(ent_url, params=ent_params, headers=_headers(api_key), timeout=20)
+        re.raise_for_status()
+        arr = re.json() or []
+        if arr:
+            params = (arr[0] or {}).get("params")
+            if isinstance(params, dict):
+                return params
+    except Exception as e:
+        setup_logger().warning(f"Supabase get_latest_top_params entries query failed: {e}")
+
+    return None
+
+
+def get_existing_param_keys(
+    api_key: str,
+    symbol: str,
+    tf: str,
+    campaign_id: Optional[str] = None,
+    limit: int = 10000,
+) -> set[str]:
+    """Return hashed params keys already evaluated for symbol/tf (and optional campaign)."""
+    base = _rest_base_url()
+    if not base or not api_key or not symbol or not tf:
+        return set()
+
+    url = f"{base}/strategy_evaluations"
+    params = {
+        "select": "params",
+        "symbol": f"eq.{symbol}",
+        "tf": f"eq.{tf}",
+        "limit": str(max(1, int(limit))),
+    }
+    if campaign_id:
+        params["campaign_id"] = f"eq.{campaign_id}"
+
+    try:
+        r = requests.get(url, params=params, headers=_headers(api_key), timeout=30)
+        r.raise_for_status()
+        arr = r.json() or []
+    except Exception as e:
+        setup_logger().warning(f"Supabase get_existing_param_keys failed: {e}")
+        return set()
+
+    out = set()
+    for row in arr:
+        p = (row or {}).get("params")
+        if isinstance(p, dict):
+            out.add(_params_key(p))
+    return out
+
+
+def get_reference_top_entry(
+    api_key: str,
+    symbol: str,
+    tf: str,
+    campaign_id: Optional[str] = None,
+    run_type: str = "NEW",
+) -> dict[str, Any] | None:
+    """Fetch latest top (rank=1) palmares entry for the requested run_type."""
+    base = _rest_base_url()
+    if not base or not api_key or not symbol or not tf:
+        return None
+
+    sets_url = f"{base}/palmares_sets"
+    sets_params = {
+        "select": "id,created_at,run_type",
+        "symbol": f"eq.{symbol}",
+        "tf": f"eq.{tf}",
+        "order": "created_at.desc",
+        "limit": "50",
+    }
+    if campaign_id:
+        sets_params["campaign_id"] = f"eq.{campaign_id}"
+
+    try:
+        rs = requests.get(sets_url, params=sets_params, headers=_headers(api_key), timeout=20)
+        rs.raise_for_status()
+        sets = rs.json() or []
+    except Exception as e:
+        setup_logger().warning(f"Supabase get_reference_top_entry sets failed: {e}")
+        return None
+
+    target = str(run_type or "NEW").upper()
+    set_id = None
+    for s in sets:
+        if str((s or {}).get("run_type") or "").upper() == target:
+            set_id = (s or {}).get("id")
+            break
+    if not set_id:
+        return None
+
+    ent_url = f"{base}/palmares_entries"
+    ent_params = {
+        "select": "params,metrics,score,generation,rank",
+        "set_id": f"eq.{set_id}",
+        "rank": "eq.1",
+        "limit": "1",
+    }
+    try:
+        re = requests.get(ent_url, params=ent_params, headers=_headers(api_key), timeout=20)
+        re.raise_for_status()
+        arr = re.json() or []
+        return arr[0] if arr else None
+    except Exception as e:
+        setup_logger().warning(f"Supabase get_reference_top_entry entry failed: {e}")
+        return None
+
+
+def get_lab_seed_params(
+    api_key: str,
+    symbol: str,
+    tf: str,
+    campaign_id: Optional[str] = None,
+    prefer_run_type: str = "NEW",
+    top_n_score: int = 10,
+    top_n_profit: int = 10,
+) -> list[dict[str, Any]]:
+    """
+    Build LAB mutation seeds from NEW palmarès entries on the target TF:
+    - top N by score
+    - top N by totalPnl
+    Selection is global across recent matching sets (not a single set), then dedup by params.
+    """
+    base = _rest_base_url()
+    if not base or not api_key or not symbol or not tf:
+        return []
+
+    sets_url = f"{base}/palmares_sets"
+    sets_params = {
+        "select": "id,created_at,run_type,campaign_id",
+        "symbol": f"eq.{symbol}",
+        "tf": f"eq.{tf}",
+        "order": "created_at.desc",
+        "limit": "50",
+    }
+    if campaign_id:
+        sets_params["campaign_id"] = f"eq.{campaign_id}"
+
+    try:
+        rs = requests.get(sets_url, params=sets_params, headers=_headers(api_key), timeout=20)
+        rs.raise_for_status()
+        sets = rs.json() or []
+    except Exception as e:
+        setup_logger().warning(f"Supabase get_lab_seed_params sets query failed: {e}")
+        return []
+
+    if not sets:
+        return []
+
+    preferred = (prefer_run_type or "NEW").strip().upper()
+    target_set_ids = [
+        str((s or {}).get("id"))
+        for s in sets
+        if str((s or {}).get("run_type") or "").upper() == preferred and (s or {}).get("id")
+    ]
+    if not target_set_ids:
+        # fallback: use latest set if no preferred run_type found
+        latest_id = (sets[0] or {}).get("id")
+        if latest_id:
+            target_set_ids = [str(latest_id)]
+
+    if not target_set_ids:
+        return []
+
+    ent_url = f"{base}/palmares_entries"
+    rows_all: list[dict[str, Any]] = []
+    for sid in target_set_ids[:20]:
+        ent_params = {
+            "select": "params,rank,metrics,score,set_id",
+            "set_id": f"eq.{sid}",
+            "limit": "200",
+        }
+        try:
+            re = requests.get(ent_url, params=ent_params, headers=_headers(api_key), timeout=20)
+            re.raise_for_status()
+            arr = re.json() or []
+            if isinstance(arr, list):
+                rows_all.extend(arr)
+        except Exception as e:
+            setup_logger().warning(f"Supabase get_lab_seed_params entries query failed for set_id={sid}: {e}")
+
+    if not rows_all:
+        return []
+
+    def _score(row):
+        try:
+            if row.get("score") is not None:
+                return float(row.get("score") or 0.0)
+            m = (row or {}).get("metrics") or {}
+            return float(m.get("score", 0.0) or 0.0)
+        except Exception:
+            return 0.0
+
+    def _pnl(row):
+        m = (row or {}).get("metrics") or {}
+        try:
+            return float(m.get("totalPnl", 0.0) or 0.0)
+        except Exception:
+            return 0.0
+
+    by_score = sorted(rows_all, key=_score, reverse=True)[: max(1, int(top_n_score))]
+    by_profit = sorted(rows_all, key=_pnl, reverse=True)[: max(1, int(top_n_profit))]
+
+    out: list[dict[str, Any]] = []
+    seen = set()
+    for row in by_score + by_profit:
+        params = (row or {}).get("params")
+        if not isinstance(params, dict):
+            continue
+        key = _params_key(params)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(params)
+
+    return out

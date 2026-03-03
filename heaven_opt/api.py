@@ -68,6 +68,11 @@ def _sanitize_metrics(metrics: dict | None) -> dict:
     return cleaned if isinstance(cleaned, dict) else {}
 
 
+def _params_key_local(p: dict | None) -> str:
+    import json
+    return json.dumps(p or {}, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
 class PersistencePartialError(RuntimeError):
     pass
 
@@ -195,14 +200,254 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
     bel_list = list({float(x) for x in rng(config.ranges.be_lock_pct_range)})
     ema_list = list({int(x) for x in rng(config.ranges.ema_len_range)})
     modes = [m.replace("Fib Retracement", "Fib") for m in (config.entry_modes or ["Both"])]
+
+    def _closest_num(value, candidates):
+        if not candidates:
+            return value
+        try:
+            return min(candidates, key=lambda x: abs(float(x) - float(value)))
+        except Exception:
+            return candidates[0]
+
+    def _narrow_list_around_seed(candidates, seed_value, span_steps: int = 1):
+        if not candidates:
+            return candidates
+        sorted_vals = sorted(candidates)
+        if seed_value is None:
+            return sorted_vals
+        center = _closest_num(seed_value, sorted_vals)
+        try:
+            idx = sorted_vals.index(center)
+        except ValueError:
+            return sorted_vals
+        lo = max(0, idx - max(0, int(span_steps)))
+        hi = min(len(sorted_vals), idx + max(0, int(span_steps)) + 1)
+        narrowed = sorted_vals[lo:hi]
+        return narrowed or sorted_vals
+
+    def _merge_narrowed_from_many(candidates, seed_values, span_steps: int = 1):
+        if not candidates:
+            return candidates
+        merged = set()
+        for sv in (seed_values or []):
+            narrowed = _narrow_list_around_seed(candidates, sv, span_steps=span_steps)
+            for v in narrowed:
+                merged.add(v)
+        if not merged:
+            return sorted(candidates)
+        return sorted(merged)
+
+    lab_seed_params_list: list[dict] = []
+
+    # LAB mode semantic: mutate in parallel around top NEW seeds (top by score + top by profit)
+    if run_type == "LAB":
+        try:
+            import heaven_opt.supabase_io as sio
+            svc_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY") or ""
+            lab_seed_params_list = []
+            if svc_key:
+                lab_seed_params_list = sio.get_lab_seed_params(
+                    svc_key,
+                    symbol=sym,
+                    tf=tf,
+                    campaign_id=campaign_id,
+                    prefer_run_type="NEW",
+                    top_n_score=10,
+                    top_n_profit=10,
+                )
+                if not lab_seed_params_list:
+                    # fallback: bootstrap LAB from recent TF winners even if campaign has no NEW yet
+                    lab_seed_params_list = sio.get_lab_seed_params(
+                        svc_key,
+                        symbol=sym,
+                        tf=tf,
+                        campaign_id=None,
+                        prefer_run_type="NEW",
+                        top_n_score=10,
+                        top_n_profit=10,
+                    )
+            if lab_seed_params_list:
+                nol_list = _merge_narrowed_from_many(nol_list, [p.get("nol") for p in lab_seed_params_list], span_steps=1)
+                prd_list = _merge_narrowed_from_many(prd_list, [p.get("prd") for p in lab_seed_params_list], span_steps=1)
+                sl_list = _merge_narrowed_from_many(sl_list, [p.get("sl_init_pct") for p in lab_seed_params_list], span_steps=1)
+                beb_list = _merge_narrowed_from_many(beb_list, [p.get("be_after_bars") for p in lab_seed_params_list], span_steps=1)
+                bel_list = _merge_narrowed_from_many(bel_list, [p.get("be_lock_pct") for p in lab_seed_params_list], span_steps=1)
+                ema_list = _merge_narrowed_from_many(ema_list, [p.get("ema_len") for p in lab_seed_params_list], span_steps=1)
+                mode_set = {
+                    str((p or {}).get("entry_mode") or "").replace("Fib Retracement", "Fib")
+                    for p in lab_seed_params_list
+                }
+                mode_set = {m for m in mode_set if m in modes}
+                if mode_set:
+                    modes = sorted(mode_set)
+                log.info(
+                    "LAB multi-seed applied: seeds=%s modes=%s (top score+profit)",
+                    len(lab_seed_params_list),
+                    ",".join(modes) or "N/A",
+                )
+            else:
+                log.info("LAB multi-seed not found; fallback to broad search space")
+        except Exception as e:
+            log.warning(f"LAB multi-seed apply failed: {e}")
+
     if mode == "ea_bayesian_hybrid":
-        # Build EA space
-        from .optimizer_ea import EASpace, run_ea
-        space = EASpace(
-            nol_list=nol_list, prd_list=prd_list, sl_list=sl_list, beb_list=beb_list, bel_list=bel_list,
-            ema_list=ema_list, entry_modes=modes, tp_vectors=tp_vectors, alloc_patterns=alloc_patterns,
-            tp_mode=str(config.TP.mode),
-        )
+        weights = {
+            "pf": float(config.metrics.weights.pf),
+            "sharpe": float(config.metrics.weights.sharpe),
+            "calmar": float(config.metrics.weights.calmar),
+            "dd": float(config.metrics.weights.dd),
+            "rr": float(config.metrics.weights.rr),
+            "recov": float(config.metrics.weights.recov),
+            "cons": float(config.metrics.weights.cons),
+            "r2": float(config.metrics.weights.r2),
+            "slope": float(config.metrics.weights.slope),
+        }
+
+        lab_isolated = str(os.getenv("HEAVEN_LAB_ISOLATED", "1")).strip().lower() in {"1", "true", "yes", "on"}
+        if run_type == "LAB" and lab_isolated and lab_seed_params_list:
+            import random
+            from joblib import Parallel, delayed
+            import heaven_opt.supabase_io as sio
+
+            per_seed_budget = max(10, int(os.getenv("HEAVEN_LAB_PER_SEED_CANDIDATES", "30")))
+            span_steps = max(1, int(os.getenv("HEAVEN_LAB_SEED_SPAN_STEPS", "1")))
+            avoid_retest = str(os.getenv("HEAVEN_LAB_AVOID_RETEST", "1")).strip().lower() in {"1", "true", "yes", "on"}
+
+            svc_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY") or ""
+            existing_keys = set()
+            if avoid_retest and svc_key:
+                existing_keys = sio.get_existing_param_keys(
+                    svc_key,
+                    symbol=sym,
+                    tf=tf,
+                    campaign_id=None,
+                    limit=20000,
+                )
+
+            def _sample_branch_candidates(seed_params: dict, budget: int) -> list[dict]:
+                local_nol = _narrow_list_around_seed(nol_list, seed_params.get("nol"), span_steps=span_steps)
+                local_prd = _narrow_list_around_seed(prd_list, seed_params.get("prd"), span_steps=span_steps)
+                local_sl = _narrow_list_around_seed(sl_list, seed_params.get("sl_init_pct"), span_steps=span_steps)
+                local_beb = _narrow_list_around_seed(beb_list, seed_params.get("be_after_bars"), span_steps=span_steps)
+                local_bel = _narrow_list_around_seed(bel_list, seed_params.get("be_lock_pct"), span_steps=span_steps)
+                local_ema = _narrow_list_around_seed(ema_list, seed_params.get("ema_len"), span_steps=span_steps)
+                seed_mode = str(seed_params.get("entry_mode") or "").replace("Fib Retracement", "Fib")
+                local_modes = [seed_mode] if seed_mode and seed_mode in modes else modes
+
+                out = []
+                seen_local = set()
+                tries = 0
+                while len(out) < budget and tries < budget * 30:
+                    tries += 1
+                    tpv = random.choice(tp_vectors) if tp_vectors else []
+                    alloc = random.choice(alloc_patterns) if alloc_patterns else [100.0]
+                    cand = {
+                        "nol": int(random.choice(local_nol)),
+                        "prd": int(random.choice(local_prd)),
+                        "sl_init_pct": float(random.choice(local_sl)),
+                        "be_after_bars": int(random.choice(local_beb)),
+                        "be_lock_pct": float(random.choice(local_bel)),
+                        "ema_len": int(random.choice(local_ema)),
+                        "entry_mode": random.choice(local_modes),
+                        "tp_types": tp_types[:],
+                        "tp_r": list(tpv) + [0.0] * (10 - len(tpv)),
+                        "tp_p": list(alloc) + [0.0] * (10 - len(alloc)),
+                    }
+                    hk = sha1_of_params(cand)
+                    if hk in seen_local:
+                        continue
+                    if avoid_retest and _params_key_local(cand) in existing_keys:
+                        continue
+                    seen_local.add(hk)
+                    out.append(cand)
+                return out
+
+            branch_candidates: list[dict] = []
+            seen_global = set()
+            for idx, seed in enumerate(lab_seed_params_list, start=1):
+                for cand in _sample_branch_candidates(seed, per_seed_budget):
+                    hk = sha1_of_params(cand)
+                    if hk in seen_global:
+                        continue
+                    seen_global.add(hk)
+                    cand["_lab_seed_idx"] = idx
+                    branch_candidates.append(cand)
+
+            log.info(
+                "LAB isolated branches: seeds=%s per_seed_budget=%s total_candidates=%s",
+                len(lab_seed_params_list),
+                per_seed_budget,
+                len(branch_candidates),
+            )
+
+            n_jobs = int(config.resource.n_jobs)
+            mets = Parallel(n_jobs=max(1, n_jobs), prefer="threads")(delayed(eval_candidate)(c) for c in branch_candidates)
+            results = [
+                {
+                    "params": {k: v for k, v in c.items() if k != "_lab_seed_idx"},
+                    "metrics": m,
+                    "provenance": f"LAB_BRANCH_{c.get('_lab_seed_idx', 0)}",
+                }
+                for c, m in zip(branch_candidates, mets)
+            ]
+        else:
+            # Build EA space
+            from .optimizer_ea import EASpace, run_ea
+            space = EASpace(
+                nol_list=nol_list, prd_list=prd_list, sl_list=sl_list, beb_list=beb_list, bel_list=bel_list,
+                ema_list=ema_list, entry_modes=modes, tp_vectors=tp_vectors, alloc_patterns=alloc_patterns,
+                tp_mode=str(config.TP.mode),
+            )
+            seeds = run_ea(
+                space,
+                weights,
+                eval_candidate=eval_candidate,
+                pop_size=int(config.EA.pop_size),
+                n_generations=int(config.EA.n_generations),
+                cx_prob=float(config.EA.cx_prob),
+                mut_prob=float(config.EA.mut_prob),
+                elitism_frac=float(config.EA.elitism_frac),
+                tournament_size=int(config.EA.tournament_size),
+                n_jobs=int(config.resource.n_jobs),
+                on_progress=(config.on_progress if hasattr(config, 'on_progress') else None),
+            )
+            # Save EA seeds checkpoint
+            try:
+                (run_dir / "ea_seeds.yaml").write_text(yaml.safe_dump([s["params"] for s in seeds]), encoding="utf-8")
+            except Exception:
+                pass
+            # Select top-M seeds by score
+            seeds.sort(key=lambda s: -float(s["metrics"].get("score", 0.0)))
+            top_m = min(10, 2 * int(config.general.top_n_results))
+            seeds = seeds[:top_m]
+            # Bayesian refinement
+            from .optimizer_bayes import refine_seeds
+            global_bounds = {
+                "nol": (min(nol_list), max(nol_list)),
+                "prd": (min(prd_list), max(prd_list)),
+                "sl_init_pct": (min(sl_list), max(sl_list)),
+                "be_after_bars": (min(beb_list), max(beb_list)),
+                "be_lock_pct": (min(bel_list), max(bel_list)),
+                "ema_len": (min(ema_list), max(ema_list)),
+            }
+            bayes_results = refine_seeds(
+                seeds,
+                global_bounds,
+                weights,
+                eval_candidate,
+                n_trials=int(config.Bayesian.n_trials),
+                sampler=str(config.Bayesian.sampler),
+                refine_radius=float(config.Bayesian.refine_radius),
+                n_jobs=int(config.resource.n_jobs),
+                on_progress=(config.on_progress if hasattr(config, 'on_progress') else None),
+            )
+            results = seeds + bayes_results
+        # proceed to consolidation below
+    elif mode == "ml_surrogate":
+        # ML surrogate: train on historical evaluations (Supabase if configured), propose candidates, evaluate
+        from .data_sources import compute_scores_if_missing, fetch_history_from_supabase
+        from .optimizer_ml import propose_with_surrogate
+        # Historical data
         weights = {
             "pf": float(config.metrics.weights.pf),
             "sharpe": float(config.metrics.weights.sharpe),
@@ -438,7 +683,50 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
         sig = sha1_of_params(params)[:6]
         return f"heaven-{rank:02d}-{sig}"
 
-    if bool(svc_key) and bool(os.getenv("SUPABASE_URL") or os.getenv("SUPABASE_REST_URL")) and top_results:
+    persist_empty_set = str(os.getenv("HEAVEN_PERSIST_EMPTY_SET", "0")).strip().lower() in {"1", "true", "yes", "on"}
+    can_persist_set = bool(svc_key) and bool(os.getenv("SUPABASE_URL") or os.getenv("SUPABASE_REST_URL"))
+    should_create_set = can_persist_set and (bool(top_results) or persist_empty_set)
+
+    # Generation promotion logic for LAB
+    generation_for_entries = 1
+    if run_type == "LAB" and top_results and can_persist_set:
+        try:
+            ref = sio.get_reference_top_entry(
+                svc_key,
+                symbol=sym,
+                tf=tf,
+                campaign_id=campaign_id,
+                run_type="NEW",
+            )
+            if isinstance(ref, dict):
+                ref_gen = int((ref.get("generation") or 1))
+                ref_score = float(ref.get("score") or 0.0)
+                ref_metrics = (ref.get("metrics") or {}) if isinstance(ref.get("metrics"), dict) else {}
+                ref_avgrr = float(ref_metrics.get("avgRR") or 0.0)
+                ref_dd = float(ref_metrics.get("maxDDPct") or 9999.0)
+
+                topm = top_results[0].get("metrics") or {}
+                new_score = float(topm.get("score") or 0.0)
+                new_avgrr = float(topm.get("avgRR") or 0.0)
+                new_dd = float(topm.get("maxDDPct") or 9999.0)
+
+                promoted = (new_score > ref_score) and (new_avgrr >= ref_avgrr) and (new_dd <= ref_dd)
+                generation_for_entries = (ref_gen + 1) if promoted else ref_gen
+                log.info(
+                    "LAB promotion check: promoted=%s ref(score=%.4f rr=%.4f dd=%.4f gen=%s) new(score=%.4f rr=%.4f dd=%.4f)",
+                    promoted,
+                    ref_score,
+                    ref_avgrr,
+                    ref_dd,
+                    ref_gen,
+                    new_score,
+                    new_avgrr,
+                    new_dd,
+                )
+        except Exception as e:
+            log.warning(f"LAB promotion check failed: {e}")
+
+    if should_create_set:
         user_id = os.getenv("HEAVEN_USER_ID")
         note = os.getenv("HEAVEN_NOTE") or f"{mode} {sym} {tf}"
         set_id = sio.create_palmares_set({
@@ -466,7 +754,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
                     "metrics": _sanitize_metrics(r.get("metrics") or {}),
                     "score": float((_sanitize_metrics(r.get("metrics") or {})).get("score") or 0.0),
                     "provenance": r.get("provenance", "coarse"),
-                    "generation": 1,
+                    "generation": generation_for_entries,
                     "run_id": run_id,
                     "campaign_id": campaign_id,
                     "run_type": run_type,

@@ -1807,15 +1807,24 @@ async function populateLiveStrategyOptions(){ try{ if(!liveStrategySel) return; 
 const labRunStatusEl = document.getElementById('labRunStatus');
 const labAutoLoopEl = document.getElementById('labAutoLoop');
 let __labLastGoal = 'improve';
+let __labCyclePendingImprove = false;
+let __labAutoLoopMode = 'improve';
+let __labCycleNextGoal = 'new';
 function maybeScheduleLabAutoLoop(){
   try{
     if(typeof btAbort!=='undefined' && btAbort) return;
     const autoEl = labAutoLoopEl || document.getElementById('labAutoLoop');
     if(!autoEl || !autoEl.checked) return;
-    const nextGoal = __labLastGoal || 'improve';
+    let nextGoal = __labLastGoal || 'improve';
+    if(__labAutoLoopMode==='new') nextGoal = 'new';
+    else if(__labAutoLoopMode==='cycle'){
+      nextGoal = __labCycleNextGoal || 'new';
+      __labCycleNextGoal = (nextGoal==='new') ? 'improve' : 'new';
+    }
     try{
       if(typeof addBtLog==='function'){
-        addBtLog(`Auto-loop: relance dans 1s (${nextGoal==='new'?'nouvelle stratégie':'entraîner'})`);
+        const modeLabel = (__labAutoLoopMode==='cycle') ? 'cycle complet' : (__labAutoLoopMode==='new' ? 'nouvelle stratégie' : 'entraîner');
+        addBtLog(`Auto-loop: relance dans 1s (${nextGoal==='new'?'nouvelle stratégie':'entraîner'}) [mode ${modeLabel}]`);
       }
     }catch(_){ }
     setTimeout(()=>{
@@ -4709,7 +4718,7 @@ if(detailCtxEl){
  }catch(_){ if(detailCtxEl){ detailCtxEl.textContent = t('detail.error'); } } }
 
 // Lab actions: refresh/export/weights
-const labExportBtn=document.getElementById('labExport'); const labWeightsBtn=document.getElementById('labWeights'); const labRunNewBtn=document.getElementById('labRunNew');
+const labExportBtn=document.getElementById('labExport'); const labWeightsBtn=document.getElementById('labWeights'); const labRunNewBtn=document.getElementById('labRunNew'); const labRunCycleBtn=document.getElementById('labRunCycle');
 const weightsModalEl=document.getElementById('weightsModal'); const weightsClose=document.getElementById('weightsClose'); const weightsSave=document.getElementById('weightsSave'); const weightsProfile=document.getElementById('weightsProfile'); const weightsBody=document.getElementById('weightsBody');
 if(labTFSelect){ labTFSelect.addEventListener('change', async ()=>{ try{ localStorage.setItem('lab:tf', labTFSelect.value); await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
 if(labSymbolSelect){ labSymbolSelect.addEventListener('change', async ()=>{ try{ localStorage.setItem('lab:sym', labSymbolSelect.value); await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
@@ -4745,7 +4754,8 @@ try{
   function wireDate(el){ if(!el) return; const h=()=>{ try{ computeLabBenchmarkAndUpdate(); }catch(_){ } }; el.addEventListener('change', h); el.addEventListener('input', h); }
   wireDate(labFromEl); wireDate(labToEl);
 }catch(_){ }
-if(labRunNewBtn){ labRunNewBtn.addEventListener('click', ()=>{ try{ window.__labGoalOverride='new'; if(labRunBtn){ labRunBtn.click(); } }catch(_){ } }); }
+if(labRunNewBtn){ labRunNewBtn.addEventListener('click', ()=>{ try{ __labAutoLoopMode='new'; __labCyclePendingImprove=false; window.__labGoalOverride='new'; if(labRunBtn){ labRunBtn.click(); } }catch(_){ } }); }
+if(labRunCycleBtn){ labRunCycleBtn.addEventListener('click', ()=>{ try{ __labAutoLoopMode='cycle'; __labCycleNextGoal='new'; __labCyclePendingImprove=true; window.__labGoalOverride='new'; if(labRunBtn){ labRunBtn.click(); } }catch(_){ } }); }
 if(labExportBtn){ labExportBtn.addEventListener('click', ()=>{ try{ const tf=(labTFSelect&&labTFSelect.value)||(intervalSelect&&intervalSelect.value)||''; const sym=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol; const arr=Array.isArray(window.labPalmaresCache)? window.labPalmaresCache : []; if(!arr.length){ setStatus('Rien à exporter'); return; }
   const DL=';';
   function esc(v){ let s=(v==null?'':String(v)); if(s.includes('"')) s=s.replace(/"/g,'""'); if(s.includes(DL)||s.includes('\n')) s='"'+s+'"'; return s; }
@@ -5051,8 +5061,10 @@ if(labRunBtn){ labRunBtn.addEventListener('click', async ()=>{ try{
   try{ localStorage.setItem('labWeightsProfile', profSel); }catch(_){ }
   const sym=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol;
   const tfSel=(labTFSelect&&labTFSelect.value)||currentInterval;
-  const goal = (window.__labGoalOverride || ((document.getElementById('labGoal')&&document.getElementById('labGoal').value) || 'improve'));
+  const __goalOverride = (window.__labGoalOverride || null);
+  const goal = (__goalOverride || ((document.getElementById('labGoal')&&document.getElementById('labGoal').value) || 'improve'));
   try{ __labLastGoal = goal; }catch(_){ }
+  try{ if(__goalOverride==null){ __labAutoLoopMode='improve'; } }catch(_){ }
   try{ window.__labGoalOverride = null; }catch(_){ }
   const strategy=(document.getElementById('labStrategy')&&document.getElementById('labStrategy').value)||'hybrid';
 const conf=readLabRiskConf();
@@ -6190,7 +6202,13 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
       try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
     }
     setStatus(t('status.palmaresUpdated')); try{ __labSimDone = Math.max(__labSimDone, __labSimPlanned||__labSimDone); updateGlobalProgressUI(); }catch(_){ } closeBtProgress();
-    maybeScheduleLabAutoLoop();
+    if(__labCyclePendingImprove && goal==='new'){
+      try{ addBtLog('Cycle complet: passage automatique à Entraîner'); }catch(_){ }
+      __labCyclePendingImprove = false;
+      setTimeout(()=>{ try{ window.__labGoalOverride='improve'; if(labRunBtn){ labRunBtn.click(); } }catch(_){ } }, 300);
+    } else {
+      maybeScheduleLabAutoLoop();
+    }
   } else {
     const MAX_BEST = 10;
     // Construire un "nouveau" top à partir du run courant
@@ -6237,9 +6255,10 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
       try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
     }
     setStatus(t('status.improveDone')); try{ __labSimDone = Math.max(__labSimDone, __labSimPlanned||__labSimDone); updateGlobalProgressUI(); }catch(_){ } closeBtProgress();
+    __labCyclePendingImprove = false;
     maybeScheduleLabAutoLoop();
   }
- }catch(e){ try{ addBtLog(`Erreur entraînement: ${e&&e.message?e.message:e}`); }catch(_){ } setStatus(t('status.trainingError')); try{ closeBtProgress(); }catch(_){ } try{ if(labAutoLoopEl){ labAutoLoopEl.checked=false; } }catch(_){ } } }); }
+ }catch(e){ try{ addBtLog(`Erreur entraînement: ${e&&e.message?e.message:e}`); }catch(_){ } setStatus(t('status.trainingError')); try{ closeBtProgress(); }catch(_){ } try{ if(labAutoLoopEl){ labAutoLoopEl.checked=false; } }catch(_){ } __labCyclePendingImprove = false; } }); }
 
 // Lab Pause/Stop controls are now on the progress popup (btPause/btStop)
 
