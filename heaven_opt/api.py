@@ -133,7 +133,13 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
             pre["ema"] = cached_ema_series(sym, tf, start_sec, end_sec, int(cand.get("ema_len")), config.resource.cache_dir)
         rep_full = backtest_with_bars(opts, bars, 0, len(bars)-1, float(config.backtest.initial_equity), float(config.backtest.fee_pct), precomputed=pre)
         if not rep_full:
-            return {"profitFactor": 0.0, "totalPnl": -1e9, "maxDDPct": 100.0}
+            return {
+                "profitFactor": 0.0,
+                "totalPnl": -1e9,
+                "maxDDPct": 100.0,
+                "trades": 0.0,
+                "tradesPerHour": 0.0,
+            }
         rep = rep_full
         # numeric extraction
         trades_count = float(len(rep.get("trades", [])))
@@ -682,9 +688,9 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
     # Create palmarès set and entries
     set_id = None
 
-    def _strategy_name_for_rank(rank: int, params: dict, generation: int = 1) -> str:
+    def _strategy_name_for_rank(_rank: int, params: dict, generation: int = 1) -> str:
         sig = sha1_of_params(params)[:6]
-        # Legacy-style human names: random-like dictionary word (FR/ES/PL) + generation + rank + short signature.
+        # Human-readable alias names: dictionary word (FR/ES/PL) + generation + timeframe + short signature.
         # Deterministic mapping from params hash to keep names stable across re-reads.
         dict_fr = [
             "aurore", "brise", "cascade", "delta", "eclat", "forge", "galaxie", "horizon", "ivoire", "jardin",
