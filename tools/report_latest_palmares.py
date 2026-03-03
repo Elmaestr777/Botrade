@@ -119,6 +119,7 @@ def main() -> int:
     p.add_argument("--campaign-id", default=None)
     p.add_argument("--env-file", default=".env.local", help="Optional env file to auto-load if vars are missing")
     p.add_argument("--min-rr", type=float, default=1.0, help="Minimum avgRR required on top rank for GO gate")
+    p.add_argument("--min-trades", type=int, default=30, help="Minimum trades required on top rank for GO gate")
     args = p.parse_args()
 
     _load_env_file(args.env_file)
@@ -231,22 +232,36 @@ def main() -> int:
     schema_missing_sorted = sorted(list(set(schema_missing_columns)))
 
     top_rr = None
+    top_trades = None
     if entries:
         top_metrics = entries[0].get("metrics") or {}
         try:
             top_rr = float(top_metrics.get("avgRR")) if top_metrics.get("avgRR") is not None else None
         except Exception:
             top_rr = None
+        try:
+            raw_trades = top_metrics.get("trades", top_metrics.get("tradesCount"))
+            top_trades = int(raw_trades) if raw_trades is not None else None
+        except Exception:
+            top_trades = None
 
     go_reasons: list[str] = []
     if comparability != "COMPARABLE":
         go_reasons.append("comparability_not_comparable")
+        if "LAB" not in run_types:
+            go_reasons.append("comparability_missing_run_type_lab")
+        if "NEW" not in run_types:
+            go_reasons.append("comparability_missing_run_type_new")
     if schema_missing_sorted:
         go_reasons.append("schema_drift_detected")
     if top_rr is None:
         go_reasons.append("top_avgRR_missing")
     elif top_rr < float(args.min_rr):
         go_reasons.append(f"top_avgRR_below_min({top_rr:.4f}<{float(args.min_rr):.4f})")
+    if top_trades is None:
+        go_reasons.append("top_trades_missing")
+    elif top_trades < int(args.min_trades):
+        go_reasons.append(f"top_trades_below_min({top_trades}<{int(args.min_trades)})")
 
     go_status = "GO" if not go_reasons else "NO_GO"
     out = {
@@ -260,6 +275,8 @@ def main() -> int:
         "go_reasons": go_reasons,
         "top_avgRR": top_rr,
         "min_rr_required": float(args.min_rr),
+        "top_trades": top_trades,
+        "min_trades_required": int(args.min_trades),
         "entries": entries,
     }
     print(json.dumps(out, ensure_ascii=False, indent=2))
@@ -273,6 +290,7 @@ def main() -> int:
     print(f"GO gate: {go_status}")
     print(f"GO reasons: {','.join(go_reasons) if go_reasons else 'none'}")
     print(f"Risk gate avgRR: top={_num(top_rr)} min_required={_num(args.min_rr)}")
+    print(f"Risk gate trades: top={top_trades if top_trades is not None else 'N/D'} min_required={int(args.min_trades)}")
     print(f"Schema drift: missing_columns={','.join(schema_missing_sorted) or 'none'}")
     if ddl_fix_hint:
         print("DDL fix hint for palmares_sets:")

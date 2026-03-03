@@ -3,7 +3,7 @@
   tf_optim: 1m
   date_from: 2024-01-01T00:00:00Z
   date_to: 2024-03-01T00:00:00Z
-  max_combinations: 1000
+  max_combinations: 1500
   top_n_results: 30
 search:
   mode: ea_bayesian_hybrid
