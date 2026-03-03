@@ -890,7 +890,7 @@ async function loadGlobalPalmares(){
         return {
           symbol: row.symbol,
           tf: row.tf,
-          profile: '',
+          profile: row.profile || '',
           name: row.name || null,
           gen: row.gen != null ? row.gen : 1,
           scoreRaw: raw,
@@ -4763,6 +4763,8 @@ async function reclassifyPalmaresNow(){
   const weights=getWeights(prof||'balancee');
 
   let source=[];
+  let beforeTopName='—';
+  let beforeTopScore=0;
   try{
     if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured() && typeof SUPA.fetchPalmares==='function'){
       source = await SUPA.fetchPalmares(sym, tf, 200, prof, 'score');
@@ -4771,6 +4773,13 @@ async function reclassifyPalmaresNow(){
     }
   }catch(_){ source=[]; }
   if(!Array.isArray(source) || !source.length){ setStatus('Aucun palmarès à reclasser'); return; }
+  try{
+    const srcSorted = source.slice().sort((a,b)=> (Number(b.score)||scoreResult((b&&b.res)||{},weights)) - (Number(a.score)||scoreResult((a&&a.res)||{},weights)));
+    if(srcSorted.length){
+      beforeTopName = srcSorted[0].name || '—';
+      beforeTopScore = Number(srcSorted[0].score || scoreResult((srcSorted[0]&&srcSorted[0].res)||{},weights) || 0);
+    }
+  }catch(_){ }
 
   const byScore = source.slice().sort((a,b)=> (Number(b.score)||scoreResult((b&&b.res)||{},weights)) - (Number(a.score)||scoreResult((a&&a.res)||{},weights))).slice(0,50);
   const byPnl = source.slice().sort((a,b)=> Number((b&&b.res&&b.res.totalPnl)||0) - Number((a&&a.res&&a.res.totalPnl)||0)).slice(0,50);
@@ -4818,7 +4827,14 @@ async function reclassifyPalmaresNow(){
     }
     await renderLabFromStorage();
     await computeLabBenchmarkAndUpdate();
-    setStatus(`Palmarès reclassé (${bestOut.length} stratégies)`);
+    try{
+      if(globalPalModalEl && globalPalModalEl.getAttribute('aria-hidden')==='false'){
+        await loadGlobalPalmares();
+      }
+    }catch(_){ }
+    const afterTopName = (bestOut[0] && bestOut[0].name) ? bestOut[0].name : '—';
+    const afterTopScore = Number((bestOut[0] && bestOut[0].score) || 0);
+    setStatus(`Palmarès reclassé ${symbolToDisplay(sym)} ${tf} [${prof}] • top: ${beforeTopName} (${beforeTopScore.toFixed(2)}) → ${afterTopName} (${afterTopScore.toFixed(2)}) • ${bestOut.length} stratégies`);
   }catch(_){ setStatus('Erreur reclassement palmarès'); }
 }
 if(labReclassifyBtn){ labReclassifyBtn.addEventListener('click', async ()=>{ try{ await reclassifyPalmaresNow(); }catch(_){ setStatus('Erreur reclassement palmarès'); } }); }

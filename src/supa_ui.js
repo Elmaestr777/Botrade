@@ -544,6 +544,7 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
           symbol: scope.symbol || row.symbol || null,
           tf: scope.tf || row.tf || null,
           profile_id: scope.profile_id || row.profile_id || null,
+          profile: scope.profile || row.profile || null,
           name: row.name || null,
           gen: (typeof row.generation==='number' && Number.isFinite(row.generation)) ? row.generation : 1,
           params: paramsUI,
@@ -559,7 +560,7 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
       // via palmares_entries + palmares_sets (jointure explicite)
       const q = c
         .from('palmares_entries')
-        .select('name,generation,params,metrics,score,created_at,palmares_sets(symbol,tf,profile_id)')
+        .select('name,generation,params,metrics,score,created_at,palmares_sets(symbol,tf,profile,profile_id)')
         .order('score', { ascending:false })
         .order('created_at', { ascending:false });
       const { data, error } = await q.limit(Math.max(1, limit));
