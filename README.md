@@ -13,6 +13,7 @@ Quickstart
 - Create a config: see config.example.yaml
 - Set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_SERVICE_KEY`)
 - Run: python run_optimize.py --config config.example.yaml
+- Reproducible BTCUSDC 15m run: set `HEAVEN_SEED=20260603`, then run `python run_optimize.py --config config.btc15m.yaml`
 
 Outputs
 - Evaluations in `strategy_evaluations`, scoped by an immutable `run_id`

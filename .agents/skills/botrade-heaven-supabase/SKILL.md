@@ -44,6 +44,9 @@ Garder le workflow Heaven fiable: moteurs coherents, meilleures strategies stock
 - Les upserts publics sur des identites contenant des colonnes nullables exigent une cible unique compatible avec PostgREST, par exemple un index `NULLS NOT DISTINCT`.
 - Une cible d'upsert pour `strategy_evaluations` doit inclure `run_id` afin de preserver l'historique immuable entre runs.
 - Les vues ou lectures de "meilleures strategies" doivent dedupliquer les memes parametres entre runs sans supprimer l'historique des runs.
+- Les metriques JSONB non finies (`Infinity`, `-Infinity`, `NaN`) doivent etre serialisees explicitement avant un appel REST Supabase.
+- Un bulk upsert `strategy_evaluations` doit dedupliquer sa cible de conflit avant l'envoi pour eviter PostgreSQL `21000`.
+- Le top-N d'un run doit contenir des parametres distincts avant validation et persistance dans le palmares.
 - Si plusieurs moteurs copient la logique Heaven, noter le risque de parite et tester le moteur modifie.
 
 # Verifications

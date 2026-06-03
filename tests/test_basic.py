@@ -1,7 +1,7 @@
 
 import pytest
 
-from heaven_opt import simulator, supabase_io
+from heaven_opt import api, simulator, supabase_io
 from heaven_opt.combo_generator import generate_alloc_patterns
 from heaven_opt.scoring import composite_score
 from heaven_opt.simulator import HeavenOpts, simulate_trade_from_signal
@@ -174,13 +174,15 @@ def test_backtest_reports_consistency_and_peak_to_trough_drawdown(monkeypatch):
 
 def test_supabase_write_failures_are_not_silenced(monkeypatch):
     class FailingResponse:
+        text = '{"code":"21000","message":"duplicate conflict target"}'
+
         def raise_for_status(self):
             raise RuntimeError("database unavailable")
 
     monkeypatch.setattr(supabase_io, "_rest_base_url", lambda: "https://example.test/rest/v1")
     monkeypatch.setattr(supabase_io.requests, "post", lambda *args, **kwargs: FailingResponse())
 
-    with pytest.raises(SupabasePersistenceError, match="strategy_evaluations"):
+    with pytest.raises(SupabasePersistenceError, match="21000"):
         supabase_io.upsert_strategy_evaluations([{"symbol": "BTCUSDC"}], "service-key")
 
 
@@ -204,3 +206,84 @@ def test_strategy_evaluation_upsert_is_scoped_to_run(monkeypatch):
     )
 
     assert captured["params"]["on_conflict"] == "user_id,symbol,tf,profile_id,params,run_id"
+
+
+def test_supabase_json_serializes_non_finite_metrics(monkeypatch):
+    captured = {}
+
+    class SuccessfulResponse:
+        def raise_for_status(self):
+            return None
+
+    def fake_post(*args, **kwargs):
+        captured.update(kwargs)
+        return SuccessfulResponse()
+
+    monkeypatch.setattr(supabase_io, "_rest_base_url", lambda: "https://example.test/rest/v1")
+    monkeypatch.setattr(supabase_io.requests, "post", fake_post)
+
+    supabase_io.upsert_strategy_evaluations(
+        [
+            {
+                "symbol": "BTCUSDC",
+                "metrics": {
+                    "profitFactor": float("inf"),
+                    "wf_pf_std": float("nan"),
+                    "nested": [float("-inf")],
+                },
+            }
+        ],
+        "service-key",
+    )
+
+    metrics = captured["json"][0]["metrics"]
+    assert metrics["profitFactor"] == "Infinity"
+    assert metrics["wf_pf_std"] == "NaN"
+    assert metrics["nested"] == ["-Infinity"]
+
+
+def test_strategy_evaluation_upsert_deduplicates_conflict_keys(monkeypatch):
+    captured = {}
+
+    class SuccessfulResponse:
+        def raise_for_status(self):
+            return None
+
+    def fake_post(*args, **kwargs):
+        captured.update(kwargs)
+        return SuccessfulResponse()
+
+    monkeypatch.setattr(supabase_io, "_rest_base_url", lambda: "https://example.test/rest/v1")
+    monkeypatch.setattr(supabase_io.requests, "post", fake_post)
+
+    identity = {
+        "user_id": None,
+        "symbol": "BTCUSDC",
+        "tf": "15m",
+        "profile_id": None,
+        "params": {"prd": 15, "nol": 3},
+        "run_id": "00000000-0000-4000-8000-000000000001",
+    }
+    supabase_io.upsert_strategy_evaluations(
+        [
+            {**identity, "score": 1.0, "selected": False},
+            {**identity, "score": 2.0, "selected": False},
+        ],
+        "service-key",
+    )
+
+    assert len(captured["json"]) == 1
+    assert captured["json"][0]["score"] == 2.0
+
+
+def test_optimizer_results_deduplicate_identical_params():
+    params = {"nol": 3, "prd": 15, "tp_r": [0.618, 1.0]}
+    results = [
+        {"params": params, "metrics": {"score": 0.5}, "provenance": "EA"},
+        {"params": dict(params), "metrics": {"score": 0.7}, "provenance": "Bayesian"},
+    ]
+
+    deduped = api._dedupe_results_by_params(results)
+
+    assert len(deduped) == 1
+    assert deduped[0]["provenance"] == "Bayesian"

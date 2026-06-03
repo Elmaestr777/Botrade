@@ -46,6 +46,21 @@ def _rank_key(m: dict) -> tuple:
     return (-pf, -pnl)
 
 
+def _dedupe_results_by_params(results: list[dict]) -> list[dict]:
+    unique: dict[str, dict] = {}
+    for result in results:
+        key = sha1_of_params(result.get("params") or {})
+        existing = unique.get(key)
+        if existing is None:
+            unique[key] = result
+            continue
+        existing_score = float((existing.get("metrics") or {}).get("score", float("-inf")))
+        result_score = float((result.get("metrics") or {}).get("score", float("-inf")))
+        if result_score > existing_score:
+            unique[key] = result
+    return list(unique.values())
+
+
 def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
     log = setup_logger()
     t0 = time.time()
@@ -309,6 +324,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
             {"params": c, "metrics": m, "provenance": "coarse"} for c, m in zip(candidates, mets)
         ]
     # Consolidation & ranking
+    results = _dedupe_results_by_params(results)
     from .validation import monte_carlo_validate, walk_forward_validate
     weights = {
         "pf": float(config.metrics.weights.pf),

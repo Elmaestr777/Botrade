@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import math
 from typing import Any, Iterable
 
 import requests
@@ -26,6 +28,64 @@ def _chunked(arr: list[Any], n: int) -> Iterable[list[Any]]:
         yield arr[i : i + n]
 
 
+def _json_safe(value: Any) -> Any:
+    if isinstance(value, float) and not math.isfinite(value):
+        if math.isnan(value):
+            return "NaN"
+        return "Infinity" if value > 0 else "-Infinity"
+    if isinstance(value, dict):
+        return {key: _json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(item) for item in value]
+    return value
+
+
+def _score_value(row: dict[str, Any]) -> float:
+    try:
+        value = float(row.get("score", float("-inf")))
+        return value if math.isfinite(value) else float("-inf")
+    except (TypeError, ValueError):
+        return float("-inf")
+
+
+def _dedupe_strategy_evaluations(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    unique: dict[tuple[Any, ...], dict[str, Any]] = {}
+    for row in rows:
+        params_key = json.dumps(
+            _json_safe(row.get("params") or {}),
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+        )
+        key = (
+            row.get("user_id"),
+            row.get("symbol"),
+            row.get("tf"),
+            row.get("profile_id"),
+            params_key,
+            row.get("run_id"),
+        )
+        existing = unique.get(key)
+        if existing is None:
+            unique[key] = row
+            continue
+        existing_rank = (bool(existing.get("selected")), _score_value(existing))
+        row_rank = (bool(row.get("selected")), _score_value(row))
+        if row_rank >= existing_rank:
+            unique[key] = row
+    return list(unique.values())
+
+
+def _raise_for_status(response: Any) -> None:
+    try:
+        response.raise_for_status()
+    except Exception as e:
+        detail = str(getattr(response, "text", "") or "").strip()
+        if detail:
+            raise RuntimeError(f"{e}; response={detail[:500]}") from e
+        raise
+
+
 def _required_base(api_key: str) -> str:
     base = _rest_base_url()
     if not base:
@@ -46,7 +106,7 @@ def get_balancee_profile_id(api_key: str) -> str | None:
     }
     try:
         r = requests.get(url, params=params, headers=_headers(api_key), timeout=15)
-        r.raise_for_status()
+        _raise_for_status(r)
         arr = r.json() or []
         if arr:
             return arr[0].get("id")
@@ -58,6 +118,7 @@ def get_balancee_profile_id(api_key: str) -> str | None:
 def upsert_strategy_evaluations(rows: list[dict[str, Any]], api_key: str, batch: int = 100) -> None:
     if not rows:
         return
+    rows = _dedupe_strategy_evaluations(rows)
     base = _required_base(api_key)
     url = f"{base}/strategy_evaluations"
     headers = _headers(api_key)
@@ -67,8 +128,8 @@ def upsert_strategy_evaluations(rows: list[dict[str, Any]], api_key: str, batch:
     }
     for chunk in _chunked(rows, max(1, batch)):
         try:
-            r = requests.post(url, json=chunk, params=params, headers=headers, timeout=30)
-            r.raise_for_status()
+            r = requests.post(url, json=_json_safe(chunk), params=params, headers=headers, timeout=30)
+            _raise_for_status(r)
         except Exception as e:
             raise SupabasePersistenceError(f"Supabase strategy_evaluations upsert failed: {e}") from e
 
@@ -79,8 +140,8 @@ def create_palmares_set(row: dict[str, Any], api_key: str) -> str:
     headers = _headers(api_key)
     headers["Prefer"] = "return=representation"
     try:
-        r = requests.post(url, json=row, headers=headers, timeout=20)
-        r.raise_for_status()
+        r = requests.post(url, json=_json_safe(row), headers=headers, timeout=20)
+        _raise_for_status(r)
         data = r.json() or []
         # PostgREST returns an array when Prefer: return=representation
         if isinstance(data, list) and data:
@@ -101,8 +162,8 @@ def insert_palmares_entries(rows: list[dict[str, Any]], api_key: str, batch: int
     headers["Prefer"] = "return=minimal"
     for chunk in _chunked(rows, max(1, batch)):
         try:
-            r = requests.post(url, json=chunk, headers=headers, timeout=30)
-            r.raise_for_status()
+            r = requests.post(url, json=_json_safe(chunk), headers=headers, timeout=30)
+            _raise_for_status(r)
         except Exception as e:
             raise SupabasePersistenceError(f"Supabase palmares_entries insert failed: {e}") from e
 
@@ -175,7 +236,7 @@ def upsert_heaven_strategies(rows: list[dict[str, Any]], api_key: str, batch: in
     params = {"on_conflict": "user_id,symbol,tf,name"}
     for chunk in _chunked(rows, max(1, batch)):
         try:
-            r = requests.post(url, json=chunk, params=params, headers=headers, timeout=30)
-            r.raise_for_status()
+            r = requests.post(url, json=_json_safe(chunk), params=params, headers=headers, timeout=30)
+            _raise_for_status(r)
         except Exception as e:
             raise SupabasePersistenceError(f"Supabase heaven_strategies upsert failed: {e}") from e
