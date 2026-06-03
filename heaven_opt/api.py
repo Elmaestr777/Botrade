@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import time
+import uuid
 
 from . import Candidate, OptimizationConfig, OptimizationResult
 from .combo_generator import (
@@ -54,6 +55,9 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
             "Supabase is required for Heaven optimization: set SUPABASE_URL "
             "and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_KEY)"
         )
+    run_type = (os.getenv("HEAVEN_RUN_TYPE") or "NEW").upper()
+    if run_type not in {"NEW", "LAB"}:
+        raise RuntimeError("HEAVEN_RUN_TYPE must be NEW or LAB")
     from . import supabase_io as sio
 
     # Seed (env override): HEAVEN_SEED
@@ -335,16 +339,27 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
     # Supabase is the only strategy store: persistence failures must fail clearly.
     user_id = os.getenv("HEAVEN_USER_ID")  # optional; leave null if not provided
     profile_id = sio.get_balancee_profile_id(svc_key)
+    run_id = str(uuid.uuid4())
+    campaign_id = os.getenv("HEAVEN_CAMPAIGN_ID") or None
+    run_meta = {
+        "run_id": run_id,
+        "campaign_id": campaign_id,
+        "run_type": run_type,
+        "profile": "balancee",
+    }
     rc = {
         "mode": str(mode),
         "date_from": str(getattr(config.general, "date_from", "")),
         "date_to": str(getattr(config.general, "date_to", "")),
         "seed": os.getenv("HEAVEN_SEED"),
         "ts": time.time(),
+        "run_id": run_id,
+        "campaign_id": campaign_id,
     }
     rows_all: list[dict] = []
     for r in results:
         rows_all.append({
+            **run_meta,
             "user_id": user_id,
             "symbol": sym,
             "tf": tf,
@@ -368,6 +383,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
     if top_results:
         note = os.getenv("HEAVEN_NOTE") or f"{mode} {sym} {tf}"
         set_id = sio.create_palmares_set({
+            **run_meta,
             "user_id": user_id,
             "symbol": sym,
             "tf": tf,
@@ -380,6 +396,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
         for rank, r in enumerate(top_results, start=1):
             strat_name = f"{note}-top-{rank}"
             ents.append({
+                **run_meta,
                 "set_id": set_id,
                 "rank": rank,
                 "name": strat_name,
@@ -400,6 +417,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
         sio.insert_palmares_entries(ents, svc_key)
         sio.upsert_heaven_strategies(heaven_rows, svc_key)
         rows_sel = [{
+            **run_meta,
             "user_id": user_id,
             "symbol": sym,
             "tf": tf,
@@ -418,6 +436,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
         top=top,
         logs=[
             f"duration_sec={time.time()-t0:.2f}",
+            f"supabase_run_id={run_id}",
             f"supabase_evaluations={len(rows_all)}",
             f"supabase_palmares_set={set_id or ''}",
         ],

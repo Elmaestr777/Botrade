@@ -31,7 +31,8 @@ Garder le workflow Heaven fiable: moteurs coherents, meilleures strategies stock
 2. Corriger d'abord les bugs moteur deterministes ou de parite qui cassent les backtests.
 3. Faire echouer clairement les flux Heaven si Supabase est requis mais indisponible.
 4. Persister les meilleurs resultats dans `palmares_sets`, `palmares_entries` et, si recharge UI attendue, `heaven_strategies`.
-5. Ajouter une migration de grants/RLS seulement si l'acces Data API ou la securite Supabase le justifie.
+5. Donner un `run_id` commun aux evaluations, au set et aux entrees d'un meme run quand les colonnes de run existent.
+6. Ajouter une migration de grants/RLS seulement si l'acces Data API ou la securite Supabase le justifie.
 
 # Regles de decision
 
@@ -41,6 +42,8 @@ Garder le workflow Heaven fiable: moteurs coherents, meilleures strategies stock
 - Les preferences UI peuvent rester locales si elles ne representent pas un palmares, un preset ou une strategie selectionnee.
 - Les erreurs Supabase doivent etre visibles dans le statut/log, pas masquees par un fallback local.
 - Les upserts publics sur des identites contenant des colonnes nullables exigent une cible unique compatible avec PostgREST, par exemple un index `NULLS NOT DISTINCT`.
+- Une cible d'upsert pour `strategy_evaluations` doit inclure `run_id` afin de preserver l'historique immuable entre runs.
+- Les vues ou lectures de "meilleures strategies" doivent dedupliquer les memes parametres entre runs sans supprimer l'historique des runs.
 - Si plusieurs moteurs copient la logique Heaven, noter le risque de parite et tester le moteur modifie.
 
 # Verifications

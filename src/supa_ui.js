@@ -172,9 +172,50 @@ function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfi
 
   function chunk(arr, n){ const out=[]; for(let i=0;i<arr.length;i+=n){ out.push(arr.slice(i,i+n)); } return out; }
 
+  function stableJson(value){
+    if(Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+    if(value && typeof value === 'object'){
+      return `{${Object.keys(value).sort().map(k=> `${JSON.stringify(k)}:${stableJson(value[k])}`).join(',')}}`;
+    }
+    return JSON.stringify(value);
+  }
+
+  function uniqueStrategies(rows, keyFn, limit){
+    const seen = new Set();
+    const out = [];
+    for(const row of rows||[]){
+      const key = keyFn(row);
+      if(seen.has(key)) continue;
+      seen.add(key);
+      const clean = { ...row };
+      delete clean._strategyKey;
+      out.push(clean);
+      if(out.length >= Math.max(1, limit)) break;
+    }
+    return out;
+  }
+
+  function newRunId(){
+    try{
+      if(window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+      if(window.crypto && typeof window.crypto.getRandomValues === 'function'){
+        const bytes = new Uint8Array(16);
+        window.crypto.getRandomValues(bytes);
+        bytes[6] = (bytes[6] & 0x0f) | 0x40;
+        bytes[8] = (bytes[8] & 0x3f) | 0x80;
+        const hex = Array.from(bytes, b=> b.toString(16).padStart(2, '0')).join('');
+        return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
+      }
+    }catch(_){ }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c=>{
+      const r = Math.random() * 16 | 0;
+      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+  }
+
   async function upsertStrategyEvaluations(rows){
     const c = ensureClient(); if(!c || !rows || !rows.length) return false;
-    const onConflict = 'user_id,symbol,tf,profile_id,params';
+    const onConflict = 'user_id,symbol,tf,profile_id,params,run_id';
     for(const part of chunk(rows, 80)){
       try{
         const { error } = await c
@@ -295,7 +336,10 @@ async function persistLabResults(ctx){
       const profileId = await getProfileIdByName(profName);
       const sym = ctx.symbol, tf = ctx.tf;
       const now = Date.now();
-      const runContext = { source:'UI:Lab', ts: now };
+      const runId = newRunId();
+      const campaignId = ctx && ctx.campaignId ? String(ctx.campaignId) : null;
+      const runMeta = { run_id: runId, campaign_id: campaignId, run_type: 'LAB', profile: profName };
+      const runContext = { source:'UI:Lab', ts: now, run_id: runId, campaign_id: campaignId };
  
       // Upsert tested strategies (selected=false)
       const toEval = [];
@@ -309,7 +353,7 @@ async function persistLabResults(ctx){
           const params = canonicalParamsFromUI(t.params||{});
           const metrics = t.metrics||t.res||{};
           const score = (typeof t.score==='number')? t.score : 0;
-          toEval.push({ user_id: uid, symbol: sym, tf, profile_id: profileId || null, params, metrics, score, selected: false, palmares_set_id: null, provenance: 'UI:Lab', run_context: runContext });
+          toEval.push({ ...runMeta, user_id: uid, symbol: sym, tf, profile_id: profileId || null, params, metrics, score, selected: false, palmares_set_id: null, provenance: 'UI:Lab', run_context: runContext });
         }
       }
       if(toEval.length){
@@ -323,7 +367,7 @@ async function persistLabResults(ctx){
       const best = Array.isArray(ctx.best)? ctx.best.slice() : [];
       if(best.length){
         slog(`Supabase: création palmarès (${best.length})...`);
-        const setId = await createPalmaresSet({ user_id: uid, symbol: sym, tf, profile_id: profileId || null, top_n: best.length, note: `Lab ${sym} ${tf}` });
+        const setId = await createPalmaresSet({ ...runMeta, user_id: uid, symbol: sym, tf, profile_id: profileId || null, top_n: best.length, note: `Lab ${sym} ${tf}` });
         if(setId){
           const entries = []; let rank=1;
           const used=new Set();
@@ -336,7 +380,7 @@ async function persistLabResults(ctx){
             while(used.has(nm)){ nm = `${base}-${suffix}`.slice(0, 120); suffix++; }
             used.add(nm);
             try{ b.name = nm; }catch(_){ }
-            entries.push({ set_id: setId, rank, name: nm, params: canonicalParamsFromUI(b.params||{}), metrics: b.metrics||b.res||{}, score: (typeof b.score==='number')? b.score : 0, provenance: 'UI:Lab', generation: (b.gen!=null? b.gen:1) });
+            entries.push({ ...runMeta, set_id: setId, rank, name: nm, params: canonicalParamsFromUI(b.params||{}), metrics: b.metrics||b.res||{}, score: (typeof b.score==='number')? b.score : 0, provenance: 'UI:Lab', generation: (b.gen!=null? b.gen:1) });
             rank++;
           }
           const entriesOk = await insertPalmaresEntries(entries);
@@ -351,6 +395,7 @@ async function persistLabResults(ctx){
         // côté UI puisse afficher PF, P&L, etc. à partir de la table strategy_evaluations seule.
         try{
           const selRows = best.map(b=> ({
+            ...runMeta,
             user_id: uid,
             symbol: sym,
             tf,
@@ -406,7 +451,7 @@ async function fetchKnownCanonicalKeys(symbol, tf, profileName){
         const { data, error } = await q.range(from, from+step-1);
         if(error) break;
         if(!Array.isArray(data) || !data.length) break;
-        for(const row of data){ try{ const p=row.params||{}; const keys=Object.keys(p).sort(); out.add(JSON.stringify(p, keys)); }catch(_){ } }
+        for(const row of data){ try{ out.add(stableJson(row.params||{})); }catch(_){ } }
         // Limite de sécurité pour ne pas charger un volume énorme en mémoire
         const MAX_KEYS = 5000;
         if(out.size >= MAX_KEYS) break;
@@ -463,7 +508,7 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
         const score=(typeof row.score==='number')? row.score:0;
         const name=row.name||null;
         const gen = (typeof row.generation==='number' && Number.isFinite(row.generation)) ? row.generation : 1;
-        out.push({ id:'db_'+(idx++), name, gen, params:paramsUI, res:metrics, score, ts:Date.now() });
+        out.push({ id:'db_'+(idx++), name, gen, params:paramsUI, res:metrics, score, ts:Date.now(), _strategyKey: stableJson(row.params||{}) });
       }
       return out;
     }
@@ -477,7 +522,7 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
         .eq('palmares_sets.tf', tf);
       if(profileId!=null) q = q.eq('palmares_sets.profile_id', profileId); else q = q.is('palmares_sets.profile_id', null);
       q = q.order('score', { ascending:false }).order('created_at', { ascending:false });
-      const { data, error } = await q.limit(Math.max(1, limit));
+      const { data, error } = await q.limit(Math.min(1000, Math.max(1, limit) * 5));
       if(error || !Array.isArray(data)) return [];
       const mapped = mapRows(data);
       // Tri numérique côté client selon le mode demandé
@@ -489,7 +534,7 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
         }
         return (Number(b.score||0) - Number(a.score||0));
       });
-      return sorted.slice(0, Math.max(1, limit));
+      return uniqueStrategies(sorted, row=> row._strategyKey, limit);
     }catch(_){ return []; }
   }
 
@@ -504,6 +549,7 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
         const score=(typeof row.score==='number')? row.score:0;
         // row.palmares_sets peut être null si la jointure échoue; on garde un fallback prudant
         const scope = row.palmares_sets || {};
+        const strategyKey = `${scope.symbol || row.symbol || ''}|${scope.tf || row.tf || ''}|${scope.profile_id || row.profile_id || ''}|${stableJson(row.params||{})}`;
         out.push({
           id:'glob_'+(idx++),
           symbol: scope.symbol || row.symbol || null,
@@ -515,6 +561,7 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
           res: metrics,
           score,
           ts: Date.now(),
+          _strategyKey: strategyKey,
         });
       }
       return out;
@@ -527,7 +574,7 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
         .select('name,generation,params,metrics,score,created_at,palmares_sets(symbol,tf,profile_id)')
         .order('score', { ascending:false })
         .order('created_at', { ascending:false });
-      const { data, error } = await q.limit(Math.max(1, limit));
+      const { data, error } = await q.limit(Math.min(1000, Math.max(1, limit) * 5));
       if(error){ slog('Supabase: fetchGlobalPalmares KO — '+(error.message||error)); return []; }
       const mapped = mapRows(data||[]);
       // Tri numérique côté client selon le mode demandé
@@ -544,7 +591,7 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
           default:    return Number(b.score||0) - Number(a.score||0);
         }
       });
-      return sorted.slice(0, Math.max(1, limit));
+      return uniqueStrategies(sorted, row=> row._strategyKey, limit);
     }catch(_){ return []; }
   }
 

@@ -63,7 +63,7 @@ def upsert_strategy_evaluations(rows: list[dict[str, Any]], api_key: str, batch:
     headers = _headers(api_key)
     headers["Prefer"] = "resolution=merge-duplicates,return=minimal"
     params = {
-        "on_conflict": "user_id,symbol,tf,profile_id,params",
+        "on_conflict": "user_id,symbol,tf,profile_id,params,run_id",
     }
     for chunk in _chunked(rows, max(1, batch)):
         try:

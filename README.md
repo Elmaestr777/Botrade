@@ -15,7 +15,7 @@ Quickstart
 - Run: python run_optimize.py --config config.example.yaml
 
 Outputs
-- Evaluations in `strategy_evaluations`
+- Evaluations in `strategy_evaluations`, scoped by an immutable `run_id`
 - Ranked selections in `palmares_sets` and `palmares_entries`
 - Reloadable best strategies in `heaven_strategies`
 - Runtime logs and deterministic computation cache under `cache_dir`
@@ -23,6 +23,7 @@ Outputs
 Notes
 - Data loading uses Binance REST; provide your own data or cache for speed.
 - No strategy result or preset is written to local files by the optimizer.
+- Optional `HEAVEN_RUN_TYPE` (`NEW` or `LAB`) and `HEAVEN_CAMPAIGN_ID` values are stored with each run.
 - Simulation mirrors the JS logic (SL/BE/TP) for numerical parity; minor rounding deltas may occur.
 - Optional numba acceleration can be enabled if available.
 

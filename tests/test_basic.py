@@ -182,3 +182,25 @@ def test_supabase_write_failures_are_not_silenced(monkeypatch):
 
     with pytest.raises(SupabasePersistenceError, match="strategy_evaluations"):
         supabase_io.upsert_strategy_evaluations([{"symbol": "BTCUSDC"}], "service-key")
+
+
+def test_strategy_evaluation_upsert_is_scoped_to_run(monkeypatch):
+    captured = {}
+
+    class SuccessfulResponse:
+        def raise_for_status(self):
+            return None
+
+    def fake_post(*args, **kwargs):
+        captured.update(kwargs)
+        return SuccessfulResponse()
+
+    monkeypatch.setattr(supabase_io, "_rest_base_url", lambda: "https://example.test/rest/v1")
+    monkeypatch.setattr(supabase_io.requests, "post", fake_post)
+
+    supabase_io.upsert_strategy_evaluations(
+        [{"symbol": "BTCUSDC", "run_id": "00000000-0000-4000-8000-000000000001"}],
+        "service-key",
+    )
+
+    assert captured["params"]["on_conflict"] == "user_id,symbol,tf,profile_id,params,run_id"

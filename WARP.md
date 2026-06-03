@@ -68,7 +68,7 @@ Key configs and knobs
 - Time window: general.date_from/date_to define the klines range fetched and simulated.
 
 Outputs and notes (from README)
-- Outputs: Supabase `strategy_evaluations`, `palmares_sets`, `palmares_entries`, and `heaven_strategies`; logs and caches under cache_dir.
+- Outputs: Supabase `strategy_evaluations`, `palmares_sets`, `palmares_entries`, and `heaven_strategies`; a shared `run_id` preserves each optimization run; logs and caches under cache_dir.
 - Data via Binance REST; providing cached data speeds up runs.
 - Optional numba acceleration is listed in requirements but excluded on Windows.
 

@@ -24,7 +24,7 @@ Dépôt: Botrade / Heaven
 ## 2) Flux de stratégies Heaven
 
 1. Le Lab ou l'optimiseur Python évalue des paramètres.
-2. Les évaluations sont écrites dans `strategy_evaluations`.
+2. Les évaluations sont écrites dans `strategy_evaluations` avec un `run_id` commun au run.
 3. Les meilleurs résultats sont classés dans `palmares_sets` et `palmares_entries`.
 4. Les stratégies rechargeables par l'UI sont écrites dans `heaven_strategies`.
 5. Il n'existe plus de fallback local pour les résultats, palmarès, presets ou options Heaven.
@@ -49,6 +49,8 @@ Les préférences non stratégiques peuvent rester en `localStorage` : thème, l
   - Mise à jour de `ws` vers une version sans l'avis de sécurité détecté.
 - Data API:
   - Les upserts de stratégies, évaluations et wallets utilisent des index d'identité `NULLS NOT DISTINCT` compatibles avec PostgREST.
+  - Les mêmes paramètres restent distincts entre runs, tandis que les vues et lectures de palmarès dédupliquent les meilleures stratégies.
+  - Les grants implicites sont révoqués et remplacés par les seules opérations réellement utilisées; `api_credentials` n'est plus exposée à `anon`.
 - Edge Function:
   - Aucun retraitement de l'historique lorsqu'il n'existe aucune nouvelle bougie.
   - Les segments de pivots sont limités aux pivots confirmés au moment de la bougie traitée.
