@@ -11,7 +11,9 @@ BINANCE_WS=wss://stream.binance.com:9443/ws
 
 ## Run locally
 
-npm i --prefix . -w botrade-runner || npm i --prefix .
+Requires Node.js 20 or newer.
+
+npm install --prefix runner
 node runner/index.js
 
 ## Deploy
@@ -20,5 +22,7 @@ node runner/index.js
 
 ## Notes
 - Groups sessions by (symbol, tf) and shares one stream per group.
-- Reconnects on error; backoff jitter.
+- Loads the repository-root `.env.runner` file, then falls back to a standard `.env`.
+- Reconnects closed Binance streams with backoff jitter and closes unused streams.
+- Persists TP targets inside the session position so open positions survive runner restarts.
 - Uses a simplified copy of the engine (Line Break + TP/SL/BE).

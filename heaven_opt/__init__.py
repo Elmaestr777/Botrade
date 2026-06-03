@@ -129,7 +129,7 @@ class Candidate(BaseModel):
 
 class OptimizationResult(BaseModel):
     top: list[Candidate]
-    logs: list[str] = []
+    logs: list[str] = Field(default_factory=list)
     artifacts_dir: str | None = None
 
 # ========= Helpers =========

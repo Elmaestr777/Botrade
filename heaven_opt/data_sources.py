@@ -21,7 +21,11 @@ def _rest_base_url() -> str | None:
 
 def fetch_history_from_supabase(symbol: str, tf: str, profile: str | None, max_rows: int = 2000) -> list[dict[str, Any]]:
     base = _rest_base_url()
-    api_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_ANON_KEY")
+    api_key = (
+        os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+        or os.getenv("SUPABASE_SERVICE_KEY")
+        or os.getenv("SUPABASE_ANON_KEY")
+    )
     if not base or not api_key:
         return []
     url = f"{base}/strategy_evaluations"

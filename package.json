@@ -11,7 +11,7 @@
     "lint:fix": "eslint . --fix",
     "lint:py": "python -m ruff check heaven_opt run_optimize.py tests",
     "lint:py:fix": "python -m ruff check --fix heaven_opt run_optimize.py tests",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "npm run test:py",
     "test:py": "python -m pytest -q"
   },
   "keywords": [],

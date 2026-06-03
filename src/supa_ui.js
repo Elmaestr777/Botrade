@@ -31,6 +31,11 @@ let __profileIdCacheByName = new Map();
      return client;
    }
 
+  function hasRequiredConfig(){
+    const cfg = readCfg();
+    return !!(cfg.url && cfg.anon);
+  }
+
   async function isLoggedIn(){ try{ const c=ensureClient(); if(!c) return false; const { data:{ user } } = await c.auth.getUser(); return !!user; }catch(_){ return false; } }
   async function getUserId(){ try{ const c=ensureClient(); if(!c) return null; const { data:{ user } } = await c.auth.getUser(); return (user && user.id) || null; }catch(_){ return null; } }
 
@@ -168,17 +173,23 @@ function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfi
   function chunk(arr, n){ const out=[]; for(let i=0;i<arr.length;i+=n){ out.push(arr.slice(i,i+n)); } return out; }
 
   async function upsertStrategyEvaluations(rows){
-    const c = ensureClient(); if(!c || !rows || !rows.length) return;
-    // Upsert with on_conflict composite key matching the table UNIQUE constraint
-    // NB: we include user_id to align with "unique (user_id, symbol, tf, profile_id, params)"
+    const c = ensureClient(); if(!c || !rows || !rows.length) return false;
+    const onConflict = 'user_id,symbol,tf,profile_id,params';
     for(const part of chunk(rows, 80)){
       try{
         const { error } = await c
           .from('strategy_evaluations')
-          .upsert(part, { onConflict: 'user_id,symbol,tf,profile_id,params', ignoreDuplicates: false, returning: 'minimal' });
-        if(error) console.warn('supabase upsert strategy_evaluations', error);
-      }catch(e){ console.warn('supabase upsert strategy_evaluations ex', e); }
+          .upsert(part, { onConflict, ignoreDuplicates: false, returning: 'minimal' });
+        if(error){
+          slog('Supabase: upsert strategy_evaluations KO — '+(error.message||error));
+          return false;
+        }
+      }catch(e){
+        slog('Supabase: upsert strategy_evaluations exception — '+(e&&e.message?e.message:e));
+        return false;
+      }
     }
+    return true;
   }
 
   async function createPalmaresSet(row){
@@ -199,17 +210,27 @@ function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfi
   }
 
   async function insertPalmaresEntries(rows){
-    const c = ensureClient(); if(!c || !rows || !rows.length) return;
+    const c = ensureClient(); if(!c || !rows || !rows.length) return false;
     for(const part of chunk(rows, 80)){
-      try{ const { error } = await c.from('palmares_entries').insert(part); if(error) console.warn('palmares_entries', error); }
-      catch(e){ console.warn('palmares_entries ex', e); }
+      try{
+        const { error } = await c.from('palmares_entries').insert(part);
+        if(error){
+          slog('Supabase: insert palmares_entries KO — '+(error.message||error));
+          return false;
+        }
+      }
+      catch(e){
+        slog('Supabase: insert palmares_entries exception — '+(e&&e.message?e.message:e));
+        return false;
+      }
     }
+    return true;
   }
 
   async function markSelectedForSet(rows, setId){
-    if(!rows || !rows.length || !setId) return;
+    if(!rows || !rows.length || !setId) return false;
     const upd = rows.map(r=> ({ ...r, selected:true, palmares_set_id:setId }));
-    await upsertStrategyEvaluations(upd);
+    return await upsertStrategyEvaluations(upd);
   }
 
   function canonicalParamsFromUI(p){
@@ -266,8 +287,8 @@ function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfi
 
 async function persistLabResults(ctx){
     try{
-      const c = ensureClient(); if(!c){ slog('Supabase: client indisponible'); return; }
-      const ok = await testConnection(); if(!ok){ slog('Supabase: connexion KO, annulation de la persistance'); return; }
+      const c = ensureClient(); if(!c){ slog('Supabase: client indisponible'); return false; }
+      const ok = await testConnection(); if(!ok){ slog('Supabase: connexion KO, annulation de la persistance'); return false; }
       // Public pool: no auth, rows written with user_id = null
       const uid = null;
       const profName = (ctx && ctx.profileName) || currentProfileName();
@@ -291,7 +312,12 @@ async function persistLabResults(ctx){
           toEval.push({ user_id: uid, symbol: sym, tf, profile_id: profileId || null, params, metrics, score, selected: false, palmares_set_id: null, provenance: 'UI:Lab', run_context: runContext });
         }
       }
-      if(toEval.length){ slog(`Supabase: upsert ${toEval.length} évaluations (top) ...`); await upsertStrategyEvaluations(toEval); slog('Supabase: évaluations enregistrées'); }
+      if(toEval.length){
+        slog(`Supabase: upsert ${toEval.length} évaluations (top) ...`);
+        const evalOk = await upsertStrategyEvaluations(toEval);
+        if(!evalOk) return false;
+        slog('Supabase: évaluations enregistrées');
+      }
  
       // Palmarès Top-N
       const best = Array.isArray(ctx.best)? ctx.best.slice() : [];
@@ -304,16 +330,21 @@ async function persistLabResults(ctx){
           function genName(){ try{ if(typeof window!=='undefined' && typeof window.randomName==='function'){ return window.randomName(); } }catch(_){ }
             const pool=['aurora','zenith','ember','nova','atlas','odyssey','vertex','harbor','willow','meadow']; return pool[Math.floor(Math.random()*pool.length)]; }
           for(const b of best){
-            let nm = (b.name||null);
-            if(!nm){ let tries=0; do{ nm=genName(); tries++; }while(used.has(nm)&&tries<5); used.add(nm); }
+            const base = String((b && b.name) || genName() || 'heaven').slice(0, 110);
+            let nm = base;
+            let suffix = 2;
+            while(used.has(nm)){ nm = `${base}-${suffix}`.slice(0, 120); suffix++; }
+            used.add(nm);
+            try{ b.name = nm; }catch(_){ }
             entries.push({ set_id: setId, rank, name: nm, params: canonicalParamsFromUI(b.params||{}), metrics: b.metrics||b.res||{}, score: (typeof b.score==='number')? b.score : 0, provenance: 'UI:Lab', generation: (b.gen!=null? b.gen:1) });
             rank++;
           }
-          try{
-            await insertPalmaresEntries(entries); slog('Supabase: entrées palmarès insérées');
-          }catch(e){ slog('Supabase: insert palmarès_entries KO — '+(e&&e.message?e.message:e)); }
+          const entriesOk = await insertPalmaresEntries(entries);
+          if(!entriesOk) return false;
+          slog('Supabase: entrées palmarès insérées');
         } else {
           slog('Supabase: création palmarès_set KO (id absent)');
+          return false;
         }
         // Mark selected — même si setId est null, on passe selected=true pour pouvoir lire via fetchPalmares
         // IMPORTANT: on copie aussi metrics + score dans strategy_evaluations pour que le Palmarès
@@ -328,14 +359,21 @@ async function persistLabResults(ctx){
             metrics: b.metrics || b.res || {},
             score: (typeof b.score === 'number') ? b.score : 0,
           }));
-          await markSelectedForSet(selRows, setId||null);
+          const markOk = await markSelectedForSet(selRows, setId||null);
+          if(!markOk) return false;
           slog('Supabase: stratégies marquées selected=true');
-        }catch(e){ slog('Supabase: mark selected KO — '+(e&&e.message?e.message:e)); }
+        }catch(e){ slog('Supabase: mark selected KO — '+(e&&e.message?e.message:e)); return false; }
+        try{
+          const savedHeaven = await persistBestHeavenStrategies({ symbol: sym, tf, best, profileName: profName });
+          if(!savedHeaven) return false;
+        }catch(e){ slog('Supabase: sauvegarde heaven_strategies KO — '+(e&&e.message?e.message:e)); return false; }
         slog('Supabase: fin persistance Lab');
+        return true;
       } else {
         slog('Supabase: aucun “best” à enregistrer');
+        return true;
       }
-    }catch(e){ slog('Supabase: persistLabResults exception — '+(e&&e.message?e.message:e)); console.warn('persistLabResults error', e); }
+    }catch(e){ slog('Supabase: persistLabResults exception — '+(e&&e.message?e.message:e)); console.warn('persistLabResults error', e); return false; }
   }
 
   async function openConfigAndLogin(){
@@ -515,11 +553,40 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
     try{
       const c=ensureClient(); if(!c){ slog('Supabase: client indisponible'); return false; }
       const row={ user_id: null, symbol: ctx.symbol, tf: ctx.tf, name: (ctx.name||null), params: ctx.params||{}, metrics: ctx.metrics||null };
-      const { error } = await c.from('heaven_strategies').upsert([row], { onConflict: 'symbol,tf,name', ignoreDuplicates: false, returning: 'minimal' });
+      const { error } = await c.from('heaven_strategies').upsert([row], { onConflict: 'user_id,symbol,tf,name', ignoreDuplicates: false, returning: 'minimal' });
       if(error){ slog('Supabase: persistHeavenStrategy KO — '+(error.message||error)); return false; }
       slog('Supabase: Heaven sauvegardée');
       return true;
     }catch(e){ slog('Supabase: persistHeavenStrategy exception — '+(e&&e.message?e.message:e)); return false; }
+  }
+  async function persistBestHeavenStrategies(ctx){
+    try{
+      const c=ensureClient(); if(!c){ slog('Supabase: client indisponible'); return false; }
+      const best = Array.isArray(ctx && ctx.best) ? ctx.best : [];
+      if(!best.length) return true;
+      const rows=[];
+      let rank=1;
+      for(const b of best){
+        const nm = String((b && b.name) || `${ctx.symbol}-${ctx.tf}-top-${rank}`).slice(0, 120);
+        rows.push({
+          user_id: null,
+          symbol: ctx.symbol,
+          tf: ctx.tf,
+          name: nm,
+          params: (b && b.params) || {},
+          metrics: (b && (b.metrics || b.res)) || null,
+        });
+        rank++;
+      }
+      for(const part of chunk(rows, 50)){
+        const { error } = await c
+          .from('heaven_strategies')
+          .upsert(part, { onConflict: 'user_id,symbol,tf,name', ignoreDuplicates: false, returning: 'minimal' });
+        if(error){ slog('Supabase: persistBestHeavenStrategies KO — '+(error.message||error)); return false; }
+      }
+      slog(`Supabase: ${rows.length} meilleures stratégies Heaven sauvegardées`);
+      return true;
+    }catch(e){ slog('Supabase: persistBestHeavenStrategies exception — '+(e&&e.message?e.message:e)); return false; }
   }
   async function fetchHeavenStrategies(symbol, tf, limit=50){
     const c=ensureClient(); if(!c) return [];
@@ -641,7 +708,7 @@ async function fetchHeadlessSessionByName(name){
       if(!row.name){ slog('Supabase: persistLiveWallet — nom requis'); return false; }
       const { error } = await c
         .from('wallets')
-        .upsert([row], { onConflict: 'name,exchange', ignoreDuplicates: false, returning: 'minimal' });
+        .upsert([row], { onConflict: 'user_id,name,exchange', ignoreDuplicates: false, returning: 'minimal' });
       if(error){ slog('Supabase: persistLiveWallet KO — '+(error.message||error)); return false; }
       slog('Supabase: Wallet sauvegardé');
       return true;
@@ -679,7 +746,7 @@ async function fetchHeadlessSessionByName(name){
   }
   
   window.SUPA = {
-    isConfigured: ()=>{ const c=readCfg(); return !!(c.url && c.anon); },
+    isConfigured: hasRequiredConfig,
     configSource: ()=>{ const s=staticCfg(); return (s.url&&s.anon)? 'static' : 'localStorage'; },
     openConfigAndLogin,
     ensureAuthFlow,
@@ -694,6 +761,7 @@ async function fetchHeadlessSessionByName(name){
     upsertLabProfileWeights,
     // Heaven
     persistHeavenStrategy,
+    persistBestHeavenStrategies,
     fetchHeavenStrategies,
     deleteHeavenStrategy,
     renameHeavenStrategy,

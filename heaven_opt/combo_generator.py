@@ -43,9 +43,9 @@ def generate_alloc_patterns(k: int, step: int = 5, max_patterns: int = 8) -> lis
     tries = 0
     while len(out) < max_patterns and tries < max_patterns * 5:
         tries += 1
-        cuts = sorted(set(random.randrange(1, s_units) for _ in range(max(0, k - 1))))
-        seq = [0] + cuts + [s_units]
-        parts = [seq[i + 1] - seq[i] for i in range(len(seq) - 1)]
+        parts = [0] * k
+        for _ in range(s_units):
+            parts[random.randrange(k)] += 1
         patt = [p * step for p in parts]
         key = ",".join(str(int(x)) for x in patt)
         if key not in seen:

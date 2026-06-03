@@ -23,7 +23,7 @@ def composite_score(metrics: dict[str, float], weights: dict[str, float]) -> flo
     ddAbs = float(metrics.get("maxDDAbs", 0.0))
     recov = (pnl / ddAbs) if ddAbs > 1e-9 else 0.0
     recovN = norm01(recov, 0.0, 3.0)
-    consN = 0.0  # placeholder
+    consN = max(0.0, min(1.0, float(metrics.get("consistency", 0.0))))
     w = weights
     return (
         (w.get("pf", 0.0) * pfN)

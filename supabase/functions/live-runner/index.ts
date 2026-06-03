@@ -99,10 +99,30 @@ function computePivots(bars: any[], prd: number) {
   return piv;
 }
 
-function getLastPivotSeg(piv: any[]) {
-  if (!piv || piv.length < 2) return null as any;
-  const a = piv[piv.length - 2], b = piv[piv.length - 1];
+function getLastConfirmedPivotSeg(piv: any[], currentIdx: number, prd: number) {
+  const confirmedThrough = currentIdx - prd;
+  const available = (piv || []).filter((p) => p.idx <= confirmedThrough);
+  if (available.length < 2) return null as any;
+  const a = available[available.length - 2], b = available[available.length - 1];
   return { a, b, dir: b.price > a.price ? 'up' : 'down' };
+}
+
+function emaAt(bars: any[], length: number, idx: number) {
+  const k = 2 / (Math.max(1, length) + 1);
+  let ema: number | null = null;
+  for (let i = 0; i <= idx && i < bars.length; i++) {
+    const v = bars[i].close;
+    ema = ema == null ? v : v * k + ema * (1 - k);
+  }
+  return ema;
+}
+
+function intervalSeconds(tf: string) {
+  const m = String(tf || '').match(/^(\d+)([mhdw])$/i);
+  if (!m) return 60;
+  const n = Math.max(1, Number(m[1]) || 1);
+  const unit = m[2].toLowerCase();
+  return n * (unit === 'm' ? 60 : unit === 'h' ? 3600 : unit === 'd' ? 86400 : 604800);
 }
 
 // ===== Engine per session =====
@@ -123,9 +143,8 @@ function buildTargets(params: any, segLast: any, dir: 'long'|'short', entry: num
         const p = parseFloat((t.pct != null ? t.pct : t.value));
         if (isFinite(p)) price = dir === 'long' ? (entry * (1 + p / 100)) : (entry * (1 - p / 100));
       } else if (typ === 'EMA') {
-        // For headless we approximate EMA target by last close (keeps target realistic without recomputing an EMA across bars)
-        const C = bars[i].close;
-        price = C; // conservative fallback
+        const len = Math.max(1, parseInt((t.emaLen != null ? t.emaLen : (params.emaLen || 55))));
+        price = emaAt(bars, len, i);
       }
       if (price != null) {
         if ((dir === 'long' && price > entry) || (dir === 'short' && price < entry)) {
@@ -171,8 +190,8 @@ function computeSLFromLadder(params: any, segLast: any, dir: 'long'|'short', ent
       const p = parseFloat((t.pct != null ? t.pct : t.value));
       if (isFinite(p)) price = dir === 'long' ? (entry * (1 - p / 100)) : (entry * (1 + p / 100));
     } else if (typ === 'EMA') {
-      // Approximate with last close for headless; if needed we can bring a small EMA cache
-      const v = bars[i].close; price = v;
+      const len = Math.max(1, parseInt((t.emaLen != null ? t.emaLen : emaLen)));
+      price = emaAt(bars, len, i);
     }
     if (price != null) {
       if (dir === 'long') { if (price <= entry) cands.push(price); } else { if (price >= entry) cands.push(price); }
@@ -206,7 +225,7 @@ async function processSession(c: any, s: any) {
   if (!bars.length) return { updated: false };
 
   // Only process bars after lastTs
-  let startIdx = 0;
+  let startIdx = bars.length;
   if (lastTs > 0) {
     for (let i = 0; i < bars.length; i++) { if (bars[i].time > lastTs) { startIdx = i; break; } }
   } else {
@@ -217,7 +236,8 @@ async function processSession(c: any, s: any) {
 
   // Compute context series once
   const lb = computeLineBreakState(bars, Math.max(1, parseInt(params.nol || 3)));
-  const pivAll = computePivots(bars, Math.max(2, parseInt(params.prd || 15)));
+  const pivotPrd = Math.max(2, parseInt(params.prd || 15));
+  const pivAll = computePivots(bars, pivotPrd);
 
   // Read persisted position state
   let pos = s.pos || null;
@@ -229,7 +249,7 @@ async function processSession(c: any, s: any) {
     const bar = bars[i];
     const trendNow = lb.trend[i];
     const trendPrev = (i > 0 ? lb.trend[i - 1] : trendNow);
-    const segLast = getLastPivotSeg(pivAll);
+    const segLast = getLastConfirmedPivotSeg(pivAll, i, pivotPrd);
 
     const emaLen = Math.max(1, parseInt(params.emaLen || 55));
 
@@ -262,7 +282,7 @@ async function processSession(c: any, s: any) {
       pos.loSince = Math.min(pos.loSince || bar.low, bar.low);
       // BE arming
       if (params.beEnable && !pos.beActive) {
-        const barsSince = Math.max(0, Math.floor((bar.time - pos.entryTime) / 1)); // approximate bars count by time; fine for headless periodic
+        const barsSince = Math.max(0, Math.floor((bar.time - pos.entryTime) / intervalSeconds(tf)));
         if (barsSince >= (parseInt(params.beAfterBars || 5))) {
           const movePct = pos.dir === 'long' ? ((bar.high - pos.entry) / pos.entry * 100) : ((pos.entry - bar.low) / pos.entry * 100);
           if (movePct >= (Number(params.beLockPct || 5.0))) { pos.beActive = true; pos.sl = pos.entry; addEvent('be', { time: bar.time, dir: pos.dir, sl: pos.sl }); }

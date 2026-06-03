@@ -507,6 +507,7 @@ let __uiLang = (function(){
   return 'fr';
 })();
 function currentLang(){ return __uiLang; }
+let __labUiReady = false;
 function setLang(lang, persist){
   try{
     if(SUPPORTED_LANGS.indexOf(lang) === -1) lang = 'fr';
@@ -519,7 +520,7 @@ function setLang(lang, persist){
     // Refresh key dynamic sections so texts follow the new language
     try{ if(typeof updateBarsInfo==='function') updateBarsInfo(); }catch(_){ }
     try{ if(typeof updateCutoffBadge==='function') updateCutoffBadge(); }catch(_){ }
-    try{ if(typeof renderLabFromStorage==='function') renderLabFromStorage(); }catch(_){ }
+    try{ if(__labUiReady && typeof renderLabFromStorage==='function') renderLabFromStorage(); }catch(_){ }
   }catch(_){ }
 }
 function cycleLang(){
@@ -590,7 +591,7 @@ try{ window.BOTRADE_LANG = { currentLang, setLang, cycleLang, t }; }catch(_){ }
 // --- Lab: Entrainer (AI surrogate) ---
 
 
-// --- Lab: lecture et palmarès (localStorage) ---
+// --- Lab: lecture et palmarès (Supabase-first) ---
 const labTBody = document.getElementById('labTBody'); const labSummaryEl=document.getElementById('labSummary'); const labTFSelect=document.getElementById('labTFSelect');
 // TF d'exécution du Lab: restitue la dernière valeur utilisée
 const labSymbolSelect=document.getElementById('labSymbolSelect');
@@ -600,12 +601,25 @@ try{ const savedLabTf=localStorage.getItem('lab:tf'); if(savedLabTf && labTFSele
 try{ const savedLabSym=localStorage.getItem('lab:sym'); if(savedLabSym && labSymbolSelect){ labSymbolSelect.value=savedLabSym; } }catch(_){ }
 // Populate lab symbol list from chart symbol select
 try{ if(labSymbolSelect && symbolSelect){ labSymbolSelect.innerHTML = symbolSelect.innerHTML; const savedLabSym=localStorage.getItem('lab:sym'); if(savedLabSym){ labSymbolSelect.value=savedLabSym; } else { labSymbolSelect.value = symbolSelect.value; } } }catch(_){ }
-function labKey(sym, tf){ return `lab:results:${sym}:${tf}`; }
-function readLabStorage(sym, tf){ try{ const s=localStorage.getItem(labKey(sym,tf)); return s? JSON.parse(s): []; }catch(_){ return []; } }
-function writeLabStorage(sym, tf, arr){ try{ localStorage.setItem(labKey(sym,tf), JSON.stringify(arr)); }catch(_){} }
-function palmaresKey(sym, tf){ return `lab:palmares:${sym}:${tf}`; }
-function readPalmares(sym, tf){ try{ const s=localStorage.getItem(palmaresKey(sym,tf)); return s? JSON.parse(s): []; }catch(_){ return []; } }
-function writePalmares(sym, tf, arr){ try{ localStorage.setItem(palmaresKey(sym,tf), JSON.stringify(arr)); localStorage.setItem(`lab:palmares:ts:${sym}:${tf}`, String(Date.now())); }catch(_){} }
+__labUiReady = true;
+function isSupabaseBestStorageReady(){ return !!(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchPalmares==='function' && typeof SUPA.persistLabResults==='function'); }
+function supabaseBestStorageError(){ return 'Supabase requis: les meilleures stratégies ne sont plus stockées en local.'; }
+async function persistBestResultsToSupabase(payload){
+  if(!isSupabaseBestStorageReady()){
+    const msg=supabaseBestStorageError();
+    try{ addBtLog && addBtLog(msg); }catch(_){ }
+    setStatus(msg);
+    throw new Error(msg);
+  }
+  const ok = await SUPA.persistLabResults(payload);
+  if(!ok){
+    const msg='Persistance Supabase échouée: palmarès non enregistré localement.';
+    try{ addBtLog && addBtLog(msg); }catch(_){ }
+    setStatus(msg);
+    throw new Error(msg);
+  }
+  return true;
+}
 function paramsKey(p){ if(!p) return ''; const o={ nol:p.nol, prd:p.prd, slInitPct:p.slInitPct, beAfterBars:p.beAfterBars, beLockPct:p.beLockPct, emaLen:p.emaLen, entryMode:p.entryMode, useFibRet:!!p.useFibRet, confirmMode:p.confirmMode, ent382:!!p.ent382, ent500:!!p.ent500, ent618:!!p.ent618, ent786:!!p.ent786, tp: Array.isArray(p.tp)? p.tp.slice(0,10): [] }; return JSON.stringify(o); }
 // Dictionnaires (échantillons)
 const DICT_FR=["étoile","forêt","rivière","montagne","océan","tempête","harmonie","nuage","pluie","lueur","zèbre","quartz","vallée","soleil","déluge","orage","saphir","primevère","cendre","ivoire"];
@@ -613,7 +627,6 @@ const DICT_EN=["river","stone","oak","ember","nova","zenith","aurora","lunar","s
 const DICT_ES=["río","piedra","roble","brasa","nube","estrella","luna","sol","mar","tierra","tormenta","sierra","valle","bosque","isla","puerto","águila","toro","lince","cometa"];
 const DICT_PL=["rzeka","kamień","dąb","iskra","gwiazda","księżyc","słońce","morze","ziemia","wiatr","burza","las","pustynia","wyspa","orzeł","żubr","ryś","kometa","polana","dolina"];
 function randomName(){ const dicts=[DICT_FR,DICT_EN,DICT_ES,DICT_PL]; const d=dicts[Math.floor(Math.random()*dicts.length)]; return d[Math.floor(Math.random()*d.length)]; }
-function uniqueNameFor(sym, tf, base){ const pal=readPalmares(sym, tf); const names=new Set(pal.map(x=>x.name)); let n=base; let k=2; while(names.has(n)){ n=base+"-"+k; k++; } return n; }
 async function renderLabFromStorage(){
   const tf = labTFSelect? labTFSelect.value: (intervalSelect? intervalSelect.value:''), sym=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol;
   const profSel = (document.getElementById('labProfile') && document.getElementById('labProfile').value) || (localStorage.getItem('labWeightsProfile')||'balancee');
@@ -629,16 +642,15 @@ async function renderLabFromStorage(){
     }
     localStorage.setItem('lab:sortMode', sortMode);
   }catch(_){ }
-  let arr=[]; let source='local';
-  // Si Supabase est configuré, on lit UNIQUEMENT Supabase pour le palmarès
+  let arr=[]; let source='Supabase';
+  // Palmarès: lecture Supabase uniquement.
   if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchPalmares==='function'){
     try{
       const supaArr = await SUPA.fetchPalmares(sym, tf, 25, profSel, sortMode);
       if(Array.isArray(supaArr)) { arr = supaArr; source='Supabase'; }
     }catch(_){ /* en cas d'erreur Supabase, on laisse arr = [] */ }
   } else {
-    // Fallback local uniquement si Supabase n'est pas configuré
-    arr = readPalmares(sym, tf) || []; source='local';
+    source='Supabase requis';
   }
   window.labPalmaresCache = Array.isArray(arr)? arr.slice() : [];
   const prefix = t('lab.palmares.prefix');
@@ -903,54 +915,8 @@ async function loadGlobalPalmares(){
       }) : [];
     }catch(_){ items = []; }
   } else {
-    const syms = [];
-    try{
-      if(symbolSelect && symbolSelect.options && symbolSelect.options.length){
-        for(let i=0;i<symbolSelect.options.length;i++){ const v=symbolSelect.options[i].value; if(v) syms.push(v); }
-      }
-    }catch(_){ }
-    if(!syms.length){ try{ if(currentSymbol) syms.push(currentSymbol); }catch(_){ } }
-    let tfs = [];
-    try{
-      const sel = labTFSelect || document.getElementById('labTFSelect');
-      if(sel && sel.options && sel.options.length){
-        for(let i=0;i<sel.options.length;i++){ const v=sel.options[i].value; if(v) tfs.push(v); }
-      }
-    }catch(_){ }
-    if(!tfs.length){ tfs = ['1m','5m','15m','1h','4h','1d']; }
-    const rows=[];
-    for(const sym of syms){
-      for(const tf of tfs){
-        let arr=[];
-        try{ arr = readPalmares(sym, tf) || []; }catch(_){ arr=[]; }
-        if(!Array.isArray(arr) || !arr.length) continue;
-        for(const r of arr){
-          const st = r.res || {};
-          const raw = scoreResult(st, weights);
-          const robust = Number.isFinite(r.score)? Number(r.score) : raw;
-          const pnl = Number(st.totalPnl||0);
-          const eq1 = Number(st.equityFinal||0);
-          const cnt = Number(st.tradesCount||0);
-          const wr = Number(st.winrate||0);
-          const rr = Number(st.avgRR||0);
-          const mdd = Number(st.maxDDAbs||0);
-          rows.push({
-            symbol: sym,
-            tf,
-            profile: prof,
-            name: r.name || null,
-            gen: r.gen != null ? r.gen : 1,
-            scoreRaw: raw,
-            scoreRobust: robust,
-            score: robust,
-            pnl, eq1, cnt, wr, rr, mdd,
-            params: r.params || {},
-            res: st,
-          });
-        }
-      }
-    }
-    items = rows;
+    items = [];
+    if(globalPalSummaryEl){ globalPalSummaryEl.textContent = supabaseBestStorageError(); }
   }
   __globalPalmaresData = Array.isArray(items)? items : [];
   populateGlobalPalmaresFilters();
@@ -2033,7 +1999,8 @@ if(heavenCfgBtn&&lbcModalEl) heavenCfgBtn.addEventListener('click', ()=>{ try{ p
 // --- Heaven overlay (Line Break + ZigZag + options) ---
 const emaToggleEl = document.getElementById('emaToggle'); const nolEl=document.getElementById('nolInput'); const toggleLBCEl=document.getElementById('toggleLBC');
 const defaultLBC={ enabled:true, nol:3, prd:15, showTrend:true, trendUpColor:'#00ff00', trendDnColor:'#ff0000', showClose:true, showArrows:true, arrowOffsetPx:50, arrowSizePx:12, useZZDraw:true, zzUp:'#00ff00', zzDn:'#ff0000', useFibDraw:true, useFibDrawTPSL:false, useFibRet:false, entryMode:'Both', confirmMode:'Bounce', ent382:true, ent500:true, ent618:true, ent786:false, slInitPct:2.0, slEnable:false, sl:[], tp1R:1.0, tpCompound:true, tpCloseAllLast:true, beEnable:false, beAfterBars:5.0, beLockPct:5.0, emaLen:55, tpEnable:true, tp:[], tpCount:10 };
-let lbcOpts = (()=>{ try{ const s=localStorage.getItem('lbcOptions'); return s? { ...defaultLBC, ...JSON.parse(s) } : { ...defaultLBC }; }catch(_){ return { ...defaultLBC }; } })();
+let lbcOpts = { ...defaultLBC };
+try{ localStorage.removeItem('lbcOptions'); }catch(_){ }
 // Migration guard + normalisation Heaven (TP/SL)
 function normalizeLBCOpts(){
   try{
@@ -2051,7 +2018,7 @@ function normalizeLBCOpts(){
   }catch(_){ }
 }
 normalizeLBCOpts();
-function saveLBCOpts(){ try{ localStorage.setItem('lbcOptions', JSON.stringify(lbcOpts)); }catch(_){ } }
+function saveLBCOpts(){ }
 function clampTPCount(n){ const v=parseInt(String(n||''),10); if(!Number.isFinite(v)) return 10; if(v<1) return 1; if(v>10) return 10; return v|0; }
 function applyHeavenTPCountToUI(){
   try{
@@ -3547,25 +3514,6 @@ async function computeDefaultDetailCompareCfgForSymbol(sym){
         }
       }
     }
-  } else {
-    let prof = 'balancee';
-    try{ prof = localStorage.getItem('labWeightsProfile') || 'balancee'; }catch(_){ }
-    const w = getWeights(prof);
-    for(const tf of tfs){
-      let arr = [];
-      try{ arr = readPalmares(sym, tf) || []; }catch(_){ arr = []; }
-      if(!Array.isArray(arr) || !arr.length) continue;
-      for(const it of arr){
-        if(!it || !it.params) continue;
-        const st = it.res || {};
-        let sc = Number.isFinite(it.score) ? Number(it.score) : scoreResult(st, w);
-        if(!Number.isFinite(sc)) continue;
-        if(!best || sc > best.score){
-          const label = it.name || `Palmarès ${symbolToDisplay(sym)} • ${tf}`;
-          best = { score: sc, params: it.params, label, tf, profile: prof };
-        }
-      }
-    }
   }
   let cfg;
   if(best && best.params){
@@ -3746,8 +3694,6 @@ async function populateDetailCompPalmares(){
     let pal=[];
     if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured() && typeof SUPA.fetchPalmares==='function'){
       try{ pal = await SUPA.fetchPalmares(sym, tf, 50, prof); }catch(_){ pal=[]; }
-    } else {
-      try{ pal = readPalmares(sym, tf)||[]; }catch(_){ pal=[]; }
     }
     __detailCompPalmaresList = Array.isArray(pal)? pal.slice(): [];
     const w=getWeights(prof||'balancee');
@@ -5056,6 +5002,13 @@ if(labRunBtn){ labRunBtn.addEventListener('click', async ()=>{ try{
   try{ window.__labGoalOverride = null; }catch(_){ }
   const strategy=(document.getElementById('labStrategy')&&document.getElementById('labStrategy').value)||'hybrid';
 const conf=readLabRiskConf();
+  if(!isSupabaseBestStorageReady()){
+    const msg=supabaseBestStorageError();
+    try{ addBtLog && addBtLog(msg); }catch(_){ }
+    setStatus(msg);
+    if(labRunStatusEl) labRunStatusEl.textContent='Supabase requis';
+    return;
+  }
   // Log mode (Nouvelle stratégie vs Entraîner) for clarity
   try{
     if(typeof addBtLog==='function'){
@@ -6150,45 +6103,8 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
       gen:(x.gen!=null? x.gen : ((x.owner&&x.owner.gen)||1)),
       name: x.name || (x.owner && x.owner.name) || null,
     }));
-    if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.persistLabResults==='function'){
-      // Tout passe par Supabase (naming + persistance gérés côté SUPA)
-      try{ await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut, profileName: (localStorage.getItem('labWeightsProfile')||'balancee') }); }catch(_){ }
-      try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
-    } else {
-      // Fallback local uniquement si Supabase non configuré
-      try{
-        const existing = readPalmares(sym, tfSel) || [];
-        // Donner un nom unique aux nouvelles stratégies si absent
-        const namedNew = bestOut.map((it)=>{
-          if(it.name && typeof it.name==='string') return it;
-          let base='strat';
-          try{ base = randomName(); }catch(_){ base='strat'; }
-          const nm = uniqueNameFor(sym, tfSel, base);
-          return { ...it, name: nm };
-        });
-        // Fusionner ancien palmarès et nouvelles entrées en dédupliquant par params
-        const weightsLocal = getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
-        const byKey = new Map();
-        const pushOrUpdate = (item)=>{
-          if(!item || !item.params) return;
-          const key = paramsKey(item.params||{});
-          const st = item.res || item.metrics || {};
-          const sc = Number.isFinite(item.score)? item.score : scoreResult(st, weightsLocal);
-          const prev = byKey.get(key);
-          if(!prev || sc > (Number(prev.score)||0)){
-            byKey.set(key, { ...item, score: sc });
-          }
-        };
-        existing.forEach(pushOrUpdate);
-        namedNew.forEach(pushOrUpdate);
-        let merged = Array.from(byKey.values());
-        merged.sort((a,b)=> (Number(b.score)||0) - (Number(a.score)||0));
-        const MAX_LOCAL = 50;
-        if(merged.length>MAX_LOCAL) merged = merged.slice(0, MAX_LOCAL);
-        writePalmares(sym, tfSel, merged);
-      }catch(_){ }
-      try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
-    }
+    await persistBestResultsToSupabase({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut, profileName: (localStorage.getItem('labWeightsProfile')||'balancee') });
+    try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
     setStatus(t('status.palmaresUpdated')); try{ __labSimDone = Math.max(__labSimDone, __labSimPlanned||__labSimDone); updateGlobalProgressUI(); }catch(_){ } closeBtProgress();
     maybeScheduleLabAutoLoop();
   } else {
@@ -6229,13 +6145,8 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
     let merged = Array.from(mergedMap.values());
     try{ merged.sort((a,b)=> (Number(b.score)||0) - (Number(a.score)||0)); }catch(_){ }
     const bestOut = merged.slice(0, Math.min(MAX_BEST, merged.length));
-    if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.persistLabResults==='function'){
-      try{ await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut, profileName: (localStorage.getItem('labWeightsProfile')||'balancee') }); }catch(_){ }
-      try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
-    } else {
-      try{ writePalmares(sym, tfSel, bestOut); }catch(_){ }
-      try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
-    }
+    await persistBestResultsToSupabase({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut, profileName: (localStorage.getItem('labWeightsProfile')||'balancee') });
+    try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
     setStatus(t('status.improveDone')); try{ __labSimDone = Math.max(__labSimDone, __labSimPlanned||__labSimDone); updateGlobalProgressUI(); }catch(_){ } closeBtProgress();
     maybeScheduleLabAutoLoop();
   }
@@ -6245,15 +6156,15 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
 
 // Presets (Heaven)
 const lbcPresetName=document.getElementById('lbcPresetName'); const lbcPresetSave=document.getElementById('lbcPresetSave'); const lbcPresetSelect=document.getElementById('lbcPresetSelect'); const lbcPresetLoad=document.getElementById('lbcPresetLoad'); const lbcPresetDelete=document.getElementById('lbcPresetDelete'); const lbcResetBtn=document.getElementById('lbcReset');
-function loadPresetList(){ try{ const s=localStorage.getItem('lbcPresetList'); const names=s? JSON.parse(s): []; if(lbcPresetSelect){ lbcPresetSelect.innerHTML = names.map(n=>`<option value=\"${n}\">${n}</option>`).join(''); } return names; }catch(_){ return []; } }
-function savePresetList(names){ try{ localStorage.setItem('lbcPresetList', JSON.stringify(names)); }catch(_){ } }
-function savePreset(name){ const names=loadPresetList(); const idx=names.indexOf(name); if(idx===-1){ names.push(name); savePresetList(names); loadPresetList(); } try{ localStorage.setItem('lbcPreset:'+name, JSON.stringify(lbcOpts)); }catch(_){ } }
-function loadPresetByName(name){ try{ const s=localStorage.getItem('lbcPreset:'+name); if(!s) return false; lbcOpts = { ...defaultLBC, ...JSON.parse(s) }; normalizeLBCOpts(); saveLBCOpts(); renderLBC(); return true; }catch(_){ return false; } }
-function deletePreset(name){ try{ localStorage.removeItem('lbcPreset:'+name); const names=loadPresetList().filter(n=>n!==name); savePresetList(names); loadPresetList(); }catch(_){} }
+function loadPresetList(){ if(lbcPresetSelect){ lbcPresetSelect.innerHTML = ''; } return []; }
+function savePresetList(names){ try{ void names; }catch(_){ } }
+function savePreset(name){ try{ void name; }catch(_){ } setStatus('Presets locaux désactivés: utilisez la sauvegarde Supabase.'); }
+function loadPresetByName(name){ try{ void name; }catch(_){ } setStatus('Presets locaux désactivés: chargez depuis Supabase.'); return false; }
+function deletePreset(name){ try{ void name; }catch(_){} setStatus('Presets locaux désactivés.'); }
 loadPresetList();
-if(lbcPresetSave){ lbcPresetSave.addEventListener('click', ()=>{ const name=(lbcPresetName&&lbcPresetName.value||'').trim(); if(!name){ setStatus('Nom du preset requis'); return; } savePreset(name); setStatus('Preset sauvegardé'); }); }
-if(lbcPresetLoad){ lbcPresetLoad.addEventListener('click', ()=>{ const name=(lbcPresetSelect&&lbcPresetSelect.value)||''; if(!name){ setStatus('Aucun preset'); return; } if(loadPresetByName(name)){ try{ populateHeavenModal(); }catch(_){ } setStatus('Preset chargé'); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } } }); }
-if(lbcPresetDelete){ lbcPresetDelete.addEventListener('click', ()=>{ const name=(lbcPresetSelect&&lbcPresetSelect.value)||''; if(!name) return; if(confirm(`Supprimer le preset \"${name}\" ?`)){ deletePreset(name); setStatus('Preset supprimé'); } }); }
+if(lbcPresetSave){ lbcPresetSave.addEventListener('click', ()=>{ const name=(lbcPresetName&&lbcPresetName.value||'').trim(); savePreset(name); }); }
+if(lbcPresetLoad){ lbcPresetLoad.addEventListener('click', ()=>{ const name=(lbcPresetSelect&&lbcPresetSelect.value)||''; loadPresetByName(name); }); }
+if(lbcPresetDelete){ lbcPresetDelete.addEventListener('click', ()=>{ const name=(lbcPresetSelect&&lbcPresetSelect.value)||''; deletePreset(name); }); }
 if(lbcResetBtn){ lbcResetBtn.addEventListener('click', ()=>{ lbcOpts = { ...defaultLBC }; normalizeLBCOpts(); saveLBCOpts(); renderLBC(); try{ populateHeavenModal(); }catch(_){ } setStatus('Paramètres réinitialisés'); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
 
 // Supabase-backed Heaven strategies
@@ -6320,11 +6231,8 @@ async function populateHeavenLoadOptions(){ try{ if(!heavenLoadSelect) return; c
   let supa = [];
   if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured()){ try{ await populateHeavenSupaList(); supa = Array.isArray(window.__heavenSupaList)? window.__heavenSupaList.slice(): []; }catch(_){ supa=[]; } }
   if(supa.length){ for(const r of supa){ opts.push(`<option value="supa:${r.id}">Supa: ${(r.name||'(sans nom)')} — ${new Date(r.created_at).toLocaleString()}</option>`); } }
-  // Local presets
-  let localNames=[]; try{ localNames = loadPresetList(); }catch(_){ localNames=[]; }
-  if(Array.isArray(localNames) && localNames.length){ for(const n of localNames){ opts.push(`<option value="local:${n}">Preset: ${n}</option>`); } }
   // Palmarès (Lab)
-  let pal=[]; if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured()){ try{ pal = await SUPA.fetchPalmares(sym, tf, 25, profSel); }catch(_){ pal=[]; } } else { try{ pal = readPalmares(sym, tf)||[]; }catch(_){ pal=[]; } }
+  let pal=[]; if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured()){ try{ pal = await SUPA.fetchPalmares(sym, tf, 25, profSel); }catch(_){ pal=[]; } }
   window.__heavenPalmaresList = Array.isArray(pal)? pal.slice() : [];
   if(window.__heavenPalmaresList.length){ let idx=0; for(const it of window.__heavenPalmaresList){ const sc = Number.isFinite(it.score)? it.score.toFixed(2) : (it.res? (function(){ try{ const w=getWeights(profSel||'balancee'); return scoreResult(it.res, w).toFixed(2);}catch(_){ return '—'; } })() : '—'); const nm = it.name || `Palmarès #${idx+1}`; opts.push(`<option value="pal:${idx}">Palmarès: ${nm} — ${sc}</option>`); idx++; } }
   heavenLoadSelect.innerHTML = opts.join('');
@@ -6347,8 +6255,7 @@ try{
     }
   }
 }catch(_){ }
-if(heavenLoadBtn && (!heavenLoadBtn.dataset || heavenLoadBtn.dataset.wired!=='1')){ heavenLoadBtn.addEventListener('click', async ()=>{ try{ const v=(heavenLoadSelect&&heavenLoadSelect.value)||''; if(!v) return; const parts=String(v).split(':'); const kind=parts[0]||''; const id=parts.slice(1).join(':'); if(kind==='local'){ if(id){ if(loadPresetByName(id)){ try{ populateHeavenModal(); }catch(_){ } } } }
-  else if(kind==='supa'){ const rows=Array.isArray(window.__heavenSupaList)? window.__heavenSupaList:[]; const it=rows.find(r=> String(r.id)===String(id)); if(it && it.params){ applyHeavenParams(it.params||{}); try{ if(heavenTFSelect && it.tf){ heavenTFSelect.value = it.tf; try{ localStorage.setItem('heaven:tf', it.tf); }catch(_){ } } }catch(_){ } try{ populateHeavenModal(); }catch(_){ } } }
+if(heavenLoadBtn && (!heavenLoadBtn.dataset || heavenLoadBtn.dataset.wired!=='1')){ heavenLoadBtn.addEventListener('click', async ()=>{ try{ const v=(heavenLoadSelect&&heavenLoadSelect.value)||''; if(!v) return; const parts=String(v).split(':'); const kind=parts[0]||''; const id=parts.slice(1).join(':'); if(kind==='supa'){ const rows=Array.isArray(window.__heavenSupaList)? window.__heavenSupaList:[]; const it=rows.find(r=> String(r.id)===String(id)); if(it && it.params){ applyHeavenParams(it.params||{}); try{ if(heavenTFSelect && it.tf){ heavenTFSelect.value = it.tf; try{ localStorage.setItem('heaven:tf', it.tf); }catch(_){ } } }catch(_){ } try{ populateHeavenModal(); }catch(_){ } } }
   else if(kind==='pal'){ const idx=parseInt(id,10); const arr=Array.isArray(window.__heavenPalmaresList)? window.__heavenPalmaresList:[]; const it=arr[idx]; if(it && it.params){ applyHeavenParams(it.params||{}); try{ populateHeavenModal(); }catch(_){ } } }
   // Switch chart TF to selected Heaven TF
   try{ const tfSel=(heavenTFSelect&&heavenTFSelect.value)||''; if(tfSel && tfSel!==currentInterval){ try{ if(intervalSelect) intervalSelect.value=tfSel; localStorage.setItem('chart:tf', tfSel); }catch(_){ } currentInterval=tfSel; closeWs(); await load(currentSymbol, currentInterval); openWs(currentSymbol, currentInterval); } }catch(_){ }

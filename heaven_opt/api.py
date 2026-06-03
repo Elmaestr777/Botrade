@@ -2,9 +2,6 @@ from __future__ import annotations
 
 import os
 import time
-from pathlib import Path
-
-import yaml
 
 from . import Candidate, OptimizationConfig, OptimizationResult
 from .combo_generator import (
@@ -51,6 +48,14 @@ def _rank_key(m: dict) -> tuple:
 def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
     log = setup_logger()
     t0 = time.time()
+    svc_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_SERVICE_KEY")
+    if not svc_key or not (os.getenv("SUPABASE_URL") or os.getenv("SUPABASE_REST_URL")):
+        raise RuntimeError(
+            "Supabase is required for Heaven optimization: set SUPABASE_URL "
+            "and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_KEY)"
+        )
+    from . import supabase_io as sio
+
     # Seed (env override): HEAVEN_SEED
     try:
         from .utils import seed_everything
@@ -59,9 +64,6 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
         log.info(f"Heaven seed: {s}")
     except Exception:
         pass
-    # Prepare run directory early
-    run_dir = Path("runs") / time.strftime("%Y%m%d_%H%M%S")
-    run_dir.mkdir(parents=True, exist_ok=True)
     sym = config.general.symbol
     tf = config.general.tf_optim
     start_sec, end_sec = epoch_seconds_range(config.general.date_from, config.general.date_to)
@@ -104,6 +106,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
             "slope": float(rep.get("slope", 0.0)),
             "r2": float(rep.get("r2", 0.0)),
             "calmar": float(rep.get("calmar", 0.0)),
+            "consistency": float(rep.get("consistency", 0.0)),
             "maxDDPct": float(rep.get("maxDDPct", 0.0)),
             "maxDDAbs": float(rep.get("maxDDAbs", 0.0)),
             "equityFinal": float(rep.get("equity", 0.0)),
@@ -186,11 +189,6 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
             n_jobs=int(config.resource.n_jobs),
             on_progress=(config.on_progress if hasattr(config, 'on_progress') else None),
         )
-        # Save EA seeds checkpoint
-        try:
-            (run_dir / "ea_seeds.yaml").write_text(yaml.safe_dump([s["params"] for s in seeds]), encoding="utf-8")
-        except Exception:
-            pass
         # Select top-M seeds by score
         seeds.sort(key=lambda s: -float(s["metrics"].get("score", 0.0)))
         top_m = min(10, 2 * int(config.general.top_n_results))
@@ -278,7 +276,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
             beb = random.choice(beb_list)
             bel = random.choice(bel_list)
             ema = random.choice(ema_list)
-            mode = random.choice(modes)
+            entry_mode = random.choice(modes)
             tpv = random.choice(tp_vectors) if tp_vectors else []
             alloc = random.choice(alloc_patterns) if alloc_patterns else [100.0]
             cand = {
@@ -288,7 +286,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
                 "be_after_bars": int(beb),
                 "be_lock_pct": float(bel),
                 "ema_len": int(ema),
-                "entry_mode": mode,
+                "entry_mode": entry_mode,
                 "tp_types": tp_types[:],
                 "tp_r": list(tpv) + [0.0] * (10 - len(tpv)),
                 "tp_p": list(alloc) + [0.0] * (10 - len(alloc)),
@@ -334,92 +332,81 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
             r["metrics"].update(mc)
         r["metrics"]["score"] = composite_score(r["metrics"], weights)
 
-    # Persist all tested strategies to Supabase (best-effort)
-    try:
-        from . import supabase_io as sio  # local module
-        svc_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-        base_ok = bool(svc_key) and bool(os.getenv("SUPABASE_URL") or os.getenv("SUPABASE_REST_URL"))
-        if base_ok and results:
-            user_id = os.getenv("HEAVEN_USER_ID")  # optional; leave null if not provided
-            profile_id = sio.get_balancee_profile_id(svc_key)
-            # Build run context
-            rc = {
-                "mode": str(mode),
-                "date_from": str(getattr(config.general, "date_from", "")),
-                "date_to": str(getattr(config.general, "date_to", "")),
-                "seed": os.getenv("HEAVEN_SEED"),
-                "ts": time.time(),
-            }
-            # Copy before sort/slice
-            all_results_for_persist = list(results)
-            rows_all: list[dict] = []
-            for r in all_results_for_persist:
-                rows_all.append({
-                    "user_id": user_id,
-                    "symbol": sym,
-                    "tf": tf,
-                    "profile_id": profile_id,
-                    "params": r.get("params") or {},
-                    "metrics": r.get("metrics") or {},
-                    "score": float((r.get("metrics") or {}).get("score", 0.0)),
-                    "selected": False,
-                    "palmares_set_id": None,
-                    "provenance": r.get("provenance", "coarse"),
-                    "run_context": rc,
-                })
-            sio.upsert_strategy_evaluations(rows_all, svc_key)
-    except Exception:
-        # Do not fail the optimization if persistence fails
-        pass
+    # Supabase is the only strategy store: persistence failures must fail clearly.
+    user_id = os.getenv("HEAVEN_USER_ID")  # optional; leave null if not provided
+    profile_id = sio.get_balancee_profile_id(svc_key)
+    rc = {
+        "mode": str(mode),
+        "date_from": str(getattr(config.general, "date_from", "")),
+        "date_to": str(getattr(config.general, "date_to", "")),
+        "seed": os.getenv("HEAVEN_SEED"),
+        "ts": time.time(),
+    }
+    rows_all: list[dict] = []
+    for r in results:
+        rows_all.append({
+            "user_id": user_id,
+            "symbol": sym,
+            "tf": tf,
+            "profile_id": profile_id,
+            "params": r.get("params") or {},
+            "metrics": r.get("metrics") or {},
+            "score": float((r.get("metrics") or {}).get("score", 0.0)),
+            "selected": False,
+            "palmares_set_id": None,
+            "provenance": r.get("provenance", "coarse"),
+            "run_context": rc,
+        })
+    sio.upsert_strategy_evaluations(rows_all, svc_key)
 
     # Sort and select top-N
     results.sort(key=lambda r: -float(r["metrics"].get("score", 0.0)))
     top_results = results[: int(config.general.top_n_results)]
 
-    # Create palmarès set and entries (best-effort)
+    # Create palmarès set and reloadable Heaven strategies.
     set_id = None
-    try:
-        svc_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-        if bool(svc_key) and bool(os.getenv("SUPABASE_URL") or os.getenv("SUPABASE_REST_URL")) and top_results:
-            from . import supabase_io as sio
-            user_id = os.getenv("HEAVEN_USER_ID")
-            profile_id = sio.get_balancee_profile_id(svc_key)
-            note = os.getenv("HEAVEN_NOTE") or f"{mode} {sym} {tf}"
-            set_id = sio.create_palmares_set({
+    if top_results:
+        note = os.getenv("HEAVEN_NOTE") or f"{mode} {sym} {tf}"
+        set_id = sio.create_palmares_set({
+            "user_id": user_id,
+            "symbol": sym,
+            "tf": tf,
+            "profile_id": profile_id,
+            "top_n": int(config.general.top_n_results),
+            "note": note,
+        }, svc_key)
+        ents = []
+        heaven_rows = []
+        for rank, r in enumerate(top_results, start=1):
+            strat_name = f"{note}-top-{rank}"
+            ents.append({
+                "set_id": set_id,
+                "rank": rank,
+                "name": strat_name,
+                "params": r.get("params") or {},
+                "metrics": r.get("metrics") or {},
+                "score": float((r.get("metrics") or {}).get("score", 0.0)),
+                "provenance": r.get("provenance", "coarse"),
+                "generation": 1,
+            })
+            heaven_rows.append({
                 "user_id": user_id,
                 "symbol": sym,
                 "tf": tf,
-                "profile_id": profile_id,
-                "top_n": int(config.general.top_n_results),
-                "note": note,
-            }, svc_key)
-            if set_id:
-                ents = []
-                rank = 1
-                for r in top_results:
-                    ents.append({
-                        "set_id": set_id,
-                        "rank": rank,
-                        "name": None,
-                        "params": r.get("params") or {},
-                        "metrics": r.get("metrics") or {},
-                        "score": float((r.get("metrics") or {}).get("score", 0.0)),
-                        "provenance": r.get("provenance", "coarse"),
-                        "generation": 1,
-                    })
-                    rank += 1
-                sio.insert_palmares_entries(ents, svc_key)
-                # Mark selected=true for top results
-                rows_sel = [{
-                    "user_id": os.getenv("HEAVEN_USER_ID"),
-                    "symbol": sym,
-                    "tf": tf,
-                    "profile_id": profile_id,
-                    "params": r.get("params") or {},
-                } for r in top_results]
-                sio.mark_selected_for_set(rows_sel, set_id, svc_key)
-    except Exception:
-        pass
+                "name": strat_name,
+                "params": sio.canonical_params_to_ui_params(r.get("params") or {}),
+                "metrics": r.get("metrics") or {},
+            })
+        sio.insert_palmares_entries(ents, svc_key)
+        sio.upsert_heaven_strategies(heaven_rows, svc_key)
+        rows_sel = [{
+            "user_id": user_id,
+            "symbol": sym,
+            "tf": tf,
+            "profile_id": profile_id,
+            "params": r.get("params") or {},
+        } for r in top_results]
+        sio.mark_selected_for_set(rows_sel, set_id, svc_key)
 
     # Build OptimizationResult
     top = []
@@ -427,5 +414,12 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
         rep = r["metrics"]
         metrics_numeric = {k: float(v) for k, v in rep.items() if isinstance(v, (int, float))}
         top.append(Candidate(params=r["params"], metrics=metrics_numeric, provenance=r.get("provenance", "grid")))
-    (run_dir / "results.yaml").write_text(yaml.safe_dump({"top": [c.params for c in top]}), encoding="utf-8")
-    return OptimizationResult(top=top, logs=[f"duration_sec={time.time()-t0:.2f}"] , artifacts_dir=str(run_dir))
+    return OptimizationResult(
+        top=top,
+        logs=[
+            f"duration_sec={time.time()-t0:.2f}",
+            f"supabase_evaluations={len(rows_all)}",
+            f"supabase_palmares_set={set_id or ''}",
+        ],
+        artifacts_dir=None,
+    )

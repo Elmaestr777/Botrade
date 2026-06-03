@@ -6,19 +6,23 @@ This Python package provides an optimization engine for the Heaven trading strat
 - Local Bayesian refinement (Optuna TPE/Gaussian)
 - Caching, early stopping, walk-forward validation, Monte Carlo robustness checks
 - Parallel evaluation and progress callbacks for UI integration
+- Supabase-only persistence for evaluated and selected strategies
 
 Quickstart
 - Install requirements: pip install -r requirements.txt
 - Create a config: see config.example.yaml
+- Set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_SERVICE_KEY`)
 - Run: python run_optimize.py --config config.example.yaml
 
 Outputs
-- JSON/CSV of top-N results
-- Equity curves (CSV) per candidate
-- Logs and cache under cache_dir
+- Evaluations in `strategy_evaluations`
+- Ranked selections in `palmares_sets` and `palmares_entries`
+- Reloadable best strategies in `heaven_strategies`
+- Runtime logs and deterministic computation cache under `cache_dir`
 
 Notes
 - Data loading uses Binance REST; provide your own data or cache for speed.
+- No strategy result or preset is written to local files by the optimizer.
 - Simulation mirrors the JS logic (SL/BE/TP) for numerical parity; minor rounding deltas may occur.
 - Optional numba acceleration can be enabled if available.
 

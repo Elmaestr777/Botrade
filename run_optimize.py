@@ -23,7 +23,10 @@ def main(argv=None) -> int:
         print(f"Config not found: {cfg_path}", file=sys.stderr)
         return 2
 
-    data = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
+    data = yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or {}
+    if not isinstance(data, dict):
+        print("Config must contain a YAML mapping at the top level", file=sys.stderr)
+        return 2
 
     # Coerce YAML-friendly structures to Pydantic expectations
     def _coerce_ranges(rngs: dict) -> dict:
@@ -70,7 +73,7 @@ def main(argv=None) -> int:
 
     res = optimize_heaven(config)
 
-    print(f"Top {len(res.top)} results. Artifacts: {res.artifacts_dir}")
+    print(f"Top {len(res.top)} results persisted to Supabase.")
     return 0
 
 
