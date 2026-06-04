@@ -106,8 +106,9 @@ def test_ui_distinguishes_fib_retracement_and_extension_labels():
     repo_root = Path(__file__).resolve().parents[1]
     source = (repo_root / "src" / "main.js").read_text(encoding="utf-8")
 
-    assert "Fib Ret ${r}" in source
-    assert "Fib Ext ${r}" in source
+    assert "Fib Ret ${fibDirLabel} ${r}" in source
+    assert "Fib Ext ${fibDirLabel} ${r}" in source
+    assert "A ${A.toFixed(2)} -> B ${B.toFixed(2)}" in source
     assert "rebuildFibSelect(sFib, (st&&st.fib!=null)? st.fib : (sFib&&sFib.value), 'sl')" in source
     assert "rebuildFibSelect(vFib, (t&&t.fib!=null)? t.fib : (vFib&&vFib.value), 'sl')" in source
 

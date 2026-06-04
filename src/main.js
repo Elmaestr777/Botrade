@@ -2070,7 +2070,11 @@ function populateHeavenModal(){ try{
   const pivAll=computePivots(candles, Math.max(2, lbcOpts.prd|0));
   const seg=getLastPivotSeg(pivAll); const A=seg?seg.a.price:null, B=seg?seg.b.price:null; const up=seg? (seg.dir==='up'):null; const move=(seg&&A!=null&&B!=null)? Math.abs(B-A):null;
   const fibRatios=[0,0.236,0.382,0.5,0.618,0.786,1.0,1.272,1.382,1.414,1.618,2.0,2.236,2.618,3.0,3.618,4.236,5.0];
-  function rebuildFibSelect(sel, current, mode='tp'){ if(!sel) return; sel.innerHTML=''; const isSL=mode==='sl'; sel.title=isSL ? 'Fib retracement depuis le dernier pivot confirme' : 'Fib extension depuis le dernier pivot confirme'; for(const r of fibRatios){ const opt=document.createElement('option'); opt.value=String(r); let label=r.toFixed(3); if(seg && move!=null){ const px = isSL ? (up? (B - move*r) : (B + move*r)) : (up? (B + move*r) : (B - move*r)); if(isFinite(px)) label += ` — ${px.toFixed(2)} ${isSL ? 'ret' : 'ext'}`; }
+  function rebuildFibSelect(sel, current, mode='tp'){
+    if(!sel) return; sel.innerHTML='';
+    const isSL=mode==='sl'; const fibDir=seg ? (up ? 'up' : 'down') : 'n/a'; const fibRole=isSL ? 'retracement' : 'extension';
+    sel.title=(seg && move!=null) ? `Fib ${fibRole} depuis le dernier swing confirme (${fibDir}, A ${A.toFixed(2)} -> B ${B.toFixed(2)})` : `Fib ${fibRole} depuis le dernier swing confirme`;
+    for(const r of fibRatios){ const opt=document.createElement('option'); opt.value=String(r); let label=r.toFixed(3); if(seg && move!=null){ const px = isSL ? (up? (B - move*r) : (B + move*r)) : (up? (B + move*r) : (B - move*r)); if(isFinite(px)) label += ` — ${px.toFixed(2)} ${isSL ? 'ret' : 'ext'} ${fibDir}`; }
       opt.textContent=label; sel.appendChild(opt); }
     if(current!=null){ sel.value=String(current); } }
   function emaCandidates(){ const out=[]; const add=(en,len)=>{ if(en && Number.isFinite(len)&&len>0) out.push(len|0); }; add(emaOpts.e21&&emaOpts.e21.en, emaOpts.e21&&emaOpts.e21.len); add(emaOpts.e34&&emaOpts.e34.en, emaOpts.e34&&emaOpts.e34.len); add(emaOpts.e55&&emaOpts.e55.en, emaOpts.e55&&emaOpts.e55.len); add(emaOpts.e200&&emaOpts.e200.en, emaOpts.e200&&emaOpts.e200.len); if(!out.length && Number.isFinite(lbcOpts.emaLen)) out.push(lbcOpts.emaLen|0); return Array.from(new Set(out)); }
@@ -2330,7 +2334,7 @@ function getLastPivotSeg(piv){ if(!piv || piv.length<2) return null; const a=piv
 function clearTPPriceLines(){ for(const pl of heavenTPPriceLines){ try{ candleSeries.removePriceLine(pl);}catch(_){ } } heavenTPPriceLines=[]; }
 function createTPLine(price, title, color){ try{ const pl=candleSeries.createPriceLine({ price, color: color||'#7c3aed', lineStyle: LightweightCharts.LineStyle.Dotted, lineWidth:1, title }); heavenTPPriceLines.push(pl); }catch(_){ } }
 function updateFibAndTPLines(piv){ clearTPPriceLines(); if(!candles.length){ return; } const seg=getLastPivotSeg(piv); if(!seg){ return; }
-  const A=seg.a.price, B=seg.b.price; const up = seg.dir==='up'; const move = Math.abs(B - A); const C = candles[candles.length-1].close;
+  const A=seg.a.price, B=seg.b.price; const up = seg.dir==='up'; const move = Math.abs(B - A); const C = candles[candles.length-1].close; const fibDirLabel=up ? 'up' : 'down';
   // Fib price lines: entries/SL are retracements, TP levels are extensions.
   const fibRetSet = new Set();
   const fibExtSet = new Set();
@@ -2352,11 +2356,11 @@ function updateFibAndTPLines(piv){ clearTPPriceLines(); if(!candles.length){ ret
   }
   if(fibRetSet.size){
     const fibs = Array.from(fibRetSet).sort((a,b)=>a-b);
-    for(const r of fibs){ const target = up? (B - move*r) : (B + move*r); createTPLine(target, `Fib Ret ${r}`, '#6b7280'); }
+    for(const r of fibs){ const target = up? (B - move*r) : (B + move*r); createTPLine(target, `Fib Ret ${fibDirLabel} ${r}`, '#6b7280'); }
   }
   if(fibExtSet.size){
     const fibs = Array.from(fibExtSet).sort((a,b)=>a-b);
-    for(const r of fibs){ const target = up? (B + move*r) : (B - move*r); createTPLine(target, `Fib Ext ${r}`, '#6b7280'); }
+    for(const r of fibs){ const target = up? (B + move*r) : (B - move*r); createTPLine(target, `Fib Ext ${fibDirLabel} ${r}`, '#6b7280'); }
   }
   // TP Ladder
   if(lbcOpts.tpEnable && Array.isArray(lbcOpts.tp) && lbcOpts.tp.length){ let n=1; for(const t of lbcOpts.tp){ if(n>10) break; const typ=(t.type||'Fib'); let price=null; if(typ==='Fib'){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)){ price = up? (B + move*r) : (B - move*r); } }
