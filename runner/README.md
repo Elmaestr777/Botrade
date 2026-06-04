@@ -16,6 +16,16 @@ Requires Node.js 20 or newer.
 npm install --prefix runner
 node runner/index.js
 
+## Validate Paper Before Live
+
+Use the Supabase-only paper validator before preparing any live run:
+
+```bash
+python validate_paper_session.py --session-name paper-btcusdc-4h --record-event --strict-exit
+```
+
+Default live-ready gates require 7 observed days, 20 trade exits, profit factor >= 1.10, positive return, drawdown <= 10%, no history gap, no open position, and a paper wallet.
+
 ## Deploy
 - Use a container platform (Railway/Render/Fly/Cloud Run). Provide envs and run `node runner/index.js`.
 - Ensure `supabase/migrations/0008` and `0009` are applied, and Realtime enabled.

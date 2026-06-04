@@ -19,6 +19,7 @@ from heaven_opt.supabase_io import (
 )
 from heaven_opt.utils import Bar
 from run_experiment_matrix import build_config_data, latest_closed_day_boundary
+from validate_paper_session import compute_paper_metrics, paper_gate_failures
 
 
 def test_allocation_normalization_quantization():
@@ -229,6 +230,130 @@ def test_headless_ui_persists_wallet_id_for_paper_sessions():
 
     assert "wallet_id: walletId" in supa_source
     assert "walletId=wallet&&wallet.id?wallet.id:null" in main_source
+
+
+def test_paper_session_validation_passes_live_ready_gates():
+    session = {
+        "active": True,
+        "start_cap": 10_000,
+        "equity": 10_800,
+        "created_at": "2026-05-01T00:00:00Z",
+        "updated_at": "2026-05-10T00:00:00Z",
+        "pos": None,
+    }
+    events = [
+        {"kind": "entry", "at_time": "2026-05-02T00:00:00Z", "payload": {}},
+        {"kind": "tp", "at_time": "2026-05-03T00:00:00Z", "payload": {"net": 300}},
+        {"kind": "sl", "at_time": "2026-05-04T00:00:00Z", "payload": {"net": -100}},
+        {"kind": "flip", "at_time": "2026-05-10T00:00:00Z", "payload": {"net": 600}},
+    ]
+
+    metrics = compute_paper_metrics(
+        session,
+        events,
+        wallet={"paper": True, "exchange": "paper"},
+    )
+    failures = paper_gate_failures(
+        metrics,
+        {
+            "min_days": 7.0,
+            "min_trades": 3.0,
+            "min_profit_factor": 2.0,
+            "min_return_pct": 5.0,
+            "max_drawdown_pct": 2.0,
+        },
+    )
+
+    assert metrics["trade_events"] == 3
+    assert metrics["profit_factor"] == 9.0
+    assert metrics["return_pct"] == 8.0
+    assert failures == []
+
+
+def test_paper_session_validation_blocks_history_gap_and_open_position():
+    metrics = compute_paper_metrics(
+        {
+            "start_cap": 10_000,
+            "equity": 9_900,
+            "created_at": "2026-05-01T00:00:00Z",
+            "updated_at": "2026-05-03T00:00:00Z",
+            "pos": {"dir": "long"},
+        },
+        [
+            {"kind": "info", "at_time": "2026-05-02T00:00:00Z", "payload": {"code": "history_gap"}},
+            {"kind": "sl", "at_time": "2026-05-03T00:00:00Z", "payload": {"net": -100}},
+        ],
+        wallet={"paper": True, "exchange": "paper"},
+    )
+
+    failures = paper_gate_failures(
+        metrics,
+        {
+            "min_days": 7.0,
+            "min_trades": 3.0,
+            "min_profit_factor": 1.1,
+            "min_return_pct": 0.0,
+            "max_drawdown_pct": 10.0,
+        },
+    )
+
+    assert "no_history_gap" in failures
+    assert "no_open_position" in failures
+    assert "min_observed_days" in failures
+
+
+def test_paper_session_validation_blocks_non_paper_wallet():
+    metrics = compute_paper_metrics(
+        {
+            "start_cap": 10_000,
+            "equity": 11_000,
+            "created_at": "2026-05-01T00:00:00Z",
+            "updated_at": "2026-05-15T00:00:00Z",
+            "pos": None,
+        },
+        [{"kind": "tp", "at_time": "2026-05-15T00:00:00Z", "payload": {"net": 1_000}}],
+        wallet={"paper": False, "exchange": "live"},
+    )
+
+    failures = paper_gate_failures(
+        metrics,
+        {
+            "min_days": 1.0,
+            "min_trades": 1.0,
+            "min_profit_factor": 1.0,
+            "min_return_pct": 0.0,
+            "max_drawdown_pct": 10.0,
+        },
+    )
+
+    assert "paper_wallet" in failures
+
+
+def test_paper_session_validation_accepts_infinite_profit_factor():
+    metrics = {
+        "paper_wallet": True,
+        "history_gap": False,
+        "open_position": False,
+        "observed_days": 10.0,
+        "trade_events": 3.0,
+        "profit_factor": float("inf"),
+        "return_pct": 3.0,
+        "max_drawdown_pct": 0.0,
+        "equity": 10_300.0,
+    }
+
+    failures = paper_gate_failures(
+        metrics,
+        {
+            "min_days": 7.0,
+            "min_trades": 3.0,
+            "min_profit_factor": 1.1,
+            "min_return_pct": 0.0,
+            "max_drawdown_pct": 10.0,
+        },
+    )
+
+    assert failures == []
 
 
 def test_break_even_waits_for_the_configured_move_threshold():

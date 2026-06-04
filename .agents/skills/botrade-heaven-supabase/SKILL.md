@@ -35,7 +35,8 @@ Garder le workflow Heaven fiable: moteurs coherents, meilleures strategies stock
 6. Donner un `run_id` commun aux evaluations, au set et aux entrees d'un meme run quand les colonnes de run existent.
 7. Pour une campagne multi-paires/TF, utiliser `run_experiment_matrix.py`: bougies cloturees, fenetre d'entrainement, holdout intact, puis gates paper. Sur les TF courts, ajouter `--include-no-be` pour tester `beEnable` actif/inactif sans relacher les gates.
 8. Pour lancer un candidat paper, utiliser `start_paper_candidate.py` afin de refuser automatiquement les strategies non eligibles et de rester Supabase-only.
-9. Ajouter une migration de grants/RLS seulement si l'acces Data API ou la securite Supabase le justifie.
+9. Avant toute preparation live, utiliser `validate_paper_session.py` pour verifier les gates paper reels et enregistrer l'audit dans `live_events` si utile.
+10. Ajouter une migration de grants/RLS seulement si l'acces Data API ou la securite Supabase le justifie.
 
 # Regles de decision
 
@@ -60,6 +61,7 @@ Garder le workflow Heaven fiable: moteurs coherents, meilleures strategies stock
 - Le runner paper headless ne supporte actuellement que les entrees `Original`; les entrees Fib/Both ne doivent pas etre marquees eligibles avant parite moteur.
 - Les wallets et sessions paper doivent rester Supabase-only; aucun fallback `localStorage` n'est autorise.
 - Les runners headless paper doivent ignorer tout wallet non-paper; le live reel exige une activation et un moteur separes explicitement controles.
+- Une session paper ne doit pas etre consideree live-ready sans validation Supabase des evenements reels (`live_events`) et sans gates explicites.
 - Une equity paper egale a zero est une valeur valide et ne doit jamais retomber sur `start_cap`.
 - Un runner qui ne peut pas couvrir toutes les bougies manquees doit arreter la session et signaler un `history_gap`, jamais simuler un rattrapage partiel silencieux.
 - Si plusieurs moteurs copient la logique Heaven, noter le risque de parite et tester le moteur modifie.
@@ -69,7 +71,7 @@ Garder le workflow Heaven fiable: moteurs coherents, meilleures strategies stock
 - `npm run lint -- --quiet`
 - `node --check runner/index.js` si le runner headless est modifie.
 - `deno check supabase/functions/live-runner/index.ts` si `deno` est disponible et que l'Edge Function est modifiee.
-- `python -m ruff check heaven_opt run_optimize.py run_experiment_matrix.py start_paper_candidate.py tests`
+- `python -m ruff check heaven_opt run_optimize.py run_experiment_matrix.py start_paper_candidate.py validate_paper_session.py tests`
 - `python -m pytest -q`
 - `python run_experiment_matrix.py --dry-run`
 - `rg "localStorage\\.(setItem|getItem).*?(lab:palmares|lab:results|lbcPreset|lbcOptions)" src -n`
