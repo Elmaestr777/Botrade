@@ -23,13 +23,16 @@ async function fetchKlines(symbol: string, interval: string, limit = 500) {
   const res = await fetch(u.toString());
   if (!res.ok) throw new Error("HTTP " + res.status);
   const raw = await res.json();
-  const mapped = raw.map((k: any) => ({
-    time: Math.floor(k[0] / 1000),
-    open: +k[1],
-    high: +k[2],
-    low: +k[3],
-    close: +k[4],
-  }));
+  const now = Date.now();
+  const mapped = raw
+    .filter((k: any) => Number(k[6]) <= now)
+    .map((k: any) => ({
+      time: Math.floor(k[0] / 1000),
+      open: +k[1],
+      high: +k[2],
+      low: +k[3],
+      close: +k[4],
+    }));
   mapped.sort((a: any, b: any) => a.time - b.time);
   return mapped;
 }
@@ -201,14 +204,14 @@ function computeSLFromLadder(params: any, segLast: any, dir: 'long'|'short', ent
   return dir === 'long' ? Math.max(...cands) : Math.min(...cands);
 }
 
-function qtyFromEquity(equity: number, entry: number, sl: number, feePct: number, lev: number) {
+function qtyFromEquity(equity: number, entry: number, sl: number, feePct: number, lev: number, riskMaxPct: number) {
   if (!(isFinite(entry) && isFinite(sl))) return 0;
   const budget = Math.max(0, equity);
   const notional = budget * Math.max(1, lev || 1);
   const qty0 = notional / Math.max(1e-12, entry);
   const riskAbs = Math.abs(entry - sl);
   const perUnitWorstLoss = riskAbs + ((Math.abs(entry) + Math.abs(sl)) * feePct);
-  const qtyRisk = perUnitWorstLoss > 0 ? (equity / perUnitWorstLoss) : 0;
+  const qtyRisk = perUnitWorstLoss > 0 ? ((equity * Math.max(0, riskMaxPct) / 100) / perUnitWorstLoss) : 0;
   return Math.max(0, Math.min(qty0, qtyRisk));
 }
 
@@ -218,7 +221,7 @@ async function processSession(c: any, s: any) {
   const params = s.strategy_params || {};
   const lev = Number(s.lev || 1) || 1;
   const feePct = (Number(s.fee || 0.1) || 0.1) / 100;
-  let equity = Number(s.equity || s.start_cap || 0) || 0;
+  let equity = Number(s.equity ?? s.start_cap ?? 0) || 0;
   let lastTs = Number(s.last_bar_time || 0) || 0;
 
   const bars = await fetchKlines(symbol, tf, 500);
@@ -227,10 +230,33 @@ async function processSession(c: any, s: any) {
   // Only process bars after lastTs
   let startIdx = bars.length;
   if (lastTs > 0) {
+    const oldestContinuousTs = bars[0].time - intervalSeconds(tf);
+    if (lastTs < oldestContinuousTs) {
+      const nowIso = new Date().toISOString();
+      const payload = {
+        code: 'history_gap',
+        message: 'Session stopped because the available Binance window cannot cover all missed candles.',
+        last_bar_time: lastTs,
+        oldest_available_time: bars[0].time,
+      };
+      const { error: eventError } = await c.from('live_events').insert([{
+        session_id: s.id,
+        kind: 'info',
+        at_time: nowIso,
+        payload,
+      }]);
+      if (eventError) console.warn('insert history gap event', eventError.message || eventError);
+      const { error: gapError } = await c.from('live_sessions').update({ active: false, updated_at: nowIso }).eq('id', s.id);
+      if (gapError) console.warn('stop session with history gap', gapError.message || gapError);
+      return { updated: true, events: eventError ? 0 : 1, history_gap: true };
+    }
     for (let i = 0; i < bars.length; i++) { if (bars[i].time > lastTs) { startIdx = i; break; } }
   } else {
-    // if first run, process the latest single bar only
-    startIdx = Math.max(0, bars.length - 1);
+    // Start from the next closed candle; do not create a historical entry at session creation.
+    lastTs = bars[bars.length - 1].time;
+    const { error: initError } = await c.from('live_sessions').update({ last_bar_time: lastTs, updated_at: new Date().toISOString() }).eq('id', s.id);
+    if (initError) console.warn('initialize live_sessions', initError.message || initError);
+    return { updated: true, events: 0 };
   }
   if (startIdx >= bars.length) return { updated: false };
 
@@ -249,34 +275,37 @@ async function processSession(c: any, s: any) {
     const bar = bars[i];
     const trendNow = lb.trend[i];
     const trendPrev = (i > 0 ? lb.trend[i - 1] : trendNow);
-    const segLast = getLastConfirmedPivotSeg(pivAll, i, pivotPrd);
+    const segAtOpen = getLastConfirmedPivotSeg(pivAll, i - 1, pivotPrd);
+    const segAtClose = getLastConfirmedPivotSeg(pivAll, i, pivotPrd);
 
     const emaLen = Math.max(1, parseInt(params.emaLen || 55));
 
-    // ENTRY
-    if (!pos) {
-      if (trendNow !== trendPrev) {
-        if (params.entryMode !== 'Fib Retracement') {
-          const dir: 'long'|'short' = (trendNow === 1 ? 'long' : 'short');
-          const entry = bar.close;
-          let sl = computeSLFromLadder(params, segLast, dir, entry, bars, i, emaLen);
-          if (sl == null) {
-            const riskPx = entry * ((Number(params.slInitPct || 2.0)) / 100);
-            sl = dir === 'long' ? (entry - riskPx) : (entry + riskPx);
-          } else {
-            if (dir === 'long' && sl > entry) sl = entry;
-            if (dir === 'short' && sl < entry) sl = entry;
-          }
-          const qty = qtyFromEquity(equity, entry, sl, feePct, lev);
-          if (qty > 1e-12 && isFinite(qty)) {
-            const riskAbs = Math.abs(entry - sl);
-            const targets = buildTargets(params, segLast, dir, entry, riskAbs, bars, i);
-            pos = { dir, entry, sl, initSL: sl, qty, initQty: qty, entryTime: bar.time, beActive: false, anyTP: false, tpIdx: 0, targets, hiSince: bar.high, loSince: bar.low };
-            addEvent('entry', { time: bar.time, dir, entry, sl, qty });
-          }
-        }
+    // A signal is known only at candle close, so its order is filled at the next candle open.
+    if (pos?.pending) {
+      const pending = pos;
+      pos = null;
+      const dir: 'long'|'short' = pending.dir;
+      const entry = bar.open;
+      const decisionIdx = Math.max(0, i - 1);
+      let sl = computeSLFromLadder(params, segAtOpen, dir, entry, bars, decisionIdx, emaLen);
+      if (sl == null) {
+        const riskPx = entry * ((Number(params.slInitPct || 2.0)) / 100);
+        sl = dir === 'long' ? (entry - riskPx) : (entry + riskPx);
+      } else {
+        if (dir === 'long' && sl > entry) sl = entry;
+        if (dir === 'short' && sl < entry) sl = entry;
       }
-    } else {
+      const riskMaxPct = params.riskMgmt === false ? 100 : (Number(params.riskMaxPct || 1.0) || 1.0);
+      const qty = qtyFromEquity(equity, entry, sl, feePct, lev, riskMaxPct);
+      if (qty > 1e-12 && isFinite(qty)) {
+        const riskAbs = Math.abs(entry - sl);
+        const targets = buildTargets(params, segAtOpen, dir, entry, riskAbs, bars, decisionIdx);
+        pos = { dir, entry, sl, initSL: sl, qty, initQty: qty, entryTime: bar.time, beActive: false, anyTP: false, tpIdx: 0, targets, hiSince: entry, loSince: entry };
+        addEvent('entry', { time: bar.time, signalTime: pending.signalTime, dir, entry, sl, qty });
+      }
+    }
+
+    if (pos && !pos.pending) {
       // UPDATE
       pos.hiSince = Math.max(pos.hiSince || bar.high, bar.high);
       pos.loSince = Math.min(pos.loSince || bar.low, bar.low);
@@ -290,7 +319,7 @@ async function processSession(c: any, s: any) {
       }
       // SL ladder merge
       {
-        const sl2 = computeSLFromLadder(params, segLast, pos.dir, pos.entry, bars, i, emaLen);
+        const sl2 = computeSLFromLadder(params, segAtClose, pos.dir, pos.entry, bars, i, emaLen);
         if (sl2 != null) {
           let b = sl2;
           if (!pos.beActive) {
@@ -340,8 +369,11 @@ async function processSession(c: any, s: any) {
           if (!params.tpCompound || pos.qty <= 1e-12) { pos = null; break; }
         }
       }
-      // Flip close
-      if (pos && ((pos.dir === 'long' && trendNow !== trendPrev && trendNow !== 1) || (pos.dir === 'short' && trendNow !== trendPrev && trendNow !== -1))) {
+    }
+
+    if (trendNow !== trendPrev && params.entryMode !== 'Fib Retracement') {
+      const nextDir: 'long'|'short' = (trendNow === 1 ? 'long' : 'short');
+      if (pos && !pos.pending && pos.dir !== nextDir) {
         const exit = bar.close; const portionQty = pos.qty;
         const pnl = (pos.dir === 'long' ? (exit - pos.entry) : (pos.entry - exit)) * portionQty;
         const fees = (pos.entry * portionQty + exit * portionQty) * feePct;
@@ -349,6 +381,7 @@ async function processSession(c: any, s: any) {
         addEvent('flip', { time: bar.time, dir: pos.dir, entry: pos.entry, exit, qty: portionQty, pnl, fees, net });
         pos = null;
       }
+      if (!pos) pos = { pending: true, dir: nextDir, signalTime: bar.time };
     }
 
     lastTs = bar.time;
@@ -380,7 +413,7 @@ serve(async (req) => {
     for (const s of (sessions || [])) {
       try {
         const r = await processSession(c, s);
-        stats.push({ id: s.id, name: s.name, updated: r.updated, events: r.events || 0 });
+        stats.push({ id: s.id, name: s.name, updated: r.updated, events: r.events || 0, history_gap: !!r.history_gap });
       } catch (e) {
         console.warn('process session error', s.id, (e as any)?.message || e);
         stats.push({ id: s.id, name: s.name, error: (e as any)?.message || String(e) });

@@ -18,6 +18,7 @@ class HeavenOpts:
                  entry_mode: str = "Both",
                  risk_mgmt: bool = True,
                  risk_max_pct: float = 1.0,
+                 leverage: float = 1.0,
                  sl_init_pct: float = 2.0,
                  be_enable: bool = True,
                  be_after_bars: int = 5,
@@ -36,6 +37,7 @@ class HeavenOpts:
         self.entry_mode = entry_mode
         self.risk_mgmt = bool(risk_mgmt)
         self.risk_max_pct = float(max(0.0, risk_max_pct))
+        self.leverage = float(max(1.0, leverage))
         self.sl_init_pct = float(max(0.0, sl_init_pct))
         self.be_enable = bool(be_enable)
         self.be_after_bars = int(max(1, be_after_bars))
@@ -59,67 +61,58 @@ def normalize_tp_percents(opts: HeavenOpts) -> None:
 
 def generate_heaven_signals(opts: HeavenOpts, bars: list[Bar], precomputed: dict | None = None) -> list[dict[str, object]]:
     if precomputed and "lb" in precomputed:
-        trend, level, flips = precomputed["lb"]
+        trend, _level, flips = precomputed["lb"]
     else:
-        trend, level, flips = compute_line_break_state(bars, opts.nol)
+        trend, _level, flips = compute_line_break_state(bars, opts.nol)
     piv = precomputed.get("piv") if (precomputed and "piv" in precomputed) else compute_pivots(bars, opts.prd)
     use_lb = (opts.entry_mode in ("Original", "Both"))
     use_fib = (opts.entry_mode in ("Fib", "Both")) and opts.use_fib_ret
     sigs: list[dict[str, object]] = []
-    if use_lb:
-        for i in flips:
-            entry_idx = min(len(bars) - 1, i + 1)
-            risk_ok = (not opts.risk_mgmt) or (math.isfinite(level[i]) and (opts.risk_max_pct / 100.0 >= abs(bars[i].open - level[i]) / max(1e-9, bars[i].open)))
-            if not risk_ok:
-                continue
-            direction = 'long' if trend[i] == 1 else 'short'
-            sigs.append({"idx": entry_idx, "dir": direction, "type": "LB"})
-    if use_fib and len(piv) >= 2:
-        def use_lvl(ratio: float, swing_up: bool) -> None:
-            for s in range(1, len(piv)):
-                a = piv[s - 1]
-                b = piv[s]
-                swing_up_now = b["price"] > a["price"]
-                if swing_up_now != swing_up:
-                    continue
-                lvl = a["price"] + (b["price"] - a["price"]) * ratio
-                start = int(b["idx"])
-                end = int(piv[s + 1]["idx"] if s + 1 < len(piv) else len(bars))
-                for j in range(start + 1, end):
-                    if swing_up:
-                        if opts.confirm_mode == "Bounce":
-                            bounce = (bars[j - 1].close <= lvl and bars[j].close > lvl)
-                        else:
-                            bounce = (bars[j].low <= lvl and bars[j].close > lvl)
-                        if bounce:
-                            risk_ok = (not opts.risk_mgmt) or (math.isfinite(level[j]) and (opts.risk_max_pct / 100.0 >= abs(bars[j].close - level[j]) / max(1e-9, bars[j].close)))
-                            if risk_ok and trend[j] == 1:
-                                entry_idx = min(len(bars) - 1, j + 1)
-                                sigs.append({"idx": entry_idx, "dir": 'long', "type": 'Fib'})
-                                break
-                    else:
-                        if opts.confirm_mode == "Bounce":
-                            bounce = (bars[j - 1].close >= lvl and bars[j].close < lvl)
-                        else:
-                            bounce = (bars[j].high >= lvl and bars[j].close < lvl)
-                        if bounce:
-                            risk_ok = (not opts.risk_mgmt) or (math.isfinite(level[j]) and (opts.risk_max_pct / 100.0 >= abs(bars[j].close - level[j]) / max(1e-9, bars[j].close)))
-                            if risk_ok and trend[j] == -1:
-                                entry_idx = min(len(bars) - 1, j + 1)
-                                sigs.append({"idx": entry_idx, "dir": 'short', "type": 'Fib'})
-                                break
-        # Enable common fib ratios as in UI
-        ratios = []
-        for i in range(10):
-            ratios.append(opts.tp_r[i])
-        used = set()
-        def maybe(r: float):
-            if r not in used:
-                used.add(r)
-                use_lvl(r, True)
-                use_lvl(r, False)
-        for r in (0.382, 0.5, 0.618, 0.786):
-            maybe(r)
+    pivot_idx = -1
+    pending_fib: dict[str, object] | None = None
+    ratios = (0.382, 0.5, 0.618, 0.786)
+    flip_set = set(flips)
+    for i in range(1, len(bars)):
+        while pivot_idx + 1 < len(piv) and int(piv[pivot_idx + 1]["idx"]) + opts.prd <= i:
+            pivot_idx += 1
+        segment = None
+        if pivot_idx >= 1:
+            a = piv[pivot_idx - 1]
+            b = piv[pivot_idx]
+            segment = {"a": a, "b": b, "dir": "up" if b["price"] > a["price"] else "down"}
+
+        if i in flip_set:
+            direction = "long" if trend[i] == 1 else "short"
+            if use_lb and i + 1 < len(bars):
+                sigs.append({"idx": i + 1, "dir": direction, "type": "LB"})
+            if use_fib and segment:
+                b_price = float(segment["b"]["price"])  # type: ignore[index]
+                a_price = float(segment["a"]["price"])  # type: ignore[index]
+                move = abs(b_price - a_price)
+                levels = [
+                    b_price - move * ratio if segment["dir"] == "up" else b_price + move * ratio
+                    for ratio in ratios
+                ]
+                pending_fib = {"dir": direction, "levels": levels}
+            elif use_fib:
+                pending_fib = None
+
+        if use_fib and pending_fib and i + 1 < len(bars):
+            direction = str(pending_fib["dir"])
+            for level_value in pending_fib["levels"]:  # type: ignore[union-attr]
+                level = float(level_value)
+                if direction == "long":
+                    hit = bars[i].low <= level and (
+                        opts.confirm_mode != "Bounce" or bars[i].close > level
+                    )
+                else:
+                    hit = bars[i].high >= level and (
+                        opts.confirm_mode != "Bounce" or bars[i].close < level
+                    )
+                if hit:
+                    sigs.append({"idx": i + 1, "dir": direction, "type": "Fib"})
+                    pending_fib = None
+                    break
     # sort by idx and prioritize LB over Fib on same entry bar
     sigs.sort(key=lambda x: (int(x["idx"]), 0 if x["type"] == "LB" else 1))
     return sigs
@@ -133,16 +126,16 @@ def simulate_trade_from_signal(sig: dict[str, object], to_idx: int, piv: list[di
     entry_price = bars[entry_idx].open
     sl = entry_price * (1.0 - opts.sl_init_pct / 100.0) if is_long else entry_price * (1.0 + opts.sl_init_pct / 100.0)
     # sizing
+    qty_cap = (equity * opts.leverage) / max(1e-9, entry_price)
     if opts.risk_mgmt:
         risk_cash = equity * (opts.risk_max_pct / 100.0)
-        risk_per_unit = max(1e-9, abs(entry_price - sl))
-        qty = max(0.0, risk_cash / risk_per_unit)
+        risk_per_unit = max(1e-9, abs(entry_price - sl) + (entry_price + sl) * (fee_pct / 100.0))
+        qty = max(0.0, min(qty_cap, risk_cash / risk_per_unit))
     else:
-        # no explicit cap in Python config; leverage supported by qty sizing here
-        qty = max(0.0, (equity) / max(1e-9, entry_price))
+        qty = max(0.0, qty_cap)
     if qty <= 0:
         return None
-    last2 = last_two_pivots_before(piv, int(sig["idx"]))
+    last2 = last_two_pivots_before(piv, int(sig["idx"]), opts.prd)
     values = opts.tp_r
     percs = opts.tp_p
     tmp = HeavenOpts(tp_norm=opts.tp_norm)
@@ -304,6 +297,17 @@ def backtest_with_bars(opts: HeavenOpts, bars: list[Bar], from_idx: int, to_idx:
     piv = precomputed.get("piv") if (precomputed and "piv" in precomputed) else compute_pivots(bars, opts.prd)
     signals = generate_heaven_signals(opts, bars, precomputed=precomputed)
     signals = [s for s in signals if int(s["idx"]) >= from_idx and int(s["idx"]) <= to_idx]
+    # A single-position strategy cannot open twice at the same candle open.
+    # Signals are already ordered with LB before Fib, so keep the first one.
+    distinct_signals: list[dict[str, object]] = []
+    seen_entry_indices: set[int] = set()
+    for signal in signals:
+        entry_idx = int(signal["idx"])
+        if entry_idx in seen_entry_indices:
+            continue
+        seen_entry_indices.add(entry_idx)
+        distinct_signals.append(signal)
+    signals = distinct_signals
     trades: list[dict[str, object]] = []
     equity = equity_start
     peak = equity
@@ -315,7 +319,9 @@ def backtest_with_bars(opts: HeavenOpts, bars: list[Bar], from_idx: int, to_idx:
     returns: list[float] = []
     eq_series: list[float] = []
     for i, sig in enumerate(signals):
-        end_bound = min(to_idx, int(signals[i + 1]["idx"]) if i + 1 < len(signals) else to_idx)
+        # The next signal is known at the previous candle close. Close the
+        # current trade there, then let the next trade enter at its open.
+        end_bound = min(to_idx, int(signals[i + 1]["idx"]) - 1) if i + 1 < len(signals) else to_idx
         eq_before = equity
         res = simulate_trade_from_signal(sig, end_bound, piv, opts, equity, fee_pct, equity_start, bars, precomputed=precomputed)
         if res is None:

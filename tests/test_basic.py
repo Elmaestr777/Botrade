@@ -1,12 +1,15 @@
 
 import pytest
 
-from heaven_opt import api, simulator, supabase_io
+from heaven_opt import api, data_loader, simulator, supabase_io, validation
 from heaven_opt.combo_generator import generate_alloc_patterns
-from heaven_opt.scoring import composite_score
-from heaven_opt.simulator import HeavenOpts, simulate_trade_from_signal
+from heaven_opt.optimizer_ea import EASpace, _ind_to_candidate
+from heaven_opt.scoring import composite_score, robustness_score
+from heaven_opt.signal_engine import last_two_pivots_before
+from heaven_opt.simulator import HeavenOpts, generate_heaven_signals, simulate_trade_from_signal
 from heaven_opt.supabase_io import SupabasePersistenceError, canonical_params_to_ui_params
 from heaven_opt.utils import Bar
+from run_experiment_matrix import build_config_data, latest_closed_day_boundary
 
 
 def test_allocation_normalization_quantization():
@@ -55,9 +58,12 @@ def test_ema_tp_respects_its_allocation_with_precomputed_series():
 def test_fib_tp_uses_extension_from_last_pivot():
     bars = [
         Bar(time=1, open=100.0, high=100.0, low=99.0, close=100.0),
-        Bar(time=2, open=100.0, high=131.0, low=99.0, close=125.0),
+        Bar(time=2, open=100.0, high=101.0, low=99.0, close=100.0),
+        Bar(time=3, open=100.0, high=101.0, low=99.0, close=100.0),
+        Bar(time=4, open=100.0, high=131.0, low=99.0, close=125.0),
     ]
     opts = HeavenOpts(
+        prd=2,
         risk_mgmt=True,
         risk_max_pct=1.0,
         sl_init_pct=2.0,
@@ -68,8 +74,8 @@ def test_fib_tp_uses_extension_from_last_pivot():
     )
 
     result = simulate_trade_from_signal(
-        {"idx": 1, "dir": "long", "type": "LB"},
-        1,
+        {"idx": 3, "dir": "long", "type": "LB"},
+        3,
         [{"idx": 0, "price": 80.0}, {"idx": 0, "price": 100.0}],
         opts,
         equity=10_000.0,
@@ -124,6 +130,8 @@ def test_canonical_params_convert_to_reloadable_ui_shape():
             "be_after_bars": 4,
             "be_lock_pct": 6.0,
             "ema_len": 55,
+            "risk_max_pct": 0.75,
+            "leverage": 2.0,
             "entry_mode": "Fib",
             "tp_types": ["Fib", "Percent", "EMA"],
             "tp_r": [0.382, 2.0, 0.0],
@@ -133,14 +141,186 @@ def test_canonical_params_convert_to_reloadable_ui_shape():
 
     assert ui["entryMode"] == "Fib Retracement"
     assert ui["slInitPct"] == 1.5
+    assert ui["riskMaxPct"] == 0.75
+    assert ui["leverage"] == 2.0
     assert [tp["type"] for tp in ui["tp"]] == ["Fib", "Percent", "EMA"]
     assert ui["tp"][2]["emaLen"] == 55
+
+
+def test_backtest_sizing_respects_configured_leverage_cap():
+    bars = [Bar(time=1, open=100.0, high=100.0, low=99.0, close=100.0)]
+    opts = HeavenOpts(
+        leverage=1.0,
+        risk_mgmt=True,
+        risk_max_pct=1.0,
+        sl_init_pct=0.5,
+        be_enable=False,
+        tp_enable=False,
+        tp_p=[0.0] * 10,
+    )
+
+    result = simulate_trade_from_signal(
+        {"idx": 0, "dir": "long", "type": "LB"},
+        0,
+        [],
+        opts,
+        equity=10_000.0,
+        fee_pct=0.0,
+        equity_start=10_000.0,
+        bars=bars,
+    )
+
+    assert result is not None
+    assert result["qty"] == 100.0
 
 
 def test_composite_score_uses_consistency_weight():
     score = composite_score({"consistency": 0.75}, {"cons": 1.0})
 
     assert score == 0.75
+
+
+def test_pivots_are_not_available_before_confirmation():
+    pivots = [{"idx": 2, "price": 90.0}, {"idx": 4, "price": 110.0}]
+
+    assert last_two_pivots_before(pivots, idx=6, prd=2) is None
+    assert last_two_pivots_before(pivots, idx=7, prd=2) is not None
+
+
+def test_fib_signals_wait_for_pivot_confirmation():
+    bars = [
+        Bar(time=i, open=close, high=close + 1.0, low=close - 1.0, close=close)
+        for i, close in enumerate([100.0, 101.0, 102.0, 103.0, 106.0, 104.0, 106.0, 107.0])
+    ]
+    opts = HeavenOpts(prd=2, entry_mode="Fib", risk_mgmt=False)
+    precomputed = {
+        "lb": ([1] * len(bars), [90.0] * len(bars), [5]),
+        "piv": [{"idx": 1, "price": 100.0}, {"idx": 3, "price": 110.0}],
+    }
+
+    signals = generate_heaven_signals(opts, bars, precomputed=precomputed)
+
+    assert signals
+    assert min(int(signal["idx"]) for signal in signals) >= 6
+
+
+def test_signal_generation_does_not_mix_position_risk_with_entry_filtering():
+    bars = [
+        Bar(time=1, open=100.0, high=101.0, low=99.0, close=100.0),
+        Bar(time=2, open=100.0, high=101.0, low=99.0, close=100.0),
+        Bar(time=3, open=100.0, high=101.0, low=99.0, close=100.0),
+    ]
+    opts = HeavenOpts(entry_mode="Original", risk_mgmt=True, risk_max_pct=0.1)
+    precomputed = {"lb": ([1, -1, -1], [10.0, 10.0, 10.0], [1]), "piv": []}
+
+    signals = generate_heaven_signals(opts, bars, precomputed=precomputed)
+
+    assert signals == [{"idx": 2, "dir": "short", "type": "LB"}]
+
+
+def test_validation_metrics_change_the_composite_score():
+    base_metrics = {"profitFactor": 2.0, "maxDDPct": 5.0}
+    weak = {
+        **base_metrics,
+        "oos_profitFactor": 0.5,
+        "oos_return_pct": -10.0,
+        "oos_maxDDPct": 30.0,
+        "oos_trades": 30.0,
+    }
+    strong = {
+        **base_metrics,
+        "oos_profitFactor": 1.5,
+        "oos_return_pct": 10.0,
+        "oos_maxDDPct": 5.0,
+        "oos_trades": 30.0,
+    }
+    weights = {"pf": 1.0, "robustness": 0.65}
+
+    assert robustness_score(strong) > robustness_score(weak)
+    assert composite_score(strong, weights) > composite_score(weak, weights)
+
+
+def test_experiment_matrix_builds_recent_holdout_without_fib_by_default():
+    template = {
+        "general": {"max_combinations": 1000, "top_n_results": 20},
+        "ranges": {"nol_range": [2, 6, 1]},
+        "EA": {"pop_size": 80, "n_generations": 12},
+        "Bayesian": {"n_trials": 20},
+    }
+    date_to = latest_closed_day_boundary()
+
+    data = build_config_data(template, "BTCUSDC", "15m", date_to, fast=True)
+
+    assert data["entry_modes"] == ["Original"]
+    assert data["TP"]["mode"] == "Fib"
+    assert data["general"]["tf_optim"] == "15m"
+    assert data["validation"]["oos_split"][1].endswith("T00:00:00Z")
+    assert data["metrics"]["min_oos_trades"] == 20
+    assert data["ranges"]["nol_range"] == {"min": 2.0, "max": 6.0, "step": 1.0}
+
+
+def test_ea_keeps_percent_tp_type_explicit():
+    space = EASpace(
+        nol_list=[3],
+        prd_list=[15],
+        sl_list=[1.0],
+        beb_list=[5],
+        bel_list=[5.0],
+        ema_list=[55],
+        entry_modes=["Original"],
+        tp_vectors=[[0.5, 1.0, 2.0]],
+        alloc_patterns=[[30.0, 30.0, 40.0]],
+        tp_type="Percent",
+    )
+
+    candidate = _ind_to_candidate([0] * 9, space)
+
+    assert candidate["tp_types"] == ["Percent"] * 10
+
+
+def test_range_loader_continues_when_closed_candle_filter_shortens_a_batch(monkeypatch):
+    batches = iter(
+        [
+            [Bar(time=20, open=1, high=1, low=1, close=1), Bar(time=30, open=1, high=1, low=1, close=1)],
+            [Bar(time=10, open=1, high=1, low=1, close=1)],
+            [],
+        ]
+    )
+    monkeypatch.setattr(data_loader, "_fetch_batch", lambda *args, **kwargs: next(batches))
+
+    bars = data_loader.fetch_klines_range("BTCUSDC", "15m", start_sec=0, end_sec=40, hard_cap=10)
+
+    assert [bar.time for bar in bars] == [10, 20, 30]
+
+
+def test_walk_forward_positive_fraction_uses_active_folds(monkeypatch):
+    bars = [
+        Bar(time=day * 86400, open=1, high=1, low=1, close=1)
+        for day in range(51)
+    ]
+    reports = iter(
+        [
+            {"trades": [], "profitFactor": 0.0, "totalPnl": 0.0, "maxDDPct": 0.0},
+            {"trades": [{}], "profitFactor": 2.0, "totalPnl": 10.0, "maxDDPct": 1.0},
+            {"trades": [{}], "profitFactor": 1.0, "totalPnl": -5.0, "maxDDPct": 2.0},
+            {"trades": [], "profitFactor": 0.0, "totalPnl": 0.0, "maxDDPct": 0.0},
+        ]
+    )
+    monkeypatch.setattr(validation, "backtest_with_bars", lambda *args, **kwargs: next(reports))
+
+    metrics = validation.walk_forward_validate(
+        bars,
+        HeavenOpts(),
+        train_days=10,
+        test_days=10,
+        stride_days=10,
+        equity_start=10_000,
+        fee_pct=0.1,
+    )
+
+    assert metrics["wf_active_frac"] == 0.5
+    assert metrics["wf_positive_frac"] == 0.5
+    assert metrics["wf_pf_mean"] == 1.5
 
 
 def test_backtest_reports_consistency_and_peak_to_trough_drawdown(monkeypatch):
@@ -170,6 +350,35 @@ def test_backtest_reports_consistency_and_peak_to_trough_drawdown(monkeypatch):
     assert result is not None
     assert result["consistency"] == pytest.approx(1 / 3)
     assert result["maxDDAbs"] == 10.0
+
+
+def test_backtest_closes_before_next_signal_open_and_deduplicates_entries(monkeypatch):
+    bars = [
+        Bar(time=i, open=100.0, high=101.0, low=99.0, close=100.0)
+        for i in range(5)
+    ]
+    calls = []
+    monkeypatch.setattr(
+        simulator,
+        "generate_heaven_signals",
+        lambda opts, bars, precomputed=None: [
+            {"idx": 1, "dir": "long", "type": "LB"},
+            {"idx": 3, "dir": "short", "type": "LB"},
+            {"idx": 3, "dir": "short", "type": "Fib"},
+            {"idx": 4, "dir": "long", "type": "LB"},
+        ],
+    )
+
+    def fake_simulate(sig, to_idx, *args, **kwargs):
+        calls.append((int(sig["idx"]), to_idx))
+        return {"pnl": 0.0, "rr": 0.0}
+
+    monkeypatch.setattr(simulator, "simulate_trade_from_signal", fake_simulate)
+
+    result = simulator.backtest_with_bars(HeavenOpts(), bars, 0, 4, equity_start=100.0)
+
+    assert result is not None
+    assert calls == [(1, 2), (3, 3), (4, 4)]
 
 
 def test_supabase_write_failures_are_not_silenced(monkeypatch):

@@ -2,7 +2,7 @@ general:
   symbol: BTCUSDC
   tf_optim: 1h
   date_from: 2024-01-01T00:00:00Z
-  date_to: 2024-03-01T00:00:00Z
+  date_to: 2025-01-01T00:00:00Z
   max_combinations: 1000
   top_n_results: 20
 search:
@@ -43,6 +43,9 @@ validation:
     train_window: 21d
     test_window: 7d
     stride: 7d
+  oos_split: [2024-10-01T00:00:00Z, 2025-01-01T00:00:00Z]
+  monte_carlo_runs: 20
+  monte_carlo_sigma: 0.001
 resource:
   n_jobs: 4
   cache_dir: .cache_heaven
@@ -59,3 +62,13 @@ metrics:
     slope: 0.02
   min_trades: 30
   penalize_complexity: true
+  validation_top_n: 50
+  robustness_weight: 0.65
+  min_oos_trades: 20
+  min_oos_profit_factor: 1.1
+  min_oos_return_pct: 0.0
+  max_oos_dd_pct: 20.0
+  min_wf_positive_frac: 0.55
+  min_wf_active_frac: 0.5
+  min_wf_profit_factor: 1.0
+  min_mc_profit_factor: 1.0

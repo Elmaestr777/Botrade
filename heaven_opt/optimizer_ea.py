@@ -21,6 +21,7 @@ class EASpace:
     entry_modes: list[str]
     tp_vectors: list[list[float]]
     alloc_patterns: list[list[float]]
+    tp_type: str = "Fib"
 
 
 def _ind_to_candidate(ind, space: EASpace) -> dict:
@@ -42,7 +43,7 @@ def _ind_to_candidate(ind, space: EASpace) -> dict:
         "be_lock_pct": float(bel),
         "ema_len": int(ema),
         "entry_mode": mode,
-        "tp_types": ["Fib"] * 10 if all(x <= 5 for x in tpv) else ["Percent"] * 10,
+        "tp_types": [space.tp_type] * 10,
         "tp_r": list(tpv) + [0.0] * (10 - len(tpv)),
         "tp_p": list(alloc) + [0.0] * (10 - len(alloc)),
     }

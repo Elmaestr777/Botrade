@@ -12,7 +12,7 @@ from .combo_generator import (
 )
 from .data_loader import cached_fetch_klines_range
 from .simulator import HeavenOpts, backtest_with_bars
-from .utils import epoch_seconds_range, setup_logger, sha1_of_params
+from .utils import duration_days, epoch_seconds_range, setup_logger, sha1_of_params
 
 
 def _build_opts_from_candidate(base_opts: HeavenOpts, cand: dict) -> HeavenOpts:
@@ -23,6 +23,7 @@ def _build_opts_from_candidate(base_opts: HeavenOpts, cand: dict) -> HeavenOpts:
         entry_mode=cand.get("entry_mode", base_opts.entry_mode),
         risk_mgmt=base_opts.risk_mgmt,
         risk_max_pct=base_opts.risk_max_pct,
+        leverage=base_opts.leverage,
         sl_init_pct=cand.get("sl_init_pct", base_opts.sl_init_pct),
         be_enable=True,
         be_after_bars=cand.get("be_after_bars", base_opts.be_after_bars),
@@ -61,6 +62,25 @@ def _dedupe_results_by_params(results: list[dict]) -> list[dict]:
     return list(unique.values())
 
 
+def _paper_gate_failures(metrics: dict, config: OptimizationConfig, params: dict | None = None) -> list[str]:
+    cfg = config.metrics
+    params = params or {}
+    checks = [
+        ("paper_runner_entry_mode", str(params.get("entry_mode", "")) == "Original"),
+        ("train_trades", float(metrics.get("trades", 0.0)) >= float(cfg.min_trades)),
+        ("oos_missing", "oos_profitFactor" in metrics),
+        ("oos_trades", float(metrics.get("oos_trades", 0.0)) >= float(cfg.min_oos_trades)),
+        ("oos_profit_factor", float(metrics.get("oos_profitFactor", 0.0)) >= float(cfg.min_oos_profit_factor)),
+        ("oos_return", float(metrics.get("oos_return_pct", -1e9)) > float(cfg.min_oos_return_pct)),
+        ("oos_drawdown", float(metrics.get("oos_maxDDPct", 1e9)) <= float(cfg.max_oos_dd_pct)),
+        ("wf_positive_frac", float(metrics.get("wf_positive_frac", 0.0)) >= float(cfg.min_wf_positive_frac)),
+        ("wf_active_frac", float(metrics.get("wf_active_frac", 0.0)) >= float(cfg.min_wf_active_frac)),
+        ("wf_profit_factor", float(metrics.get("wf_pf_mean", 0.0)) >= float(cfg.min_wf_profit_factor)),
+        ("mc_profit_factor", float(metrics.get("mc_pf_mean", 0.0)) >= float(cfg.min_mc_profit_factor)),
+    ]
+    return [name for name, passed in checks if not passed]
+
+
 def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
     log = setup_logger()
     t0 = time.time()
@@ -86,9 +106,26 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
     sym = config.general.symbol
     tf = config.general.tf_optim
     start_sec, end_sec = epoch_seconds_range(config.general.date_from, config.general.date_to)
-    bars = cached_fetch_klines_range(sym, tf, start_sec, end_sec, config.resource.cache_dir)
-    if len(bars) < 100:
+    bars_all = cached_fetch_klines_range(sym, tf, start_sec, end_sec, config.resource.cache_dir)
+    if len(bars_all) < 100:
         raise RuntimeError("Not enough bars for optimization window")
+    bars = bars_all
+    eval_end_sec = end_sec
+    oos_from_sec = None
+    oos_to_sec = None
+    if config.validation.oos_split:
+        if len(config.validation.oos_split) != 2:
+            raise RuntimeError("validation.oos_split must be [holdout_from, holdout_to]")
+        oos_from_sec, oos_to_sec = epoch_seconds_range(*config.validation.oos_split)
+        if not (start_sec < oos_from_sec < oos_to_sec <= end_sec):
+            raise RuntimeError("validation.oos_split must be inside the general date range")
+        bars = [bar for bar in bars_all if bar.time < oos_from_sec]
+        eval_end_sec = oos_from_sec
+        oos_bars = [bar for bar in bars_all if oos_from_sec <= bar.time < oos_to_sec]
+        if len(oos_bars) < 50:
+            raise RuntimeError("Not enough bars in validation.oos_split holdout window")
+    if len(bars) < 100:
+        raise RuntimeError("Not enough bars before validation.oos_split for optimization")
 
     # Helper to evaluate one candidate and return metrics dict only with numbers
     from .scoring import composite_score
@@ -98,18 +135,18 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
         em = "Fib" if em in ("Fib Retracement", "Fib") else em
         opts = HeavenOpts(
             nol=int(cand.get("nol")), prd=int(cand.get("prd")), entry_mode=em,
-            risk_mgmt=True, risk_max_pct=float(config.backtest.risk_max_pct), sl_init_pct=float(cand.get("sl_init_pct")),
+            risk_mgmt=True, risk_max_pct=float(config.backtest.risk_max_pct), leverage=float(config.backtest.leverage), sl_init_pct=float(cand.get("sl_init_pct")),
             be_enable=True, be_after_bars=int(cand.get("be_after_bars")), be_lock_pct=float(cand.get("be_lock_pct")),
             ema_len=int(cand.get("ema_len")), tp_types=cand.get("tp_types"), tp_r=cand.get("tp_r"), tp_p=cand.get("tp_p"),
             use_fib_ret=True, confirm_mode="Bounce",
         )
         # Precompute LB/Piv cache
         from .signal_engine import cached_ema_series, cached_lb_piv
-        tr, lv, flips, piv = cached_lb_piv(sym, tf, start_sec, end_sec, int(cand.get("nol")), int(cand.get("prd")), config.resource.cache_dir)
+        tr, lv, flips, piv = cached_lb_piv(sym, tf, start_sec, eval_end_sec, int(cand.get("nol")), int(cand.get("prd")), config.resource.cache_dir)
         pre = {"lb": (tr, lv, flips), "piv": piv}
         # Precompute EMA only if used
         if any((t == 'EMA' and p > 0) for t, p in zip(cand.get("tp_types", []), cand.get("tp_p", []))):
-            pre["ema"] = cached_ema_series(sym, tf, start_sec, end_sec, int(cand.get("ema_len")), config.resource.cache_dir)
+            pre["ema"] = cached_ema_series(sym, tf, start_sec, eval_end_sec, int(cand.get("ema_len")), config.resource.cache_dir)
         rep_full = backtest_with_bars(opts, bars, 0, len(bars)-1, float(config.backtest.initial_equity), float(config.backtest.fee_pct), precomputed=pre)
         if not rep_full:
             return {"profitFactor": 0.0, "totalPnl": -1e9, "maxDDPct": 100.0}
@@ -145,6 +182,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
         entry_mode=(config.entry_modes[0] if config.entry_modes else "Both").replace("Fib Retracement", "Fib"),
         risk_mgmt=True,
         risk_max_pct=float(config.backtest.risk_max_pct),
+        leverage=float(config.backtest.leverage),
         sl_init_pct=float((config.ranges.sl_pct_range.min + config.ranges.sl_pct_range.max) / 2.0),
         be_after_bars=int((config.ranges.be_bars_range.min + config.ranges.be_bars_range.max) // 2),
         be_lock_pct=float((config.ranges.be_lock_pct_range.min + config.ranges.be_lock_pct_range.max) / 2.0),
@@ -183,6 +221,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
         space = EASpace(
             nol_list=nol_list, prd_list=prd_list, sl_list=sl_list, beb_list=beb_list, bel_list=bel_list,
             ema_list=ema_list, entry_modes=modes, tp_vectors=tp_vectors, alloc_patterns=alloc_patterns,
+            tp_type=str(config.TP.mode),
         )
         weights = {
             "pf": float(config.metrics.weights.pf),
@@ -194,6 +233,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
             "cons": float(config.metrics.weights.cons),
             "r2": float(config.metrics.weights.r2),
             "slope": float(config.metrics.weights.slope),
+            "robustness": float(config.metrics.robustness_weight),
         }
         seeds = run_ea(
             space,
@@ -250,6 +290,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
             "cons": float(config.metrics.weights.cons),
             "r2": float(config.metrics.weights.r2),
             "slope": float(config.metrics.weights.slope),
+            "robustness": float(config.metrics.robustness_weight),
         }
         hist_raw = fetch_history_from_supabase(sym, tf, None, max_rows=2000)
         history = compute_scores_if_missing(hist_raw, weights)
@@ -325,7 +366,8 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
         ]
     # Consolidation & ranking
     results = _dedupe_results_by_params(results)
-    from .validation import monte_carlo_validate, walk_forward_validate
+    from .scoring import robustness_score
+    from .validation import evaluate_period, monte_carlo_validate, walk_forward_validate
     weights = {
         "pf": float(config.metrics.weights.pf),
         "sharpe": float(config.metrics.weights.sharpe),
@@ -336,20 +378,72 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
         "cons": float(config.metrics.weights.cons),
         "r2": float(config.metrics.weights.r2),
         "slope": float(config.metrics.weights.slope),
+        "robustness": float(config.metrics.robustness_weight),
     }
+    validation_bars = [bar for bar in bars_all if oos_to_sec is None or bar.time < oos_to_sec]
+    oos_from_idx = None
+    if oos_from_sec is not None:
+        oos_from_idx = next(
+            (idx for idx, bar in enumerate(validation_bars) if bar.time >= oos_from_sec),
+            len(validation_bars),
+        )
     for r in results:
+        r["metrics"]["score"] = composite_score(r["metrics"], weights)
+    results.sort(key=lambda r: -float(r["metrics"].get("score", 0.0)))
+    validation_count = min(len(results), max(1, int(config.metrics.validation_top_n)))
+    for result_idx, r in enumerate(results):
+        if result_idx >= validation_count:
+            r["metrics"]["robustly_validated"] = 0.0
+            r["metrics"]["robustness_score"] = 0.0
+            r["metrics"]["paper_eligible"] = 0.0
+            r["metrics"]["paper_gate_failures"] = ["not_robustly_validated"]
+            continue
         # augment with validation metrics (fast defaults)
         opts = HeavenOpts(
             nol=int(r["params"]["nol"]), prd=int(r["params"]["prd"]), entry_mode=str(r["params"].get("entry_mode","Both")),
-            risk_mgmt=True, risk_max_pct=float(config.backtest.risk_max_pct), sl_init_pct=float(r["params"]["sl_init_pct"]),
+            risk_mgmt=True, risk_max_pct=float(config.backtest.risk_max_pct), leverage=float(config.backtest.leverage), sl_init_pct=float(r["params"]["sl_init_pct"]),
             be_enable=True, be_after_bars=int(r["params"]["be_after_bars"]), be_lock_pct=float(r["params"]["be_lock_pct"]),
             ema_len=int(r["params"]["ema_len"]), tp_types=r["params"].get("tp_types"), tp_r=r["params"].get("tp_r"), tp_p=r["params"].get("tp_p"),
         )
         if not (os.getenv("HEAVEN_NO_WF") == "1"):
-            wf = walk_forward_validate(bars, opts, 21, 7, 7, float(config.backtest.initial_equity), float(config.backtest.fee_pct))
-            mc = monte_carlo_validate(bars, opts, n=10, sigma=0.001, equity_start=float(config.backtest.initial_equity), fee_pct=float(config.backtest.fee_pct))
-            r["metrics"].update(wf)
+            wf_cfg = config.validation.walk_forward
+            if wf_cfg:
+                wf = walk_forward_validate(
+                    bars,
+                    opts,
+                    duration_days(wf_cfg.train_window),
+                    duration_days(wf_cfg.test_window),
+                    duration_days(wf_cfg.stride),
+                    float(config.backtest.initial_equity),
+                    float(config.backtest.fee_pct),
+                )
+                r["metrics"].update(wf)
+            mc = monte_carlo_validate(
+                bars,
+                opts,
+                n=max(1, int(config.validation.monte_carlo_runs)),
+                sigma=max(0.0, float(config.validation.monte_carlo_sigma)),
+                equity_start=float(config.backtest.initial_equity),
+                fee_pct=float(config.backtest.fee_pct),
+            )
             r["metrics"].update(mc)
+        if oos_from_idx is not None and oos_from_idx < len(validation_bars) - 1:
+            r["metrics"].update(
+                evaluate_period(
+                    validation_bars,
+                    opts,
+                    oos_from_idx,
+                    len(validation_bars) - 1,
+                    float(config.backtest.initial_equity),
+                    float(config.backtest.fee_pct),
+                )
+            )
+        robust = robustness_score(r["metrics"])
+        r["metrics"]["robustly_validated"] = 1.0
+        r["metrics"]["robustness_score"] = float(robust or 0.0)
+        gate_failures = _paper_gate_failures(r["metrics"], config, r.get("params") or {})
+        r["metrics"]["paper_eligible"] = 0.0 if gate_failures else 1.0
+        r["metrics"]["paper_gate_failures"] = gate_failures
         r["metrics"]["score"] = composite_score(r["metrics"], weights)
 
     # Supabase is the only strategy store: persistence failures must fail clearly.
@@ -367,6 +461,8 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
         "mode": str(mode),
         "date_from": str(getattr(config.general, "date_from", "")),
         "date_to": str(getattr(config.general, "date_to", "")),
+        "train_date_to": str(config.validation.oos_split[0]) if config.validation.oos_split else str(getattr(config.general, "date_to", "")),
+        "oos_split": list(config.validation.oos_split) if config.validation.oos_split else None,
         "seed": os.getenv("HEAVEN_SEED"),
         "ts": time.time(),
         "run_id": run_id,
@@ -391,7 +487,13 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
     sio.upsert_strategy_evaluations(rows_all, svc_key)
 
     # Sort and select top-N
-    results.sort(key=lambda r: -float(r["metrics"].get("score", 0.0)))
+    results.sort(
+        key=lambda r: (
+            -float(r["metrics"].get("paper_eligible", 0.0)),
+            -float(r["metrics"].get("robustly_validated", 0.0)),
+            -float(r["metrics"].get("score", 0.0)),
+        )
+    )
     top_results = results[: int(config.general.top_n_results)]
 
     # Create palmarès set and reloadable Heaven strategies.
@@ -422,16 +524,25 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
                 "provenance": r.get("provenance", "coarse"),
                 "generation": 1,
             })
-            heaven_rows.append({
-                "user_id": user_id,
-                "symbol": sym,
-                "tf": tf,
-                "name": strat_name,
-                "params": sio.canonical_params_to_ui_params(r.get("params") or {}),
-                "metrics": r.get("metrics") or {},
-            })
+            if float((r.get("metrics") or {}).get("paper_eligible", 0.0)) >= 1.0:
+                reload_params = {
+                    **(r.get("params") or {}),
+                    "risk_mgmt": True,
+                    "risk_max_pct": float(config.backtest.risk_max_pct),
+                    "leverage": float(config.backtest.leverage),
+                }
+                heaven_rows.append({
+                    "user_id": user_id,
+                    "symbol": sym,
+                    "tf": tf,
+                    "name": strat_name,
+                    "params": sio.canonical_params_to_ui_params(reload_params),
+                    "metrics": r.get("metrics") or {},
+                })
         sio.insert_palmares_entries(ents, svc_key)
-        sio.upsert_heaven_strategies(heaven_rows, svc_key)
+        if heaven_rows:
+            sio.upsert_heaven_strategies(heaven_rows, svc_key)
+        log.info(f"Paper-eligible Heaven strategies: {len(heaven_rows)}/{len(top_results)}")
         rows_sel = [{
             **run_meta,
             "user_id": user_id,

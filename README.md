@@ -13,7 +13,11 @@ Quickstart
 - Create a config: see config.example.yaml
 - Set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_SERVICE_KEY`)
 - Run: python run_optimize.py --config config.example.yaml
-- Reproducible BTCUSDC 15m run: set `HEAVEN_SEED=20260603`, then run `python run_optimize.py --config config.btc15m.yaml`
+- Reproducible historical BTCUSDC 15m diagnostic: set `HEAVEN_SEED=20260603`, then run `python run_optimize.py --config config.btc15m.yaml`
+- Preview the recent pair/TF matrix: `python run_experiment_matrix.py --dry-run`
+- Run a first recent robust pass: `python run_experiment_matrix.py --fast`
+- Compare Percent exits: `python run_experiment_matrix.py --fast --tp-mode Percent`
+- Start a paper session from an eligible Supabase strategy: `python start_paper_candidate.py --strategy-name <heaven_strategies.name> --session-name <paper-name> --invoke-runner`
 
 Outputs
 - Evaluations in `strategy_evaluations`, scoped by an immutable `run_id`
@@ -23,9 +27,15 @@ Outputs
 
 Notes
 - Data loading uses Binance REST; provide your own data or cache for speed.
+- Optimization uses closed candles only. `validation.oos_split` reserves an untouched holdout range.
+- Walk-forward, Monte Carlo, and holdout metrics affect the final robust score.
+- Only strategies that pass the paper-trading gates are copied to `heaven_strategies`.
 - No strategy result or preset is written to local files by the optimizer.
+- Paper sessions are Supabase-only. `start_paper_candidate.py` refuses non-eligible strategies and never writes local strategy state.
 - Optional `HEAVEN_RUN_TYPE` (`NEW` or `LAB`) and `HEAVEN_CAMPAIGN_ID` values are stored with each run.
-- Simulation mirrors the JS logic (SL/BE/TP) for numerical parity; minor rounding deltas may occur.
+- The recent matrix defaults to `Original` entries because the headless paper runner does not yet execute Fib retracement entries.
+- Simulation and paper runners only use pivots after their confirmation delay, close flip exits at signal close, and enter the next trade at the following candle open.
+- A runner that cannot cover all missed candles stops the paper session with a `history_gap` event instead of silently replaying partial history.
 - Optional numba acceleration can be enabled if available.
 
 ---

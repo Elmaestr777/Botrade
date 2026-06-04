@@ -82,7 +82,10 @@ class WalkForwardCfg(BaseModel):
 
 class ValidationCfg(BaseModel):
     walk_forward: WalkForwardCfg | None = None
+    # [holdout_from, holdout_to], both ISO timestamps inside the general range.
     oos_split: list[str] | None = None
+    monte_carlo_runs: int = 20
+    monte_carlo_sigma: float = 0.001
 
 class ResourceCfg(BaseModel):
     n_jobs: int = 4
@@ -103,6 +106,16 @@ class MetricsCfg(BaseModel):
     weights: MetricsWeights = Field(default_factory=MetricsWeights)
     min_trades: int = 30
     penalize_complexity: bool = True
+    validation_top_n: int = 50
+    robustness_weight: float = 0.65
+    min_oos_trades: int = 20
+    min_oos_profit_factor: float = 1.10
+    min_oos_return_pct: float = 0.0
+    max_oos_dd_pct: float = 20.0
+    min_wf_positive_frac: float = 0.55
+    min_wf_active_frac: float = 0.50
+    min_wf_profit_factor: float = 1.0
+    min_mc_profit_factor: float = 1.0
 
 class OptimizationConfig(BaseModel):
     general: GeneralCfg

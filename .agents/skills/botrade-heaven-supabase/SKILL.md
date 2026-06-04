@@ -32,7 +32,9 @@ Garder le workflow Heaven fiable: moteurs coherents, meilleures strategies stock
 3. Faire echouer clairement les flux Heaven si Supabase est requis mais indisponible.
 4. Persister les meilleurs resultats dans `palmares_sets`, `palmares_entries` et, si recharge UI attendue, `heaven_strategies`.
 5. Donner un `run_id` commun aux evaluations, au set et aux entrees d'un meme run quand les colonnes de run existent.
-6. Ajouter une migration de grants/RLS seulement si l'acces Data API ou la securite Supabase le justifie.
+6. Pour une campagne multi-paires/TF, utiliser `run_experiment_matrix.py`: bougies cloturees, fenetre d'entrainement, holdout intact, puis gates paper.
+7. Pour lancer un candidat paper, utiliser `start_paper_candidate.py` afin de refuser automatiquement les strategies non eligibles et de rester Supabase-only.
+8. Ajouter une migration de grants/RLS seulement si l'acces Data API ou la securite Supabase le justifie.
 
 # Regles de decision
 
@@ -47,6 +49,14 @@ Garder le workflow Heaven fiable: moteurs coherents, meilleures strategies stock
 - Les metriques JSONB non finies (`Infinity`, `-Infinity`, `NaN`) doivent etre serialisees explicitement avant un appel REST Supabase.
 - Un bulk upsert `strategy_evaluations` doit dedupliquer sa cible de conflit avant l'envoi pour eviter PostgreSQL `21000`.
 - Le top-N d'un run doit contenir des parametres distincts avant validation et persistance dans le palmares.
+- Un pivot de periode `prd` ne peut etre utilise qu'apres son delai de confirmation; toute utilisation a son index est une fuite du futur.
+- Un signal calcule au close doit fermer la position opposee au close du flip, puis entrer a l'open de la bougie suivante; deux positions ne doivent pas se chevaucher sur cette bougie.
+- Le score final doit integrer les metriques de robustesse disponibles, notamment holdout, walk-forward et Monte Carlo.
+- Une strategie non eligible au paper peut rester dans les evaluations et le palmares, mais ne doit pas etre copiee automatiquement dans `heaven_strategies`.
+- Le runner paper headless ne supporte actuellement que les entrees `Original`; les entrees Fib/Both ne doivent pas etre marquees eligibles avant parite moteur.
+- Les wallets et sessions paper doivent rester Supabase-only; aucun fallback `localStorage` n'est autorise.
+- Une equity paper egale a zero est une valeur valide et ne doit jamais retomber sur `start_cap`.
+- Un runner qui ne peut pas couvrir toutes les bougies manquees doit arreter la session et signaler un `history_gap`, jamais simuler un rattrapage partiel silencieux.
 - Si plusieurs moteurs copient la logique Heaven, noter le risque de parite et tester le moteur modifie.
 
 # Verifications
@@ -54,9 +64,11 @@ Garder le workflow Heaven fiable: moteurs coherents, meilleures strategies stock
 - `npm run lint -- --quiet`
 - `node --check runner/index.js` si le runner headless est modifie.
 - `deno check supabase/functions/live-runner/index.ts` si `deno` est disponible et que l'Edge Function est modifiee.
-- `python -m ruff check heaven_opt run_optimize.py tests`
+- `python -m ruff check heaven_opt run_optimize.py run_experiment_matrix.py start_paper_candidate.py tests`
 - `python -m pytest -q`
+- `python run_experiment_matrix.py --dry-run`
 - `rg "localStorage\\.(setItem|getItem).*?(lab:palmares|lab:results|lbcPreset|lbcOptions)" src -n`
+- `rg "liveWallets|readLiveWallets|writeLiveWallets" src -n`
 - `rg "results\\.yaml|ea_seeds\\.yaml" heaven_opt run_optimize.py -n`
 
 # Sortie attendue

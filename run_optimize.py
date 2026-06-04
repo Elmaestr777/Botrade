@@ -73,7 +73,8 @@ def main(argv=None) -> int:
 
     res = optimize_heaven(config)
 
-    print(f"Top {len(res.top)} results persisted to Supabase.")
+    eligible = sum(1 for candidate in res.top if candidate.metrics.get("paper_eligible", 0.0) >= 1.0)
+    print(f"Top {len(res.top)} results persisted to Supabase; {eligible} eligible for paper trading.")
     return 0
 
 

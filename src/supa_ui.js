@@ -483,6 +483,9 @@ async function fetchKnownCanonicalKeys(symbol, tf, profileName){
       nol: p.nol|0,
       prd: p.prd|0,
       slInitPct: +p.sl_init_pct,
+      riskMgmt: true,
+      riskMaxPct: Number(p.risk_max_pct||1.0) || 1.0,
+      beEnable: true,
       beAfterBars: p.be_after_bars|0,
       beLockPct: +p.be_lock_pct,
       emaLen: p.ema_len|0,
@@ -714,7 +717,7 @@ async function fetchHeadlessSessions(limit=50){
   }
 async function fetchHeadlessSessionByName(name){
     const c=ensureClient(); if(!c||!name) return null;
-    try{ const { data, error } = await c.from('live_sessions').select('id,name,symbol,tf,active,equity,start_cap,last_bar_time,created_at,updated_at').eq('name', name).maybeSingle(); if(error){ slog('Supabase: fetchHeadlessSessionByName KO — '+(error.message||error)); return null; } return data||null; }catch(_){ return null; }
+    try{ const { data, error } = await c.from('live_sessions').select('id,name,symbol,tf,active,equity,start_cap,last_bar_time,strategy_params,created_at,updated_at').eq('name', name).maybeSingle(); if(error){ slog('Supabase: fetchHeadlessSessionByName KO — '+(error.message||error)); return null; } return data||null; }catch(_){ return null; }
   }
   async function fetchLiveEvents(sessionId, sinceIso, limit=500){
     const c=ensureClient(); if(!c||!sessionId) return [];
