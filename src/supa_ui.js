@@ -681,9 +681,16 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
     try{
       const p = (ctx && ctx.params) || (typeof window!=='undefined' && typeof window.currentHeavenParamsForPersist==='function'? window.currentHeavenParamsForPersist(): {});
       const name = (ctx && ctx.name) || (typeof window!=='undefined' && window.liveWalletName && window.liveWalletName.value) || (typeof window!=='undefined' && window.randomName && window.randomName()) || 'live';
+      let walletId = (ctx && (ctx.walletId || ctx.wallet_id)) || null;
+      if(!walletId && name){
+        try{
+          const { data: wallet } = await c.from('wallets').select('id').eq('name', name).eq('exchange', 'paper').is('user_id', null).maybeSingle();
+          walletId = wallet && wallet.id ? wallet.id : null;
+        }catch(_){ walletId = null; }
+      }
       const base = {
         user_id: null,
-        wallet_id: null,
+        wallet_id: walletId,
         name,
         symbol: ctx.symbol,
         tf: ctx.tf,

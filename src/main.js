@@ -6569,7 +6569,8 @@ if(liveStartBtn){ liveStartBtn.addEventListener('click', async ()=>{ try{
   const lev=Math.max(1, parseFloat(liveLev&&liveLev.value||'1'));
   const sym=currentSymbol;
   const tfSel=(liveTFSelect&&liveTFSelect.value)||((intervalSelect&&intervalSelect.value)||currentInterval)||'';
-  const ok = await SUPA.startHeadlessLive({ name, symbol:sym, tf: tfSel, startCap:cap, fee, lev, params:selected.params });
+  let walletId=null; try{ const wallets=Array.isArray(window.__liveWalletsCache)?window.__liveWalletsCache:[]; const wallet=wallets.find(w=>String(w.name)===String(name) && (w.paper!==false)); walletId=wallet&&wallet.id?wallet.id:null; }catch(_){ walletId=null; }
+  const ok = await SUPA.startHeadlessLive({ name, walletId, symbol:sym, tf: tfSel, startCap:cap, fee, lev, params:selected.params });
   if(ok && ok.ok){ setStatus('Session paper démarrée (headless)'); await headlessActivate(name); ensureLiveDrawer(); renderLiveDrawer(); closeModalEl(liveModalEl); }
   else { setStatus('Erreur démarrage headless'); }
 }catch(_){ } }); }

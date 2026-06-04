@@ -208,6 +208,29 @@ def test_ui_distinguishes_fib_retracement_and_extension_labels():
     assert "rebuildFibSelect(vFib, (t&&t.fib!=null)? t.fib : (vFib&&vFib.value), 'sl')" in source
 
 
+def test_headless_runners_only_process_paper_wallet_sessions():
+    repo_root = Path(__file__).resolve().parents[1]
+    runner_source = (repo_root / "runner" / "index.js").read_text(encoding="utf-8")
+    edge_source = (
+        repo_root / "supabase" / "functions" / "live-runner" / "index.ts"
+    ).read_text(encoding="utf-8")
+
+    assert "loadWalletPaperMap" in runner_source
+    assert "isPaperSession" in runner_source
+    assert "rows.filter((s)=> isPaperSession(s, walletMap))" in runner_source
+    assert "ignored_non_paper" in edge_source
+    assert ".filter((s: any) => isPaperSession(s, walletMap))" in edge_source
+
+
+def test_headless_ui_persists_wallet_id_for_paper_sessions():
+    repo_root = Path(__file__).resolve().parents[1]
+    main_source = (repo_root / "src" / "main.js").read_text(encoding="utf-8")
+    supa_source = (repo_root / "src" / "supa_ui.js").read_text(encoding="utf-8")
+
+    assert "wallet_id: walletId" in supa_source
+    assert "walletId=wallet&&wallet.id?wallet.id:null" in main_source
+
+
 def test_break_even_waits_for_the_configured_move_threshold():
     bars = [
         Bar(time=1, open=100.0, high=104.0, low=99.0, close=103.0),

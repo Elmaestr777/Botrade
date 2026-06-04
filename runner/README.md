@@ -26,3 +26,4 @@ node runner/index.js
 - Reconnects closed Binance streams with backoff jitter and closes unused streams.
 - Persists TP targets inside the session position so open positions survive runner restarts.
 - Uses a simplified copy of the engine (Line Break + TP/SL/BE).
+- Processes only paper sessions: sessions linked to a non-paper wallet are ignored. Legacy public sessions without `wallet_id` are still treated as paper.

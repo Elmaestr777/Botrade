@@ -425,14 +425,33 @@ async function processSession(c: any, s: any) {
   return { updated: true, events: events.length };
 }
 
+async function loadWalletPaperMap(c: any, sessions: any[]) {
+  const ids = Array.from(new Set((sessions || []).map((s) => s.wallet_id).filter(Boolean)));
+  if (!ids.length) return new Map<string, any>();
+  const { data, error } = await c.from('wallets').select('id,paper,exchange').in('id', ids);
+  if (error) throw new Error('fetch wallets: ' + (error.message || error));
+  return new Map((data || []).map((w: any) => [
+    String(w.id),
+    { paper: w.paper !== false, exchange: String(w.exchange || 'paper').toLowerCase() },
+  ]));
+}
+
+function isPaperSession(session: any, walletMap: Map<string, any>) {
+  if (!session.wallet_id) return true; // Legacy public headless sessions are paper-only.
+  const wallet = walletMap.get(String(session.wallet_id));
+  return !!(wallet && wallet.paper !== false && wallet.exchange === 'paper');
+}
+
 serve(async (req) => {
   try {
     const c = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
     // Fetch active sessions (public pool)
-    const { data: sessions, error } = await c.from('live_sessions').select('*').eq('active', true).limit(100);
+    const { data: rawSessions, error } = await c.from('live_sessions').select('*').eq('active', true).limit(100);
     if (error) return new Response(JSON.stringify({ ok: false, error: error.message }), { status: 500, headers: { 'content-type': 'application/json' } });
+    const walletMap = await loadWalletPaperMap(c, rawSessions || []);
+    const sessions = (rawSessions || []).filter((s: any) => isPaperSession(s, walletMap));
     const stats: any[] = [];
-    for (const s of (sessions || [])) {
+    for (const s of sessions) {
       try {
         const r = await processSession(c, s);
         stats.push({ id: s.id, name: s.name, updated: r.updated, events: r.events || 0, history_gap: !!r.history_gap });
@@ -441,7 +460,7 @@ serve(async (req) => {
         stats.push({ id: s.id, name: s.name, error: (e as any)?.message || String(e) });
       }
     }
-    return new Response(JSON.stringify({ ok: true, count: (sessions || []).length, stats }), { headers: { 'content-type': 'application/json' } });
+    return new Response(JSON.stringify({ ok: true, count: sessions.length, ignored_non_paper: (rawSessions || []).length - sessions.length, stats }), { headers: { 'content-type': 'application/json' } });
   } catch (e) {
     return new Response(JSON.stringify({ ok: false, error: (e as any)?.message || String(e) }), { status: 500, headers: { 'content-type': 'application/json' } });
   }

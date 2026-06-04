@@ -44,7 +44,23 @@ const groups = new Map();   // key -> { ws, refs:Set(sessionId), reconnectTimer,
 async function fetchActiveSessions(){
   const { data, error } = await supa.from('live_sessions').select('*').eq('active', true).limit(500);
   if(error) throw new Error(`fetch sessions: ${error.message||error}`);
-  return Array.isArray(data)? data:[];
+  const rows = Array.isArray(data)? data:[];
+  const walletMap = await loadWalletPaperMap(rows);
+  return rows.filter((s)=> isPaperSession(s, walletMap));
+}
+
+async function loadWalletPaperMap(rows){
+  const ids = Array.from(new Set((rows||[]).map((s)=>s.wallet_id).filter(Boolean)));
+  if(!ids.length) return new Map();
+  const { data, error } = await supa.from('wallets').select('id,paper,exchange').in('id', ids);
+  if(error) throw new Error(`fetch wallets: ${error.message||error}`);
+  return new Map((Array.isArray(data)?data:[]).map((w)=>[String(w.id), { paper:w.paper!==false, exchange:String(w.exchange||'paper').toLowerCase() }]));
+}
+
+function isPaperSession(session, walletMap){
+  if(!session.wallet_id) return true; // Legacy public headless sessions are paper-only.
+  const wallet = walletMap.get(String(session.wallet_id));
+  return !!(wallet && wallet.paper !== false && wallet.exchange === 'paper');
 }
 
 function openStream(symbol, tf){

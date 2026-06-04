@@ -59,6 +59,7 @@ Garder le workflow Heaven fiable: moteurs coherents, meilleures strategies stock
 - Une strategie non eligible au paper peut rester dans les evaluations et le palmares, mais ne doit pas etre copiee automatiquement dans `heaven_strategies`.
 - Le runner paper headless ne supporte actuellement que les entrees `Original`; les entrees Fib/Both ne doivent pas etre marquees eligibles avant parite moteur.
 - Les wallets et sessions paper doivent rester Supabase-only; aucun fallback `localStorage` n'est autorise.
+- Les runners headless paper doivent ignorer tout wallet non-paper; le live reel exige une activation et un moteur separes explicitement controles.
 - Une equity paper egale a zero est une valeur valide et ne doit jamais retomber sur `start_cap`.
 - Un runner qui ne peut pas couvrir toutes les bougies manquees doit arreter la session et signaler un `history_gap`, jamais simuler un rattrapage partiel silencieux.
 - Si plusieurs moteurs copient la logique Heaven, noter le risque de parite et tester le moteur modifie.
