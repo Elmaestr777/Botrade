@@ -132,6 +132,7 @@ def test_canonical_params_convert_to_reloadable_ui_shape():
             "ema_len": 55,
             "risk_max_pct": 0.75,
             "leverage": 2.0,
+            "be_enable": False,
             "entry_mode": "Fib",
             "tp_types": ["Fib", "Percent", "EMA"],
             "tp_r": [0.382, 2.0, 0.0],
@@ -143,6 +144,7 @@ def test_canonical_params_convert_to_reloadable_ui_shape():
     assert ui["slInitPct"] == 1.5
     assert ui["riskMaxPct"] == 0.75
     assert ui["leverage"] == 2.0
+    assert ui["beEnable"] is False
     assert [tp["type"] for tp in ui["tp"]] == ["Fib", "Percent", "EMA"]
     assert ui["tp"][2]["emaLen"] == 55
 
@@ -258,6 +260,10 @@ def test_experiment_matrix_builds_recent_holdout_without_fib_by_default():
     assert data["metrics"]["min_oos_trades"] == 20
     assert data["ranges"]["nol_range"] == {"min": 2.0, "max": 6.0, "step": 1.0}
 
+    data_no_be = build_config_data(template, "BTCUSDC", "15m", date_to, fast=True, include_no_be=True)
+
+    assert data_no_be["ranges"]["be_enable_values"] == [True, False]
+
 
 def test_ea_keeps_percent_tp_type_explicit():
     space = EASpace(
@@ -266,6 +272,7 @@ def test_ea_keeps_percent_tp_type_explicit():
         sl_list=[1.0],
         beb_list=[5],
         bel_list=[5.0],
+        be_enable_list=[False],
         ema_list=[55],
         entry_modes=["Original"],
         tp_vectors=[[0.5, 1.0, 2.0]],
@@ -273,9 +280,10 @@ def test_ea_keeps_percent_tp_type_explicit():
         tp_type="Percent",
     )
 
-    candidate = _ind_to_candidate([0] * 9, space)
+    candidate = _ind_to_candidate([0] * 10, space)
 
     assert candidate["tp_types"] == ["Percent"] * 10
+    assert candidate["be_enable"] is False
 
 
 def test_range_loader_continues_when_closed_candle_filter_shortens_a_batch(monkeypatch):

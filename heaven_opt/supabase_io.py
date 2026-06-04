@@ -209,7 +209,7 @@ def canonical_params_to_ui_params(params: dict[str, Any]) -> dict[str, Any]:
         "riskMgmt": bool(params.get("risk_mgmt", True)),
         "riskMaxPct": float(params.get("risk_max_pct") or 1.0),
         "leverage": float(params.get("leverage") or 1.0),
-        "beEnable": True,
+        "beEnable": bool(params.get("be_enable", True)),
         "beAfterBars": int(params.get("be_after_bars") or 5),
         "beLockPct": float(params.get("be_lock_pct") or 5.0),
         "emaLen": int(params.get("ema_len") or 55),

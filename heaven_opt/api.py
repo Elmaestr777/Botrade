@@ -25,7 +25,7 @@ def _build_opts_from_candidate(base_opts: HeavenOpts, cand: dict) -> HeavenOpts:
         risk_max_pct=base_opts.risk_max_pct,
         leverage=base_opts.leverage,
         sl_init_pct=cand.get("sl_init_pct", base_opts.sl_init_pct),
-        be_enable=True,
+        be_enable=bool(cand.get("be_enable", base_opts.be_enable)),
         be_after_bars=cand.get("be_after_bars", base_opts.be_after_bars),
         be_lock_pct=cand.get("be_lock_pct", base_opts.be_lock_pct),
         tp_enable=True,
@@ -136,7 +136,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
         opts = HeavenOpts(
             nol=int(cand.get("nol")), prd=int(cand.get("prd")), entry_mode=em,
             risk_mgmt=True, risk_max_pct=float(config.backtest.risk_max_pct), leverage=float(config.backtest.leverage), sl_init_pct=float(cand.get("sl_init_pct")),
-            be_enable=True, be_after_bars=int(cand.get("be_after_bars")), be_lock_pct=float(cand.get("be_lock_pct")),
+            be_enable=bool(cand.get("be_enable", True)), be_after_bars=int(cand.get("be_after_bars")), be_lock_pct=float(cand.get("be_lock_pct")),
             ema_len=int(cand.get("ema_len")), tp_types=cand.get("tp_types"), tp_r=cand.get("tp_r"), tp_p=cand.get("tp_p"),
             use_fib_ret=True, confirm_mode="Bounce",
         )
@@ -213,6 +213,9 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
     sl_list = list({float(x) for x in rng(config.ranges.sl_pct_range)})
     beb_list = list({int(x) for x in rng(config.ranges.be_bars_range)})
     bel_list = list({float(x) for x in rng(config.ranges.be_lock_pct_range)})
+    be_enable_list = list(dict.fromkeys(bool(x) for x in config.ranges.be_enable_values))
+    if not be_enable_list:
+        be_enable_list = [True]
     ema_list = list({int(x) for x in rng(config.ranges.ema_len_range)})
     modes = [m.replace("Fib Retracement", "Fib") for m in (config.entry_modes or ["Both"])]
     if mode == "ea_bayesian_hybrid":
@@ -220,7 +223,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
         from .optimizer_ea import EASpace, run_ea
         space = EASpace(
             nol_list=nol_list, prd_list=prd_list, sl_list=sl_list, beb_list=beb_list, bel_list=bel_list,
-            ema_list=ema_list, entry_modes=modes, tp_vectors=tp_vectors, alloc_patterns=alloc_patterns,
+            be_enable_list=be_enable_list, ema_list=ema_list, entry_modes=modes, tp_vectors=tp_vectors, alloc_patterns=alloc_patterns,
             tp_type=str(config.TP.mode),
         )
         weights = {
@@ -311,6 +314,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
             modes,
             tp_vectors,
             alloc_patterns,
+            be_enable_values=be_enable_list,
             n_suggest=n_suggest,
             rng_seed=None,
         )
@@ -345,6 +349,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
                 "sl_init_pct": float(sl),
                 "be_after_bars": int(beb),
                 "be_lock_pct": float(bel),
+                "be_enable": bool(random.choice(be_enable_list)),
                 "ema_len": int(ema),
                 "entry_mode": entry_mode,
                 "tp_types": tp_types[:],
@@ -402,7 +407,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
         opts = HeavenOpts(
             nol=int(r["params"]["nol"]), prd=int(r["params"]["prd"]), entry_mode=str(r["params"].get("entry_mode","Both")),
             risk_mgmt=True, risk_max_pct=float(config.backtest.risk_max_pct), leverage=float(config.backtest.leverage), sl_init_pct=float(r["params"]["sl_init_pct"]),
-            be_enable=True, be_after_bars=int(r["params"]["be_after_bars"]), be_lock_pct=float(r["params"]["be_lock_pct"]),
+            be_enable=bool(r["params"].get("be_enable", True)), be_after_bars=int(r["params"]["be_after_bars"]), be_lock_pct=float(r["params"]["be_lock_pct"]),
             ema_len=int(r["params"]["ema_len"]), tp_types=r["params"].get("tp_types"), tp_r=r["params"].get("tp_r"), tp_p=r["params"].get("tp_p"),
         )
         if not (os.getenv("HEAVEN_NO_WF") == "1"):

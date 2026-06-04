@@ -17,6 +17,7 @@ Quickstart
 - Preview the recent pair/TF matrix: `python run_experiment_matrix.py --dry-run`
 - Run a first recent robust pass: `python run_experiment_matrix.py --fast`
 - Compare Percent exits: `python run_experiment_matrix.py --fast --tp-mode Percent`
+- Explore short-TF break-even sensitivity: `python run_experiment_matrix.py --fast --tp-mode Percent --include-no-be`
 - Start a paper session from an eligible Supabase strategy: `python start_paper_candidate.py --strategy-name <heaven_strategies.name> --session-name <paper-name> --invoke-runner`
 
 Outputs

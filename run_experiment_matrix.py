@@ -78,6 +78,7 @@ def build_config_data(
     *,
     fast: bool = False,
     include_fib: bool = False,
+    include_no_be: bool = False,
     tp_mode: str = "Fib",
     max_combinations: int | None = None,
     top_n: int | None = None,
@@ -132,6 +133,9 @@ def build_config_data(
     data["TP"]["mode"] = tp_mode
     if tp_mode == "Percent":
         data["TP"].update({"percent_min": 0.5, "percent_max": 5.0, "percent_step": 0.5})
+    data.setdefault("ranges", {})
+    if include_no_be:
+        data["ranges"]["be_enable_values"] = [True, False]
     if fast:
         data["EA"]["pop_size"] = min(int(data["EA"].get("pop_size", 80)), 30)
         data["EA"]["n_generations"] = min(int(data["EA"].get("n_generations", 12)), 5)
@@ -191,6 +195,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--campaign-prefix", default="heaven-robust")
     parser.add_argument("--fast", action="store_true", help="Use a smaller first-pass search")
     parser.add_argument("--include-fib", action="store_true", help="Explore Fib/Both entries, which are not paper-eligible yet")
+    parser.add_argument("--include-no-be", action="store_true", help="Explore disabling break-even in addition to the default enabled mode")
     parser.add_argument("--tp-mode", choices=("Fib", "Percent"), default="Fib")
     parser.add_argument("--max-combinations", type=int)
     parser.add_argument("--top-n", type=int)
@@ -214,6 +219,7 @@ def main(argv: list[str] | None = None) -> int:
                 date_to,
                 fast=args.fast,
                 include_fib=args.include_fib,
+                include_no_be=args.include_no_be,
                 tp_mode=args.tp_mode,
                 max_combinations=args.max_combinations,
                 top_n=args.top_n,

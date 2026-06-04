@@ -485,7 +485,7 @@ async function fetchKnownCanonicalKeys(symbol, tf, profileName){
       slInitPct: +p.sl_init_pct,
       riskMgmt: true,
       riskMaxPct: Number(p.risk_max_pct||1.0) || 1.0,
-      beEnable: true,
+      beEnable: (typeof p.be_enable === 'boolean') ? p.be_enable : true,
       beAfterBars: p.be_after_bars|0,
       beLockPct: +p.be_lock_pct,
       emaLen: p.ema_len|0,

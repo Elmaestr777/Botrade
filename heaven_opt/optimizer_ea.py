@@ -17,6 +17,7 @@ class EASpace:
     sl_list: list[float]
     beb_list: list[int]
     bel_list: list[float]
+    be_enable_list: list[bool]
     ema_list: list[int]
     entry_modes: list[str]
     tp_vectors: list[list[float]]
@@ -31,6 +32,7 @@ def _ind_to_candidate(ind, space: EASpace) -> dict:
     sl = space.sl_list[ind[i]]; i += 1
     beb = space.beb_list[ind[i]]; i += 1
     bel = space.bel_list[ind[i]]; i += 1
+    be_enable = space.be_enable_list[ind[i]]; i += 1
     ema = space.ema_list[ind[i]]; i += 1
     mode = space.entry_modes[ind[i]]; i += 1
     tpv = space.tp_vectors[ind[i]] if space.tp_vectors else [] ; i += 1
@@ -39,6 +41,7 @@ def _ind_to_candidate(ind, space: EASpace) -> dict:
         "nol": int(nol),
         "prd": int(prd),
         "sl_init_pct": float(sl),
+        "be_enable": bool(be_enable),
         "be_after_bars": int(beb),
         "be_lock_pct": float(bel),
         "ema_len": int(ema),
@@ -65,7 +68,7 @@ def run_ea(space: EASpace,
     # Genome: indices into lists
     gene_sizes = [
         len(space.nol_list), len(space.prd_list), len(space.sl_list), len(space.beb_list),
-        len(space.bel_list), len(space.ema_list), len(space.entry_modes),
+        len(space.bel_list), len(space.be_enable_list), len(space.ema_list), len(space.entry_modes),
         max(1, len(space.tp_vectors)), max(1, len(space.alloc_patterns)),
     ]
     if not hasattr(creator, "FitnessMax"):

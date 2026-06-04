@@ -33,6 +33,7 @@ def _objective_factory(seed_params: dict, global_bounds: dict[str, tuple], weigh
             "nol": int(trial.suggest_int("nol", *localspec["nol"])),
             "prd": int(trial.suggest_int("prd", *localspec["prd"])),
             "sl_init_pct": float(trial.suggest_float("sl_init_pct", *localspec["sl_init_pct"], step=0.1)),
+            "be_enable": bool(seed_params.get("be_enable", True)),
             "be_after_bars": int(trial.suggest_int("be_after_bars", *localspec["be_after_bars"])),
             "be_lock_pct": float(trial.suggest_float("be_lock_pct", *localspec["be_lock_pct"], step=0.1)),
             "ema_len": int(trial.suggest_int("ema_len", *localspec["ema_len"])),

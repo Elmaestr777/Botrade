@@ -43,6 +43,7 @@ class RangesCfg(BaseModel):
     be_bars_range: Range
     be_lock_pct_range: Range
     ema_len_range: Range
+    be_enable_values: list[bool] = Field(default_factory=lambda: [True])
 
 class TPAllocCfg(BaseModel):
     allocation_step_pct: int = 5

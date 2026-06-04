@@ -16,6 +16,7 @@ def _features_from_params(p: dict[str, Any]) -> list[float]:
     sl = float(p.get("sl_init_pct", 2.0))
     beb = float(p.get("be_after_bars", 5))
     bel = float(p.get("be_lock_pct", 5.0))
+    be_enable = 1.0 if bool(p.get("be_enable", True)) else 0.0
     ema = float(p.get("ema_len", 55))
     entry_mode = p.get("entry_mode", "Both")
     em_onehot = [
@@ -27,10 +28,10 @@ def _features_from_params(p: dict[str, Any]) -> list[float]:
     nz = sum(1 for v in tp_p if float(v) > 0)
     avg_r = float(np.mean([float(x) for x in tp_r[:nz]]) if nz > 0 else 0.0)
     sum_p = float(sum(float(x) for x in tp_p))
-    return [nol, prd, sl, beb, bel, ema] + em_onehot + [nz, avg_r, sum_p]
+    return [nol, prd, sl, beb, bel, be_enable, ema] + em_onehot + [nz, avg_r, sum_p]
 
 
-def _sample_candidate(bounds: dict[str, tuple[float, float, float]], modes: list[str], tp_vectors: list[list[float]] | None, alloc_patterns: list[list[float]] | None) -> dict[str, Any]:
+def _sample_candidate(bounds: dict[str, tuple[float, float, float]], modes: list[str], tp_vectors: list[list[float]] | None, alloc_patterns: list[list[float]] | None, be_enable_values: list[bool] | None = None) -> dict[str, Any]:
     def draw_int(lo, hi, step):
         grid = list({int(round(x)) for x in np.arange(lo, hi + 1e-12, step)})
         return int(random.choice(grid))
@@ -42,6 +43,7 @@ def _sample_candidate(bounds: dict[str, tuple[float, float, float]], modes: list
     sl = draw_float(*bounds["sl_init_pct"])
     beb = draw_int(*bounds["be_after_bars"])
     bel = draw_float(*bounds["be_lock_pct"])
+    be_enable = bool(random.choice(be_enable_values or [True]))
     ema = draw_int(*bounds["ema_len"])
     mode = random.choice(modes)
     tpv = random.choice(tp_vectors) if tp_vectors else []
@@ -50,6 +52,7 @@ def _sample_candidate(bounds: dict[str, tuple[float, float, float]], modes: list
         "nol": nol,
         "prd": prd,
         "sl_init_pct": sl,
+        "be_enable": be_enable,
         "be_after_bars": beb,
         "be_lock_pct": bel,
         "ema_len": ema,
@@ -66,6 +69,7 @@ def propose_with_surrogate(
     modes: list[str],
     tp_vectors: list[list[float]] | None,
     alloc_patterns: list[list[float]] | None,
+    be_enable_values: list[bool] | None = None,
     n_suggest: int = 100,
     pool_size: int = 5000,
     rng_seed: int | None = None,
@@ -78,7 +82,7 @@ def propose_with_surrogate(
         seen = set()
         out = []
         while len(out) < n_suggest and len(seen) < pool_size * 2:
-            c = _sample_candidate(bounds, modes, tp_vectors, alloc_patterns)
+            c = _sample_candidate(bounds, modes, tp_vectors, alloc_patterns, be_enable_values)
             h = sha1_of_params(c)
             if h in seen:
                 continue
@@ -99,7 +103,7 @@ def propose_with_surrogate(
     tries = 0
     while len(pool) < pool_size and tries < pool_size * 10:
         tries += 1
-        c = _sample_candidate(bounds, modes, tp_vectors, alloc_patterns)
+        c = _sample_candidate(bounds, modes, tp_vectors, alloc_patterns, be_enable_values)
         h = sha1_of_params(c)
         if h in seen:
             continue
