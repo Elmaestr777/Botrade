@@ -29,12 +29,13 @@ Garder le workflow Heaven fiable: moteurs coherents, meilleures strategies stock
 
 1. Rechercher les chemins `readPalmares`, `writePalmares`, `persistLabResults`, `fetchPalmares`, `heaven_strategies`, `lbcOptions`, `results.yaml`, `ea_seeds.yaml` et `localStorage`.
 2. Corriger d'abord les bugs moteur deterministes ou de parite qui cassent les backtests.
-3. Faire echouer clairement les flux Heaven si Supabase est requis mais indisponible.
-4. Persister les meilleurs resultats dans `palmares_sets`, `palmares_entries` et, si recharge UI attendue, `heaven_strategies`.
-5. Donner un `run_id` commun aux evaluations, au set et aux entrees d'un meme run quand les colonnes de run existent.
-6. Pour une campagne multi-paires/TF, utiliser `run_experiment_matrix.py`: bougies cloturees, fenetre d'entrainement, holdout intact, puis gates paper. Sur les TF courts, ajouter `--include-no-be` pour tester `beEnable` actif/inactif sans relacher les gates.
-7. Pour lancer un candidat paper, utiliser `start_paper_candidate.py` afin de refuser automatiquement les strategies non eligibles et de rester Supabase-only.
-8. Ajouter une migration de grants/RLS seulement si l'acces Data API ou la securite Supabase le justifie.
+3. Pour le coeur optimiseur, verifier que l'EA preserve les meilleurs individus observes et que les diagnostics de trades restent persistables en metriques numeriques.
+4. Faire echouer clairement les flux Heaven si Supabase est requis mais indisponible.
+5. Persister les meilleurs resultats dans `palmares_sets`, `palmares_entries` et, si recharge UI attendue, `heaven_strategies`.
+6. Donner un `run_id` commun aux evaluations, au set et aux entrees d'un meme run quand les colonnes de run existent.
+7. Pour une campagne multi-paires/TF, utiliser `run_experiment_matrix.py`: bougies cloturees, fenetre d'entrainement, holdout intact, puis gates paper. Sur les TF courts, ajouter `--include-no-be` pour tester `beEnable` actif/inactif sans relacher les gates.
+8. Pour lancer un candidat paper, utiliser `start_paper_candidate.py` afin de refuser automatiquement les strategies non eligibles et de rester Supabase-only.
+9. Ajouter une migration de grants/RLS seulement si l'acces Data API ou la securite Supabase le justifie.
 
 # Regles de decision
 
@@ -52,6 +53,7 @@ Garder le workflow Heaven fiable: moteurs coherents, meilleures strategies stock
 - Un pivot de periode `prd` ne peut etre utilise qu'apres son delai de confirmation; toute utilisation a son index est une fuite du futur.
 - Un signal calcule au close doit fermer la position opposee au close du flip, puis entrer a l'open de la bougie suivante; deux positions ne doivent pas se chevaucher sur cette bougie.
 - Le score final doit integrer les metriques de robustesse disponibles, notamment holdout, walk-forward et Monte Carlo.
+- Les analyses de strategies doivent privilegier des metriques numeriques persistables (`diag_*`, `oos_diag_*`) plutot que des fichiers locaux.
 - `beEnable` peut etre optimise via `be_enable_values` ou `--include-no-be`, mais un candidat sans break-even doit respecter les memes criteres paper.
 - Une strategie non eligible au paper peut rester dans les evaluations et le palmares, mais ne doit pas etre copiee automatiquement dans `heaven_strategies`.
 - Le runner paper headless ne supporte actuellement que les entrees `Original`; les entrees Fib/Both ne doivent pas etre marquees eligibles avant parite moteur.

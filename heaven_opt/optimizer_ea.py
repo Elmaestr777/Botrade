@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import random
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -71,6 +72,10 @@ def run_ea(space: EASpace,
         len(space.bel_list), len(space.be_enable_list), len(space.ema_list), len(space.entry_modes),
         max(1, len(space.tp_vectors)), max(1, len(space.alloc_patterns)),
     ]
+    elite_count = 0
+    if elitism_frac > 0.0 and pop_size > 0:
+        elite_count = max(1, min(pop_size, int(math.ceil(pop_size * elitism_frac))))
+    hall_size = max(1, min(pop_size, 50))
     if not hasattr(creator, "FitnessMax"):
         creator.create("FitnessMax", base.Fitness, weights=(1.0,))
     if not hasattr(creator, "Individual"):
@@ -111,7 +116,7 @@ def run_ea(space: EASpace,
         toolbox.register("map", map)
 
     pop = toolbox.population(n=pop_size)
-    hall = tools.HallOfFame(max(1, int(pop_size * elitism_frac)))
+    hall = tools.HallOfFame(hall_size)
 
     try:
         best_score = float('-inf')
@@ -152,6 +157,9 @@ def run_ea(space: EASpace,
                 if random.random() < mut_prob:
                     toolbox.mutate(mut)
                     del mut.fitness.values
+            if elite_count > 0 and len(hall) > 0:
+                elites = [toolbox.clone(ind) for ind in hall[:elite_count]]
+                offspring[: len(elites)] = elites
             pop[:] = offspring
         # Final evaluate
         invalid = [ind for ind in pop if not ind.fitness.valid]
@@ -164,9 +172,17 @@ def run_ea(space: EASpace,
         if pool is not None:
             pool.close()
             pool.join()
-    # Build seeds
+    # Build seeds from the final population plus the best individuals seen during the whole run.
     seeds: list[dict] = []
-    for ind in tools.selBest(pop, k=min(len(pop), 50)):
+    seed_pool = list(pop)
+    seen_genomes = {tuple(ind) for ind in seed_pool}
+    for ind in hall:
+        key = tuple(ind)
+        if key in seen_genomes:
+            continue
+        seen_genomes.add(key)
+        seed_pool.append(ind)
+    for ind in tools.selBest(seed_pool, k=min(len(seed_pool), 50)):
         cand = _ind_to_candidate(ind, space)
         rep = eval_candidate(cand)
         rep["score"] = composite_score(rep, weights)

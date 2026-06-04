@@ -2,6 +2,7 @@
 import pytest
 
 from heaven_opt import api, data_loader, simulator, supabase_io, validation
+from heaven_opt.analysis import trade_diagnostics
 from heaven_opt.combo_generator import generate_alloc_patterns
 from heaven_opt.optimizer_ea import EASpace, _ind_to_candidate
 from heaven_opt.scoring import composite_score, robustness_score
@@ -358,6 +359,58 @@ def test_backtest_reports_consistency_and_peak_to_trough_drawdown(monkeypatch):
     assert result is not None
     assert result["consistency"] == pytest.approx(1 / 3)
     assert result["maxDDAbs"] == 10.0
+
+
+def test_trade_diagnostics_report_exit_mix_and_streaks():
+    metrics = trade_diagnostics(
+        [
+            {"entryIdx": 0, "exitIdx": 1, "pnl": 10.0, "rr": 1.0, "reason": "TP", "dir": "long"},
+            {"entryIdx": 2, "exitIdx": 4, "pnl": -5.0, "rr": -0.5, "reason": "SL", "dir": "short"},
+            {"entryIdx": 5, "exitIdx": 5, "pnl": -3.0, "rr": -0.3, "reason": "Close", "dir": "short"},
+        ],
+        0,
+        9,
+    )
+
+    assert metrics["diag_avg_hold_bars"] == pytest.approx(2.0)
+    assert metrics["diag_exposure_frac"] == pytest.approx(0.6)
+    assert metrics["diag_long_frac"] == pytest.approx(1 / 3)
+    assert metrics["diag_short_frac"] == pytest.approx(2 / 3)
+    assert metrics["diag_tp_exit_frac"] == pytest.approx(1 / 3)
+    assert metrics["diag_sl_exit_frac"] == pytest.approx(1 / 3)
+    assert metrics["diag_close_exit_frac"] == pytest.approx(1 / 3)
+    assert metrics["diag_payoff_ratio"] == pytest.approx(2.5)
+    assert metrics["diag_max_consec_losses"] == 2.0
+
+
+def test_evaluate_period_prefixes_trade_diagnostics(monkeypatch):
+    bars = [
+        Bar(time=1, open=100.0, high=101.0, low=99.0, close=100.0),
+        Bar(time=2, open=100.0, high=101.0, low=99.0, close=100.0),
+        Bar(time=3, open=100.0, high=101.0, low=99.0, close=100.0),
+    ]
+    monkeypatch.setattr(
+        validation,
+        "backtest_with_bars",
+        lambda *args, **kwargs: {
+            "totalPnl": -5.0,
+            "profitFactor": 0.5,
+            "trades": [
+                {"entryIdx": 0, "exitIdx": 1, "pnl": -5.0, "rr": -0.5, "reason": "SL", "dir": "long"}
+            ],
+            "winrate": 0.0,
+            "avgRR": -0.5,
+            "sharpe": 0.0,
+            "maxDDPct": 1.0,
+            "maxDDAbs": 5.0,
+            "equity": 995.0,
+        },
+    )
+
+    metrics = validation.evaluate_period(bars, HeavenOpts(), 0, 2, equity_start=1000.0, fee_pct=0.1)
+
+    assert metrics["oos_diag_sl_exit_frac"] == 1.0
+    assert metrics["oos_diag_max_consec_losses"] == 1.0
 
 
 def test_backtest_closes_before_next_signal_open_and_deduplicates_entries(monkeypatch):

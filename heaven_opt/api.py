@@ -5,6 +5,7 @@ import time
 import uuid
 
 from . import Candidate, OptimizationConfig, OptimizationResult
+from .analysis import trade_diagnostics
 from .combo_generator import (
     generate_alloc_patterns,
     generate_tp_fib_combos,
@@ -167,6 +168,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
             "maxDDAbs": float(rep.get("maxDDAbs", 0.0)),
             "equityFinal": float(rep.get("equity", 0.0)),
         }
+        metrics_numeric.update(trade_diagnostics(rep.get("trades", []), 0, len(bars) - 1))
         # Penalty if trades below min_trades
         if metrics_numeric["trades"] < float(config.metrics.min_trades):
             metrics_numeric["profitFactor"] *= 0.5

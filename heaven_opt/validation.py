@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 
+from .analysis import prefix_metrics, trade_diagnostics
 from .simulator import HeavenOpts, backtest_with_bars
 from .utils import Bar
 
@@ -128,7 +129,7 @@ def evaluate_period(
     if not rep:
         return {}
     total_pnl = float(rep.get("totalPnl", 0.0))
-    return {
+    metrics = {
         f"{prefix}_totalPnl": total_pnl,
         f"{prefix}_return_pct": (total_pnl / equity_start * 100.0) if equity_start > 0 else 0.0,
         f"{prefix}_profitFactor": _finite_pf(rep.get("profitFactor", 0.0)),
@@ -140,3 +141,5 @@ def evaluate_period(
         f"{prefix}_maxDDAbs": float(rep.get("maxDDAbs", 0.0)),
         f"{prefix}_equityFinal": float(rep.get("equity", equity_start)),
     }
+    metrics.update(prefix_metrics(trade_diagnostics(rep.get("trades", []), from_idx, to_idx), prefix))
+    return metrics

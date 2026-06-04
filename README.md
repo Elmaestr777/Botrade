@@ -4,7 +4,8 @@ This Python package provides an optimization engine for the Heaven trading strat
 - Grid/Random search
 - Evolutionary Algorithm (EA) exploration
 - Local Bayesian refinement (Optuna TPE/Gaussian)
-- Caching, early stopping, walk-forward validation, Monte Carlo robustness checks
+- Caching, true EA elitism, early stopping, walk-forward validation, Monte Carlo robustness checks
+- Trade diagnostics for strategy analysis (streaks, exits, exposure, payoff)
 - Parallel evaluation and progress callbacks for UI integration
 - Supabase-only persistence for evaluated and selected strategies
 
@@ -22,6 +23,7 @@ Quickstart
 
 Outputs
 - Evaluations in `strategy_evaluations`, scoped by an immutable `run_id`
+- Strategy-analysis metrics in each evaluation (`diag_*` and `oos_diag_*`)
 - Ranked selections in `palmares_sets` and `palmares_entries`
 - Reloadable best strategies in `heaven_strategies`
 - Runtime logs and deterministic computation cache under `cache_dir`
