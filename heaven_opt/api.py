@@ -12,11 +12,13 @@ from .combo_generator import (
     generate_tp_percent_combos,
 )
 from .data_loader import cached_fetch_klines_range
+from .params import normalize_canonical_params
 from .simulator import HeavenOpts, backtest_with_bars
 from .utils import duration_days, epoch_seconds_range, setup_logger, sha1_of_params
 
 
 def _build_opts_from_candidate(base_opts: HeavenOpts, cand: dict) -> HeavenOpts:
+    cand = normalize_canonical_params(cand)
     # Copy and update fields
     o = HeavenOpts(
         nol=cand.get("nol", base_opts.nol),
@@ -51,15 +53,17 @@ def _rank_key(m: dict) -> tuple:
 def _dedupe_results_by_params(results: list[dict]) -> list[dict]:
     unique: dict[str, dict] = {}
     for result in results:
-        key = sha1_of_params(result.get("params") or {})
+        normalized = dict(result)
+        normalized["params"] = normalize_canonical_params(result.get("params") or {})
+        key = sha1_of_params(normalized["params"])
         existing = unique.get(key)
         if existing is None:
-            unique[key] = result
+            unique[key] = normalized
             continue
         existing_score = float((existing.get("metrics") or {}).get("score", float("-inf")))
-        result_score = float((result.get("metrics") or {}).get("score", float("-inf")))
+        result_score = float((normalized.get("metrics") or {}).get("score", float("-inf")))
         if result_score > existing_score:
-            unique[key] = result
+            unique[key] = normalized
     return list(unique.values())
 
 
@@ -131,6 +135,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
     # Helper to evaluate one candidate and return metrics dict only with numbers
     from .scoring import composite_score
     def eval_candidate(cand: dict) -> dict[str, float]:
+        cand = normalize_canonical_params(cand)
         # Map entry mode alias
         em = cand.get("entry_mode", "Both")
         em = "Fib" if em in ("Fib Retracement", "Fib") else em
@@ -359,6 +364,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
                 "tp_r": list(tpv) + [0.0] * (10 - len(tpv)),
                 "tp_p": list(alloc) + [0.0] * (10 - len(alloc)),
             }
+            cand = normalize_canonical_params(cand)
             h = sha1_of_params(cand)
             if h in seen:
                 continue

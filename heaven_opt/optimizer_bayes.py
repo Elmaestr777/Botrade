@@ -4,10 +4,12 @@ from collections.abc import Callable
 
 import optuna
 
+from .params import normalize_canonical_params
 from .scoring import composite_score
 
 
 def _objective_factory(seed_params: dict, global_bounds: dict[str, tuple], weights: dict[str, float], eval_candidate: Callable[[dict], dict], refine_radius: float):
+    seed_params = normalize_canonical_params(seed_params)
     # Define local bounds around seed
     def bound_param(name: str, seed_val, is_int=False):
         gmin, gmax = global_bounds[name]
@@ -42,6 +44,7 @@ def _objective_factory(seed_params: dict, global_bounds: dict[str, tuple], weigh
             "tp_r": seed_params.get("tp_r", [0.0] * 10),
             "tp_p": seed_params.get("tp_p", [0.0] * 10),
         }
+        cand = normalize_canonical_params(cand)
         rep = eval_candidate(cand)
         score = composite_score(rep, weights)
         return score
@@ -69,8 +72,9 @@ def refine_seeds(seeds: list[dict],
         study.optimize(objective, n_trials=n_trials, n_jobs=max(1, int(n_jobs or 1)), show_progress_bar=False)
         out = []
         for t in study.best_trials[:5]:
-            params = seed["params"].copy()
+            params = normalize_canonical_params(seed["params"].copy())
             params.update({k: t.params[k] for k in ["nol","prd","sl_init_pct","be_after_bars","be_lock_pct","ema_len"]})
+            params = normalize_canonical_params(params)
             rep = eval_candidate(params)
             rep["score"] = composite_score(rep, weights)
             out.append({"params": params, "metrics": rep, "provenance": f"Bayesian(seed={idx})"})

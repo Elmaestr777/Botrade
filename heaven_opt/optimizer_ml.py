@@ -5,10 +5,12 @@ from typing import Any
 
 import numpy as np
 
+from .params import normalize_canonical_params
 from .utils import sha1_of_params
 
 
 def _features_from_params(p: dict[str, Any]) -> list[float]:
+    p = normalize_canonical_params(p)
     # Core hyperparams
     nol = float(p.get("nol", 3))
     prd = float(p.get("prd", 15))
@@ -65,7 +67,7 @@ def _sample_candidate(
     tpv = random.choice(tp_vectors) if tp_vectors else []
     alloc = random.choice(alloc_patterns) if alloc_patterns else [100.0]
     tp_type = "Percent" if tp_type == "Percent" else "Fib"
-    return {
+    return normalize_canonical_params({
         "nol": nol,
         "prd": prd,
         "sl_init_pct": sl,
@@ -77,7 +79,7 @@ def _sample_candidate(
         "tp_types": [tp_type] * 10,
         "tp_r": list(tpv) + [0.0] * (10 - len(tpv)),
         "tp_p": list(alloc) + [0.0] * (10 - len(alloc)),
-    }
+    })
 
 
 def propose_with_surrogate(
@@ -119,7 +121,7 @@ def propose_with_surrogate(
     model.fit(X, y)
     # Generate pool
     pool: list[dict[str, Any]] = []
-    seen = {sha1_of_params(it["params"]) for it in history}
+    seen = {sha1_of_params(normalize_canonical_params(it["params"])) for it in history}
     tries = 0
     while len(pool) < pool_size and tries < pool_size * 10:
         tries += 1

@@ -50,6 +50,7 @@ Garder le workflow Heaven fiable: moteurs coherents, meilleures strategies stock
 - Les metriques JSONB non finies (`Infinity`, `-Infinity`, `NaN`) doivent etre serialisees explicitement avant un appel REST Supabase.
 - Un bulk upsert `strategy_evaluations` doit dedupliquer sa cible de conflit avant l'envoi pour eviter PostgreSQL `21000`.
 - Le top-N d'un run doit contenir des parametres distincts avant validation et persistance dans le palmares.
+- Les TP actifs identiques doivent etre fusionnes avant evaluation, hash, palmares, strategies rechargeables et paper pour eviter des ordres dupliques.
 - Un pivot de periode `prd` ne peut etre utilise qu'apres son delai de confirmation; toute utilisation a son index est une fuite du futur.
 - Un signal calcule au close doit fermer la position opposee au close du flip, puis entrer a l'open de la bougie suivante; deux positions ne doivent pas se chevaucher sur cette bougie.
 - Le score final doit integrer les metriques de robustesse disponibles, notamment holdout, walk-forward et Monte Carlo.

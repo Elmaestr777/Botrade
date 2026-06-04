@@ -8,6 +8,7 @@ from multiprocessing.pool import ThreadPool
 
 from deap import base, creator, tools
 
+from .params import normalize_canonical_params
 from .scoring import composite_score
 
 
@@ -38,7 +39,7 @@ def _ind_to_candidate(ind, space: EASpace) -> dict:
     mode = space.entry_modes[ind[i]]; i += 1
     tpv = space.tp_vectors[ind[i]] if space.tp_vectors else [] ; i += 1
     alloc = space.alloc_patterns[ind[i]] if space.alloc_patterns else [100.0]; i += 1
-    return {
+    return normalize_canonical_params({
         "nol": int(nol),
         "prd": int(prd),
         "sl_init_pct": float(sl),
@@ -50,7 +51,7 @@ def _ind_to_candidate(ind, space: EASpace) -> dict:
         "tp_types": [space.tp_type] * 10,
         "tp_r": list(tpv) + [0.0] * (10 - len(tpv)),
         "tp_p": list(alloc) + [0.0] * (10 - len(alloc)),
-    }
+    })
 
 
 def run_ea(space: EASpace,

@@ -8,10 +8,15 @@ from heaven_opt.analysis import trade_diagnostics
 from heaven_opt.combo_generator import generate_alloc_patterns
 from heaven_opt.optimizer_ea import EASpace, _ind_to_candidate
 from heaven_opt.optimizer_ml import propose_with_surrogate
+from heaven_opt.params import normalize_canonical_params
 from heaven_opt.scoring import composite_score, robustness_score
 from heaven_opt.signal_engine import last_two_pivots_before
 from heaven_opt.simulator import HeavenOpts, generate_heaven_signals, simulate_trade_from_signal
-from heaven_opt.supabase_io import SupabasePersistenceError, canonical_params_to_ui_params
+from heaven_opt.supabase_io import (
+    SupabasePersistenceError,
+    canonical_params_to_ui_params,
+    normalize_ui_strategy_params,
+)
 from heaven_opt.utils import Bar
 from run_experiment_matrix import build_config_data, latest_closed_day_boundary
 
@@ -139,6 +144,46 @@ def test_canonical_params_to_ui_merges_duplicate_tp_levels():
     )
 
     assert ui["tp"] == [{"type": "Fib", "fib": 0.618, "value": 0.618, "qty": 1.0}]
+
+
+def test_canonical_params_merge_duplicate_active_tp_slots():
+    params = normalize_canonical_params(
+        {
+            "tp_types": ["Fib", "Fib", "Percent"],
+            "tp_r": [0.618, 0.618, 2.0],
+            "tp_p": [40.0, 60.0, 0.0],
+        }
+    )
+
+    assert params["tp_types"][:2] == ["Fib", "Fib"]
+    assert params["tp_r"][:3] == [0.618, 0.0, 0.0]
+    assert params["tp_p"][:3] == [100.0, 0.0, 0.0]
+
+
+def test_canonical_params_cap_merged_tp_weight():
+    params = normalize_canonical_params(
+        {
+            "tp_types": ["Percent", "Percent"],
+            "tp_r": [2.0, 2.0],
+            "tp_p": [100.0, 100.0],
+        }
+    )
+
+    assert params["tp_p"][:2] == [100.0, 0.0]
+
+
+def test_ui_strategy_params_merge_duplicate_tp_levels():
+    ui = normalize_ui_strategy_params(
+        {
+            "tpEnable": True,
+            "tp": [
+                {"type": "Percent", "pct": 2.0, "qty": 0.4},
+                {"type": "Percent", "value": 2.0, "qty": 0.6},
+            ],
+        }
+    )
+
+    assert ui["tp"] == [{"type": "Percent", "pct": 2.0, "qty": 1.0}]
 
 
 def test_browser_worker_fib_tp_uses_extension_formula():
@@ -646,6 +691,39 @@ def test_strategy_evaluation_upsert_deduplicates_conflict_keys(monkeypatch):
     assert captured["json"][0]["score"] == 2.0
 
 
+def test_strategy_evaluation_upsert_normalizes_duplicate_tp_params(monkeypatch):
+    captured = {}
+
+    class SuccessfulResponse:
+        def raise_for_status(self):
+            return None
+
+    def fake_post(*args, **kwargs):
+        captured.update(kwargs)
+        return SuccessfulResponse()
+
+    monkeypatch.setattr(supabase_io, "_rest_base_url", lambda: "https://example.test/rest/v1")
+    monkeypatch.setattr(supabase_io.requests, "post", fake_post)
+
+    supabase_io.upsert_strategy_evaluations(
+        [
+            {
+                "symbol": "BTCUSDC",
+                "params": {
+                    "tp_types": ["Fib", "Fib"],
+                    "tp_r": [0.618, 0.618],
+                    "tp_p": [40.0, 60.0],
+                },
+            }
+        ],
+        "service-key",
+    )
+
+    params = captured["json"][0]["params"]
+    assert params["tp_r"][:2] == [0.618, 0.0]
+    assert params["tp_p"][:2] == [100.0, 0.0]
+
+
 def test_optimizer_results_deduplicate_identical_params():
     params = {"nol": 3, "prd": 15, "tp_r": [0.618, 1.0]}
     results = [
@@ -657,3 +735,36 @@ def test_optimizer_results_deduplicate_identical_params():
 
     assert len(deduped) == 1
     assert deduped[0]["provenance"] == "Bayesian"
+
+
+def test_optimizer_results_deduplicate_equivalent_duplicate_tp_params():
+    results = [
+        {
+            "params": {
+                "nol": 3,
+                "prd": 15,
+                "tp_types": ["Fib", "Fib"],
+                "tp_r": [0.618, 0.618],
+                "tp_p": [40.0, 60.0],
+            },
+            "metrics": {"score": 0.5},
+            "provenance": "duplicate",
+        },
+        {
+            "params": {
+                "nol": 3,
+                "prd": 15,
+                "tp_types": ["Fib"],
+                "tp_r": [0.618],
+                "tp_p": [100.0],
+            },
+            "metrics": {"score": 0.7},
+            "provenance": "merged",
+        },
+    ]
+
+    deduped = api._dedupe_results_by_params(results)
+
+    assert len(deduped) == 1
+    assert deduped[0]["provenance"] == "merged"
+    assert deduped[0]["params"]["tp_p"][:2] == [100.0, 0.0]

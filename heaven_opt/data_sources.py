@@ -5,6 +5,7 @@ from typing import Any
 
 import requests
 
+from .params import normalize_canonical_params
 from .scoring import composite_score
 
 
@@ -49,7 +50,7 @@ def fetch_history_from_supabase(symbol: str, tf: str, profile: str | None, max_r
         arr = r.json() or []
         out: list[dict[str, Any]] = []
         for it in arr:
-            params_d = it.get("params") or {}
+            params_d = normalize_canonical_params(it.get("params") or {})
             mets = it.get("metrics") or {}
             score = it.get("score")
             out.append({"params": params_d, "metrics": mets, "score": score})
@@ -64,5 +65,5 @@ def compute_scores_if_missing(items: list[dict[str, Any]], weights: dict[str, fl
         s = it.get("score")
         if s is None:
             s = composite_score(it.get("metrics") or {}, weights)
-        out.append({"params": it.get("params") or {}, "score": float(s)})
+        out.append({"params": normalize_canonical_params(it.get("params") or {}), "score": float(s)})
     return out

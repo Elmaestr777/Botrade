@@ -7,6 +7,7 @@ from typing import Any, Iterable
 import requests
 
 from .data_sources import _rest_base_url
+from .params import normalize_canonical_params
 
 
 class SupabasePersistenceError(RuntimeError):
@@ -48,9 +49,18 @@ def _score_value(row: dict[str, Any]) -> float:
         return float("-inf")
 
 
+def _normalize_canonical_row_params(row: dict[str, Any]) -> dict[str, Any]:
+    if "params" not in row:
+        return row
+    normalized = dict(row)
+    normalized["params"] = normalize_canonical_params(normalized.get("params") or {})
+    return normalized
+
+
 def _dedupe_strategy_evaluations(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     unique: dict[tuple[Any, ...], dict[str, Any]] = {}
-    for row in rows:
+    for original in rows:
+        row = _normalize_canonical_row_params(original)
         params_key = json.dumps(
             _json_safe(row.get("params") or {}),
             sort_keys=True,
@@ -156,6 +166,7 @@ def create_palmares_set(row: dict[str, Any], api_key: str) -> str:
 def insert_palmares_entries(rows: list[dict[str, Any]], api_key: str, batch: int = 100) -> None:
     if not rows:
         return
+    rows = [_normalize_canonical_row_params(row) for row in rows]
     base = _required_base(api_key)
     url = f"{base}/palmares_entries"
     headers = _headers(api_key)
@@ -195,16 +206,30 @@ def _dedupe_ui_tp(tp: list[dict[str, Any]]) -> list[dict[str, Any]]:
         else:
             value = float(rung.get("fib", rung.get("value", 0.0)) or 0.0)
             key = f"F:{value:.8f}"
+        qty = max(0.0, min(1.0, float(rung.get("qty") or 0.0)))
         if key in merged:
-            merged[key]["qty"] = float(merged[key].get("qty") or 0.0) + float(rung.get("qty") or 0.0)
+            merged[key]["qty"] = max(0.0, min(1.0, float(merged[key].get("qty") or 0.0) + qty))
         else:
             item = dict(rung)
+            item["qty"] = qty
             merged[key] = item
             ordered.append(item)
     return ordered[:10]
 
 
+def normalize_ui_strategy_params(params: dict[str, Any] | None) -> dict[str, Any]:
+    out = dict(params or {})
+    tp = out.get("tp")
+    if isinstance(tp, list):
+        deduped = _dedupe_ui_tp([dict(rung) for rung in tp if isinstance(rung, dict)])
+        out["tp"] = deduped
+        if out.get("tpEnable") is None or bool(out.get("tpEnable")):
+            out["tpEnable"] = bool(deduped)
+    return out
+
+
 def canonical_params_to_ui_params(params: dict[str, Any]) -> dict[str, Any]:
+    params = normalize_canonical_params(params)
     tp_types = list(params.get("tp_types") or [])[:10]
     tp_r = list(params.get("tp_r") or [])[:10]
     tp_p = list(params.get("tp_p") or [])[:10]
@@ -257,6 +282,12 @@ def canonical_params_to_ui_params(params: dict[str, Any]) -> dict[str, Any]:
 def upsert_heaven_strategies(rows: list[dict[str, Any]], api_key: str, batch: int = 100) -> None:
     if not rows:
         return
+    rows = [
+        {**row, "params": normalize_ui_strategy_params(row.get("params") or {})}
+        if "params" in row
+        else row
+        for row in rows
+    ]
     base = _required_base(api_key)
     url = f"{base}/heaven_strategies"
     headers = _headers(api_key)

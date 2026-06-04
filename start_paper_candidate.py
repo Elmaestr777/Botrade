@@ -8,6 +8,8 @@ from typing import Any
 
 import requests
 
+from heaven_opt.supabase_io import normalize_ui_strategy_params
+
 
 def _required_env() -> tuple[str, str]:
     url = str(os.getenv("SUPABASE_URL") or "").rstrip("/")
@@ -54,7 +56,8 @@ def _get_strategy(base: str, key: str, strategy_name: str) -> dict[str, Any]:
         raise RuntimeError(f"Heaven strategy not found or ambiguous: {strategy_name}")
     row = dict(rows[0])
     metrics = dict(row.get("metrics") or {})
-    params = dict(row.get("params") or {})
+    params = normalize_ui_strategy_params(dict(row.get("params") or {}))
+    row["params"] = params
     if float(metrics.get("paper_eligible") or 0.0) < 1.0:
         raise RuntimeError(f"Heaven strategy is not paper-eligible: {strategy_name}")
     if str(params.get("entryMode") or "") != "Original":
