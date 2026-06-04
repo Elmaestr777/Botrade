@@ -2011,6 +2011,11 @@ function normalizeLBCOpts(){
     if(typeof lbcOpts.riskMgmt==='undefined') lbcOpts.riskMgmt=true;
     if(!Number.isFinite(Number(lbcOpts.riskMaxPct))) lbcOpts.riskMaxPct=1.0;
     if(!Array.isArray(lbcOpts.tp)) lbcOpts.tp=[];
+    const tpLenBefore = lbcOpts.tp.length;
+    lbcOpts.tp = normalizeTPLadder(lbcOpts.tp);
+    if(tpLenBefore !== lbcOpts.tp.length){
+      lbcOpts.tpCount = Math.max(1, Math.min(10, lbcOpts.tp.length || 3));
+    }
     if(typeof lbcOpts.tpCount!=='number' || !Number.isFinite(lbcOpts.tpCount)){
       const n = Array.isArray(lbcOpts.tp) ? lbcOpts.tp.length : 0;
       lbcOpts.tpCount = Math.max(1, Math.min(10, n || 3));
@@ -2363,7 +2368,8 @@ function updateFibAndTPLines(piv){ clearTPPriceLines(); if(!candles.length){ ret
     for(const r of fibs){ const target = up? (B + move*r) : (B - move*r); createTPLine(target, `Fib Ext ${fibDirLabel} ${r}`, '#6b7280'); }
   }
   // TP Ladder
-  if(lbcOpts.tpEnable && Array.isArray(lbcOpts.tp) && lbcOpts.tp.length){ let n=1; for(const t of lbcOpts.tp){ if(n>10) break; const typ=(t.type||'Fib'); let price=null; if(typ==='Fib'){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)){ price = up? (B + move*r) : (B - move*r); } }
+  const tpLadderForLines = normalizeTPLadder(lbcOpts.tp);
+  if(lbcOpts.tpEnable && tpLadderForLines.length){ let n=1; for(const t of tpLadderForLines){ if(n>10) break; const typ=(t.type||'Fib'); let price=null; if(typ==='Fib'){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)){ price = up? (B + move*r) : (B - move*r); } }
       else if(typ==='Percent'){ const p=parseFloat(t.pct!=null? t.pct : t.value); if(isFinite(p)){ price = up? (C * (1 + p/100)) : (C * (1 - p/100)); } }
       else if(typ==='EMA'){ const len = Math.max(1, parseInt(((t&&t.emaLen)!=null? t.emaLen : (lbcOpts.emaLen||55)),10)); const ema=emaCalc(candles, len); const v = ema[ema.length-1]; if(isFinite(v)){ price=v; } }
       if(price!=null){ createTPLine(price, `TP${n}`, '#7c3aed'); }
@@ -2589,7 +2595,8 @@ if(lbcSaveBtn){
       }
       tpArr.push(entry);
     }
-    lbcOpts.tp = tpArr;
+    lbcOpts.tp = normalizeTPLadder(tpArr);
+    lbcOpts.tpCount = Math.max(1, Math.min(10, lbcOpts.tp.length || tpCount));
 
     const slArr=[];
     for(let i=1;i<=10;i++){
@@ -2660,6 +2667,7 @@ function runBacktestSlice(sIdx, eIdx, conf){
             list.push({price, w, srcIdx: idx});
         } }
       }
+      list = mergeDuplicateTargets(list);
       if(dir==='long') list.sort((a,b)=>a.price-b.price); else list.sort((a,b)=>b.price-a.price);
       let sumW=0, hasW=false; for(const it of list){ if(it.w!=null && it.w>0){ sumW+=it.w; hasW=true; } }
       if(!hasW){ if(list.length){ const even=1/list.length; list=list.map(it=>({ price:it.price, w:even, srcIdx: it.srcIdx })); } else { list=[{price: (dir==='long'? entry + riskAbs*(lbcOpts.tp1R||1) : entry - riskAbs*(lbcOpts.tp1R||1)), w:1, srcIdx: 0}]; } }
@@ -2826,6 +2834,7 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
           list.push({price, w, srcIdx: idx});
         } }
       }
+      list = mergeDuplicateTargets(list);
       if(dir==='long') list.sort((a,b)=>a.price-b.price); else list.sort((a,b)=>b.price-a.price);
       let sumW=0, hasW=false; for(const it of list){ if(it.w!=null && it.w>0){ sumW+=it.w; hasW=true; } }
       if(!hasW){ if(list.length){ const even=1/list.length; list=list.map(it=>({ price:it.price, w:even, srcIdx: it.srcIdx })); } else { list=[{price: (dir==='long'? entry + riskAbs*(params.tp1R||1) : entry - riskAbs*(params.tp1R||1)), w:1, srcIdx: 0}]; } }
@@ -5595,8 +5604,19 @@ function setupLabAdvUI(){
   const advBtn=document.getElementById('labAdvancedToggle');
   if(advBtn && (!advBtn.dataset || advBtn.dataset.wiredAdvRefresh!=='1')){ advBtn.addEventListener('click', ()=>{ try{ updateLabAdvVisibility(); }catch(_){ } }); if(!advBtn.dataset) advBtn.dataset={}; advBtn.dataset.wiredAdvRefresh='1'; }
 }
-// Global helper to compute a unique key for a TP rung
-function keyOfTP(t){ try{ if(!t) return ''; const typ=t.type||'Fib'; if(typ==='Fib') return `F:${t.fib}`; if(typ==='Percent') return `P:${t.pct}`; if(typ==='EMA') return `E:${t.emaLen}`; return String(typ); }catch(_){ return ''; } }
+// Global helpers to keep TP ladders/order targets unique.
+function keyOfTP(t){ try{ if(!t) return ''; const typ=t.type||'Fib'; if(typ==='Fib'){ const v=Number(t.fib!=null? t.fib : t.value); return Number.isFinite(v)? `F:${v.toFixed(8)}` : ''; } if(typ==='Percent'){ const v=Number(t.pct!=null? t.pct : t.value); return Number.isFinite(v)? `P:${v.toFixed(8)}` : ''; } if(typ==='EMA'){ const v=parseInt(t.emaLen,10); return Number.isFinite(v)? `E:${v}` : ''; } return String(typ); }catch(_){ return ''; } }
+function cloneTPRung(t){ try{ const c={...t}; if(t&&t.trail) c.trail={...t.trail}; if(t&&t.sl){ c.sl={...t.sl}; if(t.sl.trail) c.sl.trail={...t.sl.trail}; } return c; }catch(_){ return t; } }
+function mergeTPRung(base, extra){ try{
+  const bq=Number(base.qty); const eq=Number(extra.qty);
+  if(Number.isFinite(bq) && Number.isFinite(eq)) base.qty=bq+eq;
+  else if(!Number.isFinite(bq) && Number.isFinite(eq)) base.qty=eq;
+  if(extra.beOn) base.beOn=true;
+  if(!base.trail && extra.trail) base.trail={...extra.trail};
+  if(!base.sl && extra.sl){ base.sl={...extra.sl}; if(extra.sl.trail) base.sl.trail={...extra.sl.trail}; }
+}catch(_){ } return base; }
+function normalizeTPLadder(list){ try{ if(!Array.isArray(list)) return []; const out=[]; const seen=new Map(); for(const raw of list.slice(0,10)){ if(!raw) continue; const t=cloneTPRung(raw); const key=keyOfTP(t); if(!key) continue; const existing=seen.get(key); if(existing) mergeTPRung(existing, t); else { seen.set(key, t); out.push(t); } } return out.slice(0,10); }catch(_){ return Array.isArray(list)? list.slice(0,10):[]; } }
+function mergeDuplicateTargets(list){ try{ const out=[]; const seen=new Map(); for(const raw of (Array.isArray(list)?list:[])){ const price=Number(raw&&raw.price); if(!Number.isFinite(price)) continue; const key=price.toFixed(8); const w=(raw.w!=null && isFinite(raw.w))? Number(raw.w): null; const existing=seen.get(key); if(existing){ if(w!=null){ existing.w=(existing.w!=null && isFinite(existing.w))? existing.w+w : w; } } else { const t={...raw, price}; if(w!=null) t.w=w; seen.set(key,t); out.push(t); } } return out; }catch(_){ return Array.isArray(list)? list:[]; } }
   function sampleTPList(tpCfg){
     const { allowFib, allowPct, allowEMA, pctMin, pctMax, fibs } = tpCfg || {};
     const n = Math.max(1, Math.min(10, Number(tpCfg && tpCfg.count) || 10));
@@ -5686,7 +5706,7 @@ function keyOfTP(t){ try{ if(!t) return ''; const typ=t.type||'Fib'; if(typ==='F
     if(list.length && !list.some(t=> t && t.beOn)){
       list[list.length-1].beOn = true;
     }
-    return list;
+    return normalizeTPLadder(list);
 }
 function mutateTP(list,tpCfg){
   if(!Array.isArray(list)||!list.length) return list;
@@ -5760,7 +5780,7 @@ function mutateTP(list,tpCfg){
   if(out.length && !out.some(t=> t && t.beOn)){
     out[out.length-1].beOn = true;
   }
-  return out; }
+  return normalizeTPLadder(out); }
 
   function readSLOpt(){
     try{
@@ -5852,13 +5872,13 @@ function randomParams(){ const vars=readLabVarToggles(); const tpCfg=readTPOpt()
     if(vars.varEntries){ const e=__sampleEntries(p); Object.assign(p, e); }
     if(vars.varTP && tpCfg.en){
       // Cas normal: on échantillonne une nouvelle ladder TP selon la config Lab
-      p.tp = sampleTPList(tpCfg).slice(0,10);
+      p.tp = normalizeTPLadder(sampleTPList(tpCfg)).slice(0,10);
       p.tpEnable=true;
     } else {
       // Fallback: on reprend la ladder Heaven existante, sinon on en génère une par défaut
-      p.tp = Array.isArray(lbcOpts.tp)? lbcOpts.tp.slice(0,10):[];
+      p.tp = normalizeTPLadder(lbcOpts.tp).slice(0,10);
       if(!p.tp.length && tpCfg && tpCfg.en){
-        p.tp = sampleTPList(tpCfg).slice(0,10);
+        p.tp = normalizeTPLadder(sampleTPList(tpCfg)).slice(0,10);
       }
       p.tpEnable=!!p.tp.length;
     }
@@ -5875,12 +5895,12 @@ function randomParams(){ const vars=readLabVarToggles(); const tpCfg=readTPOpt()
     return p; }
   function neighbor(arr, v){ const i=arr.indexOf(v); const out=[]; if(i>0) out.push(arr[i-1]); out.push(v); if(i>=0 && i<arr.length-1) out.push(arr[i+1]); return pick(out.length?out:arr); }
 function mutate(p, rate){ const vars=readLabVarToggles(); const tpCfg=readTPOpt(); const slCfg=readSLOpt(); const q={...p}; if(vars.varNol && Math.random()<rate) q.nol = neighbor(rNol, q.nol); if(vars.varPrd && Math.random()<rate) q.prd = neighbor(rPrd, q.prd); if(vars.varSLInit && Math.random()<rate) q.slInitPct = neighbor(rSL, q.slInitPct); if(vars.varBEBars && Math.random()<rate) q.beAfterBars = neighbor(rBEb, q.beAfterBars); if(vars.varBELock && Math.random()<rate) q.beLockPct = neighbor(rBEL, q.beLockPct); if(vars.varEMALen && Math.random()<rate) q.emaLen = neighbor(rEMALen, q.emaLen); if(Math.random()<rate){ q.maxPct = neighbor(rMaxPct, (q.maxPct!=null? q.maxPct : labProfileRiskPct())); } if(vars.varEntries && Math.random()<rate){ const e=__sampleEntries(q); Object.assign(q, e); }
-  if(vars.varTP && Math.random()<rate){ q.tp = mutateTP(Array.isArray(q.tp)? q.tp: [], tpCfg).slice(0,10); q.tpEnable=true; }
+  if(vars.varTP && Math.random()<rate){ q.tp = normalizeTPLadder(mutateTP(Array.isArray(q.tp)? q.tp: [], tpCfg)).slice(0,10); q.tpEnable=true; }
   if(vars.varSL && Math.random()<rate){ q.sl = mutateSL(Array.isArray(q.sl)? q.sl: [], slCfg).slice(0,10); q.slEnable=true; }
   if(Math.random()<rate){ q.tpCompound = !q.tpCompound; }
   if(Math.random()<rate){ q.tpCloseAllLast = !q.tpCloseAllLast; }
-  return q; }
-function crossover(a,b){ const tpCfg=readTPOpt(); const slCfg=readSLOpt(); return { nol: Math.random()<0.5?a.nol:b.nol, prd: Math.random()<0.5?a.prd:b.prd, slInitPct: Math.random()<0.5?a.slInitPct:b.slInitPct, beAfterBars: Math.random()<0.5?a.beAfterBars:b.beAfterBars, beLockPct: Math.random()<0.5?a.beLockPct:b.beLockPct, emaLen: Math.random()<0.5?a.emaLen:b.emaLen, maxPct: (Math.random()<0.5? (a.maxPct!=null?a.maxPct:b.maxPct) : (b.maxPct!=null?b.maxPct:a.maxPct)), entryMode: a.entryMode, useFibRet: a.useFibRet, confirmMode: a.confirmMode, ent382:a.ent382, ent500:a.ent500, ent618:a.ent618, ent786:a.ent786, tpEnable:true, tpCompound: (Math.random()<0.5? a.tpCompound : b.tpCompound), tpCloseAllLast: (Math.random()<0.5? a.tpCloseAllLast : b.tpCloseAllLast), tp: crossoverTP(a.tp||[], b.tp||[], tpCfg).slice(0,10), slEnable:true, sl: crossoverSL(a.sl||[], b.sl||[], slCfg).slice(0,10) }; }
+  q.tp=normalizeTPLadder(q.tp); q.tpEnable=!!(q.tp&&q.tp.length); return q; }
+function crossover(a,b){ const tpCfg=readTPOpt(); const slCfg=readSLOpt(); return { nol: Math.random()<0.5?a.nol:b.nol, prd: Math.random()<0.5?a.prd:b.prd, slInitPct: Math.random()<0.5?a.slInitPct:b.slInitPct, beAfterBars: Math.random()<0.5?a.beAfterBars:b.beAfterBars, beLockPct: Math.random()<0.5?a.beLockPct:b.beLockPct, emaLen: Math.random()<0.5?a.emaLen:b.emaLen, maxPct: (Math.random()<0.5? (a.maxPct!=null?a.maxPct:b.maxPct) : (b.maxPct!=null?b.maxPct:a.maxPct)), entryMode: a.entryMode, useFibRet: a.useFibRet, confirmMode: a.confirmMode, ent382:a.ent382, ent500:a.ent500, ent618:a.ent618, ent786:a.ent786, tpEnable:true, tpCompound: (Math.random()<0.5? a.tpCompound : b.tpCompound), tpCloseAllLast: (Math.random()<0.5? a.tpCloseAllLast : b.tpCloseAllLast), tp: normalizeTPLadder(crossoverTP(a.tp||[], b.tp||[], tpCfg)).slice(0,10), slEnable:true, sl: crossoverSL(a.sl||[], b.sl||[], slCfg).slice(0,10) }; }
 async function evalParamsList(list, phase='Eval'){
     const out=[]; let idx=0; const N=list.length||0;
     function fmtTP(tp){ try{ if(!Array.isArray(tp)||!tp.length) return '—'; return tp.map(t=>{ const typ=(t.type||'Fib'); if(typ==='Fib'){ return `F:${t.fib}`; } if(typ==='Percent'){ return `P:${t.pct}%`; } if(typ==='EMA'){ return `E:${t.emaLen}`; } return typ; }).slice(0,10).join(';'); }catch(_){ return '—'; } }
@@ -6193,7 +6213,7 @@ function currentHeavenParamsForPersist(){ try{
     emaLen:lbcOpts.emaLen,
     entryMode:lbcOpts.entryMode||'Both', useFibRet:!!lbcOpts.useFibRet, confirmMode:lbcOpts.confirmMode||'Bounce',
     ent382:!!lbcOpts.ent382, ent500:!!lbcOpts.ent500, ent618:!!lbcOpts.ent618, ent786:!!lbcOpts.ent786,
-    tpEnable:!!lbcOpts.tpEnable, tp: Array.isArray(lbcOpts.tp)? lbcOpts.tp.slice(0,10):[],
+    tpEnable:!!lbcOpts.tpEnable, tp: normalizeTPLadder(lbcOpts.tp), tpCount: clampTPCount((normalizeTPLadder(lbcOpts.tp).length || lbcOpts.tpCount || 1)),
     slEnable:!!lbcOpts.slEnable, sl: Array.isArray(lbcOpts.sl)? lbcOpts.sl.slice(0,10):[],
     tp1R:lbcOpts.tp1R, tpCompound: !!lbcOpts.tpCompound, tpCloseAllLast: !!lbcOpts.tpCloseAllLast,
   };
@@ -6217,7 +6237,7 @@ function applyHeavenParams(p){ try{
   if(p.ent618!=null) lbcOpts.ent618 = !!p.ent618;
   if(p.ent786!=null) lbcOpts.ent786 = !!p.ent786;
   if(p.tpEnable!=null) lbcOpts.tpEnable = !!p.tpEnable;
-  if(Array.isArray(p.tp)) lbcOpts.tp = p.tp.slice(0,10);
+  if(Array.isArray(p.tp)){ lbcOpts.tp = normalizeTPLadder(p.tp); lbcOpts.tpCount = clampTPCount(lbcOpts.tp.length || 1); }
   if(p.slEnable!=null) lbcOpts.slEnable = !!p.slEnable;
   if(Array.isArray(p.sl)) lbcOpts.sl = p.sl.slice(0,10);
   if(p.tp1R!=null) lbcOpts.tp1R = +p.tp1R;
@@ -6454,6 +6474,7 @@ function computeSLFromLadder(dir, entry, i){ try{ if(!(lbcOpts.slEnable && Array
           else if(typ==='EMA'){ const len=Math.max(1, parseInt(((t&&t.emaLen)!=null? t.emaLen : (lbcOpts.emaLen||55)),10)); const ema=emaCalc(candles, len); const v=ema[ema.length-1]; if(isFinite(v)) price=v; }
           if(price!=null){ if((dir==='long' && price>entry) || (dir==='short' && price<entry)){ let w=null; const q=t.qty; if(q!=null && isFinite(q)) w=(q>1? q/100 : q); list.push({price, w, srcIdx: idx}); } }
         }
+        list = mergeDuplicateTargets(list);
         if(dir==='long') list.sort((a,b)=>a.price-b.price); else list.sort((a,b)=>b.price-a.price);
         let sumW=0, hasW=false; for(const it of list){ if(it.w!=null && it.w>0){ sumW+=it.w; hasW=true; } }
         if(!hasW){ if(list.length){ const even=1/list.length; list=list.map(it=>({ price:it.price, w:even, srcIdx: it.srcIdx })); }

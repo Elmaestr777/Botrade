@@ -274,9 +274,23 @@ function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfi
     return await upsertStrategyEvaluations(upd);
   }
 
+  function uniqueTPLadder(tp){
+    try{
+      const out=[]; const seen=new Map();
+      const keyOf=(t)=>{ const typ=String(t.type||'Fib'); if(typ==='Percent'){ const v=Number(t.pct!=null?t.pct:t.value); return Number.isFinite(v)?`P:${v.toFixed(8)}`:''; } if(typ==='EMA'){ const v=parseInt(t.emaLen,10); return Number.isFinite(v)?`E:${v}`:''; } const v=Number(t.fib!=null?t.fib:t.value); return Number.isFinite(v)?`F:${v.toFixed(8)}`:''; };
+      for(const raw of (Array.isArray(tp)?tp:[]).slice(0,10)){
+        if(!raw) continue; const t={...raw}; const key=keyOf(t); if(!key) continue;
+        const existing=seen.get(key);
+        if(existing){ const a=Number(existing.qty); const b=Number(t.qty); if(Number.isFinite(a)&&Number.isFinite(b)) existing.qty=a+b; else if(!Number.isFinite(a)&&Number.isFinite(b)) existing.qty=b; if(t.beOn) existing.beOn=true; if(!existing.sl && t.sl) existing.sl={...t.sl}; if(!existing.trail && t.trail) existing.trail={...t.trail}; }
+        else { seen.set(key,t); out.push(t); }
+      }
+      return out.slice(0,10);
+    }catch(_){ return Array.isArray(tp)?tp.slice(0,10):[]; }
+  }
+
   function canonicalParamsFromUI(p){
     // Canonical shape aligned with Python engine (snake_case + tp_types/tp_r/tp_p)
-    const tp = Array.isArray(p.tp) ? p.tp.slice(0, 10) : [];
+    const tp = uniqueTPLadder(Array.isArray(p.tp) ? p.tp.slice(0, 10) : []);
     const tp_types = new Array(10).fill('Fib');
     const tp_r = new Array(10).fill(0.0);
     const tp_p = new Array(10).fill(0.0);

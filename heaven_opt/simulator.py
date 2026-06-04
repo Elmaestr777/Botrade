@@ -59,6 +59,26 @@ def normalize_tp_percents(opts: HeavenOpts) -> None:
             opts.tp_p[i] = (opts.tp_p[i] / s) * 100.0
 
 
+def merge_duplicate_targets(targets: list[dict[str, object]]) -> list[dict[str, object]]:
+    merged: dict[str, dict[str, object]] = {}
+    ordered: list[dict[str, object]] = []
+    for target in targets:
+        price = float(target.get("price", math.nan))
+        if not math.isfinite(price):
+            continue
+        key = f"{price:.8f}"
+        qty = float(target.get("qty", 0.0) or 0.0)
+        if key in merged:
+            merged[key]["qty"] = float(merged[key].get("qty", 0.0) or 0.0) + qty
+        else:
+            item = dict(target)
+            item["price"] = price
+            item["qty"] = qty
+            merged[key] = item
+            ordered.append(item)
+    return ordered
+
+
 def generate_heaven_signals(opts: HeavenOpts, bars: list[Bar], precomputed: dict | None = None) -> list[dict[str, object]]:
     if precomputed and "lb" in precomputed:
         trend, _level, flips = precomputed["lb"]
@@ -171,6 +191,7 @@ def simulate_trade_from_signal(sig: dict[str, object], to_idx: int, piv: list[di
             p = price_at(values[i] if i < len(values) else 0.0)
             if (is_long and swing_up and p > entry_price) or ((not is_long) and (not swing_up) and p < entry_price):
                 targets.append({"price": p, "qty": qty * norm_percs[i] / 100.0, "filled": False, "label": f"TP{i+1}"})
+    targets = merge_duplicate_targets(targets)
     targets.sort(key=(lambda x: x["price"])) if is_long else targets.sort(key=(lambda x: x["price"]), reverse=True)
     remaining = qty
     realized = 0.0

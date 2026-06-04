@@ -181,6 +181,29 @@ def mark_selected_for_set(rows: list[dict[str, Any]], set_id: str, api_key: str,
     upsert_strategy_evaluations(rows2, api_key, batch=batch)
 
 
+def _dedupe_ui_tp(tp: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    merged: dict[str, dict[str, Any]] = {}
+    ordered: list[dict[str, Any]] = []
+    for rung in tp[:10]:
+        typ = str(rung.get("type") or "Fib")
+        if typ == "Percent":
+            value = float(rung.get("pct", rung.get("value", 0.0)) or 0.0)
+            key = f"P:{value:.8f}"
+        elif typ == "EMA":
+            value = int(rung.get("emaLen") or 0)
+            key = f"E:{value}"
+        else:
+            value = float(rung.get("fib", rung.get("value", 0.0)) or 0.0)
+            key = f"F:{value:.8f}"
+        if key in merged:
+            merged[key]["qty"] = float(merged[key].get("qty") or 0.0) + float(rung.get("qty") or 0.0)
+        else:
+            item = dict(rung)
+            merged[key] = item
+            ordered.append(item)
+    return ordered[:10]
+
+
 def canonical_params_to_ui_params(params: dict[str, Any]) -> dict[str, Any]:
     tp_types = list(params.get("tp_types") or [])[:10]
     tp_r = list(params.get("tp_r") or [])[:10]
@@ -202,6 +225,7 @@ def canonical_params_to_ui_params(params: dict[str, Any]) -> dict[str, Any]:
     entry_mode = str(params.get("entry_mode") or "Both")
     if entry_mode == "Fib":
         entry_mode = "Fib Retracement"
+    tp = _dedupe_ui_tp(tp)
     return {
         "nol": int(params.get("nol") or 3),
         "prd": int(params.get("prd") or 15),

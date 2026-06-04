@@ -93,6 +93,54 @@ def test_fib_tp_uses_extension_from_last_pivot():
     assert result["reason"] == "TP"
 
 
+def test_duplicate_fib_tp_levels_merge_into_single_target():
+    bars = [
+        Bar(time=1, open=100.0, high=100.0, low=99.0, close=100.0),
+        Bar(time=2, open=100.0, high=101.0, low=99.0, close=100.0),
+        Bar(time=3, open=100.0, high=101.0, low=99.0, close=100.0),
+        Bar(time=4, open=100.0, high=131.0, low=99.0, close=125.0),
+    ]
+    opts = HeavenOpts(
+        prd=2,
+        risk_mgmt=True,
+        risk_max_pct=1.0,
+        sl_init_pct=2.0,
+        be_enable=False,
+        tp_types=["Fib"] * 10,
+        tp_r=[0.5, 0.5] + [0.0] * 8,
+        tp_p=[50.0, 50.0] + [0.0] * 8,
+    )
+
+    result = simulate_trade_from_signal(
+        {"idx": 3, "dir": "long", "type": "LB"},
+        3,
+        [{"idx": 0, "price": 80.0}, {"idx": 0, "price": 100.0}],
+        opts,
+        equity=10_000.0,
+        fee_pct=0.0,
+        equity_start=10_000.0,
+        bars=bars,
+    )
+
+    assert result is not None
+    assert [fill["kind"] for fill in result["fills"]] == ["TP1"]
+    assert result["fills"][0]["price"] == 110.0
+    assert result["fills"][0]["qty"] == 50.0
+    assert result["reason"] == "TP"
+
+
+def test_canonical_params_to_ui_merges_duplicate_tp_levels():
+    ui = canonical_params_to_ui_params(
+        {
+            "tp_types": ["Fib", "Fib", "Percent"],
+            "tp_r": [0.618, 0.618, 2.0],
+            "tp_p": [40.0, 60.0, 0.0],
+        }
+    )
+
+    assert ui["tp"] == [{"type": "Fib", "fib": 0.618, "value": 0.618, "qty": 1.0}]
+
+
 def test_browser_worker_fib_tp_uses_extension_formula():
     repo_root = Path(__file__).resolve().parents[1]
     source = (repo_root / "src" / "opt_worker.js").read_text(encoding="utf-8")
@@ -109,6 +157,8 @@ def test_ui_distinguishes_fib_retracement_and_extension_labels():
     assert "Fib Ret ${fibDirLabel} ${r}" in source
     assert "Fib Ext ${fibDirLabel} ${r}" in source
     assert "A ${A.toFixed(2)} -> B ${B.toFixed(2)}" in source
+    assert "normalizeTPLadder(tpArr)" in source
+    assert "mergeDuplicateTargets(list)" in source
     assert "rebuildFibSelect(sFib, (st&&st.fib!=null)? st.fib : (sFib&&sFib.value), 'sl')" in source
     assert "rebuildFibSelect(vFib, (t&&t.fib!=null)? t.fib : (vFib&&vFib.value), 'sl')" in source
 

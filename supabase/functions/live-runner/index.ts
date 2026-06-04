@@ -129,8 +129,29 @@ function intervalSeconds(tf: string) {
 }
 
 // ===== Engine per session =====
-function buildTargets(params: any, segLast: any, dir: 'long'|'short', entry: number, riskAbs: number, bars: any[], i: number) {
+function mergeDuplicateTargets(list: any[]) {
   const out: any[] = [];
+  const seen = new Map<string, any>();
+  for (const raw of Array.isArray(list) ? list : []) {
+    const price = Number(raw && raw.price);
+    if (!Number.isFinite(price)) continue;
+    const key = price.toFixed(8);
+    const w = raw.w != null && isFinite(raw.w) ? Number(raw.w) : null;
+    const existing = seen.get(key);
+    if (existing) {
+      if (w != null) existing.w = existing.w != null && isFinite(existing.w) ? existing.w + w : w;
+    } else {
+      const t = { ...raw, price };
+      if (w != null) t.w = w;
+      seen.set(key, t);
+      out.push(t);
+    }
+  }
+  return out;
+}
+
+function buildTargets(params: any, segLast: any, dir: 'long'|'short', entry: number, riskAbs: number, bars: any[], i: number) {
+  let out: any[] = [];
   if (params.tpEnable && Array.isArray(params.tp) && params.tp.length) {
     const A = segLast ? segLast.a.price : null;
     const B = segLast ? segLast.b.price : null;
@@ -158,6 +179,7 @@ function buildTargets(params: any, segLast: any, dir: 'long'|'short', entry: num
         }
       }
     }
+    out = mergeDuplicateTargets(out);
     if (dir === 'long') out.sort((a, b) => a.price - b.price); else out.sort((a, b) => b.price - a.price);
     let sumW = 0, hasW = false;
     for (const it of out) { if (it.w != null && it.w > 0) { sumW += it.w; hasW = true; } }
