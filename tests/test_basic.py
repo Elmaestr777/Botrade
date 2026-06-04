@@ -5,6 +5,7 @@ from heaven_opt import api, data_loader, simulator, supabase_io, validation
 from heaven_opt.analysis import trade_diagnostics
 from heaven_opt.combo_generator import generate_alloc_patterns
 from heaven_opt.optimizer_ea import EASpace, _ind_to_candidate
+from heaven_opt.optimizer_ml import propose_with_surrogate
 from heaven_opt.scoring import composite_score, robustness_score
 from heaven_opt.signal_engine import last_two_pivots_before
 from heaven_opt.simulator import HeavenOpts, generate_heaven_signals, simulate_trade_from_signal
@@ -285,6 +286,33 @@ def test_ea_keeps_percent_tp_type_explicit():
 
     assert candidate["tp_types"] == ["Percent"] * 10
     assert candidate["be_enable"] is False
+
+
+def test_ml_surrogate_keeps_percent_tp_type_explicit():
+    bounds = {
+        "nol": (3.0, 3.0, 1.0),
+        "prd": (15.0, 15.0, 1.0),
+        "sl_init_pct": (1.0, 1.0, 0.5),
+        "be_after_bars": (5.0, 5.0, 1.0),
+        "be_lock_pct": (5.0, 5.0, 1.0),
+        "ema_len": (55.0, 55.0, 1.0),
+    }
+
+    suggestions = propose_with_surrogate(
+        [],
+        bounds,
+        ["Original"],
+        [[0.5, 1.0, 1.5]],
+        [[30.0, 30.0, 40.0]],
+        be_enable_values=[False],
+        tp_type="Percent",
+        n_suggest=1,
+        rng_seed=7,
+    )
+
+    assert suggestions
+    assert suggestions[0]["tp_types"] == ["Percent"] * 10
+    assert suggestions[0]["be_enable"] is False
 
 
 def test_range_loader_continues_when_closed_candle_filter_shortens_a_batch(monkeypatch):

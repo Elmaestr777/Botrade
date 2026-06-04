@@ -4,7 +4,6 @@ import random
 from typing import Any
 
 import numpy as np
-from sklearn.ensemble import RandomForestRegressor
 
 from .utils import sha1_of_params
 
@@ -25,13 +24,30 @@ def _features_from_params(p: dict[str, Any]) -> list[float]:
     # TP summary features
     tp_r = p.get("tp_r") or []
     tp_p = p.get("tp_p") or []
+    tp_types = p.get("tp_types") or []
     nz = sum(1 for v in tp_p if float(v) > 0)
     avg_r = float(np.mean([float(x) for x in tp_r[:nz]]) if nz > 0 else 0.0)
     sum_p = float(sum(float(x) for x in tp_p))
-    return [nol, prd, sl, beb, bel, be_enable, ema] + em_onehot + [nz, avg_r, sum_p]
+    active_types = [
+        str(tp_types[i] if i < len(tp_types) else "Fib")
+        for i, value in enumerate(tp_p)
+        if float(value) > 0
+    ]
+    tp_onehot = [
+        1.0 if active_types and all(value == key for value in active_types) else 0.0
+        for key in ("Fib", "Percent", "EMA")
+    ]
+    return [nol, prd, sl, beb, bel, be_enable, ema] + em_onehot + tp_onehot + [nz, avg_r, sum_p]
 
 
-def _sample_candidate(bounds: dict[str, tuple[float, float, float]], modes: list[str], tp_vectors: list[list[float]] | None, alloc_patterns: list[list[float]] | None, be_enable_values: list[bool] | None = None) -> dict[str, Any]:
+def _sample_candidate(
+    bounds: dict[str, tuple[float, float, float]],
+    modes: list[str],
+    tp_vectors: list[list[float]] | None,
+    alloc_patterns: list[list[float]] | None,
+    be_enable_values: list[bool] | None = None,
+    tp_type: str = "Fib",
+) -> dict[str, Any]:
     def draw_int(lo, hi, step):
         grid = list({int(round(x)) for x in np.arange(lo, hi + 1e-12, step)})
         return int(random.choice(grid))
@@ -48,6 +64,7 @@ def _sample_candidate(bounds: dict[str, tuple[float, float, float]], modes: list
     mode = random.choice(modes)
     tpv = random.choice(tp_vectors) if tp_vectors else []
     alloc = random.choice(alloc_patterns) if alloc_patterns else [100.0]
+    tp_type = "Percent" if tp_type == "Percent" else "Fib"
     return {
         "nol": nol,
         "prd": prd,
@@ -57,7 +74,7 @@ def _sample_candidate(bounds: dict[str, tuple[float, float, float]], modes: list
         "be_lock_pct": bel,
         "ema_len": ema,
         "entry_mode": mode,
-        "tp_types": (["Fib"] * 10 if tpv else ["Fib"] * 10),
+        "tp_types": [tp_type] * 10,
         "tp_r": list(tpv) + [0.0] * (10 - len(tpv)),
         "tp_p": list(alloc) + [0.0] * (10 - len(alloc)),
     }
@@ -70,6 +87,7 @@ def propose_with_surrogate(
     tp_vectors: list[list[float]] | None,
     alloc_patterns: list[list[float]] | None,
     be_enable_values: list[bool] | None = None,
+    tp_type: str = "Fib",
     n_suggest: int = 100,
     pool_size: int = 5000,
     rng_seed: int | None = None,
@@ -82,7 +100,7 @@ def propose_with_surrogate(
         seen = set()
         out = []
         while len(out) < n_suggest and len(seen) < pool_size * 2:
-            c = _sample_candidate(bounds, modes, tp_vectors, alloc_patterns, be_enable_values)
+            c = _sample_candidate(bounds, modes, tp_vectors, alloc_patterns, be_enable_values, tp_type)
             h = sha1_of_params(c)
             if h in seen:
                 continue
@@ -93,6 +111,8 @@ def propose_with_surrogate(
     y = np.array([float(it["score"]) for it in history], dtype=float)
     # Simple robust target transform
     y = np.clip(y, np.percentile(y, 1), np.percentile(y, 99))
+    from sklearn.ensemble import RandomForestRegressor
+
     model = RandomForestRegressor(
         n_estimators=300, max_depth=None, min_samples_leaf=2, n_jobs=-1, random_state=rng_seed or 0
     )
@@ -103,7 +123,7 @@ def propose_with_surrogate(
     tries = 0
     while len(pool) < pool_size and tries < pool_size * 10:
         tries += 1
-        c = _sample_candidate(bounds, modes, tp_vectors, alloc_patterns, be_enable_values)
+        c = _sample_candidate(bounds, modes, tp_vectors, alloc_patterns, be_enable_values, tp_type)
         h = sha1_of_params(c)
         if h in seen:
             continue

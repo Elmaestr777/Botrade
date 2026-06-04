@@ -317,6 +317,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
             tp_vectors,
             alloc_patterns,
             be_enable_values=be_enable_list,
+            tp_type=str(config.TP.mode),
             n_suggest=n_suggest,
             rng_seed=None,
         )
