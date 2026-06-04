@@ -1,4 +1,6 @@
 
+from pathlib import Path
+
 import pytest
 
 from heaven_opt import api, data_loader, simulator, supabase_io, validation
@@ -89,6 +91,25 @@ def test_fib_tp_uses_extension_from_last_pivot():
     assert result is not None
     assert result["fills"][0]["price"] == 110.0
     assert result["reason"] == "TP"
+
+
+def test_browser_worker_fib_tp_uses_extension_formula():
+    repo_root = Path(__file__).resolve().parents[1]
+    source = (repo_root / "src" / "opt_worker.js").read_text(encoding="utf-8")
+
+    assert "a.price + (b.price-a.price)*r" not in source
+    assert "b.price + move*r" in source
+    assert "b.price - move*r" in source
+
+
+def test_ui_distinguishes_fib_retracement_and_extension_labels():
+    repo_root = Path(__file__).resolve().parents[1]
+    source = (repo_root / "src" / "main.js").read_text(encoding="utf-8")
+
+    assert "Fib Ret ${r}" in source
+    assert "Fib Ext ${r}" in source
+    assert "rebuildFibSelect(sFib, (st&&st.fib!=null)? st.fib : (sFib&&sFib.value), 'sl')" in source
+    assert "rebuildFibSelect(vFib, (t&&t.fib!=null)? t.fib : (vFib&&vFib.value), 'sl')" in source
 
 
 def test_break_even_waits_for_the_configured_move_threshold():
