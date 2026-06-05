@@ -74,7 +74,7 @@ def _fetch_session(base: str, key: str, session_name: str | None, session_id: st
     if not session_name and not session_id:
         raise RuntimeError("--session-name or --session-id is required")
     params = {
-        "select": "id,name,symbol,tf,active,equity,start_cap,last_bar_time,pos,strategy_params,wallet_id,created_at,updated_at",
+        "select": "id,name,symbol,tf,active,equity,start_cap,fee,lev,last_bar_time,pos,strategy_params,wallet_id,created_at,updated_at",
     }
     if session_id:
         params["id"] = f"eq.{session_id}"

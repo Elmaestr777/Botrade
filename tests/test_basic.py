@@ -19,6 +19,7 @@ from heaven_opt.supabase_io import (
     normalize_ui_strategy_params,
 )
 from heaven_opt.utils import Bar
+from prepare_live_candidate import build_live_preparation_plan, live_preparation_failures
 from run_experiment_matrix import (
     _paper_failure_names,
     build_config_data,
@@ -359,6 +360,59 @@ def test_paper_session_validation_accepts_infinite_profit_factor():
     )
 
     assert failures == []
+
+
+def test_live_preparation_plan_passes_only_after_validated_paper_controls():
+    session = {
+        "id": "paper-1",
+        "name": "paper-btcusdc-15m",
+        "symbol": "BTCUSDC",
+        "tf": "15m",
+        "active": True,
+        "wallet_id": "wallet-1",
+        "lev": 1.0,
+        "strategy_params": {"entryMode": "Original", "riskMaxPct": 0.75, "leverage": 1.0},
+    }
+    metrics = {"equity": 10_500.0}
+
+    plan = build_live_preparation_plan(
+        session,
+        metrics,
+        [],
+        target_session_name="live-btcusdc-15m",
+        max_risk_pct=1.0,
+        max_leverage=1.0,
+    )
+
+    assert plan["ready_for_live_preparation"] is True
+    assert plan["controls"]["creates_live_session"] is False
+    assert plan["controls"]["places_orders"] is False
+
+
+def test_live_preparation_refuses_failed_paper_and_unsafe_controls():
+    failures = live_preparation_failures(
+        {
+            "name": "paper-btcusdc-15m",
+            "active": False,
+            "lev": 3.0,
+            "strategy_params": {"entryMode": "Fib Retracement", "riskMaxPct": 2.0},
+        },
+        {"equity": 0.0},
+        ["min_trades"],
+        target_session_name="paper-btcusdc-15m",
+        max_risk_pct=1.0,
+        max_leverage=1.0,
+    )
+
+    assert failures == [
+        "paper:min_trades",
+        "source_session_active",
+        "target_differs_from_paper",
+        "original_entry_mode",
+        "max_risk_pct",
+        "max_leverage",
+        "paper_equity_positive",
+    ]
 
 
 def test_break_even_waits_for_the_configured_move_threshold():

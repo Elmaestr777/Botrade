@@ -26,6 +26,16 @@ python validate_paper_session.py --session-name paper-btcusdc-4h --record-event 
 
 Default live-ready gates require 7 observed days, 20 trade exits, profit factor >= 1.10, positive return, drawdown <= 10%, no history gap, no open position, and a paper wallet.
 
+## Controlled Live Preparation
+
+Generate a Supabase audit plan before any live activation:
+
+```bash
+python prepare_live_candidate.py --session-name paper-btcusdc-4h --target-session-name live-btcusdc-4h --record-event --strict-exit
+```
+
+This is audit-only: it checks the validated paper gates, Original entry mode, risk cap, leverage cap, and target naming. It does not create live sessions or place orders.
+
 ## Deploy
 - Use a container platform (Railway/Render/Fly/Cloud Run). Provide envs and run `node runner/index.js`.
 - Ensure `supabase/migrations/0008` and `0009` are applied, and Realtime enabled.
