@@ -84,7 +84,12 @@ def paper_failure_names(metrics: dict[str, Any]) -> list[str]:
     return ordered + sorted(active.difference(ordered))
 
 
-def summarize_evaluations(rows: list[dict[str, Any]], top_n: int = 10) -> dict[str, Any]:
+def summarize_evaluations(
+    rows: list[dict[str, Any]],
+    top_n: int = 10,
+    expected_symbols: list[str] | None = None,
+    expected_timeframes: list[str] | None = None,
+) -> dict[str, Any]:
     sorted_rows = sorted(rows, key=lambda row: _num(row.get("score")), reverse=True)
     failure_counts: Counter[str] = Counter()
     eligible_count = 0
@@ -120,6 +125,12 @@ def summarize_evaluations(rows: list[dict[str, Any]], top_n: int = 10) -> dict[s
         if len(top) < max(1, int(top_n)):
             top.append(compact)
 
+    scope_summaries = summarize_scopes(
+        compact_rows,
+        top_n=top_n,
+        expected_symbols=expected_symbols,
+        expected_timeframes=expected_timeframes,
+    )
     summary = {
         "rows": len(rows),
         "paper_eligible": eligible_count,
@@ -127,7 +138,8 @@ def summarize_evaluations(rows: list[dict[str, Any]], top_n: int = 10) -> dict[s
         "failure_counts": dict(sorted(failure_counts.items(), key=lambda item: (-item[1], item[0]))),
         "top": top,
         "best_by_scope": list(best_by_scope.values()),
-        "scope_summaries": summarize_scopes(compact_rows, top_n=top_n),
+        "scope_summaries": scope_summaries,
+        "scope_coverage": scope_coverage(scope_summaries),
     }
     summary["status"] = readiness_status(summary)
     summary["recommendations"] = recommend_next_actions(summary)
@@ -142,7 +154,12 @@ def readiness_status(summary: dict[str, Any]) -> str:
     return "needs_more_experiments"
 
 
-def summarize_scopes(compact_rows: list[dict[str, Any]], top_n: int = 10) -> list[dict[str, Any]]:
+def summarize_scopes(
+    compact_rows: list[dict[str, Any]],
+    top_n: int = 10,
+    expected_symbols: list[str] | None = None,
+    expected_timeframes: list[str] | None = None,
+) -> list[dict[str, Any]]:
     grouped: dict[tuple[str | None, str | None], list[dict[str, Any]]] = {}
     for row in compact_rows:
         key = (row.get("symbol"), row.get("tf"))
@@ -167,7 +184,51 @@ def summarize_scopes(compact_rows: list[dict[str, Any]], top_n: int = 10) -> lis
         summary["status"] = readiness_status(summary)
         summary["recommendations"] = recommend_next_actions(summary)
         summaries.append(summary)
+    summaries = add_missing_expected_scopes(
+        summaries,
+        expected_symbols=expected_symbols,
+        expected_timeframes=expected_timeframes,
+    )
     return summaries
+
+
+def add_missing_expected_scopes(
+    summaries: list[dict[str, Any]],
+    expected_symbols: list[str] | None,
+    expected_timeframes: list[str] | None,
+) -> list[dict[str, Any]]:
+    if not expected_symbols or not expected_timeframes:
+        return summaries
+    seen = {(item.get("symbol"), item.get("tf")) for item in summaries}
+    out = list(summaries)
+    for symbol in sorted(str(item) for item in expected_symbols):
+        for tf in sorted(str(item) for item in expected_timeframes):
+            if (symbol, tf) in seen:
+                continue
+            missing = {
+                "symbol": symbol,
+                "tf": tf,
+                "rows": 0,
+                "paper_eligible": 0,
+                "paper_ineligible": 0,
+                "failure_counts": {},
+                "top": [],
+            }
+            missing["status"] = readiness_status(missing)
+            missing["recommendations"] = recommend_next_actions(missing)
+            out.append(missing)
+    return sorted(out, key=lambda item: (str(item.get("symbol")), str(item.get("tf"))))
+
+
+def scope_coverage(scope_summaries: list[dict[str, Any]]) -> dict[str, int]:
+    counts = Counter(str(item.get("status") or "unknown") for item in scope_summaries)
+    total = len(scope_summaries)
+    return {
+        "total": total,
+        "analysis_passed": int(counts.get("analysis_passed", 0)),
+        "needs_more_experiments": int(counts.get("needs_more_experiments", 0)),
+        "missing_evaluations": int(counts.get("missing_evaluations", 0)),
+    }
 
 
 def _recommendation(action: str, reason: str, command_hint: str | None = None) -> dict[str, str]:
@@ -182,6 +243,19 @@ def _failure_count(summary: dict[str, Any], *names: str) -> int:
     return sum(int(counts.get(name) or 0) for name in names)
 
 
+def _matrix_command(summary: dict[str, Any], *extra: str) -> str:
+    parts = ["python", "run_experiment_matrix.py"]
+    symbol = summary.get("symbol")
+    tf = summary.get("tf")
+    if symbol:
+        parts.extend(["--symbols", str(symbol)])
+    if tf:
+        parts.extend(["--timeframes", str(tf)])
+    parts.append("--fast")
+    parts.extend(item for item in extra if item)
+    return " ".join(parts)
+
+
 def recommend_next_actions(summary: dict[str, Any]) -> list[dict[str, str]]:
     rows = int(summary.get("rows") or 0)
     eligible = int(summary.get("paper_eligible") or 0)
@@ -193,7 +267,7 @@ def recommend_next_actions(summary: dict[str, Any]) -> list[dict[str, str]]:
             _recommendation(
                 "run_recent_matrix",
                 "No Supabase evaluations match this scope yet.",
-                "python run_experiment_matrix.py --fast",
+                _matrix_command(summary),
             )
         ]
 
@@ -227,7 +301,7 @@ def recommend_next_actions(summary: dict[str, Any]) -> list[dict[str, str]]:
             _recommendation(
                 "compare_exit_modes_and_expand_search",
                 "Holdout performance is the main blocker; do not promote these candidates.",
-                "python run_experiment_matrix.py --fast --include-no-be --tp-mode Percent --max-combinations 500 --top-n 10",
+                _matrix_command(summary, "--include-no-be", "--tp-mode", "Percent", "--max-combinations", "500", "--top-n", "10"),
             )
         )
     if wf_failures:
@@ -235,7 +309,7 @@ def recommend_next_actions(summary: dict[str, Any]) -> list[dict[str, str]]:
             _recommendation(
                 "favor_walk_forward_stability",
                 "Walk-forward stability is insufficient across folds.",
-                "python run_experiment_matrix.py --fast --include-no-be --max-combinations 500 --top-n 10",
+                _matrix_command(summary, "--include-no-be", "--max-combinations", "500", "--top-n", "10"),
             )
         )
     if trade_failures:
@@ -310,6 +384,15 @@ def fetch_evaluations(
 
 def _print_text(summary: dict[str, Any]) -> None:
     print(f"rows={summary['rows']} paper_eligible={summary['paper_eligible']} paper_ineligible={summary['paper_ineligible']}")
+    if summary.get("scope_coverage"):
+        coverage = summary["scope_coverage"]
+        print(
+            "scope_coverage="
+            f"total:{coverage.get('total', 0)} "
+            f"passed:{coverage.get('analysis_passed', 0)} "
+            f"needs_more:{coverage.get('needs_more_experiments', 0)} "
+            f"missing:{coverage.get('missing_evaluations', 0)}"
+        )
     if summary["failure_counts"]:
         print("failure_counts:")
         for name, count in summary["failure_counts"].items():
@@ -351,6 +434,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--campaign-prefix")
     parser.add_argument("--symbol")
     parser.add_argument("--tf")
+    parser.add_argument("--expected-symbols", nargs="+")
+    parser.add_argument("--expected-timeframes", nargs="+")
     parser.add_argument("--limit", type=int, default=200)
     parser.add_argument("--top-n", type=int, default=10)
     parser.add_argument("--json", action="store_true")
@@ -366,7 +451,12 @@ def main(argv: list[str] | None = None) -> int:
         tf=args.tf,
         limit=args.limit,
     )
-    summary = summarize_evaluations(rows, top_n=args.top_n)
+    summary = summarize_evaluations(
+        rows,
+        top_n=args.top_n,
+        expected_symbols=args.expected_symbols,
+        expected_timeframes=args.expected_timeframes,
+    )
     if args.json:
         print(json.dumps(summary, indent=2, sort_keys=True, default=str))
     else:

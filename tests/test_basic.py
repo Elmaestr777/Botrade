@@ -1139,3 +1139,56 @@ def test_strategy_evaluation_analysis_groups_recommendations_by_symbol_tf():
     assert scopes[("BTCUSDC", "15m")]["recommendations"][0]["action"] == "compare_exit_modes_and_expand_search"
     assert scopes[("ETHUSDC", "1h")]["status"] == "analysis_passed"
     assert scopes[("ETHUSDC", "1h")]["recommendations"][0]["action"] == "prepare_controlled_paper"
+
+
+def test_strategy_evaluation_analysis_reports_missing_expected_scopes():
+    summary = summarize_evaluations(
+        [
+            {
+                "campaign_id": "btc-camp",
+                "symbol": "BTCUSDC",
+                "tf": "15m",
+                "score": 0.4,
+                "metrics": {"paper_eligible": 0.0, "paper_fail_oos_return": 1.0},
+            }
+        ],
+        top_n=2,
+        expected_symbols=["BTCUSDC", "ETHUSDC"],
+        expected_timeframes=["15m"],
+    )
+
+    scopes = {(row["symbol"], row["tf"]): row for row in summary["scope_summaries"]}
+
+    assert summary["scope_coverage"] == {
+        "total": 2,
+        "analysis_passed": 0,
+        "needs_more_experiments": 1,
+        "missing_evaluations": 1,
+    }
+    assert scopes[("ETHUSDC", "15m")]["status"] == "missing_evaluations"
+    assert (
+        scopes[("ETHUSDC", "15m")]["recommendations"][0]["command_hint"]
+        == "python run_experiment_matrix.py --symbols ETHUSDC --timeframes 15m --fast"
+    )
+
+
+def test_strategy_evaluation_analysis_scope_recommendations_use_targeted_matrix_commands():
+    summary = summarize_evaluations(
+        [
+            {
+                "campaign_id": "eth-camp",
+                "symbol": "ETHUSDC",
+                "tf": "4h",
+                "score": 0.2,
+                "metrics": {"paper_eligible": 0.0, "paper_fail_wf_positive_frac": 1.0},
+            }
+        ],
+        top_n=1,
+    )
+
+    recommendation = summary["scope_summaries"][0]["recommendations"][0]
+
+    assert recommendation["action"] == "favor_walk_forward_stability"
+    assert recommendation["command_hint"].startswith(
+        "python run_experiment_matrix.py --symbols ETHUSDC --timeframes 4h --fast"
+    )
