@@ -34,6 +34,7 @@ Notes
 - Data loading uses Binance REST; provide your own data or cache for speed.
 - Optimization uses closed candles only. `validation.oos_split` reserves an untouched holdout range.
 - Walk-forward, Monte Carlo, and holdout metrics affect the final robust score.
+- The robust validation pool keeps the best training scores and adds diversified winners by PF, PnL, Calmar, consistency, trades, and low drawdown.
 - Only strategies that pass the paper-trading gates are copied to `heaven_strategies`.
 - No strategy result or preset is written to local files by the optimizer.
 - Campaign analysis is Supabase-only: it reads persisted evaluations and prints the top candidates plus failed validation gates.

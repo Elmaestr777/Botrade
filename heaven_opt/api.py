@@ -114,6 +114,58 @@ def _annotate_paper_gate_failure_metrics(metrics: dict, failures: list[str]) -> 
     return metrics
 
 
+def _metric_value(result: dict, key: str, default: float = 0.0) -> float:
+    try:
+        value = float((result.get("metrics") or {}).get(key, default))
+    except (TypeError, ValueError):
+        return default
+    return value if value == value else default
+
+
+def _select_validation_candidate_indexes(results: list[dict], validation_count: int) -> set[int]:
+    if validation_count <= 0 or not results:
+        return set()
+    base_count = min(len(results), max(1, int(validation_count)))
+    selected: set[int] = set(range(base_count))
+    extra_budget = min(len(results) - len(selected), max(0, base_count // 2))
+    if extra_budget <= 0:
+        return selected
+
+    indexed = list(enumerate(results))
+    ranking_specs = (
+        ("profitFactor", True),
+        ("totalPnl", True),
+        ("calmar", True),
+        ("consistency", True),
+        ("trades", True),
+        ("maxDDPct", False),
+    )
+    cursors = {key: 0 for key, _reverse in ranking_specs}
+    rankings = {
+        key: sorted(indexed, key=lambda item, metric=key: _metric_value(item[1], metric), reverse=reverse)
+        for key, reverse in ranking_specs
+    }
+    while extra_budget > 0:
+        added = False
+        for key, _reverse in ranking_specs:
+            ranking = rankings[key]
+            cursor = cursors[key]
+            while cursor < len(ranking) and ranking[cursor][0] in selected:
+                cursor += 1
+            cursors[key] = cursor
+            if cursor >= len(ranking):
+                continue
+            selected.add(ranking[cursor][0])
+            cursors[key] += 1
+            extra_budget -= 1
+            added = True
+            if extra_budget <= 0:
+                break
+        if not added:
+            break
+    return selected
+
+
 def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
     log = setup_logger()
     t0 = time.time()
@@ -433,8 +485,9 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
         r["metrics"]["score"] = composite_score(r["metrics"], weights)
     results.sort(key=lambda r: -float(r["metrics"].get("score", 0.0)))
     validation_count = min(len(results), max(1, int(config.metrics.validation_top_n)))
+    validation_indexes = _select_validation_candidate_indexes(results, validation_count)
     for result_idx, r in enumerate(results):
-        if result_idx >= validation_count:
+        if result_idx not in validation_indexes:
             r["metrics"]["robustly_validated"] = 0.0
             r["metrics"]["robustness_score"] = 0.0
             r["metrics"]["paper_eligible"] = 0.0
@@ -609,6 +662,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
             f"duration_sec={time.time()-t0:.2f}",
             f"supabase_run_id={run_id}",
             f"supabase_evaluations={len(rows_all)}",
+            f"robust_validation_candidates={len(validation_indexes)}",
             f"supabase_palmares_set={set_id or ''}",
         ],
         artifacts_dir=None,

@@ -934,6 +934,21 @@ def test_paper_gate_failures_are_exposed_as_numeric_metrics():
     assert metrics["paper_fail_oos_return"] == 0.0
 
 
+def test_optimizer_validation_pool_includes_diverse_training_winners():
+    results = [
+        {"metrics": {"score": 10.0, "profitFactor": 1.0, "totalPnl": 100.0, "maxDDPct": 20.0}},
+        {"metrics": {"score": 9.0, "profitFactor": 1.1, "totalPnl": 90.0, "maxDDPct": 18.0}},
+        {"metrics": {"score": 8.0, "profitFactor": 1.2, "totalPnl": 80.0, "maxDDPct": 16.0}},
+        {"metrics": {"score": 1.0, "profitFactor": 5.0, "totalPnl": 70.0, "maxDDPct": 30.0}},
+        {"metrics": {"score": 0.5, "profitFactor": 1.0, "totalPnl": 60.0, "maxDDPct": 1.0}},
+    ]
+
+    selected = api._select_validation_candidate_indexes(results, validation_count=2)
+
+    assert {0, 1}.issubset(selected)
+    assert 3 in selected
+
+
 def test_experiment_summary_reads_paper_failure_flags_in_gate_order():
     metrics = {
         "paper_fail_wf_active_frac": 1.0,
