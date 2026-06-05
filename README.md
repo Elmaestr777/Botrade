@@ -19,11 +19,13 @@ Quickstart
 - Run a first recent robust pass: `python run_experiment_matrix.py --fast`
 - Compare Percent exits: `python run_experiment_matrix.py --fast --tp-mode Percent`
 - Explore short-TF break-even sensitivity: `python run_experiment_matrix.py --fast --tp-mode Percent --include-no-be`
+- Analyze a Supabase campaign: `python analyze_strategy_evaluations.py --campaign-prefix heaven-robust --symbol BTCUSDC --tf 15m`
 - Start a paper session from an eligible Supabase strategy: `python start_paper_candidate.py --strategy-name <heaven_strategies.name> --session-name <paper-name> --invoke-runner`
 
 Outputs
 - Evaluations in `strategy_evaluations`, scoped by an immutable `run_id`
 - Strategy-analysis metrics in each evaluation (`diag_*` and `oos_diag_*`)
+- Campaign performance summaries read from `strategy_evaluations` with no local export required
 - Ranked selections in `palmares_sets` and `palmares_entries`
 - Reloadable best strategies in `heaven_strategies`
 - Runtime logs and deterministic computation cache under `cache_dir`
@@ -34,6 +36,7 @@ Notes
 - Walk-forward, Monte Carlo, and holdout metrics affect the final robust score.
 - Only strategies that pass the paper-trading gates are copied to `heaven_strategies`.
 - No strategy result or preset is written to local files by the optimizer.
+- Campaign analysis is Supabase-only: it reads persisted evaluations and prints the top candidates plus failed validation gates.
 - Paper sessions are Supabase-only. `start_paper_candidate.py` refuses non-eligible strategies and never writes local strategy state.
 - Optional `HEAVEN_RUN_TYPE` (`NEW` or `LAB`) and `HEAVEN_CAMPAIGN_ID` values are stored with each run.
 - The recent matrix defaults to `Original` entries because the headless paper runner does not yet execute Fib retracement entries.

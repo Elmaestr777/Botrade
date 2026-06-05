@@ -67,6 +67,21 @@ def _dedupe_results_by_params(results: list[dict]) -> list[dict]:
     return list(unique.values())
 
 
+PAPER_GATE_NAMES = (
+    "paper_runner_entry_mode",
+    "train_trades",
+    "oos_missing",
+    "oos_trades",
+    "oos_profit_factor",
+    "oos_return",
+    "oos_drawdown",
+    "wf_positive_frac",
+    "wf_active_frac",
+    "wf_profit_factor",
+    "mc_profit_factor",
+)
+
+
 def _paper_gate_failures(metrics: dict, config: OptimizationConfig, params: dict | None = None) -> list[str]:
     cfg = config.metrics
     params = params or {}
@@ -84,6 +99,19 @@ def _paper_gate_failures(metrics: dict, config: OptimizationConfig, params: dict
         ("mc_profit_factor", float(metrics.get("mc_pf_mean", 0.0)) >= float(cfg.min_mc_profit_factor)),
     ]
     return [name for name, passed in checks if not passed]
+
+
+def _annotate_paper_gate_failure_metrics(metrics: dict, failures: list[str]) -> dict:
+    failures = [str(name) for name in failures]
+    failure_set = set(failures)
+    known_names = set(PAPER_GATE_NAMES)
+    known_names.add("not_robustly_validated")
+    metrics["paper_gate_failure_count"] = float(len(failures))
+    for name in sorted(known_names):
+        metrics[f"paper_fail_{name}"] = 1.0 if name in failure_set else 0.0
+    for name in failures:
+        metrics[f"paper_fail_{name}"] = 1.0
+    return metrics
 
 
 def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
@@ -411,6 +439,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
             r["metrics"]["robustness_score"] = 0.0
             r["metrics"]["paper_eligible"] = 0.0
             r["metrics"]["paper_gate_failures"] = ["not_robustly_validated"]
+            _annotate_paper_gate_failure_metrics(r["metrics"], ["not_robustly_validated"])
             continue
         # augment with validation metrics (fast defaults)
         opts = HeavenOpts(
@@ -458,6 +487,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
         gate_failures = _paper_gate_failures(r["metrics"], config, r.get("params") or {})
         r["metrics"]["paper_eligible"] = 0.0 if gate_failures else 1.0
         r["metrics"]["paper_gate_failures"] = gate_failures
+        _annotate_paper_gate_failure_metrics(r["metrics"], gate_failures)
         r["metrics"]["score"] = composite_score(r["metrics"], weights)
 
     # Supabase is the only strategy store: persistence failures must fail clearly.

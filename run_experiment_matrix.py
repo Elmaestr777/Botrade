@@ -19,6 +19,20 @@ from heaven_opt.api import optimize_heaven
 
 SUPPORTED_SYMBOLS = ("BTCUSDC", "ETHUSDC", "BNBUSDC")
 SUPPORTED_TIMEFRAMES = ("1m", "5m", "15m", "1h", "4h", "1d")
+PAPER_GATE_ORDER = (
+    "paper_runner_entry_mode",
+    "train_trades",
+    "oos_missing",
+    "oos_trades",
+    "oos_profit_factor",
+    "oos_return",
+    "oos_drawdown",
+    "wf_positive_frac",
+    "wf_active_frac",
+    "wf_profit_factor",
+    "mc_profit_factor",
+    "not_robustly_validated",
+)
 
 
 @dataclass(frozen=True)
@@ -177,13 +191,29 @@ def _summary_line(symbol: str, tf: str, result: Any) -> str:
     if not top:
         return f"{symbol} {tf}: no result"
     metrics = top.metrics
+    failure_names = _paper_failure_names(metrics)
+    failure_suffix = ""
+    if failure_names:
+        failure_suffix = f" failures={','.join(failure_names)}"
     return (
         f"{symbol} {tf}: score={metrics.get('score', 0.0):.4f} "
         f"eligible={int(metrics.get('paper_eligible', 0.0))} "
         f"oos_ret={metrics.get('oos_return_pct', 0.0):.2f}% "
         f"oos_pf={metrics.get('oos_profitFactor', 0.0):.3f} "
         f"oos_dd={metrics.get('oos_maxDDPct', 0.0):.2f}%"
+        f"{failure_suffix}"
     )
+
+
+def _paper_failure_names(metrics: dict[str, Any]) -> list[str]:
+    prefix = "paper_fail_"
+    active = {
+        key[len(prefix):]
+        for key, value in metrics.items()
+        if key.startswith(prefix) and float(value or 0.0) >= 1.0
+    }
+    ordered = [name for name in PAPER_GATE_ORDER if name in active]
+    return ordered + sorted(active.difference(ordered))
 
 
 def main(argv: list[str] | None = None) -> int:

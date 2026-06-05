@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from analyze_strategy_evaluations import paper_failure_names, summarize_evaluations
 from heaven_opt import api, data_loader, simulator, supabase_io, validation
 from heaven_opt.analysis import trade_diagnostics
 from heaven_opt.combo_generator import generate_alloc_patterns
@@ -18,7 +19,11 @@ from heaven_opt.supabase_io import (
     normalize_ui_strategy_params,
 )
 from heaven_opt.utils import Bar
-from run_experiment_matrix import build_config_data, latest_closed_day_boundary
+from run_experiment_matrix import (
+    _paper_failure_names,
+    build_config_data,
+    latest_closed_day_boundary,
+)
 from validate_paper_session import compute_paper_metrics, paper_gate_failures
 
 
@@ -916,3 +921,77 @@ def test_optimizer_results_deduplicate_equivalent_duplicate_tp_params():
     assert len(deduped) == 1
     assert deduped[0]["provenance"] == "merged"
     assert deduped[0]["params"]["tp_p"][:2] == [100.0, 0.0]
+
+
+def test_paper_gate_failures_are_exposed_as_numeric_metrics():
+    metrics = {}
+
+    api._annotate_paper_gate_failure_metrics(metrics, ["oos_trades", "wf_active_frac"])
+
+    assert metrics["paper_gate_failure_count"] == 2.0
+    assert metrics["paper_fail_oos_trades"] == 1.0
+    assert metrics["paper_fail_wf_active_frac"] == 1.0
+    assert metrics["paper_fail_oos_return"] == 0.0
+
+
+def test_experiment_summary_reads_paper_failure_flags_in_gate_order():
+    metrics = {
+        "paper_fail_wf_active_frac": 1.0,
+        "paper_fail_oos_trades": 1.0,
+        "paper_fail_custom_gate": 1.0,
+    }
+
+    assert _paper_failure_names(metrics) == ["oos_trades", "wf_active_frac", "custom_gate"]
+
+
+def test_strategy_evaluation_analysis_summarizes_top_and_failures():
+    summary = summarize_evaluations(
+        [
+            {
+                "campaign_id": "camp-fib",
+                "symbol": "BTCUSDC",
+                "tf": "15m",
+                "score": 0.2,
+                "metrics": {
+                    "paper_eligible": 0.0,
+                    "oos_return_pct": -3.0,
+                    "oos_profitFactor": 0.8,
+                    "oos_maxDDPct": 5.0,
+                    "wf_positive_frac": 0.4,
+                    "paper_fail_oos_return": 1.0,
+                    "paper_fail_wf_positive_frac": 1.0,
+                },
+            },
+            {
+                "campaign_id": "camp-percent",
+                "symbol": "BTCUSDC",
+                "tf": "15m",
+                "score": 0.5,
+                "metrics": {
+                    "paper_eligible": 1.0,
+                    "oos_return_pct": 4.0,
+                    "oos_profitFactor": 1.4,
+                    "oos_maxDDPct": 4.0,
+                    "wf_positive_frac": 0.7,
+                },
+            },
+        ],
+        top_n=2,
+    )
+
+    assert summary["rows"] == 2
+    assert summary["paper_eligible"] == 1
+    assert summary["failure_counts"] == {"oos_return": 1, "wf_positive_frac": 1}
+    assert summary["top"][0]["campaign_id"] == "camp-percent"
+    assert summary["top"][1]["failures"] == ["oos_return", "wf_positive_frac"]
+
+
+def test_strategy_evaluation_analysis_reads_legacy_failure_lists():
+    failures = paper_failure_names(
+        {
+            "paper_gate_failures": ["mc_profit_factor"],
+            "paper_fail_oos_trades": 1.0,
+        }
+    )
+
+    assert failures == ["oos_trades", "mc_profit_factor"]
