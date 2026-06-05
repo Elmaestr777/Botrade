@@ -37,7 +37,7 @@ Notes
 - The robust validation pool keeps the best training scores and adds diversified winners by PF, PnL, Calmar, consistency, trades, and low drawdown.
 - Only strategies that pass the paper-trading gates are copied to `heaven_strategies`.
 - No strategy result or preset is written to local files by the optimizer.
-- Campaign analysis is Supabase-only: it reads persisted evaluations and prints the top candidates, failed validation gates, and next experiment recommendations.
+- Campaign analysis is Supabase-only: it reads persisted evaluations and prints the top candidates, failed validation gates, per symbol/TF readiness, and next experiment recommendations.
 - Paper sessions are Supabase-only. `start_paper_candidate.py` refuses non-eligible strategies and never writes local strategy state.
 - Optional `HEAVEN_RUN_TYPE` (`NEW` or `LAB`) and `HEAVEN_CAMPAIGN_ID` values are stored with each run.
 - The recent matrix defaults to `Original` entries because the headless paper runner does not yet execute Fib retracement entries.

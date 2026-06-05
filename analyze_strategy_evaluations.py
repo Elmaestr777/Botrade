@@ -90,6 +90,7 @@ def summarize_evaluations(rows: list[dict[str, Any]], top_n: int = 10) -> dict[s
     eligible_count = 0
     top: list[dict[str, Any]] = []
     best_by_scope: dict[str, dict[str, Any]] = {}
+    compact_rows: list[dict[str, Any]] = []
 
     for row in sorted_rows:
         metrics = dict(row.get("metrics") or {})
@@ -113,6 +114,7 @@ def summarize_evaluations(rows: list[dict[str, Any]], top_n: int = 10) -> dict[s
             "failures": failures,
             "created_at": row.get("created_at"),
         }
+        compact_rows.append(compact)
         scope_key = f"{compact['symbol']}|{compact['tf']}|{compact['campaign_id']}"
         best_by_scope.setdefault(scope_key, compact)
         if len(top) < max(1, int(top_n)):
@@ -125,9 +127,47 @@ def summarize_evaluations(rows: list[dict[str, Any]], top_n: int = 10) -> dict[s
         "failure_counts": dict(sorted(failure_counts.items(), key=lambda item: (-item[1], item[0]))),
         "top": top,
         "best_by_scope": list(best_by_scope.values()),
+        "scope_summaries": summarize_scopes(compact_rows, top_n=top_n),
     }
+    summary["status"] = readiness_status(summary)
     summary["recommendations"] = recommend_next_actions(summary)
     return summary
+
+
+def readiness_status(summary: dict[str, Any]) -> str:
+    if int(summary.get("rows") or 0) <= 0:
+        return "missing_evaluations"
+    if int(summary.get("paper_eligible") or 0) > 0:
+        return "analysis_passed"
+    return "needs_more_experiments"
+
+
+def summarize_scopes(compact_rows: list[dict[str, Any]], top_n: int = 10) -> list[dict[str, Any]]:
+    grouped: dict[tuple[str | None, str | None], list[dict[str, Any]]] = {}
+    for row in compact_rows:
+        key = (row.get("symbol"), row.get("tf"))
+        grouped.setdefault(key, []).append(row)
+
+    summaries: list[dict[str, Any]] = []
+    for (symbol, tf), rows in sorted(grouped.items(), key=lambda item: (str(item[0][0]), str(item[0][1]))):
+        rows_sorted = sorted(rows, key=lambda row: _num(row.get("score")), reverse=True)
+        failure_counts: Counter[str] = Counter()
+        for row in rows_sorted:
+            failure_counts.update(row.get("failures") or [])
+        eligible_count = sum(1 for row in rows_sorted if int(row.get("paper_eligible") or 0) >= 1)
+        summary = {
+            "symbol": symbol,
+            "tf": tf,
+            "rows": len(rows_sorted),
+            "paper_eligible": eligible_count,
+            "paper_ineligible": max(0, len(rows_sorted) - eligible_count),
+            "failure_counts": dict(sorted(failure_counts.items(), key=lambda item: (-item[1], item[0]))),
+            "top": rows_sorted[: max(1, int(top_n))],
+        }
+        summary["status"] = readiness_status(summary)
+        summary["recommendations"] = recommend_next_actions(summary)
+        summaries.append(summary)
+    return summaries
 
 
 def _recommendation(action: str, reason: str, command_hint: str | None = None) -> dict[str, str]:
@@ -283,6 +323,18 @@ def _print_text(summary: dict[str, Any]) -> None:
                 f"eligible={row['paper_eligible']} oos_ret={row['oos_return_pct']:.2f}% "
                 f"oos_pf={row['oos_profit_factor']:.3f} wf_pos={row['wf_positive_frac']:.3f} "
                 f"failures={failures} campaign={row['campaign_id']}"
+            )
+    if summary.get("scope_summaries"):
+        print("scopes:")
+        for scope in summary["scope_summaries"]:
+            action = "none"
+            recommendations = scope.get("recommendations") or []
+            if recommendations:
+                action = str(recommendations[0].get("action") or "none")
+            print(
+                f"- {scope.get('symbol')} {scope.get('tf')}: status={scope.get('status')} "
+                f"rows={scope.get('rows')} eligible={scope.get('paper_eligible')} "
+                f"next={action}"
             )
     if summary["recommendations"]:
         print("recommendations:")

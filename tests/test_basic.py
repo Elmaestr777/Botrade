@@ -1049,3 +1049,39 @@ def test_strategy_evaluation_analysis_recommends_next_experiments_from_failures(
         "favor_walk_forward_stability",
         "reduce_noise_sensitivity",
     ]
+
+
+def test_strategy_evaluation_analysis_groups_recommendations_by_symbol_tf():
+    summary = summarize_evaluations(
+        [
+            {
+                "campaign_id": "btc-camp",
+                "symbol": "BTCUSDC",
+                "tf": "15m",
+                "score": 0.4,
+                "metrics": {
+                    "paper_eligible": 0.0,
+                    "paper_fail_oos_return": 1.0,
+                },
+            },
+            {
+                "campaign_id": "eth-camp",
+                "symbol": "ETHUSDC",
+                "tf": "1h",
+                "score": 0.8,
+                "metrics": {
+                    "paper_eligible": 1.0,
+                    "oos_return_pct": 2.0,
+                    "oos_profitFactor": 1.3,
+                },
+            },
+        ],
+        top_n=2,
+    )
+
+    scopes = {(row["symbol"], row["tf"]): row for row in summary["scope_summaries"]}
+
+    assert scopes[("BTCUSDC", "15m")]["status"] == "needs_more_experiments"
+    assert scopes[("BTCUSDC", "15m")]["recommendations"][0]["action"] == "compare_exit_modes_and_expand_search"
+    assert scopes[("ETHUSDC", "1h")]["status"] == "analysis_passed"
+    assert scopes[("ETHUSDC", "1h")]["recommendations"][0]["action"] == "prepare_controlled_paper"
