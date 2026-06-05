@@ -19,7 +19,7 @@ Quickstart
 - Run a first recent robust pass: `python run_experiment_matrix.py --fast`
 - Compare Percent exits: `python run_experiment_matrix.py --fast --tp-mode Percent`
 - Explore short-TF break-even sensitivity: `python run_experiment_matrix.py --fast --tp-mode Percent --include-no-be`
-- Analyze a Supabase campaign and next experiment recommendations: `python analyze_strategy_evaluations.py --campaign-prefix heaven-robust --symbol BTCUSDC --tf 15m`
+- Analyze a Supabase campaign and deduplicated next experiment commands: `python analyze_strategy_evaluations.py --campaign-prefix heaven-robust --symbol BTCUSDC --tf 15m`
 - Audit expected matrix coverage: `python analyze_strategy_evaluations.py --campaign-prefix heaven-robust --expected-symbols BTCUSDC ETHUSDC BNBUSDC --expected-timeframes 15m 1h 4h`
 - Start a paper session from an eligible Supabase strategy: `python start_paper_candidate.py --strategy-name <heaven_strategies.name> --session-name <paper-name> --invoke-runner`
 - Audit controlled live readiness from a validated paper session: `python prepare_live_candidate.py --session-name <paper-name> --strategy-name <heaven_strategies.name> --target-session-name <live-name> --record-event --strict-exit`
@@ -39,7 +39,7 @@ Notes
 - The robust validation pool keeps the best training scores and adds diversified winners by PF, PnL, Calmar, consistency, trades, and low drawdown.
 - Only strategies that pass the paper-trading gates are copied to `heaven_strategies`.
 - No strategy result or preset is written to local files by the optimizer.
-- Campaign analysis is Supabase-only: it reads persisted evaluations and prints the top candidates, failed validation gates, per symbol/TF readiness, and next experiment recommendations.
+- Campaign analysis is Supabase-only: it reads persisted evaluations and prints the top candidates, failed validation gates, per symbol/TF readiness, and a deduplicated experiment plan.
 - Paper sessions are Supabase-only. `start_paper_candidate.py` refuses non-eligible strategies and never writes local strategy state.
 - Live preparation is audit-only by default: `prepare_live_candidate.py` refuses failed paper gates, weak strategy-analysis metrics, risk/leverage violations, unsupported entries, and never creates live sessions or orders.
 - Optional `HEAVEN_RUN_TYPE` (`NEW` or `LAB`) and `HEAVEN_CAMPAIGN_ID` values are stored with each run.

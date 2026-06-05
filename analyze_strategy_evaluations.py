@@ -24,6 +24,8 @@ PAPER_GATE_ORDER = (
     "not_robustly_validated",
 )
 
+PAPER_OR_LIVE_ACTIONS = {"prepare_controlled_paper", "validate_before_live"}
+
 
 def _required_env() -> tuple[str, str]:
     url = str(os.getenv("SUPABASE_URL") or "").rstrip("/")
@@ -143,6 +145,7 @@ def summarize_evaluations(
     }
     summary["status"] = readiness_status(summary)
     summary["recommendations"] = recommend_next_actions(summary)
+    summary["experiment_plan"] = build_experiment_plan(summary)
     return summary
 
 
@@ -347,6 +350,87 @@ def recommend_next_actions(summary: dict[str, Any]) -> list[dict[str, str]]:
     return recommendations
 
 
+def build_experiment_plan(summary: dict[str, Any]) -> dict[str, list[dict[str, str]]]:
+    commands: list[dict[str, str]] = []
+    manual_actions: list[dict[str, str]] = []
+    seen_commands: set[str] = set()
+    seen_manual: set[tuple[str, str, str]] = set()
+    seen_scoped_manual: set[tuple[str, str]] = set()
+
+    sources = []
+    for scope in summary.get("scope_summaries") or []:
+        source = _scope_label(scope)
+        sources.append((source, scope.get("recommendations") or []))
+    sources.append(("GLOBAL", summary.get("recommendations") or []))
+
+    for source, recommendations in sources:
+        for item in recommendations:
+            command_hint = str(item.get("command_hint") or "").strip()
+            if not command_hint:
+                continue
+            action = str(item.get("action") or "unknown")
+            category = "paper_or_live" if action in PAPER_OR_LIVE_ACTIONS else "experiments"
+            reason = str(item.get("reason") or "")
+            if _is_executable_command(command_hint):
+                command_key = _normalize_command(command_hint)
+                if command_key in seen_commands:
+                    continue
+                seen_commands.add(command_key)
+                commands.append(
+                    {
+                        "category": category,
+                        "action": action,
+                        "source": source,
+                        "command": command_key,
+                        "reason": reason,
+                    }
+                )
+                continue
+            scoped_manual_key = (action, command_hint)
+            if source == "GLOBAL" and scoped_manual_key in seen_scoped_manual:
+                continue
+            if source != "GLOBAL":
+                seen_scoped_manual.add(scoped_manual_key)
+            manual_key = (source, action, command_hint)
+            if manual_key in seen_manual:
+                continue
+            seen_manual.add(manual_key)
+            manual_actions.append(
+                {
+                    "category": category,
+                    "action": action,
+                    "source": source,
+                    "instruction": command_hint,
+                    "reason": reason,
+                }
+            )
+
+    return {"commands": commands, "manual_actions": manual_actions}
+
+
+def _scope_label(summary: dict[str, Any]) -> str:
+    symbol = str(summary.get("symbol") or "").strip()
+    tf = str(summary.get("tf") or "").strip()
+    if symbol and tf:
+        return f"{symbol} {tf}"
+    if symbol:
+        return symbol
+    if tf:
+        return tf
+    return "GLOBAL"
+
+
+def _normalize_command(command: str) -> str:
+    return " ".join(command.split())
+
+
+def _is_executable_command(command: str) -> bool:
+    normalized = _normalize_command(command)
+    if "<" in normalized or ">" in normalized:
+        return False
+    return normalized.startswith("python ")
+
+
 def fetch_evaluations(
     base: str,
     key: str,
@@ -426,6 +510,19 @@ def _print_text(summary: dict[str, Any]) -> None:
             if item.get("command_hint"):
                 line += f" | {item['command_hint']}"
             print(line)
+    plan = summary.get("experiment_plan") or {}
+    commands = plan.get("commands") or []
+    manual_actions = plan.get("manual_actions") or []
+    if commands or manual_actions:
+        print("experiment_plan:")
+        if commands:
+            print("commands:")
+            for item in commands:
+                print(f"- [{item['category']}] {item['source']}: {item['command']}")
+        if manual_actions:
+            print("manual_actions:")
+            for item in manual_actions:
+                print(f"- [{item['category']}] {item['source']}: {item['instruction']}")
 
 
 def main(argv: list[str] | None = None) -> int:

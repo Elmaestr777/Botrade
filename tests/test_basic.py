@@ -3,7 +3,11 @@ from pathlib import Path
 
 import pytest
 
-from analyze_strategy_evaluations import paper_failure_names, summarize_evaluations
+from analyze_strategy_evaluations import (
+    build_experiment_plan,
+    paper_failure_names,
+    summarize_evaluations,
+)
 from heaven_opt import api, data_loader, simulator, supabase_io, validation
 from heaven_opt.analysis import trade_diagnostics
 from heaven_opt.combo_generator import generate_alloc_patterns
@@ -1151,6 +1155,7 @@ def test_strategy_evaluation_analysis_recommends_experiment_when_no_rows():
 
     assert summary["rows"] == 0
     assert summary["recommendations"][0]["action"] == "run_recent_matrix"
+    assert summary["experiment_plan"]["commands"][0]["command"] == "python run_experiment_matrix.py --fast"
 
 
 def test_strategy_evaluation_analysis_recommends_next_experiments_from_failures():
@@ -1246,6 +1251,10 @@ def test_strategy_evaluation_analysis_reports_missing_expected_scopes():
         scopes[("ETHUSDC", "15m")]["recommendations"][0]["command_hint"]
         == "python run_experiment_matrix.py --symbols ETHUSDC --timeframes 15m --fast"
     )
+    assert any(
+        item["command"] == "python run_experiment_matrix.py --symbols ETHUSDC --timeframes 15m --fast"
+        for item in summary["experiment_plan"]["commands"]
+    )
 
 
 def test_strategy_evaluation_analysis_scope_recommendations_use_targeted_matrix_commands():
@@ -1268,3 +1277,64 @@ def test_strategy_evaluation_analysis_scope_recommendations_use_targeted_matrix_
     assert recommendation["command_hint"].startswith(
         "python run_experiment_matrix.py --symbols ETHUSDC --timeframes 4h --fast"
     )
+
+
+def test_strategy_evaluation_analysis_experiment_plan_deduplicates_commands():
+    summary = {
+        "scope_summaries": [
+            {
+                "symbol": "BTCUSDC",
+                "tf": "15m",
+                "recommendations": [
+                    {
+                        "action": "favor_walk_forward_stability",
+                        "reason": "same command",
+                        "command_hint": "python run_experiment_matrix.py --symbols BTCUSDC --timeframes 15m --fast",
+                    },
+                    {
+                        "action": "favor_walk_forward_stability",
+                        "reason": "same command again",
+                        "command_hint": "python   run_experiment_matrix.py   --symbols BTCUSDC --timeframes 15m --fast",
+                    },
+                ],
+            }
+        ],
+        "recommendations": [
+            {
+                "action": "favor_walk_forward_stability",
+                "reason": "same global command",
+                "command_hint": "python run_experiment_matrix.py --symbols BTCUSDC --timeframes 15m --fast",
+            }
+        ],
+    }
+
+    plan = build_experiment_plan(summary)
+
+    assert [item["command"] for item in plan["commands"]] == [
+        "python run_experiment_matrix.py --symbols BTCUSDC --timeframes 15m --fast"
+    ]
+
+
+def test_strategy_evaluation_analysis_experiment_plan_separates_manual_paper_actions():
+    summary = summarize_evaluations(
+        [
+            {
+                "campaign_id": "eth-camp",
+                "symbol": "ETHUSDC",
+                "tf": "1h",
+                "score": 0.8,
+                "metrics": {
+                    "paper_eligible": 1.0,
+                    "oos_return_pct": 2.0,
+                    "oos_profitFactor": 1.3,
+                },
+            }
+        ],
+        top_n=1,
+    )
+
+    plan = summary["experiment_plan"]
+
+    assert plan["commands"] == []
+    assert [item["category"] for item in plan["manual_actions"]] == ["paper_or_live", "paper_or_live"]
+    assert [item["source"] for item in plan["manual_actions"]] == ["ETHUSDC 1h", "ETHUSDC 1h"]
