@@ -8,6 +8,8 @@ from validate_paper_session import (
     _fetch_events,
     _fetch_session,
     _fetch_wallet,
+    _headers,
+    _json_response,
     _json_safe,
     _num,
     _record_validation_event,
@@ -22,16 +24,68 @@ def _strategy_params(session: dict[str, Any]) -> dict[str, Any]:
     return dict(params) if isinstance(params, dict) else {}
 
 
+def _fetch_strategy(base: str, key: str, strategy_name: str) -> dict[str, Any]:
+    import requests
+
+    response = requests.get(
+        f"{base}/rest/v1/heaven_strategies",
+        params={
+            "select": "name,symbol,tf,params,metrics",
+            "name": f"eq.{strategy_name}",
+        },
+        headers=_headers(key),
+        timeout=30,
+    )
+    rows = _json_response(response, "fetch live-prep strategy") or []
+    if len(rows) != 1:
+        raise RuntimeError(f"Heaven strategy not found or ambiguous: {strategy_name}")
+    row = dict(rows[0])
+    row["params"] = dict(row.get("params") or {})
+    row["metrics"] = dict(row.get("metrics") or {})
+    return row
+
+
+def _stable_json(value: Any) -> str:
+    return json.dumps(value or {}, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+
+
+def analysis_gate_failures(
+    strategy: dict[str, Any],
+    session: dict[str, Any],
+    *,
+    min_robustness_score: float,
+    require_param_match: bool = True,
+) -> list[str]:
+    metrics = dict(strategy.get("metrics") or {})
+    strategy_params = dict(strategy.get("params") or {})
+    session_params = _strategy_params(session)
+    paper_gate_failures_value = metrics.get("paper_gate_failures")
+    listed_failures = paper_gate_failures_value if isinstance(paper_gate_failures_value, list) else []
+    checks = [
+        ("analysis_symbol_match", str(strategy.get("symbol") or "") == str(session.get("symbol") or "")),
+        ("analysis_tf_match", str(strategy.get("tf") or "") == str(session.get("tf") or "")),
+        ("analysis_paper_eligible", _num(metrics.get("paper_eligible")) >= 1.0),
+        ("analysis_robustly_validated", _num(metrics.get("robustly_validated")) >= 1.0),
+        ("analysis_robustness_score", _num(metrics.get("robustness_score")) >= min_robustness_score),
+        ("analysis_gate_failures_empty", not listed_failures),
+    ]
+    if require_param_match:
+        checks.append(("analysis_params_match_session", _stable_json(strategy_params) == _stable_json(session_params)))
+    return [name for name, passed in checks if not passed]
+
+
 def live_preparation_failures(
     session: dict[str, Any],
     metrics: dict[str, Any],
     paper_failures: list[str],
+    analysis_failures: list[str],
     *,
     target_session_name: str,
     max_risk_pct: float,
     max_leverage: float,
 ) -> list[str]:
     failures = [f"paper:{name}" for name in paper_failures]
+    failures.extend(f"analysis:{name}" for name in analysis_failures)
     params = _strategy_params(session)
     entry_mode = str(params.get("entryMode") or "")
     risk_pct = _num(params.get("riskMaxPct"), default=0.0)
@@ -54,6 +108,8 @@ def build_live_preparation_plan(
     session: dict[str, Any],
     metrics: dict[str, Any],
     paper_failures: list[str],
+    strategy: dict[str, Any],
+    analysis_failures: list[str],
     *,
     target_session_name: str,
     max_risk_pct: float,
@@ -64,6 +120,7 @@ def build_live_preparation_plan(
         session,
         metrics,
         paper_failures,
+        analysis_failures,
         target_session_name=target_session_name,
         max_risk_pct=max_risk_pct,
         max_leverage=max_leverage,
@@ -87,6 +144,16 @@ def build_live_preparation_plan(
             "entry_mode": params.get("entryMode"),
             "risk_max_pct": _num(params.get("riskMaxPct")),
             "leverage": _num(session.get("lev"), default=_num(params.get("leverage"), default=1.0)),
+        },
+        "strategy_analysis": {
+            "name": strategy.get("name"),
+            "symbol": strategy.get("symbol"),
+            "tf": strategy.get("tf"),
+            "score": _num((strategy.get("metrics") or {}).get("score")),
+            "paper_eligible": _num((strategy.get("metrics") or {}).get("paper_eligible")),
+            "robustly_validated": _num((strategy.get("metrics") or {}).get("robustly_validated")),
+            "robustness_score": _num((strategy.get("metrics") or {}).get("robustness_score")),
+            "paper_gate_failures": (strategy.get("metrics") or {}).get("paper_gate_failures") or [],
         },
         "paper_metrics": metrics,
         "controls": {
@@ -116,6 +183,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Prepare a controlled live-readiness audit from a Supabase paper session")
     parser.add_argument("--session-name")
     parser.add_argument("--session-id")
+    parser.add_argument("--strategy-name", required=True)
     parser.add_argument("--target-session-name", required=True)
     parser.add_argument("--events-limit", type=int, default=10_000)
     parser.add_argument("--min-days", type=float, default=7.0)
@@ -125,12 +193,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-drawdown-pct", type=float, default=10.0)
     parser.add_argument("--max-risk-pct", type=float, default=1.0)
     parser.add_argument("--max-leverage", type=float, default=1.0)
+    parser.add_argument("--min-robustness-score", type=float, default=0.0)
+    parser.add_argument("--allow-param-mismatch", action="store_true")
     parser.add_argument("--record-event", action="store_true")
     parser.add_argument("--strict-exit", action="store_true")
     args = parser.parse_args(argv)
 
     base, key = _required_env()
     session = _fetch_session(base, key, args.session_name, args.session_id)
+    strategy = _fetch_strategy(base, key, args.strategy_name)
     wallet = _fetch_wallet(base, key, session.get("wallet_id"))
     events = _fetch_events(base, key, str(session["id"]), args.events_limit)
     gates = {
@@ -142,10 +213,18 @@ def main(argv: list[str] | None = None) -> int:
     }
     metrics = compute_paper_metrics(session, events, wallet)
     paper_failures = paper_gate_failures(metrics, gates)
+    analysis_failures = analysis_gate_failures(
+        strategy,
+        session,
+        min_robustness_score=float(args.min_robustness_score),
+        require_param_match=not bool(args.allow_param_mismatch),
+    )
     plan = build_live_preparation_plan(
         session,
         metrics,
         paper_failures,
+        strategy,
+        analysis_failures,
         target_session_name=args.target_session_name,
         max_risk_pct=float(args.max_risk_pct),
         max_leverage=float(args.max_leverage),

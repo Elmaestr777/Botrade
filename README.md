@@ -22,7 +22,7 @@ Quickstart
 - Analyze a Supabase campaign and next experiment recommendations: `python analyze_strategy_evaluations.py --campaign-prefix heaven-robust --symbol BTCUSDC --tf 15m`
 - Audit expected matrix coverage: `python analyze_strategy_evaluations.py --campaign-prefix heaven-robust --expected-symbols BTCUSDC ETHUSDC BNBUSDC --expected-timeframes 15m 1h 4h`
 - Start a paper session from an eligible Supabase strategy: `python start_paper_candidate.py --strategy-name <heaven_strategies.name> --session-name <paper-name> --invoke-runner`
-- Audit controlled live readiness from a validated paper session: `python prepare_live_candidate.py --session-name <paper-name> --target-session-name <live-name> --record-event --strict-exit`
+- Audit controlled live readiness from a validated paper session: `python prepare_live_candidate.py --session-name <paper-name> --strategy-name <heaven_strategies.name> --target-session-name <live-name> --record-event --strict-exit`
 
 Outputs
 - Evaluations in `strategy_evaluations`, scoped by an immutable `run_id`
@@ -41,7 +41,7 @@ Notes
 - No strategy result or preset is written to local files by the optimizer.
 - Campaign analysis is Supabase-only: it reads persisted evaluations and prints the top candidates, failed validation gates, per symbol/TF readiness, and next experiment recommendations.
 - Paper sessions are Supabase-only. `start_paper_candidate.py` refuses non-eligible strategies and never writes local strategy state.
-- Live preparation is audit-only by default: `prepare_live_candidate.py` refuses failed paper gates, risk/leverage violations, unsupported entries, and never creates live sessions or orders.
+- Live preparation is audit-only by default: `prepare_live_candidate.py` refuses failed paper gates, weak strategy-analysis metrics, risk/leverage violations, unsupported entries, and never creates live sessions or orders.
 - Optional `HEAVEN_RUN_TYPE` (`NEW` or `LAB`) and `HEAVEN_CAMPAIGN_ID` values are stored with each run.
 - The recent matrix defaults to `Original` entries because the headless paper runner does not yet execute Fib retracement entries.
 - Simulation and paper runners only use pivots after their confirmation delay, close flip exits at signal close, and enter the next trade at the following candle open.

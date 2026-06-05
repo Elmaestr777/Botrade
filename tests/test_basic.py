@@ -19,7 +19,11 @@ from heaven_opt.supabase_io import (
     normalize_ui_strategy_params,
 )
 from heaven_opt.utils import Bar
-from prepare_live_candidate import build_live_preparation_plan, live_preparation_failures
+from prepare_live_candidate import (
+    analysis_gate_failures,
+    build_live_preparation_plan,
+    live_preparation_failures,
+)
 from run_experiment_matrix import (
     _paper_failure_names,
     build_config_data,
@@ -374,10 +378,25 @@ def test_live_preparation_plan_passes_only_after_validated_paper_controls():
         "strategy_params": {"entryMode": "Original", "riskMaxPct": 0.75, "leverage": 1.0},
     }
     metrics = {"equity": 10_500.0}
+    strategy = {
+        "name": "heaven-btcusdc-15m-top-1",
+        "symbol": "BTCUSDC",
+        "tf": "15m",
+        "params": {"entryMode": "Original", "riskMaxPct": 0.75, "leverage": 1.0},
+        "metrics": {
+            "score": 0.8,
+            "paper_eligible": 1.0,
+            "robustly_validated": 1.0,
+            "robustness_score": 0.7,
+            "paper_gate_failures": [],
+        },
+    }
 
     plan = build_live_preparation_plan(
         session,
         metrics,
+        [],
+        strategy,
         [],
         target_session_name="live-btcusdc-15m",
         max_risk_pct=1.0,
@@ -399,6 +418,7 @@ def test_live_preparation_refuses_failed_paper_and_unsafe_controls():
         },
         {"equity": 0.0},
         ["min_trades"],
+        ["analysis_paper_eligible"],
         target_session_name="paper-btcusdc-15m",
         max_risk_pct=1.0,
         max_leverage=1.0,
@@ -406,12 +426,68 @@ def test_live_preparation_refuses_failed_paper_and_unsafe_controls():
 
     assert failures == [
         "paper:min_trades",
+        "analysis:analysis_paper_eligible",
         "source_session_active",
         "target_differs_from_paper",
         "original_entry_mode",
         "max_risk_pct",
         "max_leverage",
         "paper_equity_positive",
+    ]
+
+
+def test_live_preparation_requires_matching_robust_strategy_analysis():
+    session = {
+        "symbol": "BTCUSDC",
+        "tf": "15m",
+        "strategy_params": {"entryMode": "Original", "riskMaxPct": 0.75},
+    }
+    strategy = {
+        "symbol": "BTCUSDC",
+        "tf": "15m",
+        "params": {"entryMode": "Original", "riskMaxPct": 0.75},
+        "metrics": {
+            "paper_eligible": 1.0,
+            "robustly_validated": 1.0,
+            "robustness_score": 0.65,
+            "paper_gate_failures": [],
+        },
+    }
+
+    failures = analysis_gate_failures(strategy, session, min_robustness_score=0.5)
+
+    assert failures == []
+
+
+def test_live_preparation_blocks_weak_or_mismatched_strategy_analysis():
+    failures = analysis_gate_failures(
+        {
+            "symbol": "ETHUSDC",
+            "tf": "4h",
+            "params": {"entryMode": "Original"},
+            "metrics": {
+                "paper_eligible": 0.0,
+                "robustly_validated": 0.0,
+                "robustness_score": 0.2,
+                "paper_gate_failures": ["oos_return"],
+            },
+        },
+        {
+            "symbol": "BTCUSDC",
+            "tf": "15m",
+            "strategy_params": {"entryMode": "Original", "riskMaxPct": 1.0},
+        },
+        min_robustness_score=0.5,
+    )
+
+    assert failures == [
+        "analysis_symbol_match",
+        "analysis_tf_match",
+        "analysis_paper_eligible",
+        "analysis_robustly_validated",
+        "analysis_robustness_score",
+        "analysis_gate_failures_empty",
+        "analysis_params_match_session",
     ]
 
 
