@@ -999,6 +999,10 @@ def test_strategy_evaluation_analysis_summarizes_top_and_failures():
     assert summary["failure_counts"] == {"oos_return": 1, "wf_positive_frac": 1}
     assert summary["top"][0]["campaign_id"] == "camp-percent"
     assert summary["top"][1]["failures"] == ["oos_return", "wf_positive_frac"]
+    assert [item["action"] for item in summary["recommendations"]] == [
+        "prepare_controlled_paper",
+        "validate_before_live",
+    ]
 
 
 def test_strategy_evaluation_analysis_reads_legacy_failure_lists():
@@ -1010,3 +1014,38 @@ def test_strategy_evaluation_analysis_reads_legacy_failure_lists():
     )
 
     assert failures == ["oos_trades", "mc_profit_factor"]
+
+
+def test_strategy_evaluation_analysis_recommends_experiment_when_no_rows():
+    summary = summarize_evaluations([], top_n=3)
+
+    assert summary["rows"] == 0
+    assert summary["recommendations"][0]["action"] == "run_recent_matrix"
+
+
+def test_strategy_evaluation_analysis_recommends_next_experiments_from_failures():
+    summary = summarize_evaluations(
+        [
+            {
+                "campaign_id": "camp-fib",
+                "symbol": "BTCUSDC",
+                "tf": "15m",
+                "score": 0.3,
+                "metrics": {
+                    "paper_eligible": 0.0,
+                    "paper_fail_oos_profit_factor": 1.0,
+                    "paper_fail_oos_return": 1.0,
+                    "paper_fail_wf_positive_frac": 1.0,
+                    "paper_fail_mc_profit_factor": 1.0,
+                },
+            }
+        ],
+        top_n=1,
+    )
+
+    actions = [item["action"] for item in summary["recommendations"]]
+    assert actions == [
+        "compare_exit_modes_and_expand_search",
+        "favor_walk_forward_stability",
+        "reduce_noise_sensitivity",
+    ]

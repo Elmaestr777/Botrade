@@ -118,7 +118,7 @@ def summarize_evaluations(rows: list[dict[str, Any]], top_n: int = 10) -> dict[s
         if len(top) < max(1, int(top_n)):
             top.append(compact)
 
-    return {
+    summary = {
         "rows": len(rows),
         "paper_eligible": eligible_count,
         "paper_ineligible": max(0, len(rows) - eligible_count),
@@ -126,6 +126,111 @@ def summarize_evaluations(rows: list[dict[str, Any]], top_n: int = 10) -> dict[s
         "top": top,
         "best_by_scope": list(best_by_scope.values()),
     }
+    summary["recommendations"] = recommend_next_actions(summary)
+    return summary
+
+
+def _recommendation(action: str, reason: str, command_hint: str | None = None) -> dict[str, str]:
+    out = {"action": action, "reason": reason}
+    if command_hint:
+        out["command_hint"] = command_hint
+    return out
+
+
+def _failure_count(summary: dict[str, Any], *names: str) -> int:
+    counts = dict(summary.get("failure_counts") or {})
+    return sum(int(counts.get(name) or 0) for name in names)
+
+
+def recommend_next_actions(summary: dict[str, Any]) -> list[dict[str, str]]:
+    rows = int(summary.get("rows") or 0)
+    eligible = int(summary.get("paper_eligible") or 0)
+    top = list(summary.get("top") or [])
+    recommendations: list[dict[str, str]] = []
+
+    if rows <= 0:
+        return [
+            _recommendation(
+                "run_recent_matrix",
+                "No Supabase evaluations match this scope yet.",
+                "python run_experiment_matrix.py --fast",
+            )
+        ]
+
+    if eligible > 0:
+        best = next((row for row in top if int(row.get("paper_eligible") or 0) >= 1), top[0] if top else {})
+        scope = f"{best.get('symbol')} {best.get('tf')} {best.get('campaign_id')}".strip()
+        recommendations.append(
+            _recommendation(
+                "prepare_controlled_paper",
+                f"At least one strategy passes the analysis gates for {scope}.",
+                "python start_paper_candidate.py --strategy-name <heaven_strategies.name> --session-name <paper-name> --invoke-runner",
+            )
+        )
+        recommendations.append(
+            _recommendation(
+                "validate_before_live",
+                "Live preparation still requires a Supabase paper-session validation audit.",
+                "python validate_paper_session.py --session-name <paper-name> --record-event --strict-exit",
+            )
+        )
+        return recommendations
+
+    oos_failures = _failure_count(summary, "oos_profit_factor", "oos_return", "oos_drawdown")
+    wf_failures = _failure_count(summary, "wf_positive_frac", "wf_active_frac", "wf_profit_factor")
+    trade_failures = _failure_count(summary, "train_trades", "oos_trades")
+    mc_failures = _failure_count(summary, "mc_profit_factor")
+    entry_failures = _failure_count(summary, "paper_runner_entry_mode")
+
+    if oos_failures:
+        recommendations.append(
+            _recommendation(
+                "compare_exit_modes_and_expand_search",
+                "Holdout performance is the main blocker; do not promote these candidates.",
+                "python run_experiment_matrix.py --fast --include-no-be --tp-mode Percent --max-combinations 500 --top-n 10",
+            )
+        )
+    if wf_failures:
+        recommendations.append(
+            _recommendation(
+                "favor_walk_forward_stability",
+                "Walk-forward stability is insufficient across folds.",
+                "python run_experiment_matrix.py --fast --include-no-be --max-combinations 500 --top-n 10",
+            )
+        )
+    if trade_failures:
+        recommendations.append(
+            _recommendation(
+                "increase_signal_coverage",
+                "Too few train or holdout trades make the performance evidence weak.",
+                "Review nol/prd ranges or test a shorter timeframe before live preparation.",
+            )
+        )
+    if mc_failures:
+        recommendations.append(
+            _recommendation(
+                "reduce_noise_sensitivity",
+                "Monte Carlo robustness is below the minimum profit-factor gate.",
+                "Prioritize lower drawdown and higher MC PF candidates in the next campaign analysis.",
+            )
+        )
+    if entry_failures:
+        recommendations.append(
+            _recommendation(
+                "keep_original_entries_for_paper",
+                "Some candidates use entry modes unsupported by the current headless paper runner.",
+                "Run the matrix without --include-fib before starting paper sessions.",
+            )
+        )
+    if not recommendations:
+        recommendations.append(
+            _recommendation(
+                "inspect_top_candidates",
+                "No eligible strategy was found, but no known gate dominates the failures.",
+                "python analyze_strategy_evaluations.py --campaign-prefix <prefix> --json",
+            )
+        )
+    return recommendations
 
 
 def fetch_evaluations(
@@ -179,6 +284,13 @@ def _print_text(summary: dict[str, Any]) -> None:
                 f"oos_pf={row['oos_profit_factor']:.3f} wf_pos={row['wf_positive_frac']:.3f} "
                 f"failures={failures} campaign={row['campaign_id']}"
             )
+    if summary["recommendations"]:
+        print("recommendations:")
+        for item in summary["recommendations"]:
+            line = f"- {item['action']}: {item['reason']}"
+            if item.get("command_hint"):
+                line += f" | {item['command_hint']}"
+            print(line)
 
 
 def main(argv: list[str] | None = None) -> int:
