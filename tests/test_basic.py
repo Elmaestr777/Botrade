@@ -39,7 +39,13 @@ from run_experiment_matrix import (
     build_config_data,
     latest_closed_day_boundary,
 )
-from start_paper_candidate import _strategy_lookup_params as _paper_strategy_lookup_params
+from start_paper_candidate import (
+    _strategy_lookup_params as _paper_strategy_lookup_params,
+)
+from start_paper_candidate import (
+    paper_start_failures,
+    strategy_for_paper_session,
+)
 from validate_paper_session import compute_paper_metrics, paper_gate_failures
 
 
@@ -562,7 +568,7 @@ def test_list_paper_candidates_filters_to_robust_original_strategies():
             "name": "heaven-btc-fib",
             "symbol": "BTCUSDC",
             "tf": "15m",
-            "params": {"entryMode": "Fib Retracement"},
+            "params": {"entryMode": "Fib Retracement", "riskMaxPct": 0.75, "leverage": 1.0},
             "metrics": {"paper_eligible": 1.0, "robustly_validated": 1.0},
         },
         {
@@ -570,7 +576,7 @@ def test_list_paper_candidates_filters_to_robust_original_strategies():
             "name": "heaven-btc-weak",
             "symbol": "BTCUSDC",
             "tf": "15m",
-            "params": {"entryMode": "Original"},
+            "params": {"entryMode": "Original", "riskMaxPct": 0.75, "leverage": 1.0},
             "metrics": {"paper_eligible": 1.0, "robustly_validated": 0.0},
         },
         {
@@ -578,7 +584,7 @@ def test_list_paper_candidates_filters_to_robust_original_strategies():
             "name": "heaven-btc-fail",
             "symbol": "BTCUSDC",
             "tf": "15m",
-            "params": {"entryMode": "Original"},
+            "params": {"entryMode": "Original", "riskMaxPct": 0.75, "leverage": 1.0},
             "metrics": {"paper_eligible": 0.0, "robustly_validated": 1.0},
         },
     ]
@@ -595,12 +601,13 @@ def test_list_paper_candidates_filters_to_robust_original_strategies():
     assert candidate["id"] == "abc123"
     assert candidate["commands"]["start_paper"] == (
         "python start_paper_candidate.py --strategy-id abc123 "
-        "--session-name paper-btcusdc-15m-abc123 --invoke-runner"
+        "--session-name paper-btcusdc-15m-abc123 --max-risk-pct 1 --max-leverage 1 --invoke-runner"
     )
     assert candidate["commands"]["validate_paper"] == (
         "python validate_paper_session.py --session-name paper-btcusdc-15m-abc123 --record-event --strict-exit"
     )
     assert "--strategy-id abc123" in candidate["commands"]["audit_live"]
+    assert "--max-risk-pct 1 --max-leverage 1" in candidate["commands"]["audit_live"]
 
 
 def test_list_paper_candidates_can_explicitly_include_unrobust_candidates():
@@ -609,13 +616,67 @@ def test_list_paper_candidates_can_explicitly_include_unrobust_candidates():
         "name": "heaven-btc-weak",
         "symbol": "BTCUSDC",
         "tf": "15m",
-        "params": {"entryMode": "Original"},
+        "params": {"entryMode": "Original", "riskMaxPct": 0.75, "leverage": 1.0},
         "metrics": {"paper_eligible": 1.0, "robustly_validated": 0.0},
     }
 
     assert paper_candidate_failures(row, require_robust=True) == ["robustly_validated"]
     assert paper_candidate_failures(row, require_robust=False) == []
     assert build_paper_candidate_report([row], require_robust=False)["candidate_count"] == 1
+
+
+def test_list_paper_candidates_enforces_risk_and_leverage_controls():
+    rows = [
+        {
+            "id": "safe123",
+            "name": "heaven-safe",
+            "symbol": "BTCUSDC",
+            "tf": "15m",
+            "params": {"entryMode": "Original", "riskMaxPct": 1.0, "leverage": 1.0},
+            "metrics": {"paper_eligible": 1.0, "robustly_validated": 1.0},
+        },
+        {
+            "id": "risk123",
+            "name": "heaven-risk",
+            "symbol": "BTCUSDC",
+            "tf": "15m",
+            "params": {"entryMode": "Original", "riskMaxPct": 1.5, "leverage": 1.0},
+            "metrics": {"paper_eligible": 1.0, "robustly_validated": 1.0},
+        },
+        {
+            "id": "lev123",
+            "name": "heaven-lev",
+            "symbol": "BTCUSDC",
+            "tf": "15m",
+            "params": {"entryMode": "Original", "riskMaxPct": 1.0, "leverage": 2.0},
+            "metrics": {"paper_eligible": 1.0, "robustly_validated": 1.0},
+        },
+    ]
+
+    report = build_paper_candidate_report(rows, max_risk_pct=1.0, max_leverage=1.0)
+
+    assert [item["id"] for item in report["candidates"]] == ["safe123"]
+    assert report["excluded_failure_counts"] == {"max_leverage": 1, "max_risk_pct": 1}
+    assert report["controls"] == {"max_risk_pct": 1.0, "max_leverage": 1.0}
+
+
+def test_start_paper_candidate_enforces_risk_and_leverage_controls():
+    strategy = {"params": {"riskMaxPct": 1.25, "leverage": 2.0}}
+
+    assert paper_start_failures(strategy, leverage=2.0, max_risk_pct=1.0, max_leverage=1.0) == [
+        "max_risk_pct",
+        "max_leverage",
+    ]
+    assert paper_start_failures(strategy, leverage=1.0, max_risk_pct=2.0, max_leverage=1.0) == []
+
+
+def test_start_paper_candidate_syncs_effective_leverage_into_session_params():
+    strategy = {"params": {"entryMode": "Original", "riskMaxPct": 1.0, "leverage": 2.0}}
+
+    session_strategy = strategy_for_paper_session(strategy, leverage=1.0)
+
+    assert session_strategy["params"]["leverage"] == 1.0
+    assert strategy["params"]["leverage"] == 2.0
 
 
 def test_break_even_waits_for_the_configured_move_threshold():

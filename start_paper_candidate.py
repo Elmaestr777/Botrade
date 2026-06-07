@@ -62,6 +62,14 @@ def _strategy_label(strategy_name: str | None, strategy_id: str | None) -> str:
     return str(strategy_id or strategy_name or "").strip()
 
 
+def _num(value: Any, default: float = 0.0) -> float:
+    try:
+        out = float(value)
+    except (TypeError, ValueError):
+        return default
+    return out if out == out else default
+
+
 def _get_strategy(
     base: str,
     key: str,
@@ -70,6 +78,7 @@ def _get_strategy(
     strategy_id: str | None,
 ) -> dict[str, Any]:
     lookup = _strategy_lookup_params(strategy_name, strategy_id)
+    label = _strategy_label(strategy_name, strategy_id)
     response = requests.get(
         f"{base}/rest/v1/heaven_strategies",
         params={
@@ -81,16 +90,41 @@ def _get_strategy(
     )
     rows = _json_response(response, "fetch heaven strategy") or []
     if len(rows) != 1:
-        raise RuntimeError(f"Heaven strategy not found or ambiguous: {_strategy_label(strategy_name, strategy_id)}")
+        raise RuntimeError(f"Heaven strategy not found or ambiguous: {label}")
     row = dict(rows[0])
     metrics = dict(row.get("metrics") or {})
     params = normalize_ui_strategy_params(dict(row.get("params") or {}))
     row["params"] = params
     if float(metrics.get("paper_eligible") or 0.0) < 1.0:
-        raise RuntimeError(f"Heaven strategy is not paper-eligible: {strategy_name}")
+        raise RuntimeError(f"Heaven strategy is not paper-eligible: {label}")
     if str(params.get("entryMode") or "") != "Original":
         raise RuntimeError("The headless paper runner currently supports only Original entries")
     return row
+
+
+def paper_start_failures(
+    strategy: dict[str, Any],
+    *,
+    leverage: float,
+    max_risk_pct: float,
+    max_leverage: float,
+) -> list[str]:
+    params = dict(strategy.get("params") or {})
+    risk_pct = _num(params.get("riskMaxPct"))
+    failures: list[str] = []
+    if risk_pct <= 0.0 or risk_pct > max_risk_pct:
+        failures.append("max_risk_pct")
+    if leverage < 1.0 or leverage > max_leverage:
+        failures.append("max_leverage")
+    return failures
+
+
+def strategy_for_paper_session(strategy: dict[str, Any], *, leverage: float) -> dict[str, Any]:
+    session_strategy = dict(strategy)
+    params = dict(session_strategy.get("params") or {})
+    params["leverage"] = float(leverage)
+    session_strategy["params"] = params
+    return session_strategy
 
 
 def _upsert_wallet(
@@ -229,6 +263,8 @@ def main() -> int:
     parser.add_argument("--start-cap", type=float, default=10_000.0)
     parser.add_argument("--fee", type=float, default=0.1)
     parser.add_argument("--leverage", type=float, default=None)
+    parser.add_argument("--max-risk-pct", type=float, default=1.0)
+    parser.add_argument("--max-leverage", type=float, default=1.0)
     parser.add_argument("--reset-existing", action="store_true")
     parser.add_argument("--invoke-runner", action="store_true")
     args = parser.parse_args()
@@ -237,19 +273,30 @@ def main() -> int:
         raise RuntimeError("--start-cap must be positive")
     if args.fee < 0:
         raise RuntimeError("--fee cannot be negative")
+    if args.max_risk_pct <= 0:
+        raise RuntimeError("--max-risk-pct must be positive")
+    if args.max_leverage < 1.0:
+        raise RuntimeError("--max-leverage must be at least 1")
 
     base, key = _required_env()
     strategy = _get_strategy(base, key, strategy_name=args.strategy_name, strategy_id=args.strategy_id)
     params = dict(strategy.get("params") or {})
     leverage = float(args.leverage if args.leverage is not None else params.get("leverage") or 1.0)
-    if leverage < 1.0:
-        raise RuntimeError("--leverage must be at least 1")
+    failures = paper_start_failures(
+        strategy,
+        leverage=leverage,
+        max_risk_pct=float(args.max_risk_pct),
+        max_leverage=float(args.max_leverage),
+    )
+    if failures:
+        raise RuntimeError(f"Paper start refused by controls: {','.join(failures)}")
 
+    session_strategy = strategy_for_paper_session(strategy, leverage=leverage)
     wallet = _upsert_wallet(base, key, args.session_name, args.start_cap, args.fee, leverage)
     session = _start_session(
         base,
         key,
-        strategy,
+        session_strategy,
         wallet,
         args.session_name,
         args.start_cap,
@@ -271,10 +318,15 @@ def main() -> int:
                 "tf": verified["tf"],
                 "active": verified["active"],
                 "equity": verified["equity"],
+                "leverage": leverage,
                 "last_bar_time": verified["last_bar_time"],
                 "position_open": bool(verified.get("pos")),
                 "entry_mode": (verified.get("strategy_params") or {}).get("entryMode"),
                 "paper_eligible": (strategy.get("metrics") or {}).get("paper_eligible"),
+                "controls": {
+                    "max_risk_pct": float(args.max_risk_pct),
+                    "max_leverage": float(args.max_leverage),
+                },
                 "runner_invoked": runner_result is not None,
             },
             indent=2,

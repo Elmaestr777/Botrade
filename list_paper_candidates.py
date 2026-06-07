@@ -99,9 +99,13 @@ def paper_candidate_failures(
     *,
     require_robust: bool = True,
     require_original: bool = True,
+    max_risk_pct: float = 1.0,
+    max_leverage: float = 1.0,
 ) -> list[str]:
     metrics = dict(row.get("metrics") or {})
     params = normalize_ui_strategy_params(dict(row.get("params") or {}))
+    risk_pct = _num(params.get("riskMaxPct"))
+    leverage = _num(params.get("leverage"), default=1.0)
     failures: list[str] = []
     if _num(metrics.get("paper_eligible")) < 1.0:
         failures.append("paper_eligible")
@@ -111,10 +115,20 @@ def paper_candidate_failures(
         failures.append("robustly_validated")
     if require_original and str(params.get("entryMode") or "") != "Original":
         failures.append("original_entry_mode")
+    if risk_pct <= 0.0 or risk_pct > max_risk_pct:
+        failures.append("max_risk_pct")
+    if leverage < 1.0 or leverage > max_leverage:
+        failures.append("max_leverage")
     return failures
 
 
-def compact_candidate(row: dict[str, Any], *, session_prefix: str) -> dict[str, Any]:
+def compact_candidate(
+    row: dict[str, Any],
+    *,
+    session_prefix: str,
+    max_risk_pct: float = 1.0,
+    max_leverage: float = 1.0,
+) -> dict[str, Any]:
     metrics = dict(row.get("metrics") or {})
     params = normalize_ui_strategy_params(dict(row.get("params") or {}))
     candidate = {
@@ -136,12 +150,16 @@ def compact_candidate(row: dict[str, Any], *, session_prefix: str) -> dict[str, 
     live_name = session_name.replace(f"{_safe_slug(session_prefix, 'paper')}-", "live-", 1)
     strategy_flag, strategy_value = _strategy_ref(candidate)
     strategy_args = f"{strategy_flag} {strategy_value}"
+    control_args = f"--max-risk-pct {max_risk_pct:g} --max-leverage {max_leverage:g}"
     candidate["commands"] = {
-        "start_paper": f"python start_paper_candidate.py {strategy_args} --session-name {session_name} --invoke-runner",
+        "start_paper": (
+            f"python start_paper_candidate.py {strategy_args} --session-name {session_name} "
+            f"{control_args} --invoke-runner"
+        ),
         "validate_paper": f"python validate_paper_session.py --session-name {session_name} --record-event --strict-exit",
         "audit_live": (
             f"python prepare_live_candidate.py --session-name {session_name} {strategy_args} "
-            f"--target-session-name {live_name} --record-event --strict-exit"
+            f"--target-session-name {live_name} {control_args} --record-event --strict-exit"
         ),
     }
     return candidate
@@ -154,6 +172,8 @@ def build_paper_candidate_report(
     session_prefix: str = "paper",
     require_robust: bool = True,
     require_original: bool = True,
+    max_risk_pct: float = 1.0,
+    max_leverage: float = 1.0,
 ) -> dict[str, Any]:
     excluded_counts: Counter[str] = Counter()
     candidates: list[dict[str, Any]] = []
@@ -162,11 +182,20 @@ def build_paper_candidate_report(
             row,
             require_robust=require_robust,
             require_original=require_original,
+            max_risk_pct=max_risk_pct,
+            max_leverage=max_leverage,
         )
         if failures:
             excluded_counts.update(failures)
             continue
-        candidates.append(compact_candidate(row, session_prefix=session_prefix))
+        candidates.append(
+            compact_candidate(
+                row,
+                session_prefix=session_prefix,
+                max_risk_pct=max_risk_pct,
+                max_leverage=max_leverage,
+            )
+        )
     candidates.sort(
         key=lambda item: (
             _num(item.get("robustness_score")),
@@ -182,6 +211,10 @@ def build_paper_candidate_report(
         "candidate_count": len(candidates),
         "excluded_count": max(0, len(rows) - len(candidates)),
         "excluded_failure_counts": dict(sorted(excluded_counts.items(), key=lambda item: (-item[1], item[0]))),
+        "controls": {
+            "max_risk_pct": float(max_risk_pct),
+            "max_leverage": float(max_leverage),
+        },
     }
 
 
@@ -240,10 +273,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--limit", type=int, default=100)
     parser.add_argument("--top-n", type=int, default=10)
     parser.add_argument("--session-prefix", default="paper")
+    parser.add_argument("--max-risk-pct", type=float, default=1.0)
+    parser.add_argument("--max-leverage", type=float, default=1.0)
     parser.add_argument("--allow-unrobust", action="store_true")
     parser.add_argument("--allow-non-original", action="store_true")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
+
+    if args.max_risk_pct <= 0:
+        raise RuntimeError("--max-risk-pct must be positive")
+    if args.max_leverage < 1.0:
+        raise RuntimeError("--max-leverage must be at least 1")
 
     base, key = _required_env()
     rows = fetch_heaven_strategies(
@@ -259,6 +299,8 @@ def main(argv: list[str] | None = None) -> int:
         session_prefix=args.session_prefix,
         require_robust=not bool(args.allow_unrobust),
         require_original=not bool(args.allow_non_original),
+        max_risk_pct=float(args.max_risk_pct),
+        max_leverage=float(args.max_leverage),
     )
     if args.json:
         print(json.dumps(report, indent=2, sort_keys=True, default=str))
