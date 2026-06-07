@@ -28,7 +28,7 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params){
   const emaTargetCache=new Map();
   const slEmaCache=new Map();
   let pivIdx=-1;
-  function advancePivotIdxTo(i){ while(pivIdx+1<pivAll.length && pivAll[pivIdx+1].idx<=i){ pivIdx++; } }
+  function advancePivotIdxTo(i){ while(pivIdx+1<pivAll.length && pivAll[pivIdx+1].idx+prd<=i){ pivIdx++; } }
   function segAtIdx(){ if(pivIdx>=1){ const a=pivAll[pivIdx-1], b=pivAll[pivIdx]; return { a, b, dir: b.price>a.price?'up':'down' }; } return null; }
   function computeSLFromLadder(dir, entry, i){
     try{

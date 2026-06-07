@@ -718,6 +718,13 @@ def test_pivots_are_not_available_before_confirmation():
     assert last_two_pivots_before(pivots, idx=7, prd=2) is not None
 
 
+def test_worker_eval_waits_for_confirmed_pivots():
+    source = Path("src/worker_eval.js").read_text(encoding="utf-8")
+
+    assert "pivAll[pivIdx+1].idx+prd<=i" in source
+    assert "pivAll[pivIdx+1].idx<=i" not in source
+
+
 def test_fib_signals_wait_for_pivot_confirmation():
     bars = [
         Bar(time=i, open=close, high=close + 1.0, low=close - 1.0, close=close)
