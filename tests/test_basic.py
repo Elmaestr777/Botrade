@@ -277,6 +277,21 @@ def test_headless_runners_only_process_paper_wallet_sessions():
     assert ".filter((s: any) => isPaperSession(s, walletMap))" in edge_source
 
 
+def test_headless_runners_restore_and_trigger_fib_pending_entries():
+    repo_root = Path(__file__).resolve().parents[1]
+    runner_source = (repo_root / "runner" / "index.js").read_text(encoding="utf-8")
+    edge_source = (
+        repo_root / "supabase" / "functions" / "live-runner" / "index.ts"
+    ).read_text(encoding="utf-8")
+
+    for source in (runner_source, edge_source):
+        assert "buildFibPending" in source
+        assert "fibPendingHit" in source
+        assert "pendingFib" in source
+        assert "type:'Fib'" in source or "type: 'Fib'" in source
+        assert "entryMode !== 'Original'" in source
+
+
 def test_headless_ui_persists_wallet_id_for_paper_sessions():
     repo_root = Path(__file__).resolve().parents[1]
     main_source = (repo_root / "src" / "main.js").read_text(encoding="utf-8")
@@ -458,7 +473,7 @@ def test_live_preparation_refuses_failed_paper_and_unsafe_controls():
             "name": "paper-btcusdc-15m",
             "active": False,
             "lev": 3.0,
-            "strategy_params": {"entryMode": "Fib Retracement", "riskMaxPct": 2.0},
+            "strategy_params": {"entryMode": "Unsupported", "riskMaxPct": 2.0},
         },
         {"equity": 0.0},
         ["min_trades"],
@@ -473,7 +488,7 @@ def test_live_preparation_refuses_failed_paper_and_unsafe_controls():
         "analysis:analysis_paper_eligible",
         "source_session_active",
         "target_differs_from_paper",
-        "original_entry_mode",
+        "paper_runner_entry_mode",
         "max_risk_pct",
         "max_leverage",
         "paper_equity_positive",
@@ -546,7 +561,7 @@ def test_paper_and_live_strategy_lookup_accept_exactly_one_identifier():
         _live_strategy_lookup_params("heaven-btc", "strategy-1")
 
 
-def test_list_paper_candidates_filters_to_robust_original_strategies():
+def test_list_paper_candidates_filters_to_supported_robust_strategies():
     rows = [
         {
             "id": "abc123",
@@ -568,7 +583,16 @@ def test_list_paper_candidates_filters_to_robust_original_strategies():
             "name": "heaven-btc-fib",
             "symbol": "BTCUSDC",
             "tf": "15m",
-            "params": {"entryMode": "Fib Retracement", "riskMaxPct": 0.75, "leverage": 1.0},
+            "created_at": "2026-06-05T07:00:00Z",
+            "params": {"entryMode": "Fib Retracement", "useFibRet": True, "riskMaxPct": 0.75, "leverage": 1.0},
+            "metrics": {"score": 0.7, "robustness_score": 0.6, "paper_eligible": 1.0, "robustly_validated": 1.0},
+        },
+        {
+            "id": "badmode123",
+            "name": "heaven-btc-badmode",
+            "symbol": "BTCUSDC",
+            "tf": "15m",
+            "params": {"entryMode": "Unsupported", "riskMaxPct": 0.75, "leverage": 1.0},
             "metrics": {"paper_eligible": 1.0, "robustly_validated": 1.0},
         },
         {
@@ -591,10 +615,10 @@ def test_list_paper_candidates_filters_to_robust_original_strategies():
 
     report = build_paper_candidate_report(rows, top_n=5)
 
-    assert report["candidate_count"] == 1
+    assert report["candidate_count"] == 2
     assert report["excluded_failure_counts"] == {
-        "original_entry_mode": 1,
         "paper_eligible": 1,
+        "paper_runner_entry_mode": 1,
         "robustly_validated": 1,
     }
     candidate = report["candidates"][0]
@@ -608,6 +632,8 @@ def test_list_paper_candidates_filters_to_robust_original_strategies():
     )
     assert "--strategy-id abc123" in candidate["commands"]["audit_live"]
     assert "--max-risk-pct 1 --max-leverage 1" in candidate["commands"]["audit_live"]
+    assert report["candidates"][1]["id"] == "fib123"
+    assert report["candidates"][1]["entry_mode"] == "Fib Retracement"
 
 
 def test_list_paper_candidates_can_explicitly_include_unrobust_candidates():
@@ -668,6 +694,21 @@ def test_start_paper_candidate_enforces_risk_and_leverage_controls():
         "max_leverage",
     ]
     assert paper_start_failures(strategy, leverage=1.0, max_risk_pct=2.0, max_leverage=1.0) == []
+    assert paper_start_failures(
+        {"params": {"entryMode": "Unsupported", "riskMaxPct": 1.0, "leverage": 1.0}},
+        leverage=1.0,
+        max_risk_pct=1.0,
+        max_leverage=1.0,
+    ) == ["paper_runner_entry_mode"]
+    assert (
+        paper_start_failures(
+            {"params": {"entryMode": "Fib Retracement", "useFibRet": True, "riskMaxPct": 1.0, "leverage": 1.0}},
+            leverage=1.0,
+            max_risk_pct=1.0,
+            max_leverage=1.0,
+        )
+        == []
+    )
 
 
 def test_start_paper_candidate_syncs_effective_leverage_into_session_params():
@@ -1257,6 +1298,44 @@ def test_paper_gate_failures_are_exposed_as_numeric_metrics():
     assert metrics["paper_fail_oos_trades"] == 1.0
     assert metrics["paper_fail_wf_active_frac"] == 1.0
     assert metrics["paper_fail_oos_return"] == 0.0
+
+
+def test_optimizer_paper_gate_accepts_headless_fib_entries():
+    cfg = type(
+        "Cfg",
+        (),
+        {
+            "metrics": type(
+                "Metrics",
+                (),
+                {
+                    "min_trades": 1,
+                    "min_oos_trades": 1,
+                    "min_oos_profit_factor": 1.0,
+                    "min_oos_return_pct": 0.0,
+                    "max_oos_dd_pct": 20.0,
+                    "min_wf_positive_frac": 0.5,
+                    "min_wf_active_frac": 0.5,
+                    "min_wf_profit_factor": 1.0,
+                    "min_mc_profit_factor": 1.0,
+                },
+            )()
+        },
+    )()
+    metrics = {
+        "trades": 2,
+        "oos_profitFactor": 1.2,
+        "oos_trades": 2,
+        "oos_return_pct": 1.0,
+        "oos_maxDDPct": 5.0,
+        "wf_positive_frac": 0.7,
+        "wf_active_frac": 0.7,
+        "wf_pf_mean": 1.1,
+        "mc_pf_mean": 1.1,
+    }
+
+    assert api._paper_gate_failures(metrics, cfg, {"entry_mode": "Fib", "use_fib_ret": True}) == []
+    assert api._paper_gate_failures(metrics, cfg, {"entry_mode": "Unsupported"}) == ["paper_runner_entry_mode"]
 
 
 def test_optimizer_validation_pool_includes_diverse_training_winners():

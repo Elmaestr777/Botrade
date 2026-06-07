@@ -128,6 +128,74 @@ function intervalSeconds(tf: string) {
   return n * (unit === 'm' ? 60 : unit === 'h' ? 3600 : unit === 'd' ? 86400 : 604800);
 }
 
+function isEntryPending(pos: any) {
+  return !!(pos && pos.pending);
+}
+
+function isFibPendingOnly(pos: any) {
+  return !!(pos && pos.pendingFib);
+}
+
+function isOpenPosition(pos: any) {
+  return !!(pos && !pos.pending && !pos.pendingFib);
+}
+
+function extractFibPending(pos: any) {
+  if (isFibPendingOnly(pos)) {
+    return {
+      pendingFib: { dir: pos.dir, levels: Array.isArray(pos.levels) ? pos.levels : [], mode: pos.mode || 'Bounce', signalTime: pos.signalTime },
+      pos: null,
+    };
+  }
+  if (pos?.fibPending) {
+    const pendingFib = pos.fibPending;
+    const clean = { ...pos };
+    delete clean.fibPending;
+    return { pendingFib, pos: clean };
+  }
+  return { pendingFib: null, pos };
+}
+
+function persistedPosition(pos: any, pendingFib: any) {
+  if (pendingFib) {
+    if (isOpenPosition(pos) || isEntryPending(pos)) return { ...pos, fibPending: pendingFib };
+    return { pendingFib: true, ...pendingFib };
+  }
+  return pos || null;
+}
+
+function buildFibPending(params: any, seg: any, dir: 'long'|'short', signalTime: number) {
+  if (!seg) return null;
+  const A = seg.a.price, B = seg.b.price;
+  const up = seg.dir === 'up';
+  const move = Math.abs(B - A);
+  const levels = [];
+  if (params.ent382 !== false) levels.push(up ? (B - move * 0.382) : (B + move * 0.382));
+  if (params.ent500 !== false) levels.push(up ? (B - move * 0.5) : (B + move * 0.5));
+  if (params.ent618 !== false) levels.push(up ? (B - move * 0.618) : (B + move * 0.618));
+  if (params.ent786) levels.push(up ? (B - move * 0.786) : (B + move * 0.786));
+  return levels.length ? { dir, levels, mode: params.confirmMode || 'Bounce', signalTime } : null;
+}
+
+function fibPendingHit(pending: any, bar: any) {
+  if (!pending || !Array.isArray(pending.levels) || !pending.levels.length) return false;
+  for (const raw of pending.levels) {
+    const lv = Number(raw);
+    if (!Number.isFinite(lv)) continue;
+    if (pending.dir === 'long') {
+      if (pending.mode === 'Touch' ? bar.low <= lv : (bar.low <= lv && bar.close > lv)) return true;
+    } else if (pending.mode === 'Touch' ? bar.high >= lv : (bar.high >= lv && bar.close < lv)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function normalizedEntryMode(params: any) {
+  const mode = String(params?.entryMode || 'Both');
+  return mode === 'Fib' ? 'Fib Retracement' : mode;
+}
+
 // ===== Engine per session =====
 function mergeDuplicateTargets(list: any[]) {
   const out: any[] = [];
@@ -289,6 +357,9 @@ async function processSession(c: any, s: any) {
 
   // Read persisted position state
   let pos = s.pos || null;
+  const restored = extractFibPending(pos);
+  pos = restored.pos;
+  let pendingFib = restored.pendingFib;
   const events: any[] = [];
 
   function addEvent(kind: string, payload: any) { events.push({ kind, payload, at_time: new Date(payload.time * 1000).toISOString() }); }
@@ -303,7 +374,7 @@ async function processSession(c: any, s: any) {
     const emaLen = Math.max(1, parseInt(params.emaLen || 55));
 
     // A signal is known only at candle close, so its order is filled at the next candle open.
-    if (pos?.pending) {
+    if (isEntryPending(pos)) {
       const pending = pos;
       pos = null;
       const dir: 'long'|'short' = pending.dir;
@@ -323,11 +394,11 @@ async function processSession(c: any, s: any) {
         const riskAbs = Math.abs(entry - sl);
         const targets = buildTargets(params, segAtOpen, dir, entry, riskAbs, bars, decisionIdx);
         pos = { dir, entry, sl, initSL: sl, qty, initQty: qty, entryTime: bar.time, beActive: false, anyTP: false, tpIdx: 0, targets, hiSince: entry, loSince: entry };
-        addEvent('entry', { time: bar.time, signalTime: pending.signalTime, dir, entry, sl, qty });
+        addEvent('entry', { time: bar.time, signalTime: pending.signalTime, type: pending.type || 'LB', dir, entry, sl, qty });
       }
     }
 
-    if (pos && !pos.pending) {
+    if (isOpenPosition(pos)) {
       // UPDATE
       pos.hiSince = Math.max(pos.hiSince || bar.high, bar.high);
       pos.loSince = Math.min(pos.loSince || bar.low, bar.low);
@@ -373,7 +444,7 @@ async function processSession(c: any, s: any) {
         }
       }
       // TP sequential
-      if (pos && pos.targets && pos.tpIdx < pos.targets.length) {
+      if (isOpenPosition(pos) && pos.targets && pos.tpIdx < pos.targets.length) {
         while (pos && pos.tpIdx < pos.targets.length) {
           const tp = pos.targets[pos.tpIdx];
           const hit = pos.dir === 'long' ? (bar.high >= tp.price) : (bar.low <= tp.price);
@@ -393,9 +464,13 @@ async function processSession(c: any, s: any) {
       }
     }
 
-    if (trendNow !== trendPrev && params.entryMode !== 'Fib Retracement') {
+    const entryMode = normalizedEntryMode(params);
+    const useOrig = entryMode !== 'Fib Retracement';
+    const useFib = params.useFibRet !== false && entryMode !== 'Original';
+    if (trendNow !== trendPrev) {
       const nextDir: 'long'|'short' = (trendNow === 1 ? 'long' : 'short');
-      if (pos && !pos.pending && pos.dir !== nextDir) {
+      pendingFib = useFib ? buildFibPending(params, segAtClose, nextDir, bar.time) : null;
+      if (useOrig && isOpenPosition(pos) && pos.dir !== nextDir) {
         const exit = bar.close; const portionQty = pos.qty;
         const pnl = (pos.dir === 'long' ? (exit - pos.entry) : (pos.entry - exit)) * portionQty;
         const fees = (pos.entry * portionQty + exit * portionQty) * feePct;
@@ -403,7 +478,25 @@ async function processSession(c: any, s: any) {
         addEvent('flip', { time: bar.time, dir: pos.dir, entry: pos.entry, exit, qty: portionQty, pnl, fees, net });
         pos = null;
       }
-      if (!pos) pos = { pending: true, dir: nextDir, signalTime: bar.time };
+      if (useOrig && !isOpenPosition(pos) && !isEntryPending(pos)) pos = { pending: true, type: 'LB', dir: nextDir, signalTime: bar.time };
+    }
+
+    if (useFib && pendingFib && !isEntryPending(pos) && fibPendingHit(pendingFib, bar)) {
+      const nextDir: 'long'|'short' = pendingFib.dir;
+      if (isOpenPosition(pos) && pos.dir === nextDir) {
+        pendingFib = null;
+      } else {
+        if (isOpenPosition(pos)) {
+          const exit = bar.close; const portionQty = pos.qty;
+          const pnl = (pos.dir === 'long' ? (exit - pos.entry) : (pos.entry - exit)) * portionQty;
+          const fees = (pos.entry * portionQty + exit * portionQty) * feePct;
+          const net = pnl - fees; equity += net; if (equity < 0) equity = 0;
+          addEvent('flip', { time: bar.time, dir: pos.dir, entry: pos.entry, exit, qty: portionQty, pnl, fees, net });
+          pos = null;
+        }
+        pos = { pending: true, type: 'Fib', dir: nextDir, signalTime: bar.time };
+        pendingFib = null;
+      }
     }
 
     lastTs = bar.time;
@@ -420,7 +513,7 @@ async function processSession(c: any, s: any) {
     }
   }
 
-  const { error: e2 } = await c.from('live_sessions').update({ equity, last_bar_time: lastTs, pos, updated_at: new Date().toISOString() }).eq('id', s.id);
+  const { error: e2 } = await c.from('live_sessions').update({ equity, last_bar_time: lastTs, pos: persistedPosition(pos, pendingFib), updated_at: new Date().toISOString() }).eq('id', s.id);
   if (e2) console.warn('update live_sessions', e2.message || e2);
   return { updated: true, events: events.length };
 }

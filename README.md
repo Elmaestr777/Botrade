@@ -44,7 +44,7 @@ Notes
 - Paper sessions are Supabase-only. `list_paper_candidates.py` prints exact Supabase strategy IDs and commands, while `start_paper_candidate.py` refuses non-eligible, over-risked, over-leveraged strategies and never writes local strategy state.
 - Live preparation is audit-only by default: `prepare_live_candidate.py` refuses failed paper gates, weak strategy-analysis metrics, risk/leverage violations, unsupported entries, and never creates live sessions or orders.
 - Optional `HEAVEN_RUN_TYPE` (`NEW` or `LAB`) and `HEAVEN_CAMPAIGN_ID` values are stored with each run.
-- The recent matrix defaults to `Original` entries because the headless paper runner does not yet execute Fib retracement entries.
+- The recent matrix defaults to `Original` entries for conservative first passes; use `--include-fib` to explore Fib Retracement and Both entries now supported by the headless paper runner.
 - Simulation and paper runners only use pivots after their confirmation delay, close flip exits at signal close, and enter the next trade at the following candle open.
 - A runner that cannot cover all missed candles stops the paper session with a `history_gap` event instead of silently replaying partial history.
 - Optional numba acceleration can be enabled if available.

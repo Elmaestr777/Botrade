@@ -36,7 +36,7 @@ Generate a Supabase audit plan before any live activation:
 python prepare_live_candidate.py --session-name paper-btcusdc-4h --strategy-id <heaven_strategies.id> --target-session-name live-btcusdc-4h --record-event --strict-exit
 ```
 
-This is audit-only: it checks the validated paper gates, the selected Supabase strategy analysis metrics, Original entry mode, risk cap, leverage cap, and target naming. It does not create live sessions or place orders.
+This is audit-only: it checks the validated paper gates, the selected Supabase strategy analysis metrics, supported headless entry mode, risk cap, leverage cap, and target naming. It does not create live sessions or place orders.
 
 ## Deploy
 - Use a container platform (Railway/Render/Fly/Cloud Run). Provide envs and run `node runner/index.js`.
@@ -46,6 +46,6 @@ This is audit-only: it checks the validated paper gates, the selected Supabase s
 - Groups sessions by (symbol, tf) and shares one stream per group.
 - Loads the repository-root `.env.runner` file, then falls back to a standard `.env`.
 - Reconnects closed Binance streams with backoff jitter and closes unused streams.
-- Persists TP targets inside the session position so open positions survive runner restarts.
-- Uses a simplified copy of the engine (Line Break + TP/SL/BE).
+- Persists TP targets and pending Fib entries inside the session position so open positions and pending retracements survive runner restarts.
+- Uses a simplified copy of the engine (Line Break/Fib entries + TP/SL/BE).
 - Processes only paper sessions: sessions linked to a non-paper wallet are ignored. Legacy public sessions without `wallet_id` are still treated as paper.

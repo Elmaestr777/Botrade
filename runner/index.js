@@ -29,6 +29,14 @@ function lastConfirmedSeg(piv, currentIdx, prd){ const available=(piv||[]).filte
 function emaAt(bars, len, idx){ const k=2/(Math.max(1,len)+1); let ema=null; for(let i=0;i<=idx && i<bars.length;i++){ const v=bars[i].close; ema=(ema==null? v : v*k + ema*(1-k)); } return ema; }
 function intervalSeconds(tf){ const m=String(tf||'').match(/^(\d+)([mhdw])$/i); if(!m) return 60; const n=Math.max(1,Number(m[1])||1); const unit=m[2].toLowerCase(); return n*(unit==='m'?60:unit==='h'?3600:unit==='d'?86400:604800); }
 function sessionEquity(st){ return Number(st.equity??st.start_cap??0)||0; }
+function isEntryPending(pos){ return !!(pos && pos.pending); }
+function isFibPendingOnly(pos){ return !!(pos && pos.pendingFib); }
+function isOpenPosition(pos){ return !!(pos && !pos.pending && !pos.pendingFib); }
+function restoreFibPending(st){ if(isFibPendingOnly(st.pos)){ st.pendingFib={ dir:st.pos.dir, levels:Array.isArray(st.pos.levels)?st.pos.levels:[], mode:st.pos.mode||'Bounce', signalTime:st.pos.signalTime }; st.pos=null; } else if(st.pos && st.pos.fibPending){ st.pendingFib=st.pos.fibPending; delete st.pos.fibPending; } }
+function persistedPosition(st){ if(st.pendingFib){ if(isOpenPosition(st.pos) || isEntryPending(st.pos)) return { ...st.pos, fibPending:st.pendingFib }; return { pendingFib:true, ...st.pendingFib }; } return st.pos || null; }
+function buildFibPending(params, seg, dir, signalTime){ if(!seg) return null; const A=seg.a.price, B=seg.b.price; const up=seg.dir==='up'; const move=Math.abs(B-A); const levels=[]; if(params.ent382!==false) levels.push(up? (B - move*0.382) : (B + move*0.382)); if(params.ent500!==false) levels.push(up? (B - move*0.5) : (B + move*0.5)); if(params.ent618!==false) levels.push(up? (B - move*0.618) : (B + move*0.618)); if(params.ent786) levels.push(up? (B - move*0.786) : (B + move*0.786)); return levels.length? { dir, levels, mode:params.confirmMode||'Bounce', signalTime }: null; }
+function fibPendingHit(pending, bar){ if(!pending || !Array.isArray(pending.levels) || !pending.levels.length) return false; for(const raw of pending.levels){ const lv=Number(raw); if(!Number.isFinite(lv)) continue; if(pending.dir==='long'){ if(pending.mode==='Touch'? bar.low<=lv : (bar.low<=lv && bar.close>lv)) return true; } else if(pending.mode==='Touch'? bar.high>=lv : (bar.high>=lv && bar.close<lv)) return true; } return false; }
+function normalizedEntryMode(params){ const mode=String(params?.entryMode||'Both'); return mode==='Fib'? 'Fib Retracement':mode; }
 
 async function fetchRecentClosedBars(symbol, tf, limit=1000){
   const url=new URL(BINANCE_REST); url.searchParams.set('symbol', String(symbol).toUpperCase()); url.searchParams.set('interval', String(tf)); url.searchParams.set('limit', String(limit));
@@ -98,21 +106,22 @@ async function onBar(st, bar){
   if(Number(st.last_bar_time||0)>0 && bar.time<=Number(st.last_bar_time)) return;
   // Simple per-bar engine replicating edge logic
   const p = st.params; const feePct=(Number(st.fee)||0.1)/100; const lev=Number(st.lev)||1;
+  restoreFibPending(st);
   // Maintain rolling arrays (small for lb/piv)
   if(!st.bars) st.bars=[]; const arr=st.bars; const last=arr[arr.length-1]; if(last && last.time===bar.time){ arr[arr.length-1]=bar; } else { arr.push(bar); if(arr.length>2000) arr.shift(); }
   const prd=Math.max(2, parseInt(p.prd||15)); const lb = lbState(arr, Math.max(1, parseInt(p.nol||3))); const piv = pivots(arr, prd);
   const i = arr.length-1; const trendNow=lb.trend[i], trendPrev=lb.trend[i-1]??trendNow;
   const segAtOpen=lastConfirmedSeg(piv, i, prd); const segAtClose=lastConfirmedSeg(piv, i+1, prd);
   const emit = async (kind, payload)=>{ const row={ session_id: st.id, kind, at_time: new Date((payload.time||bar.time)*1000).toISOString(), payload }; const { error } = await supa.from('live_events').insert([row]); if(error) console.warn('[runner] insert event', error.message||error); };
-  if(st.pos && st.pos.pending){
+  if(isEntryPending(st.pos)){
     const pending=st.pos; st.pos=null;
     const dir=pending.dir; const entry=bar.open; const riskPx=entry*((Number(p.slInitPct||2.0))/100); const sl=dir==='long'? (entry-riskPx) : (entry+riskPx);
     const equity=sessionEquity(st); const notional=equity*Math.max(1,lev); const qty0=notional/Math.max(1e-12, entry); const riskAbs=Math.abs(entry-sl); const perUnit=riskAbs+((Math.abs(entry)+Math.abs(sl))*feePct); const riskPct=(p.riskMgmt===false)?100:Math.max(0,Number(p.riskMaxPct)||1); const qtyRisk=perUnit>0?((equity*riskPct/100)/perUnit):0; const qty=Math.max(0,Math.min(qty0,qtyRisk));
     if(qty>1e-12){ const targets=buildTargets(p, segAtOpen, dir, entry, riskAbs, arr, Math.max(0,i-1)); st.pos={ dir, entry, sl, initSL:sl, qty, initQty:qty, entryTime:bar.time, beActive:false, tpIdx:0, targets, hiSince:entry, loSince:entry };
-      await emit('entry', { time:bar.time, signalTime:pending.signalTime, dir, entry, sl, qty }); }
+      await emit('entry', { time:bar.time, signalTime:pending.signalTime, type:pending.type||'LB', dir, entry, sl, qty }); }
   }
-  if(st.pos && !Array.isArray(st.pos.targets)){ const initSL=Number(st.pos.initSL!=null?st.pos.initSL:st.pos.sl); const riskAbs=Math.abs(Number(st.pos.entry)-initSL); st.pos.targets=buildTargets(p, segAtClose, st.pos.dir, Number(st.pos.entry), riskAbs, arr, i); }
-  if(st.pos){
+  if(isOpenPosition(st.pos) && !Array.isArray(st.pos.targets)){ const initSL=Number(st.pos.initSL!=null?st.pos.initSL:st.pos.sl); const riskAbs=Math.abs(Number(st.pos.entry)-initSL); st.pos.targets=buildTargets(p, segAtClose, st.pos.dir, Number(st.pos.entry), riskAbs, arr, i); }
+  if(isOpenPosition(st.pos)){
     const pos=st.pos; pos.hiSince=Math.max(pos.hiSince||bar.high, bar.high); pos.loSince=Math.min(pos.loSince||bar.low, bar.low);
     if(p.beEnable && !pos.beActive){ const barsSince=Math.max(0,Math.floor((bar.time-pos.entryTime)/intervalSeconds(st.tf))); const movePct = pos.dir==='long'? ((bar.high-pos.entry)/pos.entry*100) : ((pos.entry-bar.low)/pos.entry*100); if(barsSince>=Math.max(1,parseInt(p.beAfterBars||5)) && movePct >= Number(p.beLockPct||5.0)){ pos.beActive=true; pos.sl=pos.entry; await emit('be', { time: bar.time, dir:pos.dir, sl:pos.sl }); } }
     // SL check
@@ -122,18 +131,34 @@ async function onBar(st, bar){
       if(bar.high >= pos.sl){ const pnl=(pos.entry - pos.sl)*pos.qty; const fees=(pos.entry*pos.qty + pos.sl*pos.qty)*feePct; const net=pnl-fees; st.equity=sessionEquity(st)+net; if(st.equity<0) st.equity=0; await emit('sl', { time: bar.time, dir:pos.dir, entry:pos.entry, exit:pos.sl, qty:pos.qty, pnl, fees, net }); st.pos=null; }
     }
     // TP check (sequential)
-    if(st.pos && Array.isArray(st.pos.targets) && st.pos.tpIdx < st.pos.targets.length){
+    if(isOpenPosition(st.pos) && Array.isArray(st.pos.targets) && st.pos.tpIdx < st.pos.targets.length){
       while(st.pos && st.pos.tpIdx<st.pos.targets.length){ const tp=st.pos.targets[st.pos.tpIdx]; const hit = st.pos.dir==='long'? (bar.high>=tp.price) : (bar.low<=tp.price); if(!hit) break; const usedQty = Math.min(st.pos.initQty*(tp.w||1), st.pos.qty); const exitPx=tp.price; const pnl=(st.pos.dir==='long'? (exitPx - st.pos.entry):(st.pos.entry - exitPx))*usedQty; const fees=(st.pos.entry*usedQty + exitPx*usedQty)*feePct; const net=pnl-fees; st.equity=sessionEquity(st)+net; if(st.equity<0) st.equity=0; await emit('tp', { time: bar.time, dir:st.pos.dir, entry:st.pos.entry, exit:exitPx, qty:usedQty, pnl, fees, net, idx: st.pos.tpIdx+1 }); st.pos.qty -= usedQty; st.pos.tpIdx++; if(!p.tpCompound || st.pos.qty<=1e-12){ st.pos=null; break; } }
     }
   }
-  if(trendNow!==trendPrev && p.entryMode!=='Fib Retracement'){
+  const entryMode = normalizedEntryMode(p);
+  const useOrig = entryMode !== 'Fib Retracement';
+  const useFib = p.useFibRet !== false && entryMode !== 'Original';
+  if(trendNow!==trendPrev){
     const nextDir=(trendNow===1?'long':'short');
-    if(st.pos && st.pos.dir!==nextDir){ const exit=bar.close; const qty=st.pos.qty; const pnl=(st.pos.dir==='long'? (exit-st.pos.entry):(st.pos.entry-exit))*qty; const fees=(st.pos.entry*qty+exit*qty)*feePct; const net=pnl-fees; st.equity=sessionEquity(st)+net; if(st.equity<0) st.equity=0; await emit('flip', { time:bar.time, dir:st.pos.dir, entry:st.pos.entry, exit, qty, pnl, fees, net }); st.pos=null; }
-    if(!st.pos) st.pos={ pending:true, dir:nextDir, signalTime:bar.time };
+    st.pendingFib = useFib ? buildFibPending(p, segAtClose, nextDir, bar.time) : null;
+    if(useOrig){
+      if(isOpenPosition(st.pos) && st.pos.dir!==nextDir){ const exit=bar.close; const qty=st.pos.qty; const pnl=(st.pos.dir==='long'? (exit-st.pos.entry):(st.pos.entry-exit))*qty; const fees=(st.pos.entry*qty+exit*qty)*feePct; const net=pnl-fees; st.equity=sessionEquity(st)+net; if(st.equity<0) st.equity=0; await emit('flip', { time:bar.time, dir:st.pos.dir, entry:st.pos.entry, exit, qty, pnl, fees, net }); st.pos=null; }
+      if(!isOpenPosition(st.pos) && !isEntryPending(st.pos)) st.pos={ pending:true, type:'LB', dir:nextDir, signalTime:bar.time };
+    }
+  }
+  if(useFib && st.pendingFib && !isEntryPending(st.pos) && fibPendingHit(st.pendingFib, bar)){
+    const nextDir=st.pendingFib.dir;
+    if(isOpenPosition(st.pos) && st.pos.dir===nextDir){
+      st.pendingFib=null;
+    } else {
+      if(isOpenPosition(st.pos)){ const exit=bar.close; const qty=st.pos.qty; const pnl=(st.pos.dir==='long'? (exit-st.pos.entry):(st.pos.entry-exit))*qty; const fees=(st.pos.entry*qty+exit*qty)*feePct; const net=pnl-fees; st.equity=sessionEquity(st)+net; if(st.equity<0) st.equity=0; await emit('flip', { time:bar.time, dir:st.pos.dir, entry:st.pos.entry, exit, qty, pnl, fees, net }); st.pos=null; }
+      st.pos={ pending:true, type:'Fib', dir:nextDir, signalTime:bar.time };
+      st.pendingFib=null;
+    }
   }
   st.last_bar_time = bar.time;
   // Throttle session update writes
-  const now=Date.now(); if(!st.__lastSave || (now - st.__lastSave)>1500 || bar.closed){ st.__lastSave=now; const upd={ equity: st.equity, last_bar_time: st.last_bar_time, pos: st.pos, updated_at: new Date().toISOString() }; const { error:e2 }=await supa.from('live_sessions').update(upd).eq('id', st.id); if(e2) console.warn('[runner] update session', e2.message||e2); }
+  const now=Date.now(); if(!st.__lastSave || (now - st.__lastSave)>1500 || bar.closed){ st.__lastSave=now; const upd={ equity: st.equity, last_bar_time: st.last_bar_time, pos: persistedPosition(st), updated_at: new Date().toISOString() }; const { error:e2 }=await supa.from('live_sessions').update(upd).eq('id', st.id); if(e2) console.warn('[runner] update session', e2.message||e2); }
 }
 
 function mergeDuplicateTargets(list){ const out=[]; const seen=new Map(); for(const raw of Array.isArray(list)?list:[]){ const price=Number(raw&&raw.price); if(!Number.isFinite(price)) continue; const key=price.toFixed(8); const w=(raw.w!=null && isFinite(raw.w))? Number(raw.w): null; const existing=seen.get(key); if(existing){ if(w!=null) existing.w=(existing.w!=null && isFinite(existing.w))? existing.w+w : w; } else { const t={...raw, price}; if(w!=null) t.w=w; seen.set(key,t); out.push(t); } } return out; }

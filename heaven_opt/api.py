@@ -83,11 +83,23 @@ PAPER_GATE_NAMES = (
 )
 
 
+def _headless_entry_mode_supported(params: dict | None) -> bool:
+    params = params or {}
+    mode = str(params.get("entry_mode") or params.get("entryMode") or "Both")
+    if mode == "Fib Retracement":
+        mode = "Fib"
+    if mode not in {"Original", "Fib", "Both"}:
+        return False
+    if mode == "Fib" and not bool(params.get("use_fib_ret", params.get("useFibRet", True))):
+        return False
+    return True
+
+
 def _paper_gate_failures(metrics: dict, config: OptimizationConfig, params: dict | None = None) -> list[str]:
     cfg = config.metrics
     params = params or {}
     checks = [
-        ("paper_runner_entry_mode", str(params.get("entry_mode", "")) == "Original"),
+        ("paper_runner_entry_mode", _headless_entry_mode_supported(params)),
         ("train_trades", float(metrics.get("trades", 0.0)) >= float(cfg.min_trades)),
         ("oos_missing", "oos_profitFactor" in metrics),
         ("oos_trades", float(metrics.get("oos_trades", 0.0)) >= float(cfg.min_oos_trades)),

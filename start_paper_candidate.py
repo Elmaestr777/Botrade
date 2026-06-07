@@ -9,7 +9,7 @@ from typing import Any
 import requests
 
 from heaven_opt.env import load_repo_env
-from heaven_opt.supabase_io import normalize_ui_strategy_params
+from heaven_opt.supabase_io import headless_entry_mode_failures, normalize_ui_strategy_params
 
 
 def _required_env() -> tuple[str, str]:
@@ -97,8 +97,9 @@ def _get_strategy(
     row["params"] = params
     if float(metrics.get("paper_eligible") or 0.0) < 1.0:
         raise RuntimeError(f"Heaven strategy is not paper-eligible: {label}")
-    if str(params.get("entryMode") or "") != "Original":
-        raise RuntimeError("The headless paper runner currently supports only Original entries")
+    entry_failures = headless_entry_mode_failures(params)
+    if entry_failures:
+        raise RuntimeError("The headless paper runner supports Original, Fib Retracement and Both entries")
     return row
 
 
@@ -111,7 +112,7 @@ def paper_start_failures(
 ) -> list[str]:
     params = dict(strategy.get("params") or {})
     risk_pct = _num(params.get("riskMaxPct"))
-    failures: list[str] = []
+    failures: list[str] = headless_entry_mode_failures(params)
     if risk_pct <= 0.0 or risk_pct > max_risk_pct:
         failures.append("max_risk_pct")
     if leverage < 1.0 or leverage > max_leverage:

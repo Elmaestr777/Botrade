@@ -142,7 +142,6 @@ def build_config_data(
             "min_mc_profit_factor": 1.0,
         }
     )
-    # The current headless paper runner supports causal Line Break entries.
     data["entry_modes"] = ["Original", "Fib", "Both"] if include_fib else ["Original"]
     data["TP"]["mode"] = tp_mode
     if tp_mode == "Percent":
@@ -224,7 +223,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--date-to", help="UTC ISO end boundary; defaults to today's 00:00 UTC")
     parser.add_argument("--campaign-prefix", default="heaven-robust")
     parser.add_argument("--fast", action="store_true", help="Use a smaller first-pass search")
-    parser.add_argument("--include-fib", action="store_true", help="Explore Fib/Both entries, which are not paper-eligible yet")
+    parser.add_argument("--include-fib", action="store_true", help="Explore Fib/Both entries in addition to Original")
     parser.add_argument("--include-no-be", action="store_true", help="Explore disabling break-even in addition to the default enabled mode")
     parser.add_argument("--tp-mode", choices=("Fib", "Percent"), default="Fib")
     parser.add_argument("--max-combinations", type=int)

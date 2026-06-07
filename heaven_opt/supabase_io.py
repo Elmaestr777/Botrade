@@ -15,6 +15,28 @@ class SupabasePersistenceError(RuntimeError):
     """Raised when a required Heaven persistence operation fails."""
 
 
+HEADLESS_SUPPORTED_ENTRY_MODES = {"Original", "Fib Retracement", "Both"}
+
+
+def normalize_ui_entry_mode(value: Any) -> str:
+    mode = str(value or "Both")
+    if mode == "Fib":
+        return "Fib Retracement"
+    if mode in HEADLESS_SUPPORTED_ENTRY_MODES:
+        return mode
+    return mode
+
+
+def headless_entry_mode_failures(params: dict[str, Any] | None) -> list[str]:
+    params = dict(params or {})
+    mode = normalize_ui_entry_mode(params.get("entryMode"))
+    if mode not in HEADLESS_SUPPORTED_ENTRY_MODES:
+        return ["paper_runner_entry_mode"]
+    if mode == "Fib Retracement" and not bool(params.get("useFibRet", True)):
+        return ["paper_runner_entry_mode"]
+    return []
+
+
 def _headers(api_key: str) -> dict[str, str]:
     return {
         "apikey": api_key,
@@ -221,6 +243,8 @@ def _dedupe_ui_tp(tp: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def normalize_ui_strategy_params(params: dict[str, Any] | None) -> dict[str, Any]:
     out = dict(params or {})
+    if "entryMode" in out:
+        out["entryMode"] = normalize_ui_entry_mode(out.get("entryMode"))
     tp = out.get("tp")
     if isinstance(tp, list):
         deduped = _dedupe_ui_tp([dict(rung) for rung in tp if isinstance(rung, dict)])

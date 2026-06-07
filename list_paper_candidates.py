@@ -11,7 +11,7 @@ from typing import Any
 import requests
 
 from heaven_opt.env import load_repo_env
-from heaven_opt.supabase_io import normalize_ui_strategy_params
+from heaven_opt.supabase_io import headless_entry_mode_failures, normalize_ui_strategy_params
 
 
 def _required_env() -> tuple[str, str]:
@@ -98,7 +98,7 @@ def paper_candidate_failures(
     row: dict[str, Any],
     *,
     require_robust: bool = True,
-    require_original: bool = True,
+    require_supported_entry: bool = True,
     max_risk_pct: float = 1.0,
     max_leverage: float = 1.0,
 ) -> list[str]:
@@ -113,8 +113,8 @@ def paper_candidate_failures(
         failures.append("paper_gate_failures")
     if require_robust and _num(metrics.get("robustly_validated")) < 1.0:
         failures.append("robustly_validated")
-    if require_original and str(params.get("entryMode") or "") != "Original":
-        failures.append("original_entry_mode")
+    if require_supported_entry:
+        failures.extend(headless_entry_mode_failures(params))
     if risk_pct <= 0.0 or risk_pct > max_risk_pct:
         failures.append("max_risk_pct")
     if leverage < 1.0 or leverage > max_leverage:
@@ -171,7 +171,7 @@ def build_paper_candidate_report(
     top_n: int = 10,
     session_prefix: str = "paper",
     require_robust: bool = True,
-    require_original: bool = True,
+    require_supported_entry: bool = True,
     max_risk_pct: float = 1.0,
     max_leverage: float = 1.0,
 ) -> dict[str, Any]:
@@ -181,7 +181,7 @@ def build_paper_candidate_report(
         failures = paper_candidate_failures(
             row,
             require_robust=require_robust,
-            require_original=require_original,
+            require_supported_entry=require_supported_entry,
             max_risk_pct=max_risk_pct,
             max_leverage=max_leverage,
         )
@@ -276,7 +276,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-risk-pct", type=float, default=1.0)
     parser.add_argument("--max-leverage", type=float, default=1.0)
     parser.add_argument("--allow-unrobust", action="store_true")
-    parser.add_argument("--allow-non-original", action="store_true")
+    parser.add_argument("--allow-unsupported-entry", action="store_true")
+    parser.add_argument(
+        "--allow-non-original",
+        action="store_true",
+        help=argparse.SUPPRESS,
+    )
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
 
@@ -298,7 +303,7 @@ def main(argv: list[str] | None = None) -> int:
         top_n=args.top_n,
         session_prefix=args.session_prefix,
         require_robust=not bool(args.allow_unrobust),
-        require_original=not bool(args.allow_non_original),
+        require_supported_entry=not bool(args.allow_unsupported_entry or args.allow_non_original),
         max_risk_pct=float(args.max_risk_pct),
         max_leverage=float(args.max_leverage),
     )

@@ -374,9 +374,9 @@ def recommend_next_actions(summary: dict[str, Any]) -> list[dict[str, str]]:
     if entry_failures:
         recommendations.append(
             _recommendation(
-                "keep_original_entries_for_paper",
-                "Some candidates use entry modes unsupported by the current headless paper runner.",
-                "Run the matrix without --include-fib before starting paper sessions.",
+                "fix_unsupported_entry_modes",
+                "Some candidates use an entry mode or Fib setting unsupported by the headless paper runner.",
+                "Keep entry modes to Original, Fib Retracement, or Both before starting paper sessions.",
             )
         )
     if not recommendations:

@@ -4,6 +4,7 @@ import argparse
 import json
 from typing import Any
 
+from heaven_opt.supabase_io import headless_entry_mode_failures, normalize_ui_strategy_params
 from validate_paper_session import (
     _fetch_events,
     _fetch_session,
@@ -21,7 +22,7 @@ from validate_paper_session import (
 
 def _strategy_params(session: dict[str, Any]) -> dict[str, Any]:
     params = session.get("strategy_params") or {}
-    return dict(params) if isinstance(params, dict) else {}
+    return normalize_ui_strategy_params(dict(params)) if isinstance(params, dict) else {}
 
 
 def _strategy_lookup_params(strategy_name: str | None, strategy_id: str | None) -> dict[str, str]:
@@ -53,7 +54,7 @@ def _fetch_strategy(base: str, key: str, *, strategy_name: str | None, strategy_
     if len(rows) != 1:
         raise RuntimeError(f"Heaven strategy not found or ambiguous: {_strategy_label(strategy_name, strategy_id)}")
     row = dict(rows[0])
-    row["params"] = dict(row.get("params") or {})
+    row["params"] = normalize_ui_strategy_params(dict(row.get("params") or {}))
     row["metrics"] = dict(row.get("metrics") or {})
     return row
 
@@ -100,7 +101,6 @@ def live_preparation_failures(
     failures = [f"paper:{name}" for name in paper_failures]
     failures.extend(f"analysis:{name}" for name in analysis_failures)
     params = _strategy_params(session)
-    entry_mode = str(params.get("entryMode") or "")
     risk_pct = _num(params.get("riskMaxPct"), default=0.0)
     leverage = _num(session.get("lev"), default=_num(params.get("leverage"), default=1.0))
 
@@ -108,7 +108,7 @@ def live_preparation_failures(
         ("source_session_active", bool(session.get("active"))),
         ("target_session_name", bool(str(target_session_name or "").strip())),
         ("target_differs_from_paper", str(target_session_name or "").strip() != str(session.get("name") or "").strip()),
-        ("original_entry_mode", entry_mode == "Original"),
+        ("paper_runner_entry_mode", not headless_entry_mode_failures(params)),
         ("max_risk_pct", risk_pct > 0.0 and risk_pct <= max_risk_pct),
         ("max_leverage", leverage >= 1.0 and leverage <= max_leverage),
         ("paper_equity_positive", _num(metrics.get("equity")) > 0.0),
