@@ -1,4 +1,5 @@
 
+import os
 from pathlib import Path
 
 import pytest
@@ -11,6 +12,7 @@ from analyze_strategy_evaluations import (
 from heaven_opt import api, data_loader, simulator, supabase_io, validation
 from heaven_opt.analysis import trade_diagnostics
 from heaven_opt.combo_generator import generate_alloc_patterns
+from heaven_opt.env import load_repo_env
 from heaven_opt.optimizer_ea import EASpace, _ind_to_candidate
 from heaven_opt.optimizer_ml import propose_with_surrogate
 from heaven_opt.params import normalize_canonical_params
@@ -23,6 +25,10 @@ from heaven_opt.supabase_io import (
     normalize_ui_strategy_params,
 )
 from heaven_opt.utils import Bar
+from list_paper_candidates import build_paper_candidate_report, paper_candidate_failures
+from prepare_live_candidate import (
+    _strategy_lookup_params as _live_strategy_lookup_params,
+)
 from prepare_live_candidate import (
     analysis_gate_failures,
     build_live_preparation_plan,
@@ -33,6 +39,7 @@ from run_experiment_matrix import (
     build_config_data,
     latest_closed_day_boundary,
 )
+from start_paper_candidate import _strategy_lookup_params as _paper_strategy_lookup_params
 from validate_paper_session import compute_paper_metrics, paper_gate_failures
 
 
@@ -46,6 +53,33 @@ def test_allocation_normalization_quantization():
             assert sum(p) == 100
             for x in p:
                 assert int(x) % 5 == 0
+
+
+def test_load_repo_env_reads_runner_env_without_overwriting(monkeypatch, tmp_path):
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
+    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "already-exported")
+    env_file = tmp_path / ".env.runner"
+    env_file.write_text(
+        "\n".join(
+            [
+                "SUPABASE_URL=https://example.supabase.co",
+                "SUPABASE_SERVICE_ROLE_KEY='role-key'",
+                "SUPABASE_SERVICE_KEY=from-file",
+                "export HEAVEN_SEED=42",
+                "bad-key=ignored",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    loaded = load_repo_env(tmp_path)
+
+    assert loaded == [env_file]
+    assert os.getenv("SUPABASE_URL") == "https://example.supabase.co"
+    assert os.getenv("SUPABASE_SERVICE_ROLE_KEY") == "role-key"
+    assert os.getenv("SUPABASE_SERVICE_KEY") == "already-exported"
+    assert os.getenv("HEAVEN_SEED") == "42"
 
 
 def test_ema_tp_respects_its_allocation_with_precomputed_series():
@@ -493,6 +527,95 @@ def test_live_preparation_blocks_weak_or_mismatched_strategy_analysis():
         "analysis_gate_failures_empty",
         "analysis_params_match_session",
     ]
+
+
+def test_paper_and_live_strategy_lookup_accept_exactly_one_identifier():
+    assert _paper_strategy_lookup_params("heaven-btc", None) == {"name": "eq.heaven-btc"}
+    assert _paper_strategy_lookup_params(None, "strategy-1") == {"id": "eq.strategy-1"}
+    assert _live_strategy_lookup_params(None, "strategy-2") == {"id": "eq.strategy-2"}
+
+    with pytest.raises(RuntimeError, match="exactly one"):
+        _paper_strategy_lookup_params(None, None)
+    with pytest.raises(RuntimeError, match="exactly one"):
+        _live_strategy_lookup_params("heaven-btc", "strategy-1")
+
+
+def test_list_paper_candidates_filters_to_robust_original_strategies():
+    rows = [
+        {
+            "id": "abc123",
+            "name": "heaven-btc-15m",
+            "symbol": "BTCUSDC",
+            "tf": "15m",
+            "created_at": "2026-06-05T08:00:00Z",
+            "params": {"entryMode": "Original", "riskMaxPct": 0.75, "leverage": 1.0},
+            "metrics": {
+                "score": 0.82,
+                "robustness_score": 0.71,
+                "paper_eligible": 1.0,
+                "robustly_validated": 1.0,
+                "paper_gate_failures": [],
+            },
+        },
+        {
+            "id": "fib123",
+            "name": "heaven-btc-fib",
+            "symbol": "BTCUSDC",
+            "tf": "15m",
+            "params": {"entryMode": "Fib Retracement"},
+            "metrics": {"paper_eligible": 1.0, "robustly_validated": 1.0},
+        },
+        {
+            "id": "weak123",
+            "name": "heaven-btc-weak",
+            "symbol": "BTCUSDC",
+            "tf": "15m",
+            "params": {"entryMode": "Original"},
+            "metrics": {"paper_eligible": 1.0, "robustly_validated": 0.0},
+        },
+        {
+            "id": "fail123",
+            "name": "heaven-btc-fail",
+            "symbol": "BTCUSDC",
+            "tf": "15m",
+            "params": {"entryMode": "Original"},
+            "metrics": {"paper_eligible": 0.0, "robustly_validated": 1.0},
+        },
+    ]
+
+    report = build_paper_candidate_report(rows, top_n=5)
+
+    assert report["candidate_count"] == 1
+    assert report["excluded_failure_counts"] == {
+        "original_entry_mode": 1,
+        "paper_eligible": 1,
+        "robustly_validated": 1,
+    }
+    candidate = report["candidates"][0]
+    assert candidate["id"] == "abc123"
+    assert candidate["commands"]["start_paper"] == (
+        "python start_paper_candidate.py --strategy-id abc123 "
+        "--session-name paper-btcusdc-15m-abc123 --invoke-runner"
+    )
+    assert candidate["commands"]["validate_paper"] == (
+        "python validate_paper_session.py --session-name paper-btcusdc-15m-abc123 --record-event --strict-exit"
+    )
+    assert "--strategy-id abc123" in candidate["commands"]["audit_live"]
+
+
+def test_list_paper_candidates_can_explicitly_include_unrobust_candidates():
+    row = {
+        "id": "weak123",
+        "name": "heaven-btc-weak",
+        "symbol": "BTCUSDC",
+        "tf": "15m",
+        "params": {"entryMode": "Original"},
+        "metrics": {"paper_eligible": 1.0, "robustly_validated": 0.0},
+    }
+
+    assert paper_candidate_failures(row, require_robust=True) == ["robustly_validated"]
+    assert paper_candidate_failures(row, require_robust=False) == []
+    assert build_paper_candidate_report([row], require_robust=False)["candidate_count"] == 1
 
 
 def test_break_even_waits_for_the_configured_move_threshold():

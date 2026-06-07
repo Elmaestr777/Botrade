@@ -24,21 +24,34 @@ def _strategy_params(session: dict[str, Any]) -> dict[str, Any]:
     return dict(params) if isinstance(params, dict) else {}
 
 
-def _fetch_strategy(base: str, key: str, strategy_name: str) -> dict[str, Any]:
+def _strategy_lookup_params(strategy_name: str | None, strategy_id: str | None) -> dict[str, str]:
+    if bool(strategy_name) == bool(strategy_id):
+        raise RuntimeError("Use exactly one of --strategy-name or --strategy-id")
+    if strategy_id:
+        return {"id": f"eq.{strategy_id}"}
+    return {"name": f"eq.{strategy_name}"}
+
+
+def _strategy_label(strategy_name: str | None, strategy_id: str | None) -> str:
+    return str(strategy_id or strategy_name or "").strip()
+
+
+def _fetch_strategy(base: str, key: str, *, strategy_name: str | None, strategy_id: str | None) -> dict[str, Any]:
     import requests
 
+    lookup = _strategy_lookup_params(strategy_name, strategy_id)
     response = requests.get(
         f"{base}/rest/v1/heaven_strategies",
         params={
-            "select": "name,symbol,tf,params,metrics",
-            "name": f"eq.{strategy_name}",
+            "select": "id,name,symbol,tf,params,metrics",
+            **lookup,
         },
         headers=_headers(key),
         timeout=30,
     )
     rows = _json_response(response, "fetch live-prep strategy") or []
     if len(rows) != 1:
-        raise RuntimeError(f"Heaven strategy not found or ambiguous: {strategy_name}")
+        raise RuntimeError(f"Heaven strategy not found or ambiguous: {_strategy_label(strategy_name, strategy_id)}")
     row = dict(rows[0])
     row["params"] = dict(row.get("params") or {})
     row["metrics"] = dict(row.get("metrics") or {})
@@ -146,6 +159,7 @@ def build_live_preparation_plan(
             "leverage": _num(session.get("lev"), default=_num(params.get("leverage"), default=1.0)),
         },
         "strategy_analysis": {
+            "id": strategy.get("id"),
             "name": strategy.get("name"),
             "symbol": strategy.get("symbol"),
             "tf": strategy.get("tf"),
@@ -183,7 +197,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Prepare a controlled live-readiness audit from a Supabase paper session")
     parser.add_argument("--session-name")
     parser.add_argument("--session-id")
-    parser.add_argument("--strategy-name", required=True)
+    selector = parser.add_mutually_exclusive_group(required=True)
+    selector.add_argument("--strategy-name")
+    selector.add_argument("--strategy-id")
     parser.add_argument("--target-session-name", required=True)
     parser.add_argument("--events-limit", type=int, default=10_000)
     parser.add_argument("--min-days", type=float, default=7.0)
@@ -201,7 +217,7 @@ def main(argv: list[str] | None = None) -> int:
 
     base, key = _required_env()
     session = _fetch_session(base, key, args.session_name, args.session_id)
-    strategy = _fetch_strategy(base, key, args.strategy_name)
+    strategy = _fetch_strategy(base, key, strategy_name=args.strategy_name, strategy_id=args.strategy_id)
     wallet = _fetch_wallet(base, key, session.get("wallet_id"))
     events = _fetch_events(base, key, str(session["id"]), args.events_limit)
     gates = {

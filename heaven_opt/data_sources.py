@@ -5,11 +5,13 @@ from typing import Any
 
 import requests
 
+from .env import load_repo_env
 from .params import normalize_canonical_params
 from .scoring import composite_score
 
 
 def _rest_base_url() -> str | None:
+    load_repo_env()
     # Prefer explicit REST URL; else SUPABASE_URL + '/rest/v1'
     rest = os.getenv("SUPABASE_REST_URL")
     if rest:
@@ -21,6 +23,7 @@ def _rest_base_url() -> str | None:
 
 
 def fetch_history_from_supabase(symbol: str, tf: str, profile: str | None, max_rows: int = 2000) -> list[dict[str, Any]]:
+    load_repo_env()
     base = _rest_base_url()
     api_key = (
         os.getenv("SUPABASE_SERVICE_ROLE_KEY")

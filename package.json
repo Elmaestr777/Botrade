@@ -9,8 +9,8 @@
     "serve": "http-server -p 5173 -a 127.0.0.1 -c-1 .",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "lint:py": "python -m ruff check heaven_opt run_optimize.py run_experiment_matrix.py start_paper_candidate.py validate_paper_session.py prepare_live_candidate.py analyze_strategy_evaluations.py tests",
-    "lint:py:fix": "python -m ruff check --fix heaven_opt run_optimize.py run_experiment_matrix.py start_paper_candidate.py validate_paper_session.py prepare_live_candidate.py analyze_strategy_evaluations.py tests",
+    "lint:py": "python -m ruff check heaven_opt run_optimize.py run_experiment_matrix.py start_paper_candidate.py validate_paper_session.py prepare_live_candidate.py analyze_strategy_evaluations.py list_paper_candidates.py tests",
+    "lint:py:fix": "python -m ruff check --fix heaven_opt run_optimize.py run_experiment_matrix.py start_paper_candidate.py validate_paper_session.py prepare_live_candidate.py analyze_strategy_evaluations.py list_paper_candidates.py tests",
     "test": "npm run test:py",
     "test:py": "python -m pytest -q"
   },

@@ -9,6 +9,8 @@ from typing import Any
 
 import requests
 
+from heaven_opt.env import load_repo_env
+
 PAPER_GATE_ORDER = (
     "paper_runner_entry_mode",
     "train_trades",
@@ -28,10 +30,18 @@ PAPER_OR_LIVE_ACTIONS = {"prepare_controlled_paper", "validate_before_live"}
 
 
 def _required_env() -> tuple[str, str]:
+    load_repo_env()
     url = str(os.getenv("SUPABASE_URL") or "").rstrip("/")
-    key = str(os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_ANON_KEY") or "")
+    key = str(
+        os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+        or os.getenv("SUPABASE_SERVICE_KEY")
+        or os.getenv("SUPABASE_ANON_KEY")
+        or ""
+    )
     if not url or not key:
-        raise RuntimeError("SUPABASE_URL and SUPABASE_SERVICE_KEY or SUPABASE_ANON_KEY are required")
+        raise RuntimeError(
+            "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY, SUPABASE_SERVICE_KEY, or SUPABASE_ANON_KEY are required"
+        )
     return url, key
 
 

@@ -7,6 +7,7 @@ from typing import Any, Iterable
 import requests
 
 from .data_sources import _rest_base_url
+from .env import load_repo_env
 from .params import normalize_canonical_params
 
 
@@ -97,6 +98,7 @@ def _raise_for_status(response: Any) -> None:
 
 
 def _required_base(api_key: str) -> str:
+    load_repo_env()
     base = _rest_base_url()
     if not base:
         raise SupabasePersistenceError("SUPABASE_URL or SUPABASE_REST_URL is required")

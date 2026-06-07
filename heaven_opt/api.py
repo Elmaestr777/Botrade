@@ -12,6 +12,7 @@ from .combo_generator import (
     generate_tp_percent_combos,
 )
 from .data_loader import cached_fetch_klines_range
+from .env import load_repo_env
 from .params import normalize_canonical_params
 from .simulator import HeavenOpts, backtest_with_bars
 from .utils import duration_days, epoch_seconds_range, setup_logger, sha1_of_params
@@ -167,6 +168,7 @@ def _select_validation_candidate_indexes(results: list[dict], validation_count: 
 
 
 def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
+    load_repo_env()
     log = setup_logger()
     t0 = time.time()
     svc_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_SERVICE_KEY")

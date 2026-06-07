@@ -12,7 +12,7 @@ This Python package provides an optimization engine for the Heaven trading strat
 Quickstart
 - Install requirements: pip install -r requirements.txt
 - Create a config: see config.example.yaml
-- Set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_SERVICE_KEY`)
+- Set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_SERVICE_KEY`) in the shell, `.env`, or `.env.runner`
 - Run: python run_optimize.py --config config.example.yaml
 - Reproducible historical BTCUSDC 15m diagnostic: set `HEAVEN_SEED=20260603`, then run `python run_optimize.py --config config.btc15m.yaml`
 - Preview the recent pair/TF matrix: `python run_experiment_matrix.py --dry-run`
@@ -21,8 +21,9 @@ Quickstart
 - Explore short-TF break-even sensitivity: `python run_experiment_matrix.py --fast --tp-mode Percent --include-no-be`
 - Analyze a Supabase campaign and deduplicated next experiment commands: `python analyze_strategy_evaluations.py --campaign-prefix heaven-robust --symbol BTCUSDC --tf 15m`
 - Audit expected matrix coverage: `python analyze_strategy_evaluations.py --campaign-prefix heaven-robust --expected-symbols BTCUSDC ETHUSDC BNBUSDC --expected-timeframes 15m 1h 4h`
-- Start a paper session from an eligible Supabase strategy: `python start_paper_candidate.py --strategy-name <heaven_strategies.name> --session-name <paper-name> --invoke-runner`
-- Audit controlled live readiness from a validated paper session: `python prepare_live_candidate.py --session-name <paper-name> --strategy-name <heaven_strategies.name> --target-session-name <live-name> --record-event --strict-exit`
+- List concrete paper-ready Supabase strategies: `python list_paper_candidates.py --symbol BTCUSDC --tf 15m`
+- Start a paper session from an eligible Supabase strategy: `python start_paper_candidate.py --strategy-id <heaven_strategies.id> --session-name <paper-name> --invoke-runner`
+- Audit controlled live readiness from a validated paper session: `python prepare_live_candidate.py --session-name <paper-name> --strategy-id <heaven_strategies.id> --target-session-name <live-name> --record-event --strict-exit`
 
 Outputs
 - Evaluations in `strategy_evaluations`, scoped by an immutable `run_id`
@@ -40,7 +41,7 @@ Notes
 - Only strategies that pass the paper-trading gates are copied to `heaven_strategies`.
 - No strategy result or preset is written to local files by the optimizer.
 - Campaign analysis is Supabase-only: it reads persisted evaluations and prints the top candidates, failed validation gates, per symbol/TF readiness, and a deduplicated experiment plan.
-- Paper sessions are Supabase-only. `start_paper_candidate.py` refuses non-eligible strategies and never writes local strategy state.
+- Paper sessions are Supabase-only. `list_paper_candidates.py` prints exact Supabase strategy IDs and commands, while `start_paper_candidate.py` refuses non-eligible strategies and never writes local strategy state.
 - Live preparation is audit-only by default: `prepare_live_candidate.py` refuses failed paper gates, weak strategy-analysis metrics, risk/leverage violations, unsupported entries, and never creates live sessions or orders.
 - Optional `HEAVEN_RUN_TYPE` (`NEW` or `LAB`) and `HEAVEN_CAMPAIGN_ID` values are stored with each run.
 - The recent matrix defaults to `Original` entries because the headless paper runner does not yet execute Fib retracement entries.

@@ -24,6 +24,8 @@ Use the Supabase-only paper validator before preparing any live run:
 python validate_paper_session.py --session-name paper-btcusdc-4h --record-event --strict-exit
 ```
 
+Python Supabase tools load the repository-root `.env.runner` first if shell env vars are not already set.
+
 Default live-ready gates require 7 observed days, 20 trade exits, profit factor >= 1.10, positive return, drawdown <= 10%, no history gap, no open position, and a paper wallet.
 
 ## Controlled Live Preparation
@@ -31,10 +33,10 @@ Default live-ready gates require 7 observed days, 20 trade exits, profit factor 
 Generate a Supabase audit plan before any live activation:
 
 ```bash
-python prepare_live_candidate.py --session-name paper-btcusdc-4h --strategy-name heaven-btcusdc-4h-top-1 --target-session-name live-btcusdc-4h --record-event --strict-exit
+python prepare_live_candidate.py --session-name paper-btcusdc-4h --strategy-id <heaven_strategies.id> --target-session-name live-btcusdc-4h --record-event --strict-exit
 ```
 
-This is audit-only: it checks the validated paper gates, the named Supabase strategy analysis metrics, Original entry mode, risk cap, leverage cap, and target naming. It does not create live sessions or place orders.
+This is audit-only: it checks the validated paper gates, the selected Supabase strategy analysis metrics, Original entry mode, risk cap, leverage cap, and target naming. It does not create live sessions or place orders.
 
 ## Deploy
 - Use a container platform (Railway/Render/Fly/Cloud Run). Provide envs and run `node runner/index.js`.

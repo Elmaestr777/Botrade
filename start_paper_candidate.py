@@ -8,14 +8,23 @@ from typing import Any
 
 import requests
 
+from heaven_opt.env import load_repo_env
 from heaven_opt.supabase_io import normalize_ui_strategy_params
 
 
 def _required_env() -> tuple[str, str]:
+    load_repo_env()
     url = str(os.getenv("SUPABASE_URL") or "").rstrip("/")
-    key = str(os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_ANON_KEY") or "")
+    key = str(
+        os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+        or os.getenv("SUPABASE_SERVICE_KEY")
+        or os.getenv("SUPABASE_ANON_KEY")
+        or ""
+    )
     if not url or not key:
-        raise RuntimeError("SUPABASE_URL and SUPABASE_SERVICE_KEY or SUPABASE_ANON_KEY are required")
+        raise RuntimeError(
+            "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY, SUPABASE_SERVICE_KEY, or SUPABASE_ANON_KEY are required"
+        )
     return url, key
 
 
@@ -41,19 +50,38 @@ def _json_response(response: requests.Response, context: str) -> Any:
     return response.json()
 
 
-def _get_strategy(base: str, key: str, strategy_name: str) -> dict[str, Any]:
+def _strategy_lookup_params(strategy_name: str | None, strategy_id: str | None) -> dict[str, str]:
+    if bool(strategy_name) == bool(strategy_id):
+        raise RuntimeError("Use exactly one of --strategy-name or --strategy-id")
+    if strategy_id:
+        return {"id": f"eq.{strategy_id}"}
+    return {"name": f"eq.{strategy_name}"}
+
+
+def _strategy_label(strategy_name: str | None, strategy_id: str | None) -> str:
+    return str(strategy_id or strategy_name or "").strip()
+
+
+def _get_strategy(
+    base: str,
+    key: str,
+    *,
+    strategy_name: str | None,
+    strategy_id: str | None,
+) -> dict[str, Any]:
+    lookup = _strategy_lookup_params(strategy_name, strategy_id)
     response = requests.get(
         f"{base}/rest/v1/heaven_strategies",
         params={
-            "select": "name,symbol,tf,params,metrics",
-            "name": f"eq.{strategy_name}",
+            "select": "id,name,symbol,tf,params,metrics",
+            **lookup,
         },
         headers=_headers(key),
         timeout=30,
     )
     rows = _json_response(response, "fetch heaven strategy") or []
     if len(rows) != 1:
-        raise RuntimeError(f"Heaven strategy not found or ambiguous: {strategy_name}")
+        raise RuntimeError(f"Heaven strategy not found or ambiguous: {_strategy_label(strategy_name, strategy_id)}")
     row = dict(rows[0])
     metrics = dict(row.get("metrics") or {})
     params = normalize_ui_strategy_params(dict(row.get("params") or {}))
@@ -194,7 +222,9 @@ def _fetch_session(base: str, key: str, session_id: str) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Start a Supabase-only paper session from an eligible Heaven strategy")
-    parser.add_argument("--strategy-name", required=True)
+    selector = parser.add_mutually_exclusive_group(required=True)
+    selector.add_argument("--strategy-name")
+    selector.add_argument("--strategy-id")
     parser.add_argument("--session-name", required=True)
     parser.add_argument("--start-cap", type=float, default=10_000.0)
     parser.add_argument("--fee", type=float, default=0.1)
@@ -209,7 +239,7 @@ def main() -> int:
         raise RuntimeError("--fee cannot be negative")
 
     base, key = _required_env()
-    strategy = _get_strategy(base, key, args.strategy_name)
+    strategy = _get_strategy(base, key, strategy_name=args.strategy_name, strategy_id=args.strategy_id)
     params = dict(strategy.get("params") or {})
     leverage = float(args.leverage if args.leverage is not None else params.get("leverage") or 1.0)
     if leverage < 1.0:
@@ -235,6 +265,7 @@ def main() -> int:
             {
                 "session_id": verified["id"],
                 "session_name": verified["name"],
+                "strategy_id": strategy.get("id"),
                 "strategy_name": strategy["name"],
                 "symbol": verified["symbol"],
                 "tf": verified["tf"],
