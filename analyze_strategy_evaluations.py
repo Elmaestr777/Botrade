@@ -26,7 +26,12 @@ PAPER_GATE_ORDER = (
     "not_robustly_validated",
 )
 
-PAPER_OR_LIVE_ACTIONS = {"prepare_controlled_paper", "validate_before_live"}
+PAPER_OR_LIVE_ACTIONS = {
+    "list_paper_candidates",
+    "prepare_controlled_paper",
+    "validate_before_live",
+    "audit_controlled_live",
+}
 
 
 def _required_env() -> tuple[str, str]:
@@ -269,6 +274,17 @@ def _matrix_command(summary: dict[str, Any], *extra: str) -> str:
     return " ".join(parts)
 
 
+def _paper_candidate_command(summary: dict[str, Any], best: dict[str, Any]) -> str:
+    parts = ["python", "list_paper_candidates.py"]
+    symbol = best.get("symbol") or summary.get("symbol")
+    tf = best.get("tf") or summary.get("tf")
+    if symbol:
+        parts.extend(["--symbol", str(symbol)])
+    if tf:
+        parts.extend(["--tf", str(tf)])
+    return " ".join(parts)
+
+
 def recommend_next_actions(summary: dict[str, Any]) -> list[dict[str, str]]:
     rows = int(summary.get("rows") or 0)
     eligible = int(summary.get("paper_eligible") or 0)
@@ -289,9 +305,16 @@ def recommend_next_actions(summary: dict[str, Any]) -> list[dict[str, str]]:
         scope = f"{best.get('symbol')} {best.get('tf')} {best.get('campaign_id')}".strip()
         recommendations.append(
             _recommendation(
+                "list_paper_candidates",
+                f"Resolve the exact Supabase strategy id before starting paper for {scope}.",
+                _paper_candidate_command(summary, best),
+            )
+        )
+        recommendations.append(
+            _recommendation(
                 "prepare_controlled_paper",
                 f"At least one strategy passes the analysis gates for {scope}.",
-                "python start_paper_candidate.py --strategy-name <heaven_strategies.name> --session-name <paper-name> --invoke-runner",
+                "python start_paper_candidate.py --strategy-id <heaven_strategies.id> --session-name <paper-name> --invoke-runner",
             )
         )
         recommendations.append(
@@ -299,6 +322,13 @@ def recommend_next_actions(summary: dict[str, Any]) -> list[dict[str, str]]:
                 "validate_before_live",
                 "Live preparation still requires a Supabase paper-session validation audit.",
                 "python validate_paper_session.py --session-name <paper-name> --record-event --strict-exit",
+            )
+        )
+        recommendations.append(
+            _recommendation(
+                "audit_controlled_live",
+                "Only prepare live activation after the paper session and matching strategy pass all gates.",
+                "python prepare_live_candidate.py --session-name <paper-name> --strategy-id <heaven_strategies.id> --target-session-name <live-name> --record-event --strict-exit",
             )
         )
         return recommendations

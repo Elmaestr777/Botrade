@@ -1264,9 +1264,15 @@ def test_strategy_evaluation_analysis_summarizes_top_and_failures():
     assert summary["top"][0]["campaign_id"] == "camp-percent"
     assert summary["top"][1]["failures"] == ["oos_return", "wf_positive_frac"]
     assert [item["action"] for item in summary["recommendations"]] == [
+        "list_paper_candidates",
         "prepare_controlled_paper",
         "validate_before_live",
+        "audit_controlled_live",
     ]
+    assert (
+        summary["recommendations"][0]["command_hint"]
+        == "python list_paper_candidates.py --symbol BTCUSDC --tf 15m"
+    )
 
 
 def test_strategy_evaluation_analysis_reads_legacy_failure_lists():
@@ -1349,7 +1355,11 @@ def test_strategy_evaluation_analysis_groups_recommendations_by_symbol_tf():
     assert scopes[("BTCUSDC", "15m")]["status"] == "needs_more_experiments"
     assert scopes[("BTCUSDC", "15m")]["recommendations"][0]["action"] == "compare_exit_modes_and_expand_search"
     assert scopes[("ETHUSDC", "1h")]["status"] == "analysis_passed"
-    assert scopes[("ETHUSDC", "1h")]["recommendations"][0]["action"] == "prepare_controlled_paper"
+    assert scopes[("ETHUSDC", "1h")]["recommendations"][0]["action"] == "list_paper_candidates"
+    assert (
+        scopes[("ETHUSDC", "1h")]["recommendations"][0]["command_hint"]
+        == "python list_paper_candidates.py --symbol ETHUSDC --tf 1h"
+    )
 
 
 def test_strategy_evaluation_analysis_reports_missing_expected_scopes():
@@ -1465,6 +1475,20 @@ def test_strategy_evaluation_analysis_experiment_plan_separates_manual_paper_act
 
     plan = summary["experiment_plan"]
 
-    assert plan["commands"] == []
-    assert [item["category"] for item in plan["manual_actions"]] == ["paper_or_live", "paper_or_live"]
-    assert [item["source"] for item in plan["manual_actions"]] == ["ETHUSDC 1h", "ETHUSDC 1h"]
+    assert plan["commands"] == [
+        {
+            "category": "paper_or_live",
+            "action": "list_paper_candidates",
+            "source": "ETHUSDC 1h",
+            "command": "python list_paper_candidates.py --symbol ETHUSDC --tf 1h",
+            "reason": "Resolve the exact Supabase strategy id before starting paper for ETHUSDC 1h eth-camp.",
+        }
+    ]
+    assert [item["category"] for item in plan["manual_actions"]] == [
+        "paper_or_live",
+        "paper_or_live",
+        "paper_or_live",
+    ]
+    assert [item["source"] for item in plan["manual_actions"]] == ["ETHUSDC 1h", "ETHUSDC 1h", "ETHUSDC 1h"]
+    assert "--strategy-id <heaven_strategies.id>" in plan["manual_actions"][0]["instruction"]
+    assert "--strategy-id <heaven_strategies.id>" in plan["manual_actions"][2]["instruction"]
