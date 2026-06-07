@@ -3,9 +3,20 @@ from __future__ import annotations
 from collections.abc import Callable
 
 import optuna
+from optuna.trial import FrozenTrial, TrialState
 
 from .params import normalize_canonical_params
 from .scoring import composite_score
+
+
+def _top_complete_trials(study: optuna.Study, limit: int = 5) -> list[FrozenTrial]:
+    completed = [
+        trial
+        for trial in study.trials
+        if trial.state == TrialState.COMPLETE and trial.value is not None
+    ]
+    completed.sort(key=lambda trial: float(trial.value), reverse=True)
+    return completed[: max(1, int(limit))]
 
 
 def _objective_factory(seed_params: dict, global_bounds: dict[str, tuple], weights: dict[str, float], eval_candidate: Callable[[dict], dict], refine_radius: float):
@@ -71,10 +82,15 @@ def refine_seeds(seeds: list[dict],
         # Run trials possibly in parallel (threads). If n_jobs>1, Optuna will schedule concurrently.
         study.optimize(objective, n_trials=n_trials, n_jobs=max(1, int(n_jobs or 1)), show_progress_bar=False)
         out = []
-        for t in study.best_trials[:5]:
+        seen: set[tuple[tuple[str, object], ...]] = set()
+        for t in _top_complete_trials(study, limit=5):
             params = normalize_canonical_params(seed["params"].copy())
             params.update({k: t.params[k] for k in ["nol","prd","sl_init_pct","be_after_bars","be_lock_pct","ema_len"]})
             params = normalize_canonical_params(params)
+            key = tuple(sorted((k, tuple(v) if isinstance(v, list) else v) for k, v in params.items()))
+            if key in seen:
+                continue
+            seen.add(key)
             rep = eval_candidate(params)
             rep["score"] = composite_score(rep, weights)
             out.append({"params": params, "metrics": rep, "provenance": f"Bayesian(seed={idx})"})

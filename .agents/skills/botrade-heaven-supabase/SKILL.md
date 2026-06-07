@@ -58,7 +58,7 @@ Garder le workflow Heaven fiable: moteurs coherents, meilleures strategies stock
 - Les analyses de strategies doivent privilegier des metriques numeriques persistables (`diag_*`, `oos_diag_*`) plutot que des fichiers locaux.
 - `beEnable` peut etre optimise via `be_enable_values` ou `--include-no-be`, mais un candidat sans break-even doit respecter les memes criteres paper.
 - Une strategie non eligible au paper peut rester dans les evaluations et le palmares, mais ne doit pas etre copiee automatiquement dans `heaven_strategies`.
-- Le runner paper headless ne supporte actuellement que les entrees `Original`; les entrees Fib/Both ne doivent pas etre marquees eligibles avant parite moteur.
+- Le runner paper headless supporte les entrees `Original`, `Fib Retracement` et `Both`; les modes inconnus ou `Fib Retracement` avec `useFibRet=false` ne doivent pas etre marques eligibles.
 - Les wallets et sessions paper doivent rester Supabase-only; aucun fallback `localStorage` n'est autorise.
 - Les runners headless paper doivent ignorer tout wallet non-paper; le live reel exige une activation et un moteur separes explicitement controles.
 - Une session paper ne doit pas etre consideree live-ready sans validation Supabase des evenements reels (`live_events`) et sans gates explicites.

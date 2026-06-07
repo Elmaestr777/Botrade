@@ -13,6 +13,7 @@ from heaven_opt import api, data_loader, simulator, supabase_io, validation
 from heaven_opt.analysis import trade_diagnostics
 from heaven_opt.combo_generator import generate_alloc_patterns
 from heaven_opt.env import load_repo_env
+from heaven_opt.optimizer_bayes import _top_complete_trials
 from heaven_opt.optimizer_ea import EASpace, _ind_to_candidate
 from heaven_opt.optimizer_ml import propose_with_surrogate
 from heaven_opt.params import normalize_canonical_params
@@ -1351,6 +1352,22 @@ def test_optimizer_validation_pool_includes_diverse_training_winners():
 
     assert {0, 1}.issubset(selected)
     assert 3 in selected
+
+
+def test_bayesian_refinement_keeps_top_completed_trials():
+    import optuna
+
+    study = optuna.create_study(direction="maximize")
+    values = [0.2, 0.9, 0.0, 0.7, -0.1, 0.8]
+    for value in values:
+        trial = study.ask()
+        study.tell(trial, value)
+    pruned = study.ask()
+    study.tell(pruned, state=optuna.trial.TrialState.PRUNED)
+
+    top = _top_complete_trials(study, limit=5)
+
+    assert [trial.value for trial in top] == [0.9, 0.8, 0.7, 0.2, 0.0]
 
 
 def test_experiment_summary_reads_paper_failure_flags_in_gate_order():
