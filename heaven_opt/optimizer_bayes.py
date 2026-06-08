@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from collections.abc import Callable
 
 import optuna
@@ -71,16 +72,22 @@ def refine_seeds(seeds: list[dict],
                  sampler: str = "TPE",
                  refine_radius: float = 0.2,
                  n_jobs: int = 4,
-                 on_progress: Callable[[float, str], None] | None = None) -> list[dict]:
+                 on_progress: Callable[[float, str], None] | None = None,
+                 deadline_time: float | None = None) -> list[dict]:
     results: list[dict] = []
 
     def run_one(idx: int, seed: dict) -> list[dict]:
         objective = _objective_factory(seed["params"], global_bounds, weights, eval_candidate, refine_radius)
+        def timed_objective(trial: optuna.Trial) -> float:
+            if deadline_time is not None and time.time() >= deadline_time:
+                raise optuna.TrialPruned("Heaven time budget reached")
+            return objective(trial)
+
         sampler_obj = optuna.samplers.TPESampler() if sampler.upper() == "TPE" else optuna.samplers.QMCSampler()
         pruner = optuna.pruners.MedianPruner(n_warmup_steps=5, n_min_trials=10)
         study = optuna.create_study(direction="maximize", sampler=sampler_obj, pruner=pruner)
         # Run trials possibly in parallel (threads). If n_jobs>1, Optuna will schedule concurrently.
-        study.optimize(objective, n_trials=n_trials, n_jobs=max(1, int(n_jobs or 1)), show_progress_bar=False)
+        study.optimize(timed_objective, n_trials=n_trials, n_jobs=max(1, int(n_jobs or 1)), show_progress_bar=False)
         out = []
         seen: set[tuple[tuple[str, object], ...]] = set()
         for t in _top_complete_trials(study, limit=5):
@@ -97,6 +104,8 @@ def refine_seeds(seeds: list[dict],
         return out
 
     for i, seed in enumerate(seeds):
+        if deadline_time is not None and time.time() >= deadline_time:
+            break
         if on_progress:
             on_progress(0.0, f"Bayes seed {i+1}/{len(seeds)}")
         results.extend(run_one(i, seed))

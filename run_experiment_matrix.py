@@ -228,6 +228,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--tp-mode", choices=("Fib", "Percent"), default="Fib")
     parser.add_argument("--max-combinations", type=int)
     parser.add_argument("--top-n", type=int)
+    parser.add_argument("--time-budget-sec", type=float, help="Stop search/validation early enough to persist partial Supabase results")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
 
@@ -258,7 +259,8 @@ def main(argv: list[str] | None = None) -> int:
             holdout = data["validation"]["oos_split"]
             print(
                 f"{symbol} {tf}: train {general['date_from']} -> {holdout[0]}, "
-                f"holdout {holdout[0]} -> {holdout[1]}, campaign={campaign}"
+                f"holdout {holdout[0]} -> {holdout[1]}, campaign={campaign}",
+                flush=True,
             )
             if args.dry_run:
                 continue
@@ -268,14 +270,19 @@ def main(argv: list[str] | None = None) -> int:
                 "HEAVEN_RUN_TYPE": "NEW",
                 "HEAVEN_SEED": str(_seed_for(symbol, tf, date_to)),
             }
+            if args.time_budget_sec is not None:
+                env["HEAVEN_TIME_BUDGET_SEC"] = str(float(args.time_budget_sec))
             try:
                 config = OptimizationConfig(**data)
                 with _run_environment(env):
                     result = optimize_heaven(config)
-                print(_summary_line(symbol, tf, result))
+                for line in result.logs:
+                    if line.startswith("time_budget") or line.startswith("supabase_evaluations"):
+                        print(f"{symbol} {tf}: {line}", flush=True)
+                print(_summary_line(symbol, tf, result), flush=True)
             except Exception as exc:
                 failures += 1
-                print(f"{symbol} {tf}: ERROR {exc}")
+                print(f"{symbol} {tf}: ERROR {exc}", flush=True)
     return 1 if failures else 0
 
 

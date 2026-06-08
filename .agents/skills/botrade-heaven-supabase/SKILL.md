@@ -33,7 +33,7 @@ Garder le workflow Heaven fiable: moteurs coherents, meilleures strategies stock
 4. Faire echouer clairement les flux Heaven si Supabase est requis mais indisponible.
 5. Persister les meilleurs resultats dans `palmares_sets`, `palmares_entries` et, si recharge UI attendue, `heaven_strategies`.
 6. Donner un `run_id` commun aux evaluations, au set et aux entrees d'un meme run quand les colonnes de run existent.
-7. Pour une campagne multi-paires/TF, utiliser `run_experiment_matrix.py`: bougies cloturees, fenetre d'entrainement, holdout intact, puis gates paper. Sur les TF courts, ajouter `--include-no-be` pour tester `beEnable` actif/inactif sans relacher les gates.
+7. Pour une campagne multi-paires/TF, utiliser `run_experiment_matrix.py`: bougies cloturees, fenetre d'entrainement, holdout intact, puis gates paper. Sur les TF courts, ajouter `--include-no-be` pour tester `beEnable` actif/inactif sans relacher les gates; sur `1m`, utiliser `--time-budget-sec` plutot qu'un timeout externe brutal afin de persister les candidats partiels.
 8. Pour lancer un candidat paper, utiliser `start_paper_candidate.py` afin de refuser automatiquement les strategies non eligibles et de rester Supabase-only.
 9. Avant toute preparation live, utiliser `validate_paper_session.py` pour verifier les gates paper reels et enregistrer l'audit dans `live_events` si utile.
 10. Ajouter une migration de grants/RLS seulement si l'acces Data API ou la securite Supabase le justifie.
@@ -62,6 +62,7 @@ Garder le workflow Heaven fiable: moteurs coherents, meilleures strategies stock
 - Les wallets et sessions paper doivent rester Supabase-only; aucun fallback `localStorage` n'est autorise.
 - Les runners headless paper doivent ignorer tout wallet non-paper; le live reel exige une activation et un moteur separes explicitement controles.
 - Une session paper ne doit pas etre consideree live-ready sans validation Supabase des evenements reels (`live_events`) et sans gates explicites.
+- Un run coupe par budget temps doit persister ses candidats avec `time_budget_exhausted=1` et rester non eligible paper tant que la validation robuste n'est pas complete.
 - Une equity paper egale a zero est une valeur valide et ne doit jamais retomber sur `start_cap`.
 - Un runner qui ne peut pas couvrir toutes les bougies manquees doit arreter la session et signaler un `history_gap`, jamais simuler un rattrapage partiel silencieux.
 - Si plusieurs moteurs copient la logique Heaven, noter le risque de parite et tester le moteur modifie.

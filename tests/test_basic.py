@@ -14,7 +14,7 @@ from heaven_opt.analysis import trade_diagnostics
 from heaven_opt.combo_generator import generate_alloc_patterns
 from heaven_opt.env import load_repo_env
 from heaven_opt.optimizer_bayes import _top_complete_trials
-from heaven_opt.optimizer_ea import EASpace, _ind_to_candidate
+from heaven_opt.optimizer_ea import EASpace, _ind_to_candidate, run_ea
 from heaven_opt.optimizer_ml import propose_with_surrogate
 from heaven_opt.params import normalize_canonical_params
 from heaven_opt.scoring import composite_score, robustness_score
@@ -925,6 +925,43 @@ def test_ea_keeps_percent_tp_type_explicit():
     assert candidate["be_enable"] is False
 
 
+def test_ea_reuses_candidate_metrics_for_final_seeds():
+    space = EASpace(
+        nol_list=[3],
+        prd_list=[15],
+        sl_list=[1.0],
+        beb_list=[5],
+        bel_list=[5.0],
+        be_enable_list=[True],
+        ema_list=[55],
+        entry_modes=["Original"],
+        tp_vectors=[[0.5, 1.0, 2.0]],
+        alloc_patterns=[[30.0, 30.0, 40.0]],
+        tp_type="Percent",
+    )
+    calls = 0
+
+    def eval_candidate(_cand):
+        nonlocal calls
+        calls += 1
+        return {"profitFactor": 2.0, "totalPnl": 100.0, "maxDDPct": 1.0}
+
+    seeds = run_ea(
+        space,
+        {"pf": 1.0},
+        eval_candidate,
+        pop_size=3,
+        n_generations=1,
+        cx_prob=0.0,
+        mut_prob=0.0,
+        n_jobs=1,
+        early_stop_patience=None,
+    )
+
+    assert len(seeds) == 1
+    assert calls == 1
+
+
 def test_ml_surrogate_keeps_percent_tp_type_explicit():
     bounds = {
         "nol": (3.0, 3.0, 1.0),
@@ -1477,6 +1514,29 @@ def test_strategy_evaluation_analysis_recommends_next_experiments_from_failures(
         "favor_walk_forward_stability",
         "reduce_noise_sensitivity",
     ]
+
+
+def test_strategy_evaluation_analysis_recommends_budgeted_rerun():
+    summary = summarize_evaluations(
+        [
+            {
+                "campaign_id": "camp-budget",
+                "symbol": "BTCUSDC",
+                "tf": "1m",
+                "score": 0.1,
+                "metrics": {
+                    "paper_eligible": 0.0,
+                    "time_budget_exhausted": 1.0,
+                    "paper_fail_not_robustly_validated": 1.0,
+                },
+            }
+        ],
+        top_n=1,
+    )
+
+    assert summary["time_budget_exhausted"] == 1
+    assert summary["recommendations"][0]["action"] == "increase_time_budget_or_narrow_search"
+    assert "--time-budget-sec 900" in summary["recommendations"][0]["command_hint"]
 
 
 def test_strategy_evaluation_analysis_groups_recommendations_by_symbol_tf():

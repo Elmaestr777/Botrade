@@ -133,6 +133,7 @@ def summarize_evaluations(
             "wf_active_frac": _round(metrics.get("wf_active_frac"), 3),
             "wf_profit_factor": _round(metrics.get("wf_pf_mean"), 3),
             "mc_profit_factor": _round(metrics.get("mc_pf_mean"), 3),
+            "time_budget_exhausted": int(_num(metrics.get("time_budget_exhausted")) >= 1.0),
             "failures": failures,
             "created_at": row.get("created_at"),
         }
@@ -152,6 +153,7 @@ def summarize_evaluations(
         "rows": len(rows),
         "paper_eligible": eligible_count,
         "paper_ineligible": max(0, len(rows) - eligible_count),
+        "time_budget_exhausted": sum(1 for row in compact_rows if int(row.get("time_budget_exhausted") or 0) >= 1),
         "failure_counts": dict(sorted(failure_counts.items(), key=lambda item: (-item[1], item[0]))),
         "top": top,
         "best_by_scope": list(best_by_scope.values()),
@@ -190,12 +192,14 @@ def summarize_scopes(
         for row in rows_sorted:
             failure_counts.update(row.get("failures") or [])
         eligible_count = sum(1 for row in rows_sorted if int(row.get("paper_eligible") or 0) >= 1)
+        time_budget_count = sum(1 for row in rows_sorted if int(row.get("time_budget_exhausted") or 0) >= 1)
         summary = {
             "symbol": symbol,
             "tf": tf,
             "rows": len(rows_sorted),
             "paper_eligible": eligible_count,
             "paper_ineligible": max(0, len(rows_sorted) - eligible_count),
+            "time_budget_exhausted": time_budget_count,
             "failure_counts": dict(sorted(failure_counts.items(), key=lambda item: (-item[1], item[0]))),
             "top": rows_sorted[: max(1, int(top_n))],
         }
@@ -338,6 +342,27 @@ def recommend_next_actions(summary: dict[str, Any]) -> list[dict[str, str]]:
     trade_failures = _failure_count(summary, "train_trades", "oos_trades")
     mc_failures = _failure_count(summary, "mc_profit_factor")
     entry_failures = _failure_count(summary, "paper_runner_entry_mode")
+    time_budget_count = int(summary.get("time_budget_exhausted") or 0)
+
+    if time_budget_count:
+        recommendations.append(
+            _recommendation(
+                "increase_time_budget_or_narrow_search",
+                "The run persisted partial candidates but stopped before robust validation completed.",
+                _matrix_command(
+                    summary,
+                    "--include-no-be",
+                    "--tp-mode",
+                    "Percent",
+                    "--max-combinations",
+                    "300",
+                    "--top-n",
+                    "10",
+                    "--time-budget-sec",
+                    "900",
+                ),
+            )
+        )
 
     if oos_failures:
         recommendations.append(
@@ -507,7 +532,13 @@ def fetch_evaluations(
 
 
 def _print_text(summary: dict[str, Any]) -> None:
-    print(f"rows={summary['rows']} paper_eligible={summary['paper_eligible']} paper_ineligible={summary['paper_ineligible']}")
+    budget_suffix = ""
+    if int(summary.get("time_budget_exhausted") or 0) > 0:
+        budget_suffix = f" time_budget_exhausted={summary['time_budget_exhausted']}"
+    print(
+        f"rows={summary['rows']} paper_eligible={summary['paper_eligible']} "
+        f"paper_ineligible={summary['paper_ineligible']}{budget_suffix}"
+    )
     if summary.get("scope_coverage"):
         coverage = summary["scope_coverage"]
         print(

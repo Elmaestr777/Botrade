@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import random
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from multiprocessing.pool import ThreadPool
@@ -10,6 +11,7 @@ from deap import base, creator, tools
 
 from .params import normalize_canonical_params
 from .scoring import composite_score
+from .utils import sha1_of_params
 
 
 @dataclass
@@ -66,7 +68,8 @@ def run_ea(space: EASpace,
            n_jobs: int = 4,
            on_progress: Callable[[float, str], None] | None = None,
            early_stop_patience: int | None = 3,
-           early_stop_eps: float = 1e-9) -> list[dict]:
+           early_stop_eps: float = 1e-9,
+           deadline_time: float | None = None) -> list[dict]:
     # Genome: indices into lists
     gene_sizes = [
         len(space.nol_list), len(space.prd_list), len(space.sl_list), len(space.beb_list),
@@ -98,9 +101,20 @@ def run_ea(space: EASpace,
         i = random.randrange(len(ind))
         ind[i] = random.randrange(gene_sizes[i])
         return (ind,)
+    eval_cache: dict[str, dict] = {}
+
+    def evaluate_candidate_cached(cand: dict) -> dict:
+        key = sha1_of_params(cand)
+        cached = eval_cache.get(key)
+        if cached is not None:
+            return dict(cached)
+        rep = dict(eval_candidate(cand))
+        eval_cache[key] = rep
+        return dict(rep)
+
     def evaluate(ind):
         cand = _ind_to_candidate(ind, space)
-        rep = eval_candidate(cand)
+        rep = evaluate_candidate_cached(cand)
         score = composite_score(rep, weights)
         return (score,)
     toolbox.register("mate", mate)
@@ -123,6 +137,8 @@ def run_ea(space: EASpace,
         best_score = float('-inf')
         no_improve = 0
         for gen in range(n_generations):
+            if deadline_time is not None and time.time() >= deadline_time:
+                break
             # Evaluate fitness (parallel via toolbox.map if pool set)
             invalid = [ind for ind in pop if not ind.fitness.valid]
             if invalid:
@@ -163,7 +179,11 @@ def run_ea(space: EASpace,
                 offspring[: len(elites)] = elites
             pop[:] = offspring
         # Final evaluate
-        invalid = [ind for ind in pop if not ind.fitness.valid]
+        invalid = [
+            ind
+            for ind in pop
+            if not ind.fitness.valid and not (deadline_time is not None and time.time() >= deadline_time)
+        ]
         if invalid:
             fits = list(toolbox.map(toolbox.evaluate, invalid))
             for ind, fv in zip(invalid, fits):
@@ -175,9 +195,11 @@ def run_ea(space: EASpace,
             pool.join()
     # Build seeds from the final population plus the best individuals seen during the whole run.
     seeds: list[dict] = []
-    seed_pool = list(pop)
+    seed_pool = [ind for ind in pop if ind.fitness.valid]
     seen_genomes = {tuple(ind) for ind in seed_pool}
     for ind in hall:
+        if not ind.fitness.valid:
+            continue
         key = tuple(ind)
         if key in seen_genomes:
             continue
@@ -185,7 +207,7 @@ def run_ea(space: EASpace,
         seed_pool.append(ind)
     for ind in tools.selBest(seed_pool, k=min(len(seed_pool), 50)):
         cand = _ind_to_candidate(ind, space)
-        rep = eval_candidate(cand)
+        rep = evaluate_candidate_cached(cand)
         rep["score"] = composite_score(rep, weights)
         seeds.append({"params": cand, "metrics": rep, "provenance": "EA"})
     # Deduplicate by params

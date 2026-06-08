@@ -83,6 +83,38 @@ PAPER_GATE_NAMES = (
 )
 
 
+def _time_budget_deadlines(start_time: float) -> tuple[float | None, float | None]:
+    raw = os.getenv("HEAVEN_TIME_BUDGET_SEC")
+    if not raw:
+        return None, None
+    try:
+        budget_sec = float(raw)
+    except (TypeError, ValueError):
+        return None, None
+    if budget_sec <= 0:
+        return None, None
+    try:
+        reserve_sec = float(os.getenv("HEAVEN_PERSIST_RESERVE_SEC") or 30.0)
+    except (TypeError, ValueError):
+        reserve_sec = 30.0
+    reserve_sec = max(2.0, min(reserve_sec, budget_sec * 0.5))
+    return start_time + budget_sec, start_time + max(1.0, budget_sec - reserve_sec)
+
+
+def _deadline_reached(deadline_time: float | None) -> bool:
+    return deadline_time is not None and time.time() >= deadline_time
+
+
+def _mark_not_robustly_validated(metrics: dict, *, time_budget_exhausted: bool = False) -> None:
+    metrics["robustly_validated"] = 0.0
+    metrics["robustness_score"] = 0.0
+    metrics["paper_eligible"] = 0.0
+    metrics["paper_gate_failures"] = ["not_robustly_validated"]
+    if time_budget_exhausted:
+        metrics["time_budget_exhausted"] = 1.0
+    _annotate_paper_gate_failure_metrics(metrics, ["not_robustly_validated"])
+
+
 def _headless_entry_mode_supported(params: dict | None) -> bool:
     params = params or {}
     mode = str(params.get("entry_mode") or params.get("entryMode") or "Both")
@@ -183,6 +215,8 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
     load_repo_env()
     log = setup_logger()
     t0 = time.time()
+    budget_deadline, work_deadline = _time_budget_deadlines(t0)
+    time_budget_exhausted = False
     svc_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_SERVICE_KEY")
     if not svc_key or not (os.getenv("SUPABASE_URL") or os.getenv("SUPABASE_REST_URL")):
         raise RuntimeError(
@@ -351,32 +385,39 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
             tournament_size=int(config.EA.tournament_size),
             n_jobs=int(config.resource.n_jobs),
             on_progress=(config.on_progress if hasattr(config, 'on_progress') else None),
+            deadline_time=work_deadline,
         )
         # Select top-M seeds by score
         seeds.sort(key=lambda s: -float(s["metrics"].get("score", 0.0)))
         top_m = min(10, 2 * int(config.general.top_n_results))
         seeds = seeds[:top_m]
+        time_budget_exhausted = time_budget_exhausted or _deadline_reached(work_deadline)
         # Bayesian refinement
-        from .optimizer_bayes import refine_seeds
-        global_bounds = {
-            "nol": (min(nol_list), max(nol_list)),
-            "prd": (min(prd_list), max(prd_list)),
-            "sl_init_pct": (min(sl_list), max(sl_list)),
-            "be_after_bars": (min(beb_list), max(beb_list)),
-            "be_lock_pct": (min(bel_list), max(bel_list)),
-            "ema_len": (min(ema_list), max(ema_list)),
-        }
-        bayes_results = refine_seeds(
-            seeds,
-            global_bounds,
-            weights,
-            eval_candidate,
-            n_trials=int(config.Bayesian.n_trials),
-            sampler=str(config.Bayesian.sampler),
-            refine_radius=float(config.Bayesian.refine_radius),
-            n_jobs=int(config.resource.n_jobs),
-            on_progress=(config.on_progress if hasattr(config, 'on_progress') else None),
-        )
+        bayes_results = []
+        if not _deadline_reached(work_deadline):
+            from .optimizer_bayes import refine_seeds
+            global_bounds = {
+                "nol": (min(nol_list), max(nol_list)),
+                "prd": (min(prd_list), max(prd_list)),
+                "sl_init_pct": (min(sl_list), max(sl_list)),
+                "be_after_bars": (min(beb_list), max(beb_list)),
+                "be_lock_pct": (min(bel_list), max(bel_list)),
+                "ema_len": (min(ema_list), max(ema_list)),
+            }
+            bayes_results = refine_seeds(
+                seeds,
+                global_bounds,
+                weights,
+                eval_candidate,
+                n_trials=int(config.Bayesian.n_trials),
+                sampler=str(config.Bayesian.sampler),
+                refine_radius=float(config.Bayesian.refine_radius),
+                n_jobs=int(config.resource.n_jobs),
+                on_progress=(config.on_progress if hasattr(config, 'on_progress') else None),
+                deadline_time=work_deadline,
+            )
+        else:
+            time_budget_exhausted = True
         results = seeds + bayes_results
         # proceed to consolidation below
     elif mode == "ml_surrogate":
@@ -502,11 +543,11 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
     validation_indexes = _select_validation_candidate_indexes(results, validation_count)
     for result_idx, r in enumerate(results):
         if result_idx not in validation_indexes:
-            r["metrics"]["robustly_validated"] = 0.0
-            r["metrics"]["robustness_score"] = 0.0
-            r["metrics"]["paper_eligible"] = 0.0
-            r["metrics"]["paper_gate_failures"] = ["not_robustly_validated"]
-            _annotate_paper_gate_failure_metrics(r["metrics"], ["not_robustly_validated"])
+            _mark_not_robustly_validated(r["metrics"])
+            continue
+        if _deadline_reached(work_deadline):
+            time_budget_exhausted = True
+            _mark_not_robustly_validated(r["metrics"], time_budget_exhausted=True)
             continue
         # augment with validation metrics (fast defaults)
         opts = HeavenOpts(
@@ -677,6 +718,8 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
             f"supabase_run_id={run_id}",
             f"supabase_evaluations={len(rows_all)}",
             f"robust_validation_candidates={len(validation_indexes)}",
+            f"time_budget_sec={(budget_deadline - t0) if budget_deadline else 0:.2f}",
+            f"time_budget_exhausted={int(time_budget_exhausted)}",
             f"supabase_palmares_set={set_id or ''}",
         ],
         artifacts_dir=None,
