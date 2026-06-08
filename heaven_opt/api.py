@@ -105,6 +105,17 @@ def _deadline_reached(deadline_time: float | None) -> bool:
     return deadline_time is not None and time.time() >= deadline_time
 
 
+def _deadline_blocks_validation(deadline_time: float | None) -> bool:
+    if deadline_time is None:
+        return False
+    try:
+        reserve_sec = float(os.getenv("HEAVEN_VALIDATION_RESERVE_SEC") or 120.0)
+    except (TypeError, ValueError):
+        reserve_sec = 120.0
+    reserve_sec = max(0.0, reserve_sec)
+    return time.time() + reserve_sec >= deadline_time
+
+
 def _mark_not_robustly_validated(metrics: dict, *, time_budget_exhausted: bool = False) -> None:
     metrics["robustly_validated"] = 0.0
     metrics["robustness_score"] = 0.0
@@ -545,7 +556,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
         if result_idx not in validation_indexes:
             _mark_not_robustly_validated(r["metrics"])
             continue
-        if _deadline_reached(work_deadline):
+        if _deadline_reached(work_deadline) or _deadline_blocks_validation(work_deadline):
             time_budget_exhausted = True
             _mark_not_robustly_validated(r["metrics"], time_budget_exhausted=True)
             continue

@@ -904,6 +904,37 @@ def test_experiment_matrix_builds_recent_holdout_without_fib_by_default():
     assert data_no_be["ranges"]["be_enable_values"] == [True, False]
 
 
+def test_experiment_matrix_applies_scalping_1m_profile():
+    template = {
+        "general": {"max_combinations": 1000, "top_n_results": 20},
+        "ranges": {"nol_range": [2, 6, 1]},
+        "EA": {"pop_size": 80, "n_generations": 12},
+        "Bayesian": {"n_trials": 20},
+    }
+    date_to = latest_closed_day_boundary()
+
+    data = build_config_data(
+        template,
+        "BTCUSDC",
+        "1m",
+        date_to,
+        fast=True,
+        include_fib=True,
+        include_no_be=True,
+        tp_mode="Percent",
+        scalping_1m=True,
+    )
+
+    assert data["entry_modes"] == ["Original"]
+    assert data["TP"]["percent_min"] == 0.15
+    assert data["TP"]["percent_max"] == 1.2
+    assert data["ranges"]["prd_range"] == {"min": 3.0, "max": 12.0, "step": 1.0}
+    assert data["ranges"]["sl_pct_range"] == {"min": 0.3, "max": 1.2, "step": 0.1}
+    assert data["ranges"]["be_enable_values"] == [True, False]
+    assert data["EA"]["pop_size"] == 12
+    assert data["metrics"]["validation_top_n"] == 8
+
+
 def test_ea_keeps_percent_tp_type_explicit():
     space = EASpace(
         nol_list=[3],
@@ -1389,6 +1420,15 @@ def test_optimizer_validation_pool_includes_diverse_training_winners():
 
     assert {0, 1}.issubset(selected)
     assert 3 in selected
+
+
+def test_optimizer_deadline_blocks_expensive_validation(monkeypatch):
+    monkeypatch.setenv("HEAVEN_VALIDATION_RESERVE_SEC", "120")
+    monkeypatch.setattr(api.time, "time", lambda: 1_000.0)
+
+    assert api._deadline_blocks_validation(None) is False
+    assert api._deadline_blocks_validation(1_200.0) is False
+    assert api._deadline_blocks_validation(1_100.0) is True
 
 
 def test_bayesian_refinement_keeps_top_completed_trials():

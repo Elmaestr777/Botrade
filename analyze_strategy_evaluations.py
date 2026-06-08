@@ -274,6 +274,8 @@ def _matrix_command(summary: dict[str, Any], *extra: str) -> str:
     if tf:
         parts.extend(["--timeframes", str(tf)])
     parts.append("--fast")
+    if str(tf or "") == "1m" and "--scalping-1m" not in extra:
+        parts.append("--scalping-1m")
     parts.extend(item for item in extra if item)
     return " ".join(parts)
 

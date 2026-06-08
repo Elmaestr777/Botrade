@@ -84,6 +84,25 @@ def _coerce_ranges(ranges: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+def _apply_scalping_1m_profile(data: dict[str, Any]) -> None:
+    data["entry_modes"] = ["Original"]
+    data.setdefault("ranges", {}).update(
+        {
+            "nol_range": [2, 4, 1],
+            "prd_range": [3, 12, 1],
+            "sl_pct_range": [0.3, 1.2, 0.1],
+            "be_bars_range": [1, 4, 1],
+            "be_lock_pct_range": [0.15, 0.8, 0.05],
+            "ema_len_range": [8, 34, 2],
+        }
+    )
+    data.setdefault("TP", {}).update({"mode": "Percent", "percent_min": 0.15, "percent_max": 1.2, "percent_step": 0.15})
+    data.setdefault("EA", {}).update({"pop_size": min(int(data["EA"].get("pop_size", 80)), 12), "n_generations": min(int(data["EA"].get("n_generations", 12)), 3)})
+    data.setdefault("Bayesian", {}).update({"n_trials": min(int(data["Bayesian"].get("n_trials", 20)), 3), "refine_radius": 0.35})
+    data.setdefault("validation", {})["monte_carlo_runs"] = min(int(data["validation"].get("monte_carlo_runs", 20)), 4)
+    data.setdefault("metrics", {})["validation_top_n"] = min(int(data["metrics"].get("validation_top_n", 50)), 8)
+
+
 def build_config_data(
     template: dict[str, Any],
     symbol: str,
@@ -96,6 +115,7 @@ def build_config_data(
     tp_mode: str = "Fib",
     max_combinations: int | None = None,
     top_n: int | None = None,
+    scalping_1m: bool = False,
 ) -> dict[str, Any]:
     policy = WINDOW_POLICIES[tf]
     holdout_from = date_to - timedelta(days=policy.holdout_days)
@@ -157,6 +177,8 @@ def build_config_data(
         data["general"]["top_n_results"] = min(int(data["general"].get("top_n_results", 20)), 10)
         data["validation"]["monte_carlo_runs"] = 10
         data["metrics"]["validation_top_n"] = 20
+    if scalping_1m and tf == "1m":
+        _apply_scalping_1m_profile(data)
     if max_combinations is not None:
         data["general"]["max_combinations"] = max(1, int(max_combinations))
     if top_n is not None:
@@ -229,6 +251,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-combinations", type=int)
     parser.add_argument("--top-n", type=int)
     parser.add_argument("--time-budget-sec", type=float, help="Stop search/validation early enough to persist partial Supabase results")
+    parser.add_argument("--scalping-1m", action="store_true", help="Use tighter BTC/crypto 1m scalping ranges and faster robust validation")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
 
@@ -253,6 +276,7 @@ def main(argv: list[str] | None = None) -> int:
                 tp_mode=args.tp_mode,
                 max_combinations=args.max_combinations,
                 top_n=args.top_n,
+                scalping_1m=args.scalping_1m,
             )
             campaign = f"{args.campaign_prefix}-{args.tp_mode.lower()}-{symbol.lower()}-{tf}-{date_to:%Y%m%d}"
             general = data["general"]

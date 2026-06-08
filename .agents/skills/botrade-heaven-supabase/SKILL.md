@@ -33,7 +33,7 @@ Garder le workflow Heaven fiable: moteurs coherents, meilleures strategies stock
 4. Faire echouer clairement les flux Heaven si Supabase est requis mais indisponible.
 5. Persister les meilleurs resultats dans `palmares_sets`, `palmares_entries` et, si recharge UI attendue, `heaven_strategies`.
 6. Donner un `run_id` commun aux evaluations, au set et aux entrees d'un meme run quand les colonnes de run existent.
-7. Pour une campagne multi-paires/TF, utiliser `run_experiment_matrix.py`: bougies cloturees, fenetre d'entrainement, holdout intact, puis gates paper. Sur les TF courts, ajouter `--include-no-be` pour tester `beEnable` actif/inactif sans relacher les gates; sur `1m`, utiliser `--time-budget-sec` plutot qu'un timeout externe brutal afin de persister les candidats partiels.
+7. Pour une campagne multi-paires/TF, utiliser `run_experiment_matrix.py`: bougies cloturees, fenetre d'entrainement, holdout intact, puis gates paper. Sur les TF courts, ajouter `--include-no-be` pour tester `beEnable` actif/inactif sans relacher les gates; sur `1m`, utiliser `--time-budget-sec` plutot qu'un timeout externe brutal afin de persister les candidats partiels, et `--scalping-1m` pour une recherche plus etroite avant d'augmenter le budget.
 8. Pour lancer un candidat paper, utiliser `start_paper_candidate.py` afin de refuser automatiquement les strategies non eligibles et de rester Supabase-only.
 9. Avant toute preparation live, utiliser `validate_paper_session.py` pour verifier les gates paper reels et enregistrer l'audit dans `live_events` si utile.
 10. Ajouter une migration de grants/RLS seulement si l'acces Data API ou la securite Supabase le justifie.
