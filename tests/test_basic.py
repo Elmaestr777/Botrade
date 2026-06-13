@@ -13,7 +13,7 @@ from heaven_opt import api, data_loader, simulator, supabase_io, validation
 from heaven_opt.analysis import trade_diagnostics
 from heaven_opt.combo_generator import generate_alloc_patterns
 from heaven_opt.env import load_repo_env
-from heaven_opt.optimizer_bayes import _top_complete_trials
+from heaven_opt.optimizer_bayes import _snap_float_bounds, _top_complete_trials
 from heaven_opt.optimizer_ea import EASpace, _ind_to_candidate, run_ea
 from heaven_opt.optimizer_ml import propose_with_surrogate
 from heaven_opt.params import normalize_canonical_params
@@ -814,6 +814,24 @@ def test_composite_score_uses_consistency_weight():
     assert score == 0.75
 
 
+def test_composite_score_discounts_losing_train_edge():
+    weights = {"pf": 1.0, "dd": 1.0, "cons": 1.0}
+    weak = {
+        "profitFactor": 0.75,
+        "return_pct": -12.0,
+        "maxDDPct": 5.0,
+        "consistency": 0.75,
+    }
+    break_even = {
+        **weak,
+        "profitFactor": 1.01,
+        "return_pct": 0.1,
+    }
+
+    assert composite_score(break_even, weights) > composite_score(weak, weights)
+    assert composite_score(weak, weights) < 0.5
+
+
 def test_pivots_are_not_available_before_confirmation():
     pivots = [{"idx": 2, "price": 90.0}, {"idx": 4, "price": 110.0}]
 
@@ -896,11 +914,11 @@ def test_experiment_matrix_builds_recent_holdout_without_fib_by_default():
     assert data["TP"]["mode"] == "Fib"
     assert data["general"]["tf_optim"] == "15m"
     assert data["validation"]["oos_split"][1].endswith("T00:00:00Z")
-    assert data["metrics"]["min_oos_trades"] == 20
-    assert data["ranges"]["nol_range"] == {"min": 3.0, "max": 8.0, "step": 1.0}
-    assert data["ranges"]["prd_range"] == {"min": 8.0, "max": 28.0, "step": 2.0}
-    assert data["metrics"]["max_trades"] == 1400
-    assert data["metrics"]["max_oos_trades"] == 220
+    assert data["metrics"]["min_oos_trades"] == 10
+    assert data["ranges"]["nol_range"] == {"min": 6.0, "max": 18.0, "step": 2.0}
+    assert data["ranges"]["prd_range"] == {"min": 16.0, "max": 64.0, "step": 4.0}
+    assert data["metrics"]["max_trades"] == 360
+    assert data["metrics"]["max_oos_trades"] == 70
 
     data_no_be = build_config_data(template, "BTCUSDC", "15m", date_to, fast=True, include_no_be=True)
 
@@ -919,7 +937,7 @@ def test_experiment_matrix_applies_all_timeframe_profiles():
     expected = {
         "1m": (2500, 650, 0.35),
         "5m": (2400, 380, 0.45),
-        "15m": (1400, 220, 0.60),
+        "15m": (360, 70, 0.45),
         "1h": (700, 120, 0.65),
         "4h": (360, 70, 0.70),
         "1d": (160, 45, 0.80),
@@ -1491,6 +1509,22 @@ def test_optimizer_validation_pool_includes_diverse_training_winners():
     assert 3 in selected
 
 
+def test_optimizer_seed_selection_keeps_entry_mode_diversity():
+    results = [
+        {"params": {"entry_mode": "Fib", "be_enable": True}, "metrics": {"score": 10.0}},
+        {"params": {"entry_mode": "Fib", "be_enable": True}, "metrics": {"score": 9.0}},
+        {"params": {"entry_mode": "Fib", "be_enable": True}, "metrics": {"score": 8.0}},
+        {"params": {"entry_mode": "Original", "be_enable": False}, "metrics": {"score": 1.0}},
+        {"params": {"entry_mode": "Both", "be_enable": True}, "metrics": {"score": 0.5}},
+    ]
+
+    selected = api._select_diverse_search_results(results, count=4)
+
+    assert results[0] in selected
+    assert results[3] in selected
+    assert results[4] in selected
+
+
 def test_optimizer_deadline_blocks_expensive_validation(monkeypatch):
     monkeypatch.setenv("HEAVEN_VALIDATION_RESERVE_SEC", "120")
     monkeypatch.setattr(api.time, "time", lambda: 1_000.0)
@@ -1514,6 +1548,13 @@ def test_bayesian_refinement_keeps_top_completed_trials():
     top = _top_complete_trials(study, limit=5)
 
     assert [trial.value for trial in top] == [0.9, 0.8, 0.7, 0.2, 0.0]
+
+
+def test_bayesian_float_bounds_snap_to_step():
+    lo, hi = _snap_float_bounds((1.8719999999999999, 2.928), 0.1)
+
+    assert lo == pytest.approx(1.872)
+    assert hi == pytest.approx(2.872)
 
 
 def test_experiment_summary_reads_paper_failure_flags_in_gate_order():

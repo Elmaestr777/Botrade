@@ -386,6 +386,7 @@ def backtest_with_bars(opts: HeavenOpts, bars: list[Bar], from_idx: int, to_idx:
         "trades": trades,
         "equity": equity,
         "totalPnl": total_pnl,
+        "return_pct": (total_pnl / equity_start * 100.0) if equity_start > 0 else 0.0,
         "winrate": winrate,
         "grossProf": gross_prof,
         "grossLoss": gross_loss,

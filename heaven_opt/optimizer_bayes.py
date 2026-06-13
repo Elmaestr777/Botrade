@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import time
 from collections.abc import Callable
 
@@ -8,6 +9,14 @@ from optuna.trial import FrozenTrial, TrialState
 
 from .params import normalize_canonical_params
 from .scoring import composite_score
+
+
+def _snap_float_bounds(bounds: tuple[float, float], step: float) -> tuple[float, float]:
+    lo, hi = (round(float(bounds[0]), 6), round(float(bounds[1]), 6))
+    if step <= 0.0 or hi <= lo:
+        return (float(lo), float(hi))
+    steps = max(0, int(math.floor(((hi - lo) / step) + 1e-9)))
+    return (float(lo), float(round(lo + steps * step, 6)))
 
 
 def _top_complete_trials(study: optuna.Study, limit: int = 5) -> list[FrozenTrial]:
@@ -36,9 +45,9 @@ def _objective_factory(seed_params: dict, global_bounds: dict[str, tuple], weigh
     localspec = {
         "nol": bound_param("nol", int(seed_params["nol"]), is_int=True),
         "prd": bound_param("prd", int(seed_params["prd"]), is_int=True),
-        "sl_init_pct": bound_param("sl_init_pct", float(seed_params["sl_init_pct"]), is_int=False),
+        "sl_init_pct": _snap_float_bounds(bound_param("sl_init_pct", float(seed_params["sl_init_pct"]), is_int=False), 0.1),
         "be_after_bars": bound_param("be_after_bars", int(seed_params["be_after_bars"]), is_int=True),
-        "be_lock_pct": bound_param("be_lock_pct", float(seed_params["be_lock_pct"]), is_int=False),
+        "be_lock_pct": _snap_float_bounds(bound_param("be_lock_pct", float(seed_params["be_lock_pct"]), is_int=False), 0.1),
         "ema_len": bound_param("ema_len", int(seed_params["ema_len"]), is_int=True),
     }
 

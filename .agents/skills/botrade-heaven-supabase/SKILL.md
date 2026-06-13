@@ -54,6 +54,8 @@ Garder le workflow Heaven fiable: moteurs coherents, meilleures strategies stock
 - Les TP actifs identiques doivent etre fusionnes avant evaluation, hash, palmares, strategies rechargeables et paper pour eviter des ordres dupliques.
 - Les profils d'optimisation doivent rester adaptes a chaque TF: plages Heaven, TP Percent, budget EA/Bayesian, `validation_top_n`, max trades et exposition ne doivent pas etre uniformes entre `1m`, `5m`, `15m`, `1h`, `4h` et `1d`.
 - Les strategies qui overtradent ou restent trop exposees peuvent rester historisees, mais doivent recevoir une penalite de score et echouer aux gates paper via `max_trades`, `max_oos_trades`, `max_exposure_frac` ou `max_oos_exposure_frac`.
+- Les scores train doivent rester nets de frais et decoter les candidats a rendement net negatif ou PF inferieur a 1.0; un perdant a faible drawdown ne doit pas dominer la recherche.
+- Sur `15m`, preferer un profil selectif apres frais: `nol/prd` plus hauts, TP Percent plus larges, min OOS trades compatible avec une strategie moins frequente, et caps stricts d'exposition/trades.
 - Un pivot de periode `prd` ne peut etre utilise qu'apres son delai de confirmation; toute utilisation a son index est une fuite du futur.
 - Un signal calcule au close doit fermer la position opposee au close du flip, puis entrer a l'open de la bougie suivante; deux positions ne doivent pas se chevaucher sur cette bougie.
 - Le score final doit integrer les metriques de robustesse disponibles, notamment holdout, walk-forward et Monte Carlo.

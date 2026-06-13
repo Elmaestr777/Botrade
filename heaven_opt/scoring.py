@@ -27,7 +27,7 @@ def _base_score(metrics: dict[str, float], weights: dict[str, float]) -> float:
     recovN = norm01(recov, 0.0, 3.0)
     consN = max(0.0, min(1.0, float(metrics.get("consistency", 0.0))))
     w = weights
-    return (
+    score = (
         (w.get("pf", 0.0) * pfN)
         + (w.get("sharpe", 0.0) * sharpeN)
         + (w.get("dd", 0.0) * ddN)
@@ -38,6 +38,15 @@ def _base_score(metrics: dict[str, float], weights: dict[str, float]) -> float:
         + (w.get("recov", 0.0) * recovN)
         + (w.get("cons", 0.0) * consN)
     )
+    if "profitFactor" in metrics:
+        pf = float(metrics.get("profitFactor", 0.0))
+        if pf < 1.0:
+            score *= norm01(pf, 0.50, 1.0)
+    if "return_pct" in metrics:
+        ret_pct = float(metrics.get("return_pct", 0.0))
+        if ret_pct < 0.0:
+            score *= norm01(ret_pct, -20.0, 0.0)
+    return score
 
 
 def _has_finite(metrics: dict[str, float], key: str) -> bool:

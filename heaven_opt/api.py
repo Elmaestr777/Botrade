@@ -215,6 +215,55 @@ def _metric_value(result: dict, key: str, default: float = 0.0) -> float:
     return value if value == value else default
 
 
+def _search_score(result: dict) -> float:
+    return _metric_value(result, "score", float("-inf"))
+
+
+def _candidate_bucket(result: dict) -> tuple[str, bool]:
+    params = result.get("params") or {}
+    mode = str(params.get("entry_mode") or params.get("entryMode") or "Both")
+    if mode == "Fib Retracement":
+        mode = "Fib"
+    return mode, bool(params.get("be_enable", params.get("beEnable", True)))
+
+
+def _select_diverse_search_results(results: list[dict], count: int) -> list[dict]:
+    if count <= 0 or not results:
+        return []
+    ranked = sorted(results, key=_search_score, reverse=True)
+    selected: list[dict] = []
+    selected_ids: set[int] = set()
+
+    def add(result: dict) -> bool:
+        ident = id(result)
+        if ident in selected_ids:
+            return False
+        selected.append(result)
+        selected_ids.add(ident)
+        return True
+
+    diversity_budget = min(max(2, count // 2), max(1, count - 1), 6)
+    core_count = max(1, count - diversity_budget)
+    for result in ranked[:core_count]:
+        add(result)
+
+    represented = {_candidate_bucket(result) for result in selected}
+    for result in ranked:
+        bucket = _candidate_bucket(result)
+        if bucket in represented:
+            continue
+        if add(result):
+            represented.add(bucket)
+        if len(selected) >= count:
+            break
+
+    for result in ranked:
+        if len(selected) >= count:
+            break
+        add(result)
+    return selected[:count]
+
+
 def _select_validation_candidate_indexes(results: list[dict], validation_count: int) -> set[int]:
     if validation_count <= 0 or not results:
         return set()
@@ -225,6 +274,19 @@ def _select_validation_candidate_indexes(results: list[dict], validation_count: 
         return selected
 
     indexed = list(enumerate(results))
+    represented = {_candidate_bucket(results[idx]) for idx in selected}
+    for idx, result in sorted(indexed, key=lambda item: _search_score(item[1]), reverse=True):
+        if idx in selected:
+            continue
+        bucket = _candidate_bucket(result)
+        if bucket in represented:
+            continue
+        selected.add(idx)
+        represented.add(bucket)
+        extra_budget -= 1
+        if extra_budget <= 0:
+            return selected
+
     ranking_specs = (
         ("profitFactor", True),
         ("totalPnl", True),
@@ -336,6 +398,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
         # numeric extraction
         metrics_numeric = {
             "totalPnl": float(rep.get("totalPnl", 0.0)),
+            "return_pct": float(rep.get("return_pct", 0.0)),
             "profitFactor": float(rep.get("profitFactor", 0.0)),
             "trades": float(len(rep.get("trades", []))),
             "winrate": float(rep.get("winrate", 0.0)),
@@ -439,7 +502,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
         # Select top-M seeds by score
         seeds.sort(key=lambda s: -float(s["metrics"].get("score", 0.0)))
         top_m = min(10, 2 * int(config.general.top_n_results))
-        seeds = seeds[:top_m]
+        seeds = _select_diverse_search_results(seeds, top_m)
         time_budget_exhausted = time_budget_exhausted or _deadline_reached(work_deadline)
         # Bayesian refinement
         bayes_results = []
