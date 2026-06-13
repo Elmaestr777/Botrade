@@ -81,6 +81,9 @@ def composite_score(metrics: dict[str, float], weights: dict[str, float]) -> flo
     base = _base_score(metrics, weights)
     robust = robustness_score(metrics)
     if robust is None:
-        return base
-    robust_weight = max(0.0, min(1.0, float(weights.get("robustness", 0.65))))
-    return (1.0 - robust_weight) * base + robust_weight * robust
+        score = base
+    else:
+        robust_weight = max(0.0, min(1.0, float(weights.get("robustness", 0.65))))
+        score = (1.0 - robust_weight) * base + robust_weight * robust
+    penalty = max(0.0, min(1.0, float(metrics.get("score_penalty", 0.0) or 0.0)))
+    return max(0.0, score - penalty)

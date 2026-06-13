@@ -22,11 +22,15 @@ SUPPORTED_TIMEFRAMES = ("1m", "5m", "15m", "1h", "4h", "1d")
 PAPER_GATE_ORDER = (
     "paper_runner_entry_mode",
     "train_trades",
+    "train_max_trades",
+    "train_exposure",
     "oos_missing",
     "oos_trades",
+    "oos_max_trades",
     "oos_profit_factor",
     "oos_return",
     "oos_drawdown",
+    "oos_exposure",
     "wf_positive_frac",
     "wf_active_frac",
     "wf_profit_factor",
@@ -46,6 +50,22 @@ class WindowPolicy:
     min_oos_trades: int
 
 
+@dataclass(frozen=True)
+class TimeframeProfile:
+    ranges: dict[str, list[float]]
+    percent_tp: tuple[float, float, float]
+    ea_pop: int
+    ea_generations: int
+    bayes_trials: int
+    bayes_refine_radius: float
+    validation_top_n: int
+    monte_carlo_runs: int
+    max_trades: int
+    max_oos_trades: int
+    max_exposure_frac: float
+    max_oos_exposure_frac: float
+
+
 WINDOW_POLICIES = {
     "1m": WindowPolicy(120, 30, "21d", "7d", "7d", 100, 30),
     "5m": WindowPolicy(365, 60, "60d", "14d", "14d", 80, 25),
@@ -53,6 +73,135 @@ WINDOW_POLICIES = {
     "1h": WindowPolicy(1095, 180, "180d", "60d", "60d", 40, 15),
     "4h": WindowPolicy(1460, 240, "240d", "60d", "60d", 30, 10),
     "1d": WindowPolicy(1825, 730, "365d", "365d", "180d", 20, 8),
+}
+
+TIMEFRAME_PROFILES = {
+    "1m": TimeframeProfile(
+        ranges={
+            "nol_range": [2, 4, 1],
+            "prd_range": [3, 12, 1],
+            "sl_pct_range": [0.3, 1.2, 0.1],
+            "be_bars_range": [1, 4, 1],
+            "be_lock_pct_range": [0.15, 0.8, 0.05],
+            "ema_len_range": [8, 34, 2],
+        },
+        percent_tp=(0.15, 1.2, 0.15),
+        ea_pop=12,
+        ea_generations=3,
+        bayes_trials=3,
+        bayes_refine_radius=0.35,
+        validation_top_n=8,
+        monte_carlo_runs=4,
+        max_trades=2500,
+        max_oos_trades=650,
+        max_exposure_frac=0.35,
+        max_oos_exposure_frac=0.35,
+    ),
+    "5m": TimeframeProfile(
+        ranges={
+            "nol_range": [2, 5, 1],
+            "prd_range": [5, 20, 1],
+            "sl_pct_range": [0.45, 2.0, 0.15],
+            "be_bars_range": [1, 6, 1],
+            "be_lock_pct_range": [0.3, 1.5, 0.1],
+            "ema_len_range": [12, 55, 3],
+        },
+        percent_tp=(0.25, 2.0, 0.25),
+        ea_pop=22,
+        ea_generations=4,
+        bayes_trials=5,
+        bayes_refine_radius=0.30,
+        validation_top_n=14,
+        monte_carlo_runs=8,
+        max_trades=2400,
+        max_oos_trades=380,
+        max_exposure_frac=0.45,
+        max_oos_exposure_frac=0.45,
+    ),
+    "15m": TimeframeProfile(
+        ranges={
+            "nol_range": [3, 8, 1],
+            "prd_range": [8, 28, 2],
+            "sl_pct_range": [0.7, 3.0, 0.25],
+            "be_bars_range": [2, 10, 1],
+            "be_lock_pct_range": [0.6, 3.0, 0.2],
+            "ema_len_range": [21, 89, 4],
+        },
+        percent_tp=(0.5, 4.0, 0.5),
+        ea_pop=30,
+        ea_generations=5,
+        bayes_trials=6,
+        bayes_refine_radius=0.25,
+        validation_top_n=20,
+        monte_carlo_runs=10,
+        max_trades=1400,
+        max_oos_trades=220,
+        max_exposure_frac=0.60,
+        max_oos_exposure_frac=0.60,
+    ),
+    "1h": TimeframeProfile(
+        ranges={
+            "nol_range": [3, 8, 1],
+            "prd_range": [10, 40, 2],
+            "sl_pct_range": [1.0, 4.0, 0.25],
+            "be_bars_range": [3, 14, 1],
+            "be_lock_pct_range": [1.0, 5.0, 0.25],
+            "ema_len_range": [34, 144, 5],
+        },
+        percent_tp=(0.8, 6.0, 0.5),
+        ea_pop=34,
+        ea_generations=6,
+        bayes_trials=8,
+        bayes_refine_radius=0.22,
+        validation_top_n=24,
+        monte_carlo_runs=12,
+        max_trades=700,
+        max_oos_trades=120,
+        max_exposure_frac=0.65,
+        max_oos_exposure_frac=0.65,
+    ),
+    "4h": TimeframeProfile(
+        ranges={
+            "nol_range": [3, 10, 1],
+            "prd_range": [12, 60, 4],
+            "sl_pct_range": [1.5, 6.0, 0.5],
+            "be_bars_range": [2, 10, 1],
+            "be_lock_pct_range": [1.5, 7.0, 0.5],
+            "ema_len_range": [34, 200, 8],
+        },
+        percent_tp=(1.0, 10.0, 1.0),
+        ea_pop=38,
+        ea_generations=7,
+        bayes_trials=10,
+        bayes_refine_radius=0.20,
+        validation_top_n=28,
+        monte_carlo_runs=14,
+        max_trades=360,
+        max_oos_trades=70,
+        max_exposure_frac=0.70,
+        max_oos_exposure_frac=0.70,
+    ),
+    "1d": TimeframeProfile(
+        ranges={
+            "nol_range": [2, 8, 1],
+            "prd_range": [8, 80, 6],
+            "sl_pct_range": [2.0, 10.0, 0.5],
+            "be_bars_range": [2, 8, 1],
+            "be_lock_pct_range": [2.0, 10.0, 0.5],
+            "ema_len_range": [21, 200, 8],
+        },
+        percent_tp=(2.0, 18.0, 2.0),
+        ea_pop=42,
+        ea_generations=8,
+        bayes_trials=12,
+        bayes_refine_radius=0.18,
+        validation_top_n=30,
+        monte_carlo_runs=16,
+        max_trades=160,
+        max_oos_trades=45,
+        max_exposure_frac=0.80,
+        max_oos_exposure_frac=0.80,
+    ),
 }
 
 
@@ -84,23 +233,39 @@ def _coerce_ranges(ranges: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
-def _apply_scalping_1m_profile(data: dict[str, Any]) -> None:
-    data["entry_modes"] = ["Original"]
-    data.setdefault("ranges", {}).update(
+def _apply_timeframe_profile(data: dict[str, Any], tf: str) -> None:
+    profile = TIMEFRAME_PROFILES.get(tf)
+    if profile is None:
+        return
+    data.setdefault("ranges", {}).update(profile.ranges)
+    if data.setdefault("TP", {}).get("mode") == "Percent":
+        pmin, pmax, pstep = profile.percent_tp
+        data["TP"].update({"percent_min": pmin, "percent_max": pmax, "percent_step": pstep})
+    data.setdefault("EA", {}).update(
         {
-            "nol_range": [2, 4, 1],
-            "prd_range": [3, 12, 1],
-            "sl_pct_range": [0.3, 1.2, 0.1],
-            "be_bars_range": [1, 4, 1],
-            "be_lock_pct_range": [0.15, 0.8, 0.05],
-            "ema_len_range": [8, 34, 2],
+            "pop_size": min(int(data["EA"].get("pop_size", profile.ea_pop)), profile.ea_pop),
+            "n_generations": min(int(data["EA"].get("n_generations", profile.ea_generations)), profile.ea_generations),
         }
     )
-    data.setdefault("TP", {}).update({"mode": "Percent", "percent_min": 0.15, "percent_max": 1.2, "percent_step": 0.15})
-    data.setdefault("EA", {}).update({"pop_size": min(int(data["EA"].get("pop_size", 80)), 12), "n_generations": min(int(data["EA"].get("n_generations", 12)), 3)})
-    data.setdefault("Bayesian", {}).update({"n_trials": min(int(data["Bayesian"].get("n_trials", 20)), 3), "refine_radius": 0.35})
-    data.setdefault("validation", {})["monte_carlo_runs"] = min(int(data["validation"].get("monte_carlo_runs", 20)), 4)
-    data.setdefault("metrics", {})["validation_top_n"] = min(int(data["metrics"].get("validation_top_n", 50)), 8)
+    data.setdefault("Bayesian", {}).update(
+        {
+            "n_trials": min(int(data["Bayesian"].get("n_trials", profile.bayes_trials)), profile.bayes_trials),
+            "refine_radius": profile.bayes_refine_radius,
+        }
+    )
+    data.setdefault("validation", {})["monte_carlo_runs"] = min(
+        int(data["validation"].get("monte_carlo_runs", profile.monte_carlo_runs)),
+        profile.monte_carlo_runs,
+    )
+    data.setdefault("metrics", {}).update(
+        {
+            "validation_top_n": min(int(data["metrics"].get("validation_top_n", profile.validation_top_n)), profile.validation_top_n),
+            "max_trades": profile.max_trades,
+            "max_oos_trades": profile.max_oos_trades,
+            "max_exposure_frac": profile.max_exposure_frac,
+            "max_oos_exposure_frac": profile.max_oos_exposure_frac,
+        }
+    )
 
 
 def build_config_data(
@@ -177,8 +342,9 @@ def build_config_data(
         data["general"]["top_n_results"] = min(int(data["general"].get("top_n_results", 20)), 10)
         data["validation"]["monte_carlo_runs"] = 10
         data["metrics"]["validation_top_n"] = 20
+    _apply_timeframe_profile(data, tf)
     if scalping_1m and tf == "1m":
-        _apply_scalping_1m_profile(data)
+        data["entry_modes"] = ["Original"]
     if max_combinations is not None:
         data["general"]["max_combinations"] = max(1, int(max_combinations))
     if top_n is not None:
@@ -251,7 +417,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-combinations", type=int)
     parser.add_argument("--top-n", type=int)
     parser.add_argument("--time-budget-sec", type=float, help="Stop search/validation early enough to persist partial Supabase results")
-    parser.add_argument("--scalping-1m", action="store_true", help="Use tighter BTC/crypto 1m scalping ranges and faster robust validation")
+    parser.add_argument("--scalping-1m", action="store_true", help="Restrict 1m profile runs to pure Original scalping entries")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
 

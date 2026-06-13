@@ -897,11 +897,41 @@ def test_experiment_matrix_builds_recent_holdout_without_fib_by_default():
     assert data["general"]["tf_optim"] == "15m"
     assert data["validation"]["oos_split"][1].endswith("T00:00:00Z")
     assert data["metrics"]["min_oos_trades"] == 20
-    assert data["ranges"]["nol_range"] == {"min": 2.0, "max": 6.0, "step": 1.0}
+    assert data["ranges"]["nol_range"] == {"min": 3.0, "max": 8.0, "step": 1.0}
+    assert data["ranges"]["prd_range"] == {"min": 8.0, "max": 28.0, "step": 2.0}
+    assert data["metrics"]["max_trades"] == 1400
+    assert data["metrics"]["max_oos_trades"] == 220
 
     data_no_be = build_config_data(template, "BTCUSDC", "15m", date_to, fast=True, include_no_be=True)
 
     assert data_no_be["ranges"]["be_enable_values"] == [True, False]
+
+
+def test_experiment_matrix_applies_all_timeframe_profiles():
+    template = {
+        "general": {"max_combinations": 1000, "top_n_results": 20},
+        "ranges": {"nol_range": [2, 6, 1]},
+        "EA": {"pop_size": 80, "n_generations": 12},
+        "Bayesian": {"n_trials": 20},
+    }
+    date_to = latest_closed_day_boundary()
+
+    expected = {
+        "1m": (2500, 650, 0.35),
+        "5m": (2400, 380, 0.45),
+        "15m": (1400, 220, 0.60),
+        "1h": (700, 120, 0.65),
+        "4h": (360, 70, 0.70),
+        "1d": (160, 45, 0.80),
+    }
+    for tf, (max_trades, max_oos, exposure) in expected.items():
+        data = build_config_data(template, "BTCUSDC", tf, date_to, fast=True, tp_mode="Percent")
+
+        assert data["metrics"]["max_trades"] == max_trades
+        assert data["metrics"]["max_oos_trades"] == max_oos
+        assert data["metrics"]["max_exposure_frac"] == exposure
+        assert data["Bayesian"]["refine_radius"] > 0.0
+        assert data["TP"]["percent_min"] > 0
 
 
 def test_experiment_matrix_applies_scalping_1m_profile():
@@ -932,6 +962,7 @@ def test_experiment_matrix_applies_scalping_1m_profile():
     assert data["ranges"]["sl_pct_range"] == {"min": 0.3, "max": 1.2, "step": 0.1}
     assert data["ranges"]["be_enable_values"] == [True, False]
     assert data["EA"]["pop_size"] == 12
+    assert data["Bayesian"]["refine_radius"] == 0.35
     assert data["metrics"]["validation_top_n"] == 8
 
 
@@ -1379,10 +1410,14 @@ def test_optimizer_paper_gate_accepts_headless_fib_entries():
                 (),
                 {
                     "min_trades": 1,
+                    "max_trades": None,
                     "min_oos_trades": 1,
+                    "max_oos_trades": None,
                     "min_oos_profit_factor": 1.0,
                     "min_oos_return_pct": 0.0,
                     "max_oos_dd_pct": 20.0,
+                    "max_exposure_frac": 1.0,
+                    "max_oos_exposure_frac": 1.0,
                     "min_wf_positive_frac": 0.5,
                     "min_wf_active_frac": 0.5,
                     "min_wf_profit_factor": 1.0,
@@ -1405,6 +1440,40 @@ def test_optimizer_paper_gate_accepts_headless_fib_entries():
 
     assert api._paper_gate_failures(metrics, cfg, {"entry_mode": "Fib", "use_fib_ret": True}) == []
     assert api._paper_gate_failures(metrics, cfg, {"entry_mode": "Unsupported"}) == ["paper_runner_entry_mode"]
+
+
+def test_optimizer_penalizes_overtrading_and_exposure():
+    cfg = type(
+        "Cfg",
+        (),
+        {
+            "metrics": type(
+                "Metrics",
+                (),
+                {
+                    "max_trades": 100,
+                    "max_oos_trades": 20,
+                    "max_exposure_frac": 0.5,
+                    "max_oos_exposure_frac": 0.4,
+                },
+            )()
+        },
+    )()
+    metrics = {
+        "trades": 250,
+        "oos_trades": 50,
+        "diag_exposure_frac": 0.75,
+        "oos_diag_exposure_frac": 0.6,
+    }
+
+    api._annotate_behavior_penalty(metrics, cfg)
+
+    assert metrics["penalty_train_trade_excess"] > 0.0
+    assert metrics["penalty_oos_trade_excess"] > 0.0
+    assert metrics["penalty_train_exposure_excess"] > 0.0
+    assert metrics["penalty_oos_exposure_excess"] > 0.0
+    assert metrics["score_penalty"] > 0.0
+    assert composite_score({"profitFactor": 3.0, "score_penalty": 0.5}, {"pf": 1.0}) == pytest.approx(0.5)
 
 
 def test_optimizer_validation_pool_includes_diverse_training_winners():

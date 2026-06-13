@@ -106,13 +106,17 @@ class MetricsWeights(BaseModel):
 class MetricsCfg(BaseModel):
     weights: MetricsWeights = Field(default_factory=MetricsWeights)
     min_trades: int = 30
+    max_trades: int | None = None
     penalize_complexity: bool = True
     validation_top_n: int = 50
     robustness_weight: float = 0.65
     min_oos_trades: int = 20
+    max_oos_trades: int | None = None
     min_oos_profit_factor: float = 1.10
     min_oos_return_pct: float = 0.0
     max_oos_dd_pct: float = 20.0
+    max_exposure_frac: float = 1.0
+    max_oos_exposure_frac: float = 1.0
     min_wf_positive_frac: float = 0.55
     min_wf_active_frac: float = 0.50
     min_wf_profit_factor: float = 1.0

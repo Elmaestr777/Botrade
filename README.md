@@ -19,6 +19,7 @@ Quickstart
 - Run a first recent robust pass: `python run_experiment_matrix.py --fast`
 - Compare Percent exits: `python run_experiment_matrix.py --fast --tp-mode Percent`
 - Explore short-TF break-even sensitivity: `python run_experiment_matrix.py --fast --tp-mode Percent --include-no-be`
+- Timeframe-aware matrix profiles are applied automatically: each TF has dedicated Heaven ranges, EA/Bayesian budgets, TP Percent ranges, max-trade caps, and exposure caps. On `1m`, `--scalping-1m` restricts entries to the pure scalping `Original` mode.
 - Analyze a Supabase campaign and deduplicated next experiment commands: `python analyze_strategy_evaluations.py --campaign-prefix heaven-robust --symbol BTCUSDC --tf 15m`
 - Audit expected matrix coverage: `python analyze_strategy_evaluations.py --campaign-prefix heaven-robust --expected-symbols BTCUSDC ETHUSDC BNBUSDC --expected-timeframes 15m 1h 4h`
 - List concrete paper-ready Supabase strategies, capped by default at 1% risk and 1x leverage: `python list_paper_candidates.py --symbol BTCUSDC --tf 15m`
@@ -37,6 +38,7 @@ Notes
 - Data loading uses Binance REST; provide your own data or cache for speed.
 - Optimization uses closed candles only. `validation.oos_split` reserves an untouched holdout range.
 - Walk-forward, Monte Carlo, and holdout metrics affect the final robust score.
+- Timeframe profiles penalize and gate overtrading via `max_trades`, `max_oos_trades`, `max_exposure_frac`, and `max_oos_exposure_frac`.
 - The robust validation pool keeps the best training scores and adds diversified winners by PF, PnL, Calmar, consistency, trades, and low drawdown.
 - Only strategies that pass the paper-trading gates are copied to `heaven_strategies`.
 - No strategy result or preset is written to local files by the optimizer.

@@ -33,7 +33,7 @@ Garder le workflow Heaven fiable: moteurs coherents, meilleures strategies stock
 4. Faire echouer clairement les flux Heaven si Supabase est requis mais indisponible.
 5. Persister les meilleurs resultats dans `palmares_sets`, `palmares_entries` et, si recharge UI attendue, `heaven_strategies`.
 6. Donner un `run_id` commun aux evaluations, au set et aux entrees d'un meme run quand les colonnes de run existent.
-7. Pour une campagne multi-paires/TF, utiliser `run_experiment_matrix.py`: bougies cloturees, fenetre d'entrainement, holdout intact, puis gates paper. Sur les TF courts, ajouter `--include-no-be` pour tester `beEnable` actif/inactif sans relacher les gates; sur `1m`, utiliser `--time-budget-sec` plutot qu'un timeout externe brutal afin de persister les candidats partiels, et `--scalping-1m` pour une recherche plus etroite avant d'augmenter le budget.
+7. Pour une campagne multi-paires/TF, utiliser `run_experiment_matrix.py`: bougies cloturees, fenetre d'entrainement, holdout intact, profils par TF, puis gates paper. Sur les TF courts, ajouter `--include-no-be` pour tester `beEnable` actif/inactif sans relacher les gates; sur `1m`, utiliser `--time-budget-sec` plutot qu'un timeout externe brutal afin de persister les candidats partiels, et `--scalping-1m` pour forcer les entrees scalping avant d'augmenter le budget.
 8. Pour lancer un candidat paper, utiliser `start_paper_candidate.py` afin de refuser automatiquement les strategies non eligibles et de rester Supabase-only.
 9. Avant toute preparation live, utiliser `validate_paper_session.py` pour verifier les gates paper reels et enregistrer l'audit dans `live_events` si utile.
 10. Ajouter une migration de grants/RLS seulement si l'acces Data API ou la securite Supabase le justifie.
@@ -52,6 +52,8 @@ Garder le workflow Heaven fiable: moteurs coherents, meilleures strategies stock
 - Un bulk upsert `strategy_evaluations` doit dedupliquer sa cible de conflit avant l'envoi pour eviter PostgreSQL `21000`.
 - Le top-N d'un run doit contenir des parametres distincts avant validation et persistance dans le palmares.
 - Les TP actifs identiques doivent etre fusionnes avant evaluation, hash, palmares, strategies rechargeables et paper pour eviter des ordres dupliques.
+- Les profils d'optimisation doivent rester adaptes a chaque TF: plages Heaven, TP Percent, budget EA/Bayesian, `validation_top_n`, max trades et exposition ne doivent pas etre uniformes entre `1m`, `5m`, `15m`, `1h`, `4h` et `1d`.
+- Les strategies qui overtradent ou restent trop exposees peuvent rester historisees, mais doivent recevoir une penalite de score et echouer aux gates paper via `max_trades`, `max_oos_trades`, `max_exposure_frac` ou `max_oos_exposure_frac`.
 - Un pivot de periode `prd` ne peut etre utilise qu'apres son delai de confirmation; toute utilisation a son index est une fuite du futur.
 - Un signal calcule au close doit fermer la position opposee au close du flip, puis entrer a l'open de la bougie suivante; deux positions ne doivent pas se chevaucher sur cette bougie.
 - Le score final doit integrer les metriques de robustesse disponibles, notamment holdout, walk-forward et Monte Carlo.

@@ -14,11 +14,15 @@ from heaven_opt.env import load_repo_env
 PAPER_GATE_ORDER = (
     "paper_runner_entry_mode",
     "train_trades",
+    "train_max_trades",
+    "train_exposure",
     "oos_missing",
     "oos_trades",
+    "oos_max_trades",
     "oos_profit_factor",
     "oos_return",
     "oos_drawdown",
+    "oos_exposure",
     "wf_positive_frac",
     "wf_active_frac",
     "wf_profit_factor",
@@ -341,7 +345,7 @@ def recommend_next_actions(summary: dict[str, Any]) -> list[dict[str, str]]:
 
     oos_failures = _failure_count(summary, "oos_profit_factor", "oos_return", "oos_drawdown")
     wf_failures = _failure_count(summary, "wf_positive_frac", "wf_active_frac", "wf_profit_factor")
-    trade_failures = _failure_count(summary, "train_trades", "oos_trades")
+    trade_failures = _failure_count(summary, "train_trades", "train_max_trades", "train_exposure", "oos_trades", "oos_max_trades", "oos_exposure")
     mc_failures = _failure_count(summary, "mc_profit_factor")
     entry_failures = _failure_count(summary, "paper_runner_entry_mode")
     time_budget_count = int(summary.get("time_budget_exhausted") or 0)

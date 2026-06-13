@@ -71,11 +71,15 @@ def _dedupe_results_by_params(results: list[dict]) -> list[dict]:
 PAPER_GATE_NAMES = (
     "paper_runner_entry_mode",
     "train_trades",
+    "train_max_trades",
+    "train_exposure",
     "oos_missing",
     "oos_trades",
+    "oos_max_trades",
     "oos_profit_factor",
     "oos_return",
     "oos_drawdown",
+    "oos_exposure",
     "wf_positive_frac",
     "wf_active_frac",
     "wf_profit_factor",
@@ -138,17 +142,50 @@ def _headless_entry_mode_supported(params: dict | None) -> bool:
     return True
 
 
+def _excess_ratio(value: float, limit: float | None) -> float:
+    if limit is None or limit <= 0.0:
+        return 0.0
+    if value <= limit:
+        return 0.0
+    return min(1.0, (value - limit) / limit)
+
+
+def _annotate_behavior_penalty(metrics: dict, config: OptimizationConfig) -> dict:
+    cfg = config.metrics
+    train_trade_excess = _excess_ratio(float(metrics.get("trades", 0.0)), float(cfg.max_trades) if cfg.max_trades else None)
+    oos_trade_excess = _excess_ratio(float(metrics.get("oos_trades", 0.0)), float(cfg.max_oos_trades) if cfg.max_oos_trades else None)
+    train_exposure_excess = _excess_ratio(float(metrics.get("diag_exposure_frac", 0.0)), float(cfg.max_exposure_frac))
+    oos_exposure_excess = _excess_ratio(float(metrics.get("oos_diag_exposure_frac", 0.0)), float(cfg.max_oos_exposure_frac))
+    penalty = min(
+        0.80,
+        0.30 * train_trade_excess
+        + 0.25 * oos_trade_excess
+        + 0.15 * train_exposure_excess
+        + 0.15 * oos_exposure_excess,
+    )
+    metrics["penalty_train_trade_excess"] = float(train_trade_excess)
+    metrics["penalty_oos_trade_excess"] = float(oos_trade_excess)
+    metrics["penalty_train_exposure_excess"] = float(train_exposure_excess)
+    metrics["penalty_oos_exposure_excess"] = float(oos_exposure_excess)
+    metrics["score_penalty"] = float(penalty)
+    return metrics
+
+
 def _paper_gate_failures(metrics: dict, config: OptimizationConfig, params: dict | None = None) -> list[str]:
     cfg = config.metrics
     params = params or {}
     checks = [
         ("paper_runner_entry_mode", _headless_entry_mode_supported(params)),
         ("train_trades", float(metrics.get("trades", 0.0)) >= float(cfg.min_trades)),
+        ("train_max_trades", cfg.max_trades is None or float(metrics.get("trades", 0.0)) <= float(cfg.max_trades)),
+        ("train_exposure", float(metrics.get("diag_exposure_frac", 0.0)) <= float(cfg.max_exposure_frac)),
         ("oos_missing", "oos_profitFactor" in metrics),
         ("oos_trades", float(metrics.get("oos_trades", 0.0)) >= float(cfg.min_oos_trades)),
+        ("oos_max_trades", cfg.max_oos_trades is None or float(metrics.get("oos_trades", 0.0)) <= float(cfg.max_oos_trades)),
         ("oos_profit_factor", float(metrics.get("oos_profitFactor", 0.0)) >= float(cfg.min_oos_profit_factor)),
         ("oos_return", float(metrics.get("oos_return_pct", -1e9)) > float(cfg.min_oos_return_pct)),
         ("oos_drawdown", float(metrics.get("oos_maxDDPct", 1e9)) <= float(cfg.max_oos_dd_pct)),
+        ("oos_exposure", float(metrics.get("oos_diag_exposure_frac", 0.0)) <= float(cfg.max_oos_exposure_frac)),
         ("wf_positive_frac", float(metrics.get("wf_positive_frac", 0.0)) >= float(cfg.min_wf_positive_frac)),
         ("wf_active_frac", float(metrics.get("wf_active_frac", 0.0)) >= float(cfg.min_wf_active_frac)),
         ("wf_profit_factor", float(metrics.get("wf_pf_mean", 0.0)) >= float(cfg.min_wf_profit_factor)),
@@ -317,6 +354,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
         if metrics_numeric["trades"] < float(config.metrics.min_trades):
             metrics_numeric["profitFactor"] *= 0.5
             metrics_numeric["totalPnl"] -= 1e6
+        _annotate_behavior_penalty(metrics_numeric, config)
         return metrics_numeric
 
     # Orchestration per mode
@@ -600,6 +638,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
                     float(config.backtest.fee_pct),
                 )
             )
+        _annotate_behavior_penalty(r["metrics"], config)
         robust = robustness_score(r["metrics"])
         r["metrics"]["robustly_validated"] = 1.0
         r["metrics"]["robustness_score"] = float(robust or 0.0)
