@@ -22,6 +22,22 @@ let __profileIdCacheByName = new Map();
   function slog(msg){ try{ if(typeof window!=='undefined' && typeof window.addLabLog==='function'){ window.addLabLog(msg); } }catch(_){ }
     try{ console.log('[SUPA]', msg); }catch(_){ }
   }
+
+  const STRATEGY_NAME_WORDS = ['soleil','riviere','montagne','etoile','foret','tempete','vallee','estrella','tormenta','bosque','piedra','cometa','rzeka','gwiazda','morze','dolina','iskra','polana'];
+  function strategyDictionaryWord(rank){
+    try{
+      if(typeof window!=='undefined' && typeof window.randomName==='function'){
+        const word = String(window.randomName() || '').trim();
+        if(word) return word;
+      }
+    }catch(_){ }
+    return STRATEGY_NAME_WORDS[Math.abs((Number(rank)||1) - 1) % STRATEGY_NAME_WORDS.length];
+  }
+  function generatedStrategyName(rank, seed){
+    const word = strategyDictionaryWord(rank);
+    const token = String(seed || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 8);
+    return (token ? `${word}-${token}-${rank}` : `${word}-${rank}`).slice(0, 120);
+  }
  
    function ensureClient(){
      const cfg = readCfg();
@@ -385,10 +401,8 @@ async function persistLabResults(ctx){
         if(setId){
           const entries = []; let rank=1;
           const used=new Set();
-          function genName(){ try{ if(typeof window!=='undefined' && typeof window.randomName==='function'){ return window.randomName(); } }catch(_){ }
-            const pool=['aurora','zenith','ember','nova','atlas','odyssey','vertex','harbor','willow','meadow']; return pool[Math.floor(Math.random()*pool.length)]; }
           for(const b of best){
-            const base = String((b && b.name) || genName() || 'heaven').slice(0, 110);
+            const base = String((b && b.name) || generatedStrategyName(rank, runId) || 'soleil').slice(0, 110);
             let nm = base;
             let suffix = 2;
             while(used.has(nm)){ nm = `${base}-${suffix}`.slice(0, 120); suffix++; }
@@ -423,7 +437,7 @@ async function persistLabResults(ctx){
           slog('Supabase: stratégies marquées selected=true');
         }catch(e){ slog('Supabase: mark selected KO — '+(e&&e.message?e.message:e)); return false; }
         try{
-          const savedHeaven = await persistBestHeavenStrategies({ symbol: sym, tf, best, profileName: profName });
+          const savedHeaven = await persistBestHeavenStrategies({ symbol: sym, tf, best, profileName: profName, runId });
           if(!savedHeaven) return false;
         }catch(e){ slog('Supabase: sauvegarde heaven_strategies KO — '+(e&&e.message?e.message:e)); return false; }
         slog('Supabase: fin persistance Lab');
@@ -631,7 +645,7 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
       const rows=[];
       let rank=1;
       for(const b of best){
-        const nm = String((b && b.name) || `${ctx.symbol}-${ctx.tf}-top-${rank}`).slice(0, 120);
+        const nm = String((b && b.name) || generatedStrategyName(rank, (ctx && (ctx.runId || ctx.run_id || ctx.campaignId || ctx.campaign_id)) || '')).slice(0, 120);
         rows.push({
           user_id: null,
           symbol: ctx.symbol,

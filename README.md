@@ -43,6 +43,7 @@ Notes
 - Training scores discount candidates with negative net return or profit factor below 1.0, so low-drawdown losers no longer dominate the EA/Bayesian search.
 - The robust validation pool keeps the best training scores and adds diversified winners by PF, PnL, Calmar, consistency, trades, and low drawdown.
 - Only strategies that pass the paper-trading gates are copied to `heaven_strategies`.
+- Auto-generated strategy names start with a French, Spanish, or Polish dictionary word; technical suffixes only prevent Supabase name collisions.
 - No strategy result or preset is written to local files by the optimizer.
 - Campaign analysis is Supabase-only: it reads persisted evaluations and prints the top candidates, failed validation gates, per symbol/TF readiness, and a deduplicated experiment plan that resolves paper candidates through exact Supabase strategy IDs.
 - Paper sessions are Supabase-only. `list_paper_candidates.py` prints exact Supabase strategy IDs and commands, while `start_paper_candidate.py` refuses non-eligible, over-risked, over-leveraged strategies and never writes local strategy state.

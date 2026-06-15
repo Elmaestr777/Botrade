@@ -13,6 +13,7 @@ from heaven_opt import api, data_loader, simulator, supabase_io, validation
 from heaven_opt.analysis import trade_diagnostics
 from heaven_opt.combo_generator import generate_alloc_patterns
 from heaven_opt.env import load_repo_env
+from heaven_opt.naming import STRATEGY_NAME_WORDS, dictionary_word, strategy_name_for_rank
 from heaven_opt.optimizer_bayes import _snap_float_bounds, _top_complete_trials
 from heaven_opt.optimizer_ea import EASpace, _ind_to_candidate, run_ea
 from heaven_opt.optimizer_ml import propose_with_surrogate
@@ -1292,6 +1293,15 @@ def test_supabase_json_serializes_non_finite_metrics(monkeypatch):
     assert metrics["profitFactor"] == "Infinity"
     assert metrics["wf_pf_std"] == "NaN"
     assert metrics["nested"] == ["-Infinity"]
+
+
+def test_optimizer_strategy_names_use_project_dictionaries():
+    name = strategy_name_for_rank("00000000-0000-4000-8000-000000000001", 3)
+    word = name.split("-")[0]
+
+    assert word in STRATEGY_NAME_WORDS
+    assert dictionary_word("00000000", 3) == word
+    assert name.endswith("-3")
 
 
 def test_strategy_evaluation_upsert_deduplicates_conflict_keys(monkeypatch):

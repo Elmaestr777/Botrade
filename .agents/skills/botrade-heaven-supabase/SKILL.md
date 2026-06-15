@@ -52,6 +52,7 @@ Garder le workflow Heaven fiable: moteurs coherents, meilleures strategies stock
 - Un bulk upsert `strategy_evaluations` doit dedupliquer sa cible de conflit avant l'envoi pour eviter PostgreSQL `21000`.
 - Le top-N d'un run doit contenir des parametres distincts avant validation et persistance dans le palmares.
 - Les TP actifs identiques doivent etre fusionnes avant evaluation, hash, palmares, strategies rechargeables et paper pour eviter des ordres dupliques.
+- Les noms de strategies generees automatiquement doivent commencer par un mot issu des dictionnaires francais, espagnol ou polonais du projet; le suffixe technique sert seulement a garantir l'unicite Supabase.
 - Les profils d'optimisation doivent rester adaptes a chaque TF: plages Heaven, TP Percent, budget EA/Bayesian, `validation_top_n`, max trades et exposition ne doivent pas etre uniformes entre `1m`, `5m`, `15m`, `1h`, `4h` et `1d`.
 - Les strategies qui overtradent ou restent trop exposees peuvent rester historisees, mais doivent recevoir une penalite de score et echouer aux gates paper via `max_trades`, `max_oos_trades`, `max_exposure_frac` ou `max_oos_exposure_frac`.
 - Les scores train doivent rester nets de frais et decoter les candidats a rendement net negatif ou PF inferieur a 1.0; un perdant a faible drawdown ne doit pas dominer la recherche.

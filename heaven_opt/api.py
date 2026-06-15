@@ -13,6 +13,7 @@ from .combo_generator import (
 )
 from .data_loader import cached_fetch_klines_range
 from .env import load_repo_env
+from .naming import strategy_name_for_rank
 from .params import normalize_canonical_params
 from .simulator import HeavenOpts, backtest_with_bars
 from .utils import duration_days, epoch_seconds_range, setup_logger, sha1_of_params
@@ -777,7 +778,7 @@ def optimize_heaven(config: OptimizationConfig) -> OptimizationResult:
         ents = []
         heaven_rows = []
         for rank, r in enumerate(top_results, start=1):
-            strat_name = f"{note}-top-{rank}"
+            strat_name = strategy_name_for_rank(run_id, rank)
             ents.append({
                 **run_meta,
                 "set_id": set_id,
