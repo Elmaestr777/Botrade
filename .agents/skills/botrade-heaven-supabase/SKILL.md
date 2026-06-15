@@ -29,14 +29,15 @@ Garder le workflow Heaven fiable: moteurs coherents, meilleures strategies stock
 
 1. Rechercher les chemins `readPalmares`, `writePalmares`, `persistLabResults`, `fetchPalmares`, `heaven_strategies`, `lbcOptions`, `results.yaml`, `ea_seeds.yaml` et `localStorage`.
 2. Corriger d'abord les bugs moteur deterministes ou de parite qui cassent les backtests.
-3. Pour le coeur optimiseur, verifier que l'EA preserve les meilleurs individus observes et que les diagnostics de trades restent persistables en metriques numeriques.
-4. Faire echouer clairement les flux Heaven si Supabase est requis mais indisponible.
-5. Persister les meilleurs resultats dans `palmares_sets`, `palmares_entries` et, si recharge UI attendue, `heaven_strategies`.
-6. Donner un `run_id` commun aux evaluations, au set et aux entrees d'un meme run quand les colonnes de run existent.
-7. Pour une campagne multi-paires/TF, utiliser `run_experiment_matrix.py`: bougies cloturees, fenetre d'entrainement, holdout intact, profils par TF, puis gates paper. Sur les TF courts, ajouter `--include-no-be` pour tester `beEnable` actif/inactif sans relacher les gates; sur `1m`, utiliser `--time-budget-sec` plutot qu'un timeout externe brutal afin de persister les candidats partiels, et `--scalping-1m` pour forcer les entrees scalping avant d'augmenter le budget.
-8. Pour lancer un candidat paper, utiliser `start_paper_candidate.py` afin de refuser automatiquement les strategies non eligibles et de rester Supabase-only.
-9. Avant toute preparation live, utiliser `validate_paper_session.py` pour verifier les gates paper reels et enregistrer l'audit dans `live_events` si utile.
-10. Ajouter une migration de grants/RLS seulement si l'acces Data API ou la securite Supabase le justifie.
+3. Pour la modale Heaven, comparer les champs `opt*` affiches avec `populateHeavenModal`, `lbcSave` et les chemins d'evaluation afin d'eviter les parametres fantomes.
+4. Pour le coeur optimiseur, verifier que l'EA preserve les meilleurs individus observes et que les diagnostics de trades restent persistables en metriques numeriques.
+5. Faire echouer clairement les flux Heaven si Supabase est requis mais indisponible.
+6. Persister les meilleurs resultats dans `palmares_sets`, `palmares_entries` et, si recharge UI attendue, `heaven_strategies`.
+7. Donner un `run_id` commun aux evaluations, au set et aux entrees d'un meme run quand les colonnes de run existent.
+8. Pour une campagne multi-paires/TF, utiliser `run_experiment_matrix.py`: bougies cloturees, fenetre d'entrainement, holdout intact, profils par TF, puis gates paper. Sur les TF courts, ajouter `--include-no-be` pour tester `beEnable` actif/inactif sans relacher les gates; sur `1m`, utiliser `--time-budget-sec` plutot qu'un timeout externe brutal afin de persister les candidats partiels, et `--scalping-1m` pour forcer les entrees scalping avant d'augmenter le budget.
+9. Pour lancer un candidat paper, utiliser `start_paper_candidate.py` afin de refuser automatiquement les strategies non eligibles et de rester Supabase-only.
+10. Avant toute preparation live, utiliser `validate_paper_session.py` pour verifier les gates paper reels et enregistrer l'audit dans `live_events` si utile.
+11. Ajouter une migration de grants/RLS seulement si l'acces Data API ou la securite Supabase le justifie.
 
 # Regles de decision
 
@@ -80,6 +81,7 @@ Garder le workflow Heaven fiable: moteurs coherents, meilleures strategies stock
 - `python -m ruff check heaven_opt run_optimize.py run_experiment_matrix.py start_paper_candidate.py validate_paper_session.py tests`
 - `python -m pytest -q`
 - `python run_experiment_matrix.py --dry-run`
+- Test UI modale Heaven si des champs `opt*` changent: ouvrir la modale, modifier les champs visibles, sauvegarder, rouvrir, comparer les valeurs et verifier l'absence d'erreur console.
 - `rg "localStorage\\.(setItem|getItem).*?(lab:palmares|lab:results|lbcPreset|lbcOptions)" src -n`
 - `rg "liveWallets|readLiveWallets|writeLiveWallets" src -n`
 - `rg "results\\.yaml|ea_seeds\\.yaml" heaven_opt run_optimize.py -n`
