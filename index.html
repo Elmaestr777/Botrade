@@ -1007,7 +1007,7 @@
         <div class="modal-body">
           <form id="btForm" class="form-grid">
             <fieldset>
-              <legend data-i18n="bt.modal.general.legend">G e9n e9ral</legend>
+              <legend data-i18n="bt.modal.general.legend">Général</legend>
               <label><span data-i18n="bt.modal.startCap">Capital initial</span> <input id="btStartCap" type="number" min="0" step="100" value="10000" style="width:8rem" /></label>
               <label><span data-i18n="bt.modal.fee">Frais (%)</span> <input id="btFee" type="number" min="0" step="0.01" value="0.10" style="width:6rem" /></label>
               <label><span data-i18n="bt.modal.lev">Levier (x)</span> <input id="btLev" type="number" min="1" max="125" step="0.1" value="1" style="width:6rem" /></label>
@@ -1020,25 +1020,25 @@
               </label>
             </fieldset>
             <fieldset>
-              <legend data-i18n="bt.modal.period.legend">P e9riode</legend>
-              <label><input type="radio" name="btRangeMode" id="btRangeVisible" value="visible" checked /> <span data-i18n="bt.modal.range.visible">P e9riode visible</span></label>
+              <legend data-i18n="bt.modal.period.legend">Période</legend>
+              <label><input type="radio" name="btRangeMode" id="btRangeVisible" value="visible" checked /> <span data-i18n="bt.modal.range.visible">Période visible</span></label>
               <label><input type="radio" name="btRangeMode" id="btRangeAll" value="all" /> <span data-i18n="bt.modal.range.all">Tout l'historique</span></label>
               <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
                 <label><input type="radio" name="btRangeMode" id="btRangeDates" value="dates" /> <span data-i18n="bt.modal.range.dates">Dates</span></label>
                 <label><span data-i18n="bt.modal.range.from">De</span> <input id="btFrom" type="datetime-local" style="width: 14rem" /></label>
-                <label><span data-i18n="bt.modal.range.to"> c0</span> <input id="btTo" type="datetime-local" style="width: 14rem" /></label>
+                <label><span data-i18n="bt.modal.range.to">À</span> <input id="btTo" type="datetime-local" style="width: 14rem" /></label>
               </div>
-              <p style="color:var(--muted);font-size:12px;margin:4px 0 0;" data-i18n="bt.modal.range.note">Les dates sont interpr e9t e9es dans votre fuseau horaire local.</p>
+              <p style="color:var(--muted);font-size:12px;margin:4px 0 0;" data-i18n="bt.modal.range.note">Les dates sont interprétées dans votre fuseau horaire local.</p>
             </fieldset>
             <fieldset style="display:none">
               <legend data-i18n="bt.modal.opt.legend">Optimisation (utiliser le Lab)</legend>
-              <p style="color:var(--muted);font-size:12px;margin:0 0 6px;" data-i18n="bt.modal.opt.note">Optimise sur l'intervalle actuel (s e9lectionne 1m/5m/15m en haut).</p>
+              <p style="color:var(--muted);font-size:12px;margin:0 0 6px;" data-i18n="bt.modal.opt.note">Optimise sur l'intervalle actuel (sélectionne 1m/5m/15m en haut).</p>
               <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
-                <label><span data-i18n="bt.modal.opt.strategy">Strat e9gie</span>
+                <label><span data-i18n="bt.modal.opt.strategy">Stratégie</span>
                     <select id="btOptStrategy">
                       <option value="grid" selected data-i18n="bt.modal.opt.strategy.grid">Grille</option>
-                      <option value="random" data-i18n="bt.modal.opt.strategy.random">Al e9atoire</option>
-                      <option value="ea" data-i18n="bt.modal.opt.strategy.ea"> c9volutionnaire</option>
+                      <option value="random" data-i18n="bt.modal.opt.strategy.random">Aléatoire</option>
+                      <option value="ea" data-i18n="bt.modal.opt.strategy.ea">Évolutionnaire</option>
                       <option value="bayes" data-i18n="bt.modal.opt.strategy.bayes">Bayes (EDA)</option>
                     </select>
                 </label>
@@ -1054,8 +1054,8 @@
                 </label>
                 <label><span data-i18n="bt.modal.opt.profile">Profil</span>
                   <select id="btOptProfile" style="min-width:8rem;">
-                    <option value="sure" data-i18n="bt.modal.opt.profile.safe">S bre</option>
-                    <option value="balancee" selected data-i18n="bt.modal.opt.profile.bal">Balanc e9e</option>
+                    <option value="sure" data-i18n="bt.modal.opt.profile.safe">Sûre</option>
+                    <option value="balancee" selected data-i18n="bt.modal.opt.profile.bal">Balancée</option>
                     <option value="agressive" data-i18n="bt.modal.opt.profile.agg">Agressive</option>
                   </select>
                 </label>
@@ -1063,7 +1063,7 @@
                 <label><span data-i18n="bt.modal.opt.topN">Top N</span> <input id="btOptTopN" type="number" min="1" max="1000" step="1" value="20" style="width:6rem" /></label>
               </div>
               <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
-                <span data-i18n="bt.modal.opt.modesLabel">Modes d'entr e9e:</span>
+                <span data-i18n="bt.modal.opt.modesLabel">Modes d'entrée:</span>
                 <label><input id="btOptEMOrig" type="checkbox" /> <span data-i18n="bt.modal.opt.mode.original">Original</span></label>
                 <label><input id="btOptEMFib" type="checkbox" /> <span data-i18n="bt.modal.opt.mode.fib">Fib Retracement</span></label>
                 <label><input id="btOptEMBoth" type="checkbox" checked /> <span data-i18n="bt.modal.opt.mode.both">Both</span></label>
@@ -1080,7 +1080,7 @@
                   </div>
                 </div>
                 <div>
-                  <label><input id="btOptPrdEn" type="checkbox" checked /> <span data-i18n="bt.modal.opt.prdEn">P e9riode (prd)</span></label>
+                  <label><input id="btOptPrdEn" type="checkbox" checked /> <span data-i18n="bt.modal.opt.prdEn">Période (prd)</span></label>
                   <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                     <label><span data-i18n="bt.modal.opt.min">Min</span> <input id="btOptPrdMin" type="number" min="2" value="8" style="width:5rem" /></label>
                     <label><span data-i18n="bt.modal.opt.max">Max</span> <input id="btOptPrdMax" type="number" min="2" value="34" style="width:5rem" /></label>
@@ -1139,7 +1139,7 @@
                 <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
                   <label><input id="btOptTPEn" type="checkbox" /> <span data-i18n="bt.modal.opt.tpFibEn">Optimiser TP (Fib)</span></label>
                   <label><span data-i18n="bt.modal.opt.tpCount">Nb TP</span> <input id="btOptTPCount" type="number" min="1" max="10" value="3" style="width:5rem" /></label>
-                  <span style="color:var(--muted);font-size:12px;" data-i18n="bt.modal.opt.tpFibNote">Les ratios s e9lectionn e9s seront affect e9s aux TP1..TPn (ordre croissant)</span>
+                  <span style="color:var(--muted);font-size:12px;" data-i18n="bt.modal.opt.tpFibNote">Les ratios sélectionnés seront affectés aux TP1..TPn (ordre croissant)</span>
                 </div>
                 <div id="btOptTPFibWrap" style="display:flex; gap:10px; flex-wrap:wrap;">
                   <label><input type="checkbox" data-r="0.236" checked />0.236</label>
@@ -1167,7 +1167,7 @@
               </div>
               <div style="margin-top:10px; border-top:1px solid var(--header-border); padding-top:10px;">
                 <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
-                  <label><input id="btOptAllocEn" type="checkbox" /> <span data-i18n="bt.modal.opt.allocEn">Optimiser r e9partition (%)</span></label>
+                  <label><input id="btOptAllocEn" type="checkbox" /> <span data-i18n="bt.modal.opt.allocEn">Optimiser répartition (%)</span></label>
                   <label><span data-i18n="bt.modal.opt.allocStep">Pas</span> <input id="btOptAllocStep" type="number" min="1" max="50" step="1" value="5" style="width:5rem" /></label>
                   <label><span data-i18n="bt.modal.opt.allocMaxPat">Max patterns</span> <input id="btOptAllocMax" type="number" min="1" max="100" step="1" value="8" style="width:7rem" /></label>
                 </div>
@@ -1177,7 +1177,7 @@
         </div>
         <div class="modal-footer">
           <button id="btCancel" class="btn" data-i18n="bt.modal.btn.cancel">Annuler</button>
-          <button id="btOptimize" class="btn" data-i18n="bt.modal.btn.optimize">Optimiser</button>
+          <button id="btOptimize" class="btn" data-i18n="bt.modal.btn.openLab">Ouvrir Lab</button>
           <button id="btRun" class="btn primary" data-i18n="bt.modal.btn.run">Lancer</button>
         </div>
       </div>
@@ -1967,7 +1967,7 @@
         </div>
       </div>
     </div>
-    
+
     <!-- Supabase config modal -->
     <div id="supaModal" class="modal hidden" aria-hidden="true" role="dialog">
       <div class="modal-backdrop" data-close="1"></div>

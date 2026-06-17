@@ -467,7 +467,7 @@ const I18N = {
   'bt.modal.opt.allocMaxPat': { fr:'Max patterns',                      en:'Max patterns',                     es:'Patrones máx' },
  
   'bt.modal.btn.cancel':      { fr:'Annuler',                           en:'Cancel',                           es:'Cancelar' },
-  'bt.modal.btn.optimize':    { fr:'Optimiser',                         en:'Optimize',                         es:'Optimizar' },
+  'bt.modal.btn.openLab':     { fr:'Ouvrir Lab',                         en:'Open Lab',                         es:'Abrir Lab' },
   'bt.modal.btn.run':         { fr:'Lancer',                            en:'Run',                              es:'Lanzar' },
  
   // Live trading modal
@@ -2636,6 +2636,7 @@ if(lbcSaveBtn){
 
 // --- Backtest (période visible / all / dates) ---
 const btRunBtn=document.getElementById('btRun'); const btCancelBtn=document.getElementById('btCancel'); const btOptimizeBtn=document.getElementById('btOptimize');
+if(btCancelBtn&&btModalEl){ btCancelBtn.addEventListener('click', ()=> closeModalEl(btModalEl)); }
 const btProgressEl=document.getElementById('btProgress'); const btProgText=document.getElementById('btProgText'); const btProgBar=document.getElementById('btProgBar'); const btProgNote=document.getElementById('btProgNote'); const btProgTime=document.getElementById('btProgTime'); const btProgLog=document.getElementById('btProgLog'); const btAbortBtn=document.getElementById('btAbort');
 const btProgGlobalText=document.getElementById('btProgGlobalText'); const btProgGlobalBar=document.getElementById('btProgGlobalBar');
 const btStartCap=document.getElementById('btStartCap'); const btFee=document.getElementById('btFee'); const btLev=document.getElementById('btLev'); const btMaxPct=document.getElementById('btMaxPct'); const btMaxBase=document.getElementById('btMaxBase');
@@ -2950,49 +2951,13 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
   if(btExportDetails){ btExportDetails.addEventListener('click', ()=> exportEvalsCSV()); }
 }catch(_){ }
   if(btOptimizeBtn){ btOptimizeBtn.addEventListener('click', async ()=>{ try{
-  const conf={ startCap: Math.max(0, parseFloat(btStartCap&&btStartCap.value||'10000')), fee: Math.max(0, parseFloat(btFee&&btFee.value||'0.1')), lev: Math.max(1, parseFloat(btLev&&btLev.value||'1')), maxPct: Math.max(0, Math.min(100, parseFloat(btMaxPct&&btMaxPct.value||'100'))), base: (btMaxBase&&btMaxBase.value)||'initial' };
-  const tfSel = (document.getElementById('btOptInterval')&&document.getElementById('btOptInterval').value)||currentInterval;
-  const topN = Math.max(1, parseInt((document.getElementById('btOptTopN')&&document.getElementById('btOptTopN').value)||'20',10));
-  const maxComb = Math.max(1, parseInt((document.getElementById('btOptMax')&&document.getElementById('btOptMax').value)||'100',10));
-  function rng(enId,minId,maxId,stepId,defMin,defMax,defStep){ const en=document.getElementById(enId); if(en && !en.checked){ return null; } const vmin=parseFloat((document.getElementById(minId)&&document.getElementById(minId).value)||String(defMin)); const vmax=parseFloat((document.getElementById(maxId)&&document.getElementById(maxId).value)||String(defMax)); const vstep=parseFloat((document.getElementById(stepId)&&document.getElementById(stepId).value)||String(defStep)); const arr=[]; for(let v=vmin; v<=vmax+1e-9; v+=vstep){ arr.push(+v.toFixed(6)); } return arr; }
-  const rNol = rng('btOptNolEn','btOptNolMin','btOptNolMax','btOptNolStep',2,5,1)||[lbcOpts.nol];
-  const rPrd = rng('btOptPrdEn','btOptPrdMin','btOptPrdMax','btOptPrdStep',8,34,2)||[lbcOpts.prd];
-  const rSL  = rng('btOptSLEn','btOptSLMin','btOptSLMax','btOptSLStep',0.5,3.0,0.5)||[lbcOpts.slInitPct];
-  const rBEb = rng('btOptBEBarsEn','btOptBEBarsMin','btOptBEBarsMax','btOptBEBarsStep',3,8,1)||[lbcOpts.beAfterBars];
-  const rBEL = rng('btOptBELockEn','btOptBELockMin','btOptBELockMax','btOptBELockStep',3,10,1)||[lbcOpts.beLockPct];
-  const rEMA = rng('btOptEMALenEn','btOptEMALenMin','btOptEMALenMax','btOptEMALenStep',21,89,4)||[lbcOpts.emaLen];
-  let combos=[]; for(const nol of rNol){ for(const prd of rPrd){ for(const sl of rSL){ for(const be of rBEb){ for(const bel of rBEL){ for(const em of rEMA){ combos.push({ nol, prd, slInitPct:sl, beAfterBars:be, beLockPct:bel, emaLen:em }); } } } } } }
-  const usePrior = !!(document.getElementById('btUseTFPrior')&&document.getElementById('btUseTFPrior').checked);
-  if(usePrior){ try{ let priorArr = Array.isArray(window.labPalmaresCache)? window.labPalmaresCache.slice(0, topN) : []; if((!priorArr.length) && window.SUPA && typeof SUPA.fetchPalmares==='function'){ priorArr = await SUPA.fetchPalmares(currentSymbol, tfSel, topN); } for(const it of priorArr){ if(it&&it.params){ combos.unshift({ ...it.params }); } } }catch(_){ } }
-  if(combos.length>maxComb){ const sample=[]; while(sample.length<maxComb){ const i=Math.floor(Math.random()*combos.length); sample.push(combos[i]); combos.splice(i,1); } combos=sample; }
-  let bars=null;
-  if(tfSel===currentInterval){
-    bars = __baseAfterCutoff();
-  } else {
-    const mem = loadMemSeries(currentSymbol, tfSel);
-    if(mem && Array.isArray(mem.bars) && mem.bars.length){
-      bars = mem.bars;
-    } else {
-      try{
-        bars = await fetchAllKlines(currentSymbol, tfSel, REMOTE_MAX_BARS);
-        try{ saveMemSeries(currentSymbol, tfSel, bars, bars.length); }catch(_){ }
-      }catch(_){
-        bars = __baseAfterCutoff();
-      }
-    }
-  }
-  let from=null,to=null;
-  if(btRangeDates&&btRangeDates.checked){ const f=(btFrom&&btFrom.value)||''; const t=(btTo&&btTo.value)||''; from = f? Math.floor(new Date(f).getTime()/1000): null; to = t? Math.floor(new Date(t).getTime()/1000): null; }
-  else if(btRangeAll&&btRangeAll.checked){ from=null; to=null; }
-  else { const r=getVisibleRange(); if(r){ from=r.from; to=r.to; } }
-  const idxFromTimeLocal=(bars,from,to)=>{ let s=0,e=bars.length-1; if(from!=null){ for(let i=0;i<bars.length;i++){ if(bars[i].time>=from){ s=i; break; } } } if(to!=null){ for(let j=bars.length-1;j>=0;j--){ if(bars[j].time<=to){ e=j; break; } } } return [s,e]; };
-  const [sIdx,eIdx]=idxFromTimeLocal(bars,from,to);
-  openBtProgress('Optimisation...'); btAbort=false; const best=[]; const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
-  let done=0; const total=combos.length; async function step(k){ const end=Math.min(k+5, total); for(let i=k;i<end;i++){ if(btAbort) break; const p=combos[i]; const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, p); const score=scoreResult(res, weights); best.push({ score, params:p, res }); best.sort((a,b)=> b.score-a.score); if(best.length>topN){ best.length=topN; } done++; if(btProgBar&&btProgText){ const pct=Math.round(done/total*100); btProgBar.style.width=pct+'%'; btProgText.textContent=`Optimisation ${pct}% (${done}/${total})`; } }
-    if(done<total && !btAbort){ setTimeout(()=> step(end), 0); } else { closeBtProgress(); closeModalEl(btModalEl); try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } setStatus('Optimisation terminée'); }
-  }
-  step(0);
- }catch(e){ setStatus('Erreur optimisation'); }
+  if(labSymbolSelect){ labSymbolSelect.value=(symbolSelect&&symbolSelect.value)||currentSymbol; try{ localStorage.setItem('lab:sym', labSymbolSelect.value); }catch(_){ } }
+  if(labTFSelect){ labTFSelect.value=(intervalSelect&&intervalSelect.value)||currentInterval; try{ localStorage.setItem('lab:tf', labTFSelect.value); }catch(_){ } }
+  closeModalEl(btModalEl);
+  if(labOpenBtn){ labOpenBtn.click(); }
+  else if(labModalEl){ openModalEl(labModalEl); await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }
+  setStatus('Lab prêt pour optimiser Heaven');
+ }catch(e){ setStatus('Erreur ouverture Lab'); }
 }); }
 if(btRunBtn){ btRunBtn.addEventListener('click', ()=>{ if(!candles.length){ setStatus('Aucune donnée'); return; } const conf={ startCap: Math.max(0, parseFloat(btStartCap&&btStartCap.value||'10000')), fee: Math.max(0, parseFloat(btFee&&btFee.value||'0.1')), lev: Math.max(1, parseFloat(btLev&&btLev.value||'1')), maxPct: Math.max(0, Math.min(100, parseFloat(btMaxPct&&btMaxPct.value||'100'))), base: (btMaxBase&&btMaxBase.value)||'initial' };
   let from=null, to=null; if(btRangeDates&&btRangeDates.checked){ const f=(btFrom&&btFrom.value)||''; const t=(btTo&&btTo.value)||''; from = f? Math.floor(new Date(f).getTime()/1000): null; to = t? Math.floor(new Date(t).getTime()/1000): null; } else if(btRangeAll&&btRangeAll.checked){ from=null; to=null; } else { const r=getVisibleRange(); if(r){ from=r.from; to=r.to; } }
