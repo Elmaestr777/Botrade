@@ -364,6 +364,7 @@ const I18N = {
   // Common generic UI
   'common.save':            { fr:'Enregistrer',                        en:'Save',                             es:'Guardar' },
   'common.load':            { fr:'Charger',                            en:'Load',                             es:'Cargar' },
+  'common.apply':           { fr:'Appliquer',                          en:'Apply',                            es:'Aplicar' },
   'common.reset':           { fr:'Réinitialiser',                      en:'Reset',                            es:'Reiniciar' },
   'common.delete':          { fr:'Supprimer',                          en:'Delete',                           es:'Eliminar' },
   'common.cancel':          { fr:'Annuler',                            en:'Cancel',                           es:'Cancelar' },

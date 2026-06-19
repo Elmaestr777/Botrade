@@ -31,11 +31,13 @@ Verifier rapidement que l'UI Botrade est coherente, que les controles visibles s
 
 1. Lister les elements interactifs (`button`, `input`, `select`, `textarea`) et comparer leurs `id` aux references JS.
 2. Filtrer les faux positifs dynamiques (`optTP*`, `labTP*`, `btOpt*`, etc.) avant de conclure qu'un controle est orphelin.
-3. Verifier les octets NUL ou libelles corrompus dans `index.html` et `src/main.js`.
-4. Corriger les handlers manquants ou les chemins UI fantomes.
-5. Tester dans le navigateur local les parcours visibles principaux.
-6. Pour Heaven, faire au moins un round-trip de sauvegarde sur un echantillon: general, fib/entry, TP dynamique.
-7. Restaurer un etat UI propre apres les tests quand des controles persistants ont ete modifies.
+3. Verifier toutes les references `data-i18n*`: texte, titre, placeholder et aria-label.
+4. Verifier que les libelles des boutons correspondent a leur action reelle (`save`, `load`, `apply`, `delete`, `reset`, `cancel`).
+5. Verifier les octets NUL ou libelles corrompus dans `index.html` et `src/main.js`.
+6. Corriger les handlers manquants, les libelles trompeurs ou les chemins UI fantomes.
+7. Tester dans le navigateur local les parcours visibles principaux.
+8. Pour Heaven, faire au moins un round-trip de sauvegarde sur un echantillon: general, fib/entry, TP dynamique.
+9. Restaurer un etat UI propre apres les tests quand des controles persistants ont ete modifies.
 
 # Regles de decision
 
@@ -49,6 +51,8 @@ Verifier rapidement que l'UI Botrade est coherente, que les controles visibles s
 - `node --check src\main.js`
 - `npm run lint -- --quiet`
 - `git diff --check`
+- Audit i18n: zero cle manquante pour `data-i18n`, `data-i18n-title`, `data-i18n-placeholder`, `data-i18n-aria-label`.
+- Audit libelles: aucun bouton action avec cle i18n contradictoire.
 - Smoke test navigateur sur: EMA, Heaven, Backtest, Backtest -> Lab, Lab, palmares global, theme/langue, drawer Live.
 - Controle console navigateur: aucune erreur apres reload.
 
