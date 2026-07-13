@@ -2,6 +2,7 @@ import hashlib
 import logging
 import os
 import random
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -29,6 +30,14 @@ def iso_to_epoch_seconds(iso: str) -> int:
 
 def epoch_seconds_range(date_from: str, date_to: str) -> tuple[int, int]:
     return iso_to_epoch_seconds(date_from), iso_to_epoch_seconds(date_to)
+
+
+def duration_days(value: str) -> int:
+    match = re.fullmatch(r"\s*(\d+)\s*([dDwW])\s*", str(value))
+    if not match:
+        raise ValueError(f"Unsupported duration {value!r}; use values such as 7d or 4w")
+    amount = int(match.group(1))
+    return amount * (7 if match.group(2).lower() == "w" else 1)
 
 
 def sha1_of_params(obj: Any) -> str:

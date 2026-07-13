@@ -5,10 +5,13 @@ from typing import Any
 
 import requests
 
+from .env import load_repo_env
+from .params import normalize_canonical_params
 from .scoring import composite_score
 
 
 def _rest_base_url() -> str | None:
+    load_repo_env()
     # Prefer explicit REST URL; else SUPABASE_URL + '/rest/v1'
     rest = os.getenv("SUPABASE_REST_URL")
     if rest:
@@ -20,8 +23,13 @@ def _rest_base_url() -> str | None:
 
 
 def fetch_history_from_supabase(symbol: str, tf: str, profile: str | None, max_rows: int = 2000) -> list[dict[str, Any]]:
+    load_repo_env()
     base = _rest_base_url()
-    api_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_ANON_KEY")
+    api_key = (
+        os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+        or os.getenv("SUPABASE_SERVICE_KEY")
+        or os.getenv("SUPABASE_ANON_KEY")
+    )
     if not base or not api_key:
         return []
     url = f"{base}/strategy_evaluations"
@@ -45,7 +53,7 @@ def fetch_history_from_supabase(symbol: str, tf: str, profile: str | None, max_r
         arr = r.json() or []
         out: list[dict[str, Any]] = []
         for it in arr:
-            params_d = it.get("params") or {}
+            params_d = normalize_canonical_params(it.get("params") or {})
             mets = it.get("metrics") or {}
             score = it.get("score")
             out.append({"params": params_d, "metrics": mets, "score": score})
@@ -60,5 +68,5 @@ def compute_scores_if_missing(items: list[dict[str, Any]], weights: dict[str, fl
         s = it.get("score")
         if s is None:
             s = composite_score(it.get("metrics") or {}, weights)
-        out.append({"params": it.get("params") or {}, "score": float(s)})
+        out.append({"params": normalize_canonical_params(it.get("params") or {}), "score": float(s)})
     return out

@@ -18,6 +18,10 @@ def _fetch_batch(symbol: str, interval: str, limit: int = 1000, end_time_ms: int
     raw = r.json()
     out: list[Bar] = []
     for k in raw:
+        # Binance may return the currently open candle when endTime is "now".
+        # Only closed candles belong in reproducible optimization windows.
+        if end_time_ms is not None and int(k[6]) > end_time_ms:
+            continue
         t = int(k[0] // 1000)
         out.append(Bar(time=t, open=float(k[1]), high=float(k[2]), low=float(k[3]), close=float(k[4])))
     # ensure ascending by time
@@ -40,8 +44,6 @@ def fetch_klines_range(symbol: str, interval: str, start_sec: int, end_sec: int,
             break
         out = filtered + out
         cursor = filtered[0].time * 1000 - 1
-        if len(batch) < need:
-            break
     return out
 
 

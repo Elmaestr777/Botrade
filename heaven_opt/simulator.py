@@ -18,6 +18,7 @@ class HeavenOpts:
                  entry_mode: str = "Both",
                  risk_mgmt: bool = True,
                  risk_max_pct: float = 1.0,
+                 leverage: float = 1.0,
                  sl_init_pct: float = 2.0,
                  be_enable: bool = True,
                  be_after_bars: int = 5,
@@ -36,6 +37,7 @@ class HeavenOpts:
         self.entry_mode = entry_mode
         self.risk_mgmt = bool(risk_mgmt)
         self.risk_max_pct = float(max(0.0, risk_max_pct))
+        self.leverage = float(max(1.0, leverage))
         self.sl_init_pct = float(max(0.0, sl_init_pct))
         self.be_enable = bool(be_enable)
         self.be_after_bars = int(max(1, be_after_bars))
@@ -57,75 +59,86 @@ def normalize_tp_percents(opts: HeavenOpts) -> None:
             opts.tp_p[i] = (opts.tp_p[i] / s) * 100.0
 
 
+def merge_duplicate_targets(targets: list[dict[str, object]]) -> list[dict[str, object]]:
+    merged: dict[str, dict[str, object]] = {}
+    ordered: list[dict[str, object]] = []
+    for target in targets:
+        price = float(target.get("price", math.nan))
+        if not math.isfinite(price):
+            continue
+        key = f"{price:.8f}"
+        qty = float(target.get("qty", 0.0) or 0.0)
+        if key in merged:
+            merged[key]["qty"] = float(merged[key].get("qty", 0.0) or 0.0) + qty
+        else:
+            item = dict(target)
+            item["price"] = price
+            item["qty"] = qty
+            merged[key] = item
+            ordered.append(item)
+    return ordered
+
+
 def generate_heaven_signals(opts: HeavenOpts, bars: list[Bar], precomputed: dict | None = None) -> list[dict[str, object]]:
     if precomputed and "lb" in precomputed:
-        trend, level, flips = precomputed["lb"]
+        trend, _level, flips = precomputed["lb"]
     else:
-        trend, level, flips = compute_line_break_state(bars, opts.nol)
+        trend, _level, flips = compute_line_break_state(bars, opts.nol)
     piv = precomputed.get("piv") if (precomputed and "piv" in precomputed) else compute_pivots(bars, opts.prd)
     use_lb = (opts.entry_mode in ("Original", "Both"))
     use_fib = (opts.entry_mode in ("Fib", "Both")) and opts.use_fib_ret
     sigs: list[dict[str, object]] = []
-    if use_lb:
-        for i in flips:
-            entry_idx = min(len(bars) - 1, i + 1)
-            risk_ok = (not opts.risk_mgmt) or (math.isfinite(level[i]) and (opts.risk_max_pct / 100.0 >= abs(bars[i].open - level[i]) / max(1e-9, bars[i].open)))
-            if not risk_ok:
-                continue
-            direction = 'long' if trend[i] == 1 else 'short'
-            sigs.append({"idx": entry_idx, "dir": direction, "type": "LB"})
-    if use_fib and len(piv) >= 2:
-        def use_lvl(ratio: float, swing_up: bool) -> None:
-            for s in range(1, len(piv)):
-                a = piv[s - 1]
-                b = piv[s]
-                swing_up_now = b["price"] > a["price"]
-                if swing_up_now != swing_up:
-                    continue
-                lvl = a["price"] + (b["price"] - a["price"]) * ratio
-                start = int(b["idx"])
-                end = int(piv[s + 1]["idx"] if s + 1 < len(piv) else len(bars))
-                for j in range(start + 1, end):
-                    if swing_up:
-                        if opts.confirm_mode == "Bounce":
-                            bounce = (bars[j - 1].close <= lvl and bars[j].close > lvl)
-                        else:
-                            bounce = (bars[j].low <= lvl and bars[j].close > lvl)
-                        if bounce:
-                            risk_ok = (not opts.risk_mgmt) or (math.isfinite(level[j]) and (opts.risk_max_pct / 100.0 >= abs(bars[j].close - level[j]) / max(1e-9, bars[j].close)))
-                            if risk_ok and trend[j] == 1:
-                                entry_idx = min(len(bars) - 1, j + 1)
-                                sigs.append({"idx": entry_idx, "dir": 'long', "type": 'Fib'})
-                                break
-                    else:
-                        if opts.confirm_mode == "Bounce":
-                            bounce = (bars[j - 1].close >= lvl and bars[j].close < lvl)
-                        else:
-                            bounce = (bars[j].high >= lvl and bars[j].close < lvl)
-                        if bounce:
-                            risk_ok = (not opts.risk_mgmt) or (math.isfinite(level[j]) and (opts.risk_max_pct / 100.0 >= abs(bars[j].close - level[j]) / max(1e-9, bars[j].close)))
-                            if risk_ok and trend[j] == -1:
-                                entry_idx = min(len(bars) - 1, j + 1)
-                                sigs.append({"idx": entry_idx, "dir": 'short', "type": 'Fib'})
-                                break
-        # Enable common fib ratios as in UI
-        ratios = []
-        for i in range(10):
-            ratios.append(opts.tp_r[i])
-        used = set()
-        def maybe(r: float):
-            if r not in used:
-                used.add(r)
-                use_lvl(r, True)
-                use_lvl(r, False)
-        for r in (0.382, 0.5, 0.618, 0.786):
-            maybe(r)
+    pivot_idx = -1
+    pending_fib: dict[str, object] | None = None
+    ratios = (0.382, 0.5, 0.618, 0.786)
+    flip_set = set(flips)
+    for i in range(1, len(bars)):
+        while pivot_idx + 1 < len(piv) and int(piv[pivot_idx + 1]["idx"]) + opts.prd <= i:
+            pivot_idx += 1
+        segment = None
+        if pivot_idx >= 1:
+            a = piv[pivot_idx - 1]
+            b = piv[pivot_idx]
+            segment = {"a": a, "b": b, "dir": "up" if b["price"] > a["price"] else "down"}
+
+        if i in flip_set:
+            direction = "long" if trend[i] == 1 else "short"
+            if use_lb and i + 1 < len(bars):
+                sigs.append({"idx": i + 1, "dir": direction, "type": "LB"})
+            if use_fib and segment:
+                b_price = float(segment["b"]["price"])  # type: ignore[index]
+                a_price = float(segment["a"]["price"])  # type: ignore[index]
+                move = abs(b_price - a_price)
+                levels = [
+                    b_price - move * ratio if segment["dir"] == "up" else b_price + move * ratio
+                    for ratio in ratios
+                ]
+                pending_fib = {"dir": direction, "levels": levels}
+            elif use_fib:
+                pending_fib = None
+
+        if use_fib and pending_fib and i + 1 < len(bars):
+            direction = str(pending_fib["dir"])
+            for level_value in pending_fib["levels"]:  # type: ignore[union-attr]
+                level = float(level_value)
+                if direction == "long":
+                    hit = bars[i].low <= level and (
+                        opts.confirm_mode != "Bounce" or bars[i].close > level
+                    )
+                else:
+                    hit = bars[i].high >= level and (
+                        opts.confirm_mode != "Bounce" or bars[i].close < level
+                    )
+                if hit:
+                    sigs.append({"idx": i + 1, "dir": direction, "type": "Fib"})
+                    pending_fib = None
+                    break
     # sort by idx and prioritize LB over Fib on same entry bar
     sigs.sort(key=lambda x: (int(x["idx"]), 0 if x["type"] == "LB" else 1))
     return sigs
 
 
-def simulate_trade_from_signal(sig: dict[str, object], to_idx: int, piv: list[dict[str, float]], opts: HeavenOpts, equity: float, fee_pct: float, equity_start: float, bars: list[Bar]):
+def simulate_trade_from_signal(sig: dict[str, object], to_idx: int, piv: list[dict[str, float]], opts: HeavenOpts, equity: float, fee_pct: float, equity_start: float, bars: list[Bar], precomputed: dict | None = None):
     is_long = (sig["dir"] == 'long')
     entry_idx = int(sig["idx"])  # entry at next bar open already computed in signals
     if entry_idx >= len(bars) or entry_idx > to_idx:
@@ -133,16 +146,16 @@ def simulate_trade_from_signal(sig: dict[str, object], to_idx: int, piv: list[di
     entry_price = bars[entry_idx].open
     sl = entry_price * (1.0 - opts.sl_init_pct / 100.0) if is_long else entry_price * (1.0 + opts.sl_init_pct / 100.0)
     # sizing
+    qty_cap = (equity * opts.leverage) / max(1e-9, entry_price)
     if opts.risk_mgmt:
         risk_cash = equity * (opts.risk_max_pct / 100.0)
-        risk_per_unit = max(1e-9, abs(entry_price - sl))
-        qty = max(0.0, risk_cash / risk_per_unit)
+        risk_per_unit = max(1e-9, abs(entry_price - sl) + (entry_price + sl) * (fee_pct / 100.0))
+        qty = max(0.0, min(qty_cap, risk_cash / risk_per_unit))
     else:
-        # no explicit cap in Python config; leverage supported by qty sizing here
-        qty = max(0.0, (equity) / max(1e-9, entry_price))
+        qty = max(0.0, qty_cap)
     if qty <= 0:
         return None
-    last2 = last_two_pivots_before(piv, int(sig["idx"]))
+    last2 = last_two_pivots_before(piv, int(sig["idx"]), opts.prd)
     values = opts.tp_r
     percs = opts.tp_p
     tmp = HeavenOpts(tp_norm=opts.tp_norm)
@@ -156,8 +169,10 @@ def simulate_trade_from_signal(sig: dict[str, object], to_idx: int, piv: list[di
     swing_up = (b and a and b["price"] > a["price"]) if last2 else None
     def price_at(r: float) -> float:
         assert a and b
-        return a["price"] + (b["price"] - a["price"]) * r
-    ema_rem = 0.0
+        move = abs(b["price"] - a["price"])
+        return b["price"] + move * r if swing_up else b["price"] - move * r
+    use_ema_tp = any((t == 'EMA' and p > 0) for t, p in zip(tp_types, percs))
+    ema_arr = (precomputed.get('ema') if (precomputed and 'ema' in precomputed) else ema_series(bars, opts.ema_len)) if use_ema_tp else None
     for i in range(10):
         if norm_percs[i] <= 0:
             continue
@@ -169,11 +184,14 @@ def simulate_trade_from_signal(sig: dict[str, object], to_idx: int, piv: list[di
             p = entry_price * (1.0 + pct / 100.0) if is_long else entry_price * (1.0 - pct / 100.0)
             targets.append({"price": p, "qty": qty * norm_percs[i] / 100.0, "filled": False, "label": f"TP{i+1}"})
         elif t == 'EMA':
-            ema_rem += qty * norm_percs[i] / 100.0
+            p = float(ema_arr[entry_idx]) if ema_arr is not None else math.nan
+            if math.isfinite(p) and ((is_long and p > entry_price) or ((not is_long) and p < entry_price)):
+                targets.append({"price": p, "qty": qty * norm_percs[i] / 100.0, "filled": False, "label": f"TP{i+1}"})
         elif last2:
             p = price_at(values[i] if i < len(values) else 0.0)
             if (is_long and swing_up and p > entry_price) or ((not is_long) and (not swing_up) and p < entry_price):
                 targets.append({"price": p, "qty": qty * norm_percs[i] / 100.0, "filled": False, "label": f"TP{i+1}"})
+    targets = merge_duplicate_targets(targets)
     targets.sort(key=(lambda x: x["price"])) if is_long else targets.sort(key=(lambda x: x["price"]), reverse=True)
     remaining = qty
     realized = 0.0
@@ -181,23 +199,16 @@ def simulate_trade_from_signal(sig: dict[str, object], to_idx: int, piv: list[di
     exit_price = bars[to_idx].close
     reason = 'Close'
     fills: list[dict[str, object]] = []
-    use_ema_tp = any((t == 'EMA' and p > 0) for t, p in zip(tp_types, percs))
-    ema_arr = (precomputed.get('ema') if (precomputed and 'ema' in precomputed) else ema_series(bars, opts.ema_len)) if use_ema_tp else None
+    be_active = False
     for j in range(entry_idx, to_idx + 1):
-        # BE trailing
-        if opts.be_enable:
+        bar = bars[j]
+        if opts.be_enable and not be_active:
             bars_since = j - entry_idx
             if bars_since >= opts.be_after_bars:
-                lc = bars[j].close
-                if is_long:
-                    cand = max(entry_price, entry_price + (opts.be_lock_pct / 100.0) * (lc - entry_price))
-                    if cand > sl:
-                        sl = cand
-                else:
-                    cand = min(entry_price, entry_price - (opts.be_lock_pct / 100.0) * (entry_price - lc))
-                    if cand < sl:
-                        sl = cand
-        bar = bars[j]
+                move_pct = ((bar.high - entry_price) / entry_price * 100.0) if is_long else ((entry_price - bar.low) / entry_price * 100.0)
+                if move_pct >= opts.be_lock_pct:
+                    be_active = True
+                    sl = entry_price
         if is_long:
             if bar.low <= sl:
                 realized += (sl - entry_price) * remaining
@@ -216,17 +227,9 @@ def simulate_trade_from_signal(sig: dict[str, object], to_idx: int, piv: list[di
                         remaining -= amt
                         t["filled"] = True
                         fills.append({"kind": t["label"], "qty": amt, "price": float(t["price"]), "timeIdx": j, "pnl": fp})
-            if ema_arr is not None and remaining > 1e-9:
-                pema = ema_arr[j]
-                if bar.low <= pema:
-                    amt = remaining
-                    fp = (pema - entry_price) * amt
-                    realized += fp
-                    remaining -= amt
-                    fills.append({"kind": 'TP8', "qty": amt, "price": pema, "timeIdx": j, "pnl": fp})
             if remaining <= 1e-9:
                 exit_idx = j
-                exit_price = float(next((t["price"] for t in targets if t["filled"]), bar.close))
+                exit_price = float(fills[-1]["price"] if fills else bar.close)
                 reason = 'TP'
                 break
         else:
@@ -247,17 +250,9 @@ def simulate_trade_from_signal(sig: dict[str, object], to_idx: int, piv: list[di
                         remaining -= amt
                         t["filled"] = True
                         fills.append({"kind": t["label"], "qty": amt, "price": float(t["price"]), "timeIdx": j, "pnl": fp})
-            if ema_arr is not None and remaining > 1e-9:
-                pema = ema_arr[j]
-                if bar.high >= pema:
-                    amt = remaining
-                    fp = (entry_price - pema) * amt
-                    realized += fp
-                    remaining -= amt
-                    fills.append({"kind": 'TP8', "qty": amt, "price": pema, "timeIdx": j, "pnl": fp})
             if remaining <= 1e-9:
                 exit_idx = j
-                exit_price = float(next((t["price"] for t in targets if t["filled"]), bar.close))
+                exit_price = float(fills[-1]["price"] if fills else bar.close)
                 reason = 'TP'
                 break
     if remaining > 1e-9:
@@ -270,7 +265,7 @@ def simulate_trade_from_signal(sig: dict[str, object], to_idx: int, piv: list[di
         reason = 'Close'
         remaining = 0.0
     entry_notional = entry_price * qty
-    exit_notional = exit_price * qty
+    exit_notional = sum(float(fill["price"]) * float(fill["qty"]) for fill in fills)
     fees = (fee_pct / 100.0) * (entry_notional + exit_notional)
     pnl = realized - fees
     init_risk_cash = abs(entry_price - (entry_price * (1.0 - opts.sl_init_pct / 100.0) if is_long else entry_price * (1.0 + opts.sl_init_pct / 100.0))) * qty
@@ -323,19 +318,33 @@ def backtest_with_bars(opts: HeavenOpts, bars: list[Bar], from_idx: int, to_idx:
     piv = precomputed.get("piv") if (precomputed and "piv" in precomputed) else compute_pivots(bars, opts.prd)
     signals = generate_heaven_signals(opts, bars, precomputed=precomputed)
     signals = [s for s in signals if int(s["idx"]) >= from_idx and int(s["idx"]) <= to_idx]
+    # A single-position strategy cannot open twice at the same candle open.
+    # Signals are already ordered with LB before Fib, so keep the first one.
+    distinct_signals: list[dict[str, object]] = []
+    seen_entry_indices: set[int] = set()
+    for signal in signals:
+        entry_idx = int(signal["idx"])
+        if entry_idx in seen_entry_indices:
+            continue
+        seen_entry_indices.add(entry_idx)
+        distinct_signals.append(signal)
+    signals = distinct_signals
     trades: list[dict[str, object]] = []
     equity = equity_start
     peak = equity
     max_dd = 0.0
+    max_dd_abs = 0.0
     gross_prof = 0.0
     gross_loss = 0.0
     wins = 0
     returns: list[float] = []
     eq_series: list[float] = []
     for i, sig in enumerate(signals):
-        end_bound = min(to_idx, int(signals[i + 1]["idx"]) if i + 1 < len(signals) else to_idx)
+        # The next signal is known at the previous candle close. Close the
+        # current trade there, then let the next trade enter at its open.
+        end_bound = min(to_idx, int(signals[i + 1]["idx"]) - 1) if i + 1 < len(signals) else to_idx
         eq_before = equity
-        res = simulate_trade_from_signal(sig, end_bound, piv, opts, equity, fee_pct, equity_start, bars)
+        res = simulate_trade_from_signal(sig, end_bound, piv, opts, equity, fee_pct, equity_start, bars, precomputed=precomputed)
         if res is None:
             continue
         trades.append(res)
@@ -353,6 +362,9 @@ def backtest_with_bars(opts: HeavenOpts, bars: list[Bar], from_idx: int, to_idx:
         dd = (peak - equity) / max(1e-9, peak)
         if dd > max_dd:
             max_dd = dd
+        dd_abs = peak - equity
+        if dd_abs > max_dd_abs:
+            max_dd_abs = dd_abs
     total_pnl = equity - equity_start
     winrate = (wins / len(trades) * 100.0) if trades else 0.0
     pf = (gross_prof / abs(gross_loss)) if gross_loss < 0 else (float('inf') if gross_prof > 0 else 0.0)
@@ -363,6 +375,7 @@ def backtest_with_bars(opts: HeavenOpts, bars: list[Bar], from_idx: int, to_idx:
         v = (sum((x - m) * (x - m) for x in a) / len(a)) if a else 0.0
         return math.sqrt(v)
     sharpe = (mean(returns) / max(1e-9, std(returns))) if returns else 0.0
+    consistency = (sum(1 for x in returns if x >= 0.0) / len(returns)) if returns else 0.0
     slope, r2 = lin_reg(eq_series)
     days = max(1, int((bars[to_idx].time - bars[from_idx].time) / 86400))
     cagr = (equity / max(1e-9, equity_start)) ** (365.0 / days) - 1.0 if days > 0 else 0.0
@@ -373,6 +386,7 @@ def backtest_with_bars(opts: HeavenOpts, bars: list[Bar], from_idx: int, to_idx:
         "trades": trades,
         "equity": equity,
         "totalPnl": total_pnl,
+        "return_pct": (total_pnl / equity_start * 100.0) if equity_start > 0 else 0.0,
         "winrate": winrate,
         "grossProf": gross_prof,
         "grossLoss": gross_loss,
@@ -382,6 +396,7 @@ def backtest_with_bars(opts: HeavenOpts, bars: list[Bar], from_idx: int, to_idx:
         "slope": slope,
         "r2": r2,
         "calmar": calmar,
+        "consistency": consistency,
         "maxDDPct": max_dd * 100.0,
-        "maxDDAbs": (0.0 if not eq_series else (max(eq_series) - min(eq_series))),
+        "maxDDAbs": max_dd_abs,
     }

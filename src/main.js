@@ -364,6 +364,7 @@ const I18N = {
   // Common generic UI
   'common.save':            { fr:'Enregistrer',                        en:'Save',                             es:'Guardar' },
   'common.load':            { fr:'Charger',                            en:'Load',                             es:'Cargar' },
+  'common.apply':           { fr:'Appliquer',                          en:'Apply',                            es:'Aplicar' },
   'common.reset':           { fr:'Réinitialiser',                      en:'Reset',                            es:'Reiniciar' },
   'common.delete':          { fr:'Supprimer',                          en:'Delete',                           es:'Eliminar' },
   'common.cancel':          { fr:'Annuler',                            en:'Cancel',                           es:'Cancelar' },
@@ -412,62 +413,8 @@ const I18N = {
   'bt.modal.range.to':        { fr:'À',                                 en:'To',                               es:'Hasta' },
   'bt.modal.range.note':      { fr:'Les dates sont interprétées dans votre fuseau horaire local.', en:'Dates are interpreted in your local time zone.', es:'Las fechas se interpretan en tu zona horaria local.' },
  
-  'bt.modal.opt.legend':      { fr:'Optimisation (utiliser le Lab)',    en:'Optimisation (use Lab)',           es:'Optimización (usar Lab)' },
-  'bt.modal.opt.note':        { fr:"Optimise sur l'intervalle actuel (sélectionne 1m/5m/15m en haut).", en:'Optimises over the current interval (select 1m/5m/15m above).', es:'Optimiza sobre el intervalo actual (selecciona 1m/5m/15m arriba).' },
-  'bt.modal.opt.strategy':    { fr:'Stratégie',                         en:'Strategy',                         es:'Estrategia' },
-  'bt.modal.opt.strategy.grid':   { fr:'Grille',                        en:'Grid',                             es:'Grid' },
-  'bt.modal.opt.strategy.random': { fr:'Aléatoire',                     en:'Random',                           es:'Aleatorio' },
-  'bt.modal.opt.strategy.ea':     { fr:'Évolutionnaire',                en:'Evolutionary',                     es:'Evolutivo' },
-  'bt.modal.opt.strategy.bayes':  { fr:'Bayes (EDA)',                   en:'Bayes (EDA)',                      es:'Bayes (EDA)' },
-  'bt.modal.opt.tf':          { fr:'TF',                                en:'TF',                               es:'TF' },
-  'bt.modal.opt.profile':     { fr:'Profil',                            en:'Profile',                          es:'Perfil' },
-  'bt.modal.opt.profile.safe':{ fr:'Sûre',                              en:'Safe',                             es:'Segura' },
-  'bt.modal.opt.profile.bal': { fr:'Balancée',                          en:'Balanced',                         es:'Balanceada' },
-  'bt.modal.opt.profile.agg': { fr:'Agressive',                         en:'Aggressive',                       es:'Agresiva' },
-  'bt.modal.opt.maxComb':     { fr:'Max combinaisons',                  en:'Max combinations',                 es:'Máx combinaciones' },
-  'bt.modal.opt.topN':        { fr:'Top N',                             en:'Top N',                            es:'Top N' },
- 
-  'bt.modal.opt.modesLabel':  { fr:"Modes d'entrée:",                  en:'Entry modes:',                     es:'Modos de entrada:' },
-  'bt.modal.opt.mode.original':{ fr:'Original',                         en:'Original',                         es:'Original' },
-  'bt.modal.opt.mode.fib':    { fr:'Fib Retracement',                   en:'Fib Retracement',                  es:'Fib Retracement' },
-  'bt.modal.opt.mode.both':   { fr:'Both',                              en:'Both',                             es:'Ambos' },
-  'bt.modal.opt.usePriorTitle':{ fr:"Utiliser les résultats historiques (même symbole+TF) comme prior pour l'optimisation", en:'Use historical results (same symbol+TF) as prior for optimisation', es:'Usar resultados históricos (mismo símbolo+TF) como prior para la optimización' },
-  'bt.modal.opt.usePrior':    { fr:'Prior TF',                          en:'TF prior',                         es:'Prior TF' },
- 
-  'bt.modal.opt.nolEn':       { fr:'NOL',                               en:'NOL',                              es:'NOL' },
-  'bt.modal.opt.prdEn':       { fr:'Période (prd)',                     en:'Period (prd)',                     es:'Período (prd)' },
-  'bt.modal.opt.slEn':        { fr:'SL initial %',                      en:'Initial SL %',                     es:'SL inicial %' },
-  'bt.modal.opt.beBarsEn':    { fr:'Bars to BE',                        en:'Bars to BE',                       es:'Barras a BE' },
-  'bt.modal.opt.beLockEn':    { fr:'Lock % move',                        en:'Lock % move',                      es:'Lock % movimiento' },
-  'bt.modal.opt.emaLenEn':    { fr:'EMA len',                           en:'EMA len',                          es:'EMA len' },
-  'bt.modal.opt.min':         { fr:'Min',                               en:'Min',                              es:'Mín' },
-  'bt.modal.opt.max':         { fr:'Max',                               en:'Max',                              es:'Máx' },
-  'bt.modal.opt.step':        { fr:'Pas',                               en:'Step',                             es:'Paso' },
- 
-  'bt.modal.opt.ea.pop':      { fr:'EA: Pop',                           en:'EA: Pop',                          es:'EA: Pop' },
-  'bt.modal.opt.ea.gens':     { fr:'Gens',                              en:'Gens',                             es:'Gens' },
-  'bt.modal.opt.ea.mut':      { fr:'Mut %',                             en:'Mut %',                            es:'Mut %' },
-  'bt.modal.opt.ea.cx':       { fr:'Cx %',                              en:'Cx %',                             es:'Cx %' },
-  'bt.modal.opt.ea.resume':   { fr:'Resume',                            en:'Resume',                           es:'Resume' },
- 
-  'bt.modal.opt.bayes.iters': { fr:'Bayes: Iters',                      en:'Bayes: Iters',                     es:'Bayes: Iters' },
-  'bt.modal.opt.bayes.init':  { fr:'Init random',                       en:'Init random',                      es:'Init aleatorio' },
-  'bt.modal.opt.bayes.elite': { fr:'Elite %',                           en:'Elite %',                          es:'Elite %' },
-  'bt.modal.opt.bayes.resume':{ fr:'Resume',                            en:'Resume',                           es:'Resume' },
- 
-  'bt.modal.opt.tpFibEn':     { fr:'Optimiser TP (Fib)',                en:'Optimise TP (Fib)',                es:'Optimizar TP (Fib)' },
-  'bt.modal.opt.tpCount':     { fr:'Nb TP',                             en:'# TP',                             es:'Nº TP' },
-  'bt.modal.opt.tpFibNote':   { fr:'Les ratios sélectionnés seront affectés aux TP1..TPn (ordre croissant)', en:'Selected ratios are assigned to TP1..TPn (ascending order)', es:'Los ratios seleccionados se asignan a TP1..TPn (orden ascendente)' },
-  'bt.modal.opt.tpPctEn':     { fr:'Optimiser TP (Percent)',            en:'Optimise TP (Percent)',            es:'Optimizar TP (Percent)' },
-  'bt.modal.opt.tpMinPct':    { fr:'Min %',                             en:'Min %',                            es:'Mín %' },
-  'bt.modal.opt.tpMaxPct':    { fr:'Max %',                             en:'Max %',                            es:'Máx %' },
-  'bt.modal.opt.tpStepPct':   { fr:'Pas %',                             en:'Step %',                           es:'Paso %' },
-  'bt.modal.opt.allocEn':     { fr:'Optimiser répartition (%)',         en:'Optimise allocation (%)',          es:'Optimizar reparto (%)' },
-  'bt.modal.opt.allocStep':   { fr:'Pas',                               en:'Step',                             es:'Paso' },
-  'bt.modal.opt.allocMaxPat': { fr:'Max patterns',                      en:'Max patterns',                     es:'Patrones máx' },
- 
   'bt.modal.btn.cancel':      { fr:'Annuler',                           en:'Cancel',                           es:'Cancelar' },
-  'bt.modal.btn.optimize':    { fr:'Optimiser',                         en:'Optimize',                         es:'Optimizar' },
+  'bt.modal.btn.openLab':     { fr:'Ouvrir Lab',                         en:'Open Lab',                         es:'Abrir Lab' },
   'bt.modal.btn.run':         { fr:'Lancer',                            en:'Run',                              es:'Lanzar' },
  
   // Live trading modal
@@ -507,6 +454,7 @@ let __uiLang = (function(){
   return 'fr';
 })();
 function currentLang(){ return __uiLang; }
+let __labUiReady = false;
 function setLang(lang, persist){
   try{
     if(SUPPORTED_LANGS.indexOf(lang) === -1) lang = 'fr';
@@ -519,7 +467,7 @@ function setLang(lang, persist){
     // Refresh key dynamic sections so texts follow the new language
     try{ if(typeof updateBarsInfo==='function') updateBarsInfo(); }catch(_){ }
     try{ if(typeof updateCutoffBadge==='function') updateCutoffBadge(); }catch(_){ }
-    try{ if(typeof renderLabFromStorage==='function') renderLabFromStorage(); }catch(_){ }
+    try{ if(__labUiReady && typeof renderLabFromStorage==='function') renderLabFromStorage(); }catch(_){ }
   }catch(_){ }
 }
 function cycleLang(){
@@ -590,7 +538,7 @@ try{ window.BOTRADE_LANG = { currentLang, setLang, cycleLang, t }; }catch(_){ }
 // --- Lab: Entrainer (AI surrogate) ---
 
 
-// --- Lab: lecture et palmarès (localStorage) ---
+// --- Lab: lecture et palmarès (Supabase-first) ---
 const labTBody = document.getElementById('labTBody'); const labSummaryEl=document.getElementById('labSummary'); const labTFSelect=document.getElementById('labTFSelect');
 // TF d'exécution du Lab: restitue la dernière valeur utilisée
 const labSymbolSelect=document.getElementById('labSymbolSelect');
@@ -600,20 +548,31 @@ try{ const savedLabTf=localStorage.getItem('lab:tf'); if(savedLabTf && labTFSele
 try{ const savedLabSym=localStorage.getItem('lab:sym'); if(savedLabSym && labSymbolSelect){ labSymbolSelect.value=savedLabSym; } }catch(_){ }
 // Populate lab symbol list from chart symbol select
 try{ if(labSymbolSelect && symbolSelect){ labSymbolSelect.innerHTML = symbolSelect.innerHTML; const savedLabSym=localStorage.getItem('lab:sym'); if(savedLabSym){ labSymbolSelect.value=savedLabSym; } else { labSymbolSelect.value = symbolSelect.value; } } }catch(_){ }
-function labKey(sym, tf){ return `lab:results:${sym}:${tf}`; }
-function readLabStorage(sym, tf){ try{ const s=localStorage.getItem(labKey(sym,tf)); return s? JSON.parse(s): []; }catch(_){ return []; } }
-function writeLabStorage(sym, tf, arr){ try{ localStorage.setItem(labKey(sym,tf), JSON.stringify(arr)); }catch(_){} }
-function palmaresKey(sym, tf){ return `lab:palmares:${sym}:${tf}`; }
-function readPalmares(sym, tf){ try{ const s=localStorage.getItem(palmaresKey(sym,tf)); return s? JSON.parse(s): []; }catch(_){ return []; } }
-function writePalmares(sym, tf, arr){ try{ localStorage.setItem(palmaresKey(sym,tf), JSON.stringify(arr)); localStorage.setItem(`lab:palmares:ts:${sym}:${tf}`, String(Date.now())); }catch(_){} }
+__labUiReady = true;
+function isSupabaseBestStorageReady(){ return !!(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchPalmares==='function' && typeof SUPA.persistLabResults==='function'); }
+function supabaseBestStorageError(){ return 'Supabase requis: les meilleures stratégies ne sont plus stockées en local.'; }
+async function persistBestResultsToSupabase(payload){
+  if(!isSupabaseBestStorageReady()){
+    const msg=supabaseBestStorageError();
+    try{ addBtLog && addBtLog(msg); }catch(_){ }
+    setStatus(msg);
+    throw new Error(msg);
+  }
+  const ok = await SUPA.persistLabResults(payload);
+  if(!ok){
+    const msg='Persistance Supabase échouée: palmarès non enregistré localement.';
+    try{ addBtLog && addBtLog(msg); }catch(_){ }
+    setStatus(msg);
+    throw new Error(msg);
+  }
+  return true;
+}
 function paramsKey(p){ if(!p) return ''; const o={ nol:p.nol, prd:p.prd, slInitPct:p.slInitPct, beAfterBars:p.beAfterBars, beLockPct:p.beLockPct, emaLen:p.emaLen, entryMode:p.entryMode, useFibRet:!!p.useFibRet, confirmMode:p.confirmMode, ent382:!!p.ent382, ent500:!!p.ent500, ent618:!!p.ent618, ent786:!!p.ent786, tp: Array.isArray(p.tp)? p.tp.slice(0,10): [] }; return JSON.stringify(o); }
 // Dictionnaires (échantillons)
 const DICT_FR=["étoile","forêt","rivière","montagne","océan","tempête","harmonie","nuage","pluie","lueur","zèbre","quartz","vallée","soleil","déluge","orage","saphir","primevère","cendre","ivoire"];
-const DICT_EN=["river","stone","oak","ember","nova","zenith","aurora","lunar","solar","atlas","odyssey","phoenix","falcon","drake","comet","orbit","vertex","harbor","willow","meadow"];
 const DICT_ES=["río","piedra","roble","brasa","nube","estrella","luna","sol","mar","tierra","tormenta","sierra","valle","bosque","isla","puerto","águila","toro","lince","cometa"];
 const DICT_PL=["rzeka","kamień","dąb","iskra","gwiazda","księżyc","słońce","morze","ziemia","wiatr","burza","las","pustynia","wyspa","orzeł","żubr","ryś","kometa","polana","dolina"];
-function randomName(){ const dicts=[DICT_FR,DICT_EN,DICT_ES,DICT_PL]; const d=dicts[Math.floor(Math.random()*dicts.length)]; return d[Math.floor(Math.random()*d.length)]; }
-function uniqueNameFor(sym, tf, base){ const pal=readPalmares(sym, tf); const names=new Set(pal.map(x=>x.name)); let n=base; let k=2; while(names.has(n)){ n=base+"-"+k; k++; } return n; }
+function randomName(){ const dicts=[DICT_FR,DICT_ES,DICT_PL]; const d=dicts[Math.floor(Math.random()*dicts.length)]; return d[Math.floor(Math.random()*d.length)]; }
 async function renderLabFromStorage(){
   const tf = labTFSelect? labTFSelect.value: (intervalSelect? intervalSelect.value:''), sym=(labSymbolSelect&&labSymbolSelect.value)||currentSymbol;
   const profSel = (document.getElementById('labProfile') && document.getElementById('labProfile').value) || (localStorage.getItem('labWeightsProfile')||'balancee');
@@ -629,16 +588,15 @@ async function renderLabFromStorage(){
     }
     localStorage.setItem('lab:sortMode', sortMode);
   }catch(_){ }
-  let arr=[]; let source='local';
-  // Si Supabase est configuré, on lit UNIQUEMENT Supabase pour le palmarès
+  let arr=[]; let source='Supabase';
+  // Palmarès: lecture Supabase uniquement.
   if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchPalmares==='function'){
     try{
       const supaArr = await SUPA.fetchPalmares(sym, tf, 25, profSel, sortMode);
       if(Array.isArray(supaArr)) { arr = supaArr; source='Supabase'; }
     }catch(_){ /* en cas d'erreur Supabase, on laisse arr = [] */ }
   } else {
-    // Fallback local uniquement si Supabase n'est pas configuré
-    arr = readPalmares(sym, tf) || []; source='local';
+    source='Supabase requis';
   }
   window.labPalmaresCache = Array.isArray(arr)? arr.slice() : [];
   const prefix = t('lab.palmares.prefix');
@@ -903,54 +861,8 @@ async function loadGlobalPalmares(){
       }) : [];
     }catch(_){ items = []; }
   } else {
-    const syms = [];
-    try{
-      if(symbolSelect && symbolSelect.options && symbolSelect.options.length){
-        for(let i=0;i<symbolSelect.options.length;i++){ const v=symbolSelect.options[i].value; if(v) syms.push(v); }
-      }
-    }catch(_){ }
-    if(!syms.length){ try{ if(currentSymbol) syms.push(currentSymbol); }catch(_){ } }
-    let tfs = [];
-    try{
-      const sel = labTFSelect || document.getElementById('labTFSelect');
-      if(sel && sel.options && sel.options.length){
-        for(let i=0;i<sel.options.length;i++){ const v=sel.options[i].value; if(v) tfs.push(v); }
-      }
-    }catch(_){ }
-    if(!tfs.length){ tfs = ['1m','5m','15m','1h','4h','1d']; }
-    const rows=[];
-    for(const sym of syms){
-      for(const tf of tfs){
-        let arr=[];
-        try{ arr = readPalmares(sym, tf) || []; }catch(_){ arr=[]; }
-        if(!Array.isArray(arr) || !arr.length) continue;
-        for(const r of arr){
-          const st = r.res || {};
-          const raw = scoreResult(st, weights);
-          const robust = Number.isFinite(r.score)? Number(r.score) : raw;
-          const pnl = Number(st.totalPnl||0);
-          const eq1 = Number(st.equityFinal||0);
-          const cnt = Number(st.tradesCount||0);
-          const wr = Number(st.winrate||0);
-          const rr = Number(st.avgRR||0);
-          const mdd = Number(st.maxDDAbs||0);
-          rows.push({
-            symbol: sym,
-            tf,
-            profile: prof,
-            name: r.name || null,
-            gen: r.gen != null ? r.gen : 1,
-            scoreRaw: raw,
-            scoreRobust: robust,
-            score: robust,
-            pnl, eq1, cnt, wr, rr, mdd,
-            params: r.params || {},
-            res: st,
-          });
-        }
-      }
-    }
-    items = rows;
+    items = [];
+    if(globalPalSummaryEl){ globalPalSummaryEl.textContent = supabaseBestStorageError(); }
   }
   __globalPalmaresData = Array.isArray(items)? items : [];
   populateGlobalPalmaresFilters();
@@ -1782,14 +1694,14 @@ function populateLiveTFOptions(){ try{ if(!liveTFSelect) return; if(intervalSele
   if(!liveTFSelect.value){ try{ liveTFSelect.value = (intervalSelect&&intervalSelect.value)||currentInterval||''; }catch(_){ } }
 }catch(_){ } }
 function liveSelectedSource(){ try{ if(liveStratSrcPalmares&&liveStratSrcPalmares.checked) return 'palmares'; return 'heaven'; }catch(_){ return 'heaven'; } }
-function updateLiveStrategyMeta(){ try{ if(!liveStrategyMeta) return; const val=(liveStrategySel&&liveStrategySel.value)||''; const cache=(window.__liveStratCache||{}); const it=(Array.isArray(cache.items)? cache.items.find(x=> String(x.value)===String(val)) : null); if(!val||!it){ liveStrategyMeta.textContent='—'; return; } const name=it.name||'—'; const sc=(Number.isFinite(it.score)? it.score.toFixed(2): (it.score!=null? String(it.score): '—')); liveStrategyMeta.textContent = `${name} — Score ${sc}`; }catch(_){ } }
+function updateLiveStrategyMeta(){ try{ if(!liveStrategyMeta) return; const val=(liveStrategySel&&liveStrategySel.value)||''; const cache=(window.__liveStratCache||{}); const it=(Array.isArray(cache.items)? cache.items.find(x=> String(x.value)===String(val)) : null); if(!val||!it){ liveStrategyMeta.textContent='—'; return; } const name=it.name||'—'; const sc=(Number.isFinite(it.score)? it.score.toFixed(2): (it.score!=null? String(it.score): '—')); liveStrategyMeta.textContent = `${name} — Score ${sc} — éligible paper`; }catch(_){ } }
 async function populateLiveStrategyOptions(){ try{ if(!liveStrategySel) return; const sym=(symbolSelect&&symbolSelect.value)||currentSymbol; const tf=(liveTFSelect&&liveTFSelect.value)||((intervalSelect&&intervalSelect.value)||currentInterval)||''; const src=liveSelectedSource(); let items=[]; if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured()){ if(src==='heaven'){ let rows=[]; try{ rows=await SUPA.fetchHeavenStrategies(sym, tf, 50); }catch(_){ rows=[]; }
   // Map to items with score computed from metrics
   const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
-  items = (rows||[]).map(r=>({ value:String(r.id), name: (r.name||'(sans nom)'), score: (r.metrics? scoreResult(r.metrics, weights): NaN), params: r.params||{} }));
+  items = (rows||[]).filter(r=>Number(r.metrics&&r.metrics.paper_eligible||0)>=1).map(r=>({ value:String(r.id), name: (r.name||'(sans nom)'), score: (r.metrics? scoreResult(r.metrics, weights): NaN), params: r.params||{}, paperEligible:true }));
 } else {
   let arr=[]; try{ arr=await SUPA.fetchPalmares(sym, tf, 25, (localStorage.getItem('labWeightsProfile')||'balancee')); }catch(_){ arr=[]; }
-  items = (arr||[]).map((it,idx)=>({ value:String(it.id||('pal_'+(idx+1))), name: (it.name||`Palmarès #${idx+1}`), score: (Number.isFinite(it.score)? it.score : (it.res? scoreResult(it.res, getWeights(localStorage.getItem('labWeightsProfile')||'balancee')): NaN)), params: it.params||{} }));
+  items = (arr||[]).filter(it=>Number(it.res&&it.res.paper_eligible||0)>=1).map((it,idx)=>({ value:String(it.id||('pal_'+(idx+1))), name: (it.name||`Palmarès #${idx+1}`), score: (Number.isFinite(it.score)? it.score : (it.res? scoreResult(it.res, getWeights(localStorage.getItem('labWeightsProfile')||'balancee')): NaN)), params: it.params||{}, paperEligible:true }));
 } } else { items=[]; }
   window.__liveStratCache = { src, items };
   const opts = ['<option value="">—</option>'].concat(items.map(it=> `<option value="${it.value}">${it.name} — ${Number.isFinite(it.score)? it.score.toFixed(2): '—'}</option>`));
@@ -1951,7 +1863,7 @@ async function computeLabBenchmarkAndUpdate(){
 
     const conf=readLabRiskConf();
 
-    const p={ nol:lbcOpts.nol, prd:lbcOpts.prd, slInitPct:lbcOpts.slInitPct, beAfterBars:lbcOpts.beAfterBars, beLockPct:lbcOpts.beLockPct, emaLen:lbcOpts.emaLen, entryMode:lbcOpts.entryMode||'Both', useFibRet:!!lbcOpts.useFibRet, confirmMode:lbcOpts.confirmMode||'Bounce', ent382:!!lbcOpts.ent382, ent500:!!lbcOpts.ent500, ent618:!!lbcOpts.ent618, ent786:!!lbcOpts.ent786, tpEnable:!!lbcOpts.tpEnable, tp:Array.isArray(lbcOpts.tp)? lbcOpts.tp.slice(0,10):[], slEnable:!!lbcOpts.slEnable, sl:Array.isArray(lbcOpts.sl)? lbcOpts.sl.slice(0,10):[], tp1R:lbcOpts.tp1R };
+    const p={ nol:lbcOpts.nol, prd:lbcOpts.prd, slInitPct:lbcOpts.slInitPct, riskMgmt:!!lbcOpts.riskMgmt, riskMaxPct:Number(lbcOpts.riskMaxPct)||1.0, beAfterBars:lbcOpts.beAfterBars, beLockPct:lbcOpts.beLockPct, emaLen:lbcOpts.emaLen, entryMode:lbcOpts.entryMode||'Both', useFibRet:!!lbcOpts.useFibRet, confirmMode:lbcOpts.confirmMode||'Bounce', ent382:!!lbcOpts.ent382, ent500:!!lbcOpts.ent500, ent618:!!lbcOpts.ent618, ent786:!!lbcOpts.ent786, tpEnable:!!lbcOpts.tpEnable, tp:Array.isArray(lbcOpts.tp)? lbcOpts.tp.slice(0,10):[], slEnable:!!lbcOpts.slEnable, sl:Array.isArray(lbcOpts.sl)? lbcOpts.sl.slice(0,10):[], tp1R:lbcOpts.tp1R, tpCompound:!!lbcOpts.tpCompound, tpCloseAllLast:!!lbcOpts.tpCloseAllLast };
 
     const resH = runBacktestSliceFor(bars, sIdx, eIdx, conf, p);
     const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
@@ -2032,8 +1944,15 @@ if(heavenCfgBtn&&lbcModalEl) heavenCfgBtn.addEventListener('click', ()=>{ try{ p
 
 // --- Heaven overlay (Line Break + ZigZag + options) ---
 const emaToggleEl = document.getElementById('emaToggle'); const nolEl=document.getElementById('nolInput'); const toggleLBCEl=document.getElementById('toggleLBC');
-const defaultLBC={ enabled:true, nol:3, prd:15, showTrend:true, trendUpColor:'#00ff00', trendDnColor:'#ff0000', showClose:true, showArrows:true, arrowOffsetPx:50, arrowSizePx:12, useZZDraw:true, zzUp:'#00ff00', zzDn:'#ff0000', useFibDraw:true, useFibDrawTPSL:false, useFibRet:false, entryMode:'Both', confirmMode:'Bounce', ent382:true, ent500:true, ent618:true, ent786:false, slInitPct:2.0, slEnable:false, sl:[], tp1R:1.0, tpCompound:true, tpCloseAllLast:true, beEnable:false, beAfterBars:5.0, beLockPct:5.0, emaLen:55, tpEnable:true, tp:[], tpCount:10 };
-let lbcOpts = (()=>{ try{ const s=localStorage.getItem('lbcOptions'); return s? { ...defaultLBC, ...JSON.parse(s) } : { ...defaultLBC }; }catch(_){ return { ...defaultLBC }; } })();
+const defaultLBC={ enabled:true, nol:3, prd:15, showTrend:true, trendUpColor:'#00ff00', trendDnColor:'#ff0000', showClose:true, showArrows:true, arrowOffsetPx:50, arrowSizePx:12, useZZDraw:true, zzUp:'#00ff00', zzDn:'#ff0000', useFibDraw:true, useFibDrawTPSL:false, useFibRet:false, entryMode:'Both', confirmMode:'Bounce', ent382:true, ent500:true, ent618:true, ent786:false, slInitPct:2.0, riskMgmt:true, riskMaxPct:1.0, slEnable:false, sl:[], tp1R:1.0, tpCompound:true, tpCloseAllLast:true, beEnable:false, beAfterBars:5.0, beLockPct:5.0, emaLen:55, tpEnable:true, tp:[], tpCount:10 };
+let lbcOpts = { ...defaultLBC };
+try{ localStorage.removeItem('lbcOptions'); }catch(_){ }
+// Global helpers shared by Heaven modal, chart backtests, Lab and live replay.
+function keyOfTP(t){ try{ if(!t) return ''; const typ=t.type||'Fib'; if(typ==='Fib'){ const v=Number(t.fib!=null? t.fib : t.value); return Number.isFinite(v)? `F:${v.toFixed(8)}` : ''; } if(typ==='Percent'){ const v=Number(t.pct!=null? t.pct : t.value); return Number.isFinite(v)? `P:${v.toFixed(8)}` : ''; } if(typ==='EMA'){ const v=parseInt(t.emaLen,10); return Number.isFinite(v)? `E:${v}` : ''; } return String(typ); }catch(_){ return ''; } }
+function cloneTPRung(t){ try{ const c={...t}; if(t&&t.trail) c.trail={...t.trail}; if(t&&t.sl){ c.sl={...t.sl}; if(t.sl.trail) c.sl.trail={...t.sl.trail}; } return c; }catch(_){ return t; } }
+function mergeTPRung(base, extra){ try{ const bq=Number(base.qty); const eq=Number(extra.qty); if(Number.isFinite(bq) && Number.isFinite(eq)) base.qty=bq+eq; else if(!Number.isFinite(bq) && Number.isFinite(eq)) base.qty=eq; if(extra.beOn) base.beOn=true; if(!base.trail && extra.trail) base.trail={...extra.trail}; if(!base.sl && extra.sl){ base.sl={...extra.sl}; if(extra.sl.trail) base.sl.trail={...extra.sl.trail}; } }catch(_){ } return base; }
+function normalizeTPLadder(list){ try{ if(!Array.isArray(list)) return []; const out=[]; const seen=new Map(); for(const raw of list.slice(0,10)){ if(!raw) continue; const t=cloneTPRung(raw); const key=keyOfTP(t); if(!key) continue; const existing=seen.get(key); if(existing) mergeTPRung(existing, t); else { seen.set(key, t); out.push(t); } } return out.slice(0,10); }catch(_){ return Array.isArray(list)? list.slice(0,10):[]; } }
+function mergeDuplicateTargets(list){ try{ const out=[]; const seen=new Map(); for(const raw of (Array.isArray(list)?list:[])){ const price=Number(raw&&raw.price); if(!Number.isFinite(price)) continue; const key=price.toFixed(8); const w=(raw.w!=null && isFinite(raw.w))? Number(raw.w): null; const existing=seen.get(key); if(existing){ if(w!=null){ existing.w=(existing.w!=null && isFinite(existing.w))? existing.w+w : w; } } else { const t={...raw, price}; if(w!=null) t.w=w; seen.set(key,t); out.push(t); } } return out; }catch(_){ return Array.isArray(list)? list:[]; } }
 // Migration guard + normalisation Heaven (TP/SL)
 function normalizeLBCOpts(){
   try{
@@ -2041,7 +1960,14 @@ function normalizeLBCOpts(){
       try{ delete lbcOpts.tpAfterHit; }catch(_){ lbcOpts.tpAfterHit=undefined; }
     }
     if(typeof lbcOpts.tpEnable==='undefined') lbcOpts.tpEnable=true;
+    if(typeof lbcOpts.riskMgmt==='undefined') lbcOpts.riskMgmt=true;
+    if(!Number.isFinite(Number(lbcOpts.riskMaxPct))) lbcOpts.riskMaxPct=1.0;
     if(!Array.isArray(lbcOpts.tp)) lbcOpts.tp=[];
+    const tpLenBefore = lbcOpts.tp.length;
+    lbcOpts.tp = normalizeTPLadder(lbcOpts.tp);
+    if(tpLenBefore !== lbcOpts.tp.length){
+      lbcOpts.tpCount = Math.max(1, Math.min(10, lbcOpts.tp.length || 3));
+    }
     if(typeof lbcOpts.tpCount!=='number' || !Number.isFinite(lbcOpts.tpCount)){
       const n = Array.isArray(lbcOpts.tp) ? lbcOpts.tp.length : 0;
       lbcOpts.tpCount = Math.max(1, Math.min(10, n || 3));
@@ -2051,7 +1977,7 @@ function normalizeLBCOpts(){
   }catch(_){ }
 }
 normalizeLBCOpts();
-function saveLBCOpts(){ try{ localStorage.setItem('lbcOptions', JSON.stringify(lbcOpts)); }catch(_){ } }
+function saveLBCOpts(){ }
 function clampTPCount(n){ const v=parseInt(String(n||''),10); if(!Number.isFinite(v)) return 10; if(v<1) return 1; if(v>10) return 10; return v|0; }
 function applyHeavenTPCountToUI(){
   try{
@@ -2071,6 +1997,8 @@ function applyHeavenTPCountToUI(){
 function populateHeavenModal(){ try{
   if(typeof optEnabled!=='undefined' && optEnabled) optEnabled.checked=!!lbcOpts.enabled;
   if(typeof optNol!=='undefined' && optNol) optNol.value=String(lbcOpts.nol);
+  const optRiskMgmt=document.getElementById('optRiskMgmt'); if(optRiskMgmt) optRiskMgmt.checked=!!lbcOpts.riskMgmt;
+  const optRiskPct=document.getElementById('optRiskPct'); if(optRiskPct) optRiskPct.value=String(Number(lbcOpts.riskMaxPct)||1.0);
   if(typeof optShowTrend!=='undefined' && optShowTrend) optShowTrend.checked=!!lbcOpts.showTrend;
   if(typeof optTrendUp!=='undefined' && optTrendUp) optTrendUp.value=lbcOpts.trendUpColor||'#00ff00';
   if(typeof optTrendDn!=='undefined' && optTrendDn) optTrendDn.value=lbcOpts.trendDnColor||'#ff0000';
@@ -2101,7 +2029,11 @@ function populateHeavenModal(){ try{
   const pivAll=computePivots(candles, Math.max(2, lbcOpts.prd|0));
   const seg=getLastPivotSeg(pivAll); const A=seg?seg.a.price:null, B=seg?seg.b.price:null; const up=seg? (seg.dir==='up'):null; const move=(seg&&A!=null&&B!=null)? Math.abs(B-A):null;
   const fibRatios=[0,0.236,0.382,0.5,0.618,0.786,1.0,1.272,1.382,1.414,1.618,2.0,2.236,2.618,3.0,3.618,4.236,5.0];
-  function rebuildFibSelect(sel, current){ if(!sel) return; sel.innerHTML=''; for(const r of fibRatios){ const opt=document.createElement('option'); opt.value=String(r); let label=r.toFixed(3); if(seg && move!=null){ const px = up? (B + move*r) : (B - move*r); if(isFinite(px)) label += ` — ${px.toFixed(2)}`; }
+  function rebuildFibSelect(sel, current, mode='tp'){
+    if(!sel) return; sel.innerHTML='';
+    const isSL=mode==='sl'; const fibDir=seg ? (up ? 'up' : 'down') : 'n/a'; const fibRole=isSL ? 'retracement' : 'extension';
+    sel.title=(seg && move!=null) ? `Fib ${fibRole} depuis le dernier swing confirme (${fibDir}, A ${A.toFixed(2)} -> B ${B.toFixed(2)})` : `Fib ${fibRole} depuis le dernier swing confirme`;
+    for(const r of fibRatios){ const opt=document.createElement('option'); opt.value=String(r); let label=r.toFixed(3); if(seg && move!=null){ const px = isSL ? (up? (B - move*r) : (B + move*r)) : (up? (B + move*r) : (B - move*r)); if(isFinite(px)) label += ` — ${px.toFixed(2)} ${isSL ? 'ret' : 'ext'} ${fibDir}`; }
       opt.textContent=label; sel.appendChild(opt); }
     if(current!=null){ sel.value=String(current); } }
   function emaCandidates(){ const out=[]; const add=(en,len)=>{ if(en && Number.isFinite(len)&&len>0) out.push(len|0); }; add(emaOpts.e21&&emaOpts.e21.en, emaOpts.e21&&emaOpts.e21.len); add(emaOpts.e34&&emaOpts.e34.en, emaOpts.e34&&emaOpts.e34.len); add(emaOpts.e55&&emaOpts.e55.en, emaOpts.e55&&emaOpts.e55.len); add(emaOpts.e200&&emaOpts.e200.en, emaOpts.e200&&emaOpts.e200.len); if(!out.length && Number.isFinite(lbcOpts.emaLen)) out.push(lbcOpts.emaLen|0); return Array.from(new Set(out)); }
@@ -2117,7 +2049,7 @@ function updateTPRow(i, t){
     if(vNum) vNum.style.display = (typ==='Percent')? '' : 'none';
     if(vFib) vFib.style.display = (typ==='Fib')? '' : 'none';
     if(vEma) vEma.style.display = (typ==='EMA')? '' : 'none';
-    if(typ==='Fib'){ rebuildFibSelect(vFib, (t&&t.fib!=null)? t.fib : (vFib&&vFib.value)); }
+    if(typ==='Fib'){ rebuildFibSelect(vFib, (t&&t.fib!=null)? t.fib : (vFib&&vFib.value), 'tp'); }
     else if(typ==='EMA'){ rebuildEmaSelect(vEma, (t&&t.emaLen!=null)? t.emaLen : (vEma&&vEma.value)); }
   }
   // Attached SL per TP
@@ -2130,7 +2062,7 @@ function updateTPRow(i, t){
     if(sNum) sNum.style.display = (styp==='Percent')? '' : 'none';
     if(sFib) sFib.style.display = (styp==='Fib')? '' : 'none';
     if(sEma) sEma.style.display = (styp==='EMA')? '' : 'none';
-    if(styp==='Fib'){ rebuildFibSelect(sFib, (st&&st.fib!=null)? st.fib : (sFib&&sFib.value)); }
+    if(styp==='Fib'){ rebuildFibSelect(sFib, (st&&st.fib!=null)? st.fib : (sFib&&sFib.value), 'sl'); }
     else if(styp==='EMA'){ rebuildEmaSelect(sEma, (st&&st.emaLen!=null)? st.emaLen : (sEma&&sEma.value)); }
   }
   // Per-TP trailing UI (TP and attached SL)
@@ -2152,18 +2084,17 @@ function updateTPRow(i, t){
   }
 }
   function updateSLRow(i, t){ const tSel=document.getElementById(`optSL${i}Type`); const vNum=document.getElementById(`optSL${i}R`); const vFib=document.getElementById(`optSL${i}Fib`); const vEma=document.getElementById(`optSL${i}Ema`); if(!tSel) return; const typ=tSel.value||'Percent';
-    if(vNum) vNum.style.display = (typ==='Percent')? '' : 'none'; if(vFib) vFib.style.display = (typ==='Fib')? '' : 'none'; if(vEma) vEma.style.display = (typ==='EMA')? '' : 'none'; if(typ==='Fib'){ rebuildFibSelect(vFib, (t&&t.fib!=null)? t.fib : (vFib&&vFib.value)); }
+    if(vNum) vNum.style.display = (typ==='Percent')? '' : 'none'; if(vFib) vFib.style.display = (typ==='Fib')? '' : 'none'; if(vEma) vEma.style.display = (typ==='EMA')? '' : 'none'; if(typ==='Fib'){ rebuildFibSelect(vFib, (t&&t.fib!=null)? t.fib : (vFib&&vFib.value), 'sl'); }
     else if(typ==='EMA'){ rebuildEmaSelect(vEma, (t&&t.emaLen!=null)? t.emaLen : (vEma&&vEma.value)); } }
 
   const arr=lbcOpts.tp||[];
   for(let i=1;i<=10;i++){
-    const t=arr[i-1]||{}; const tSel=document.getElementById(`optTP${i}Type`); const vNum=document.getElementById(`optTP${i}R`); const vFib=document.getElementById(`optTP${i}Fib`); const vEma=document.getElementById(`optTP${i}Ema`); const pPct=document.getElementById(`optTP${i}P`); const qPct=document.getElementById(`optTP${i}Qty`);
+    const t=arr[i-1]||{}; const tSel=document.getElementById(`optTP${i}Type`); const vNum=document.getElementById(`optTP${i}R`); const vFib=document.getElementById(`optTP${i}Fib`); const vEma=document.getElementById(`optTP${i}Ema`); const pPct=document.getElementById(`optTP${i}P`);
     if(tSel){ tSel.value=t.type||'Fib'; }
     if(vFib && (t.fib!=null)) vFib.value=String(t.fib);
     if(vNum && (t.pct!=null)) vNum.value=String(t.pct);
     if(vEma && (t.emaLen!=null)) vEma.value=String(t.emaLen);
-    if(pPct && (t.value!=null)) pPct.value=String(t.value);
-    if(qPct && (t.qty!=null)) qPct.value=String(t.qty);
+    if(pPct && (t.qty!=null)) pPct.value=String(t.qty);
     // attached SL & BE per TP
     const st=(t&&t.sl)||{}; const sSel=document.getElementById(`optTP${i}SLType`); const sNum=document.getElementById(`optTP${i}SLR`); const sFib=document.getElementById(`optTP${i}SLFib`); const sEma=document.getElementById(`optTP${i}SLEma`); const beOn=document.getElementById(`optTP${i}BEOn`);
     if(sSel){ sSel.value=st.type||'Percent'; }
@@ -2216,7 +2147,7 @@ if(optTPCountEl && (!optTPCountEl.dataset || optTPCountEl.dataset.wired!=='1')){
 
 function computeLineBreakState(bars, nol){ const n=bars.length; if(!n) return {trend:[], level:[], flips:[]}; const trend=new Array(n).fill(0); const level=new Array(n).fill(null); const flips=[]; let t=bars[0].close>=bars[0].open?1:-1; let opens=[bars[0].open]; let closes=[bars[0].close]; for(let i=0;i<n;i++){ const c=bars[i].close; if(t===1){ const cnt=Math.min(nol, opens.length); const minUp=Math.min(...opens.slice(0,cnt), ...closes.slice(0,cnt)); if(c<minUp) t=-1; if(c>closes[0]||t===-1){ const o=(t===-1? opens[0]:closes[0]); opens.unshift(o); closes.unshift(c); } } else { const cnt=Math.min(nol, opens.length); const maxDn=Math.max(...opens.slice(0,cnt), ...closes.slice(0,cnt)); if(c>maxDn) t=1; if(c<closes[0]||t===1){ const o=(t===1? opens[0]:closes[0]); opens.unshift(o); closes.unshift(c); } } trend[i]=t; const cnt2=Math.min(nol, opens.length); const minUp2=Math.min(...opens.slice(0,cnt2), ...closes.slice(0,cnt2)); const maxDn2=Math.max(...opens.slice(0,cnt2), ...closes.slice(0,cnt2)); level[i]=(t===1? minUp2: maxDn2); if(i>0 && trend[i]!==trend[i-1]) flips.push(i); } return {trend, level, flips}; }
 function computePivots(bars, prd){ const piv=[]; for(let i=prd;i<bars.length-prd;i++){ let isH=true, isL=true; for(let j=1;j<=prd;j++){ if(!(bars[i].high>bars[i-j].high && bars[i].high>bars[i+j].high)) isH=false; if(!(bars[i].low<bars[i-j].low && bars[i].low<bars[i+j].low)) isL=false; if(!isH&&!isL) break; } if(isH||isL) piv.push({ idx:i, time:bars[i].time, price: isH? bars[i].high : bars[i].low }); } return piv; }
-function buildHeavenMarkers(bars, lb, pivAll){ const markers=[]; if(!bars||!bars.length) return markers; const longCol='#10b981', shortCol='#ef4444'; let pivIdx=-1; function advancePivotIdxTo(i){ while(pivIdx+1<pivAll.length && pivAll[pivIdx+1].idx<=i){ pivIdx++; } } function segAtIdx(){ if(pivIdx>=1){ const a=pivAll[pivIdx-1], b=pivAll[pivIdx]; return { a, b, dir: b.price>a.price?'up':'down' }; } return null; } let pendingFib=null; const useOrig = (lbcOpts.entryMode!=='Fib Retracement'); const useFib = (lbcOpts.useFibRet && lbcOpts.entryMode!=='Original'); for(let i=1;i<bars.length;i++){ advancePivotIdxTo(i); if(useOrig && lb.trend[i]!==lb.trend[i-1]){ const up = lb.trend[i]===1; markers.push({ time: bars[i].time, position: up? 'belowBar':'aboveBar', color: up? longCol:shortCol, shape: up? 'arrowUp':'arrowDown' }); if(useFib){ const seg=segAtIdx(); if(seg){ const A=seg.a.price, B=seg.b.price; const upSeg=seg.dir==='up'; const move=Math.abs(B-A); const levels=[]; if(lbcOpts.ent382) levels.push(upSeg? (B - move*0.382):(B + move*0.382)); if(lbcOpts.ent500) levels.push(upSeg? (B - move*0.5):(B + move*0.5)); if(lbcOpts.ent618) levels.push(upSeg? (B - move*0.618):(B + move*0.618)); if(lbcOpts.ent786) levels.push(upSeg? (B - move*0.786):(B + move*0.786)); pendingFib={ dir:(up?'long':'short'), levels, mode: lbcOpts.confirmMode||'Bounce' }; } }
+function buildHeavenMarkers(bars, lb, pivAll){ const markers=[]; if(!bars||!bars.length) return markers; const longCol='#10b981', shortCol='#ef4444'; const prd=Math.max(2, lbcOpts.prd|0); let pivIdx=-1; function advancePivotIdxTo(i){ while(pivIdx+1<pivAll.length && pivAll[pivIdx+1].idx+prd<=i){ pivIdx++; } } function segAtIdx(){ if(pivIdx>=1){ const a=pivAll[pivIdx-1], b=pivAll[pivIdx]; return { a, b, dir: b.price>a.price?'up':'down' }; } return null; } let pendingFib=null; const useOrig = (lbcOpts.entryMode!=='Fib Retracement'); const useFib = (lbcOpts.useFibRet && lbcOpts.entryMode!=='Original'); for(let i=1;i<bars.length;i++){ advancePivotIdxTo(i); if(useOrig && lb.trend[i]!==lb.trend[i-1]){ const up = lb.trend[i]===1; markers.push({ time: bars[i].time, position: up? 'belowBar':'aboveBar', color: up? longCol:shortCol, shape: up? 'arrowUp':'arrowDown' }); if(useFib){ const seg=segAtIdx(); if(seg){ const A=seg.a.price, B=seg.b.price; const upSeg=seg.dir==='up'; const move=Math.abs(B-A); const levels=[]; if(lbcOpts.ent382) levels.push(upSeg? (B - move*0.382):(B + move*0.382)); if(lbcOpts.ent500) levels.push(upSeg? (B - move*0.5):(B + move*0.5)); if(lbcOpts.ent618) levels.push(upSeg? (B - move*0.618):(B + move*0.618)); if(lbcOpts.ent786) levels.push(upSeg? (B - move*0.786):(B + move*0.786)); pendingFib={ dir:(up?'long':'short'), levels, mode: lbcOpts.confirmMode||'Bounce' }; } }
     }
     if(useFib && pendingFib && pendingFib.levels && pendingFib.levels.length){ const bar=bars[i]; for(const lv of pendingFib.levels){ let ok=false; if(pendingFib.dir==='long'){ ok=(pendingFib.mode==='Touch')? (bar.low<=lv) : (bar.low<=lv && bar.close>lv); } else { ok=(pendingFib.mode==='Touch')? (bar.high>=lv) : (bar.high>=lv && bar.close<lv); } if(ok){ const up=pendingFib.dir==='long'; markers.push({ time: bars[i].time, position: up? 'belowBar':'aboveBar', color: up? longCol:shortCol, shape: up? 'arrowUp':'arrowDown' }); pendingFib=null; break; } } }
   }
@@ -2361,31 +2292,37 @@ function getLastPivotSeg(piv){ if(!piv || piv.length<2) return null; const a=piv
 function clearTPPriceLines(){ for(const pl of heavenTPPriceLines){ try{ candleSeries.removePriceLine(pl);}catch(_){ } } heavenTPPriceLines=[]; }
 function createTPLine(price, title, color){ try{ const pl=candleSeries.createPriceLine({ price, color: color||'#7c3aed', lineStyle: LightweightCharts.LineStyle.Dotted, lineWidth:1, title }); heavenTPPriceLines.push(pl); }catch(_){ } }
 function updateFibAndTPLines(piv){ clearTPPriceLines(); if(!candles.length){ return; } const seg=getLastPivotSeg(piv); if(!seg){ return; }
-  const A=seg.a.price, B=seg.b.price; const up = seg.dir==='up'; const move = Math.abs(B - A); const C = candles[candles.length-1].close;
-  // Fib price lines (basic + TP/SL-based)
-  const fibSet = new Set();
-  if(lbcOpts.useFibDraw){ [0.382,0.5,0.618].forEach(r=> fibSet.add(r)); }
+  const A=seg.a.price, B=seg.b.price; const up = seg.dir==='up'; const move = Math.abs(B - A); const C = candles[candles.length-1].close; const fibDirLabel=up ? 'up' : 'down';
+  // Fib price lines: entries/SL are retracements, TP levels are extensions.
+  const fibRetSet = new Set();
+  const fibExtSet = new Set();
+  if(lbcOpts.useFibDraw){ [0.382,0.5,0.618].forEach(r=> fibRetSet.add(r)); }
   if(lbcOpts.useFibDrawTPSL){
     try{
       if(Array.isArray(lbcOpts.tp)){
         for(const t of lbcOpts.tp){
-          if(t && t.type==='Fib' && t.fib!=null){ const r=parseFloat(t.fib); if(isFinite(r)) fibSet.add(r); }
-          if(t && t.sl && t.sl.type==='Fib' && t.sl.fib!=null){ const r2=parseFloat(t.sl.fib); if(isFinite(r2)) fibSet.add(r2); }
+          if(t && t.type==='Fib' && t.fib!=null){ const r=parseFloat(t.fib); if(isFinite(r)) fibExtSet.add(r); }
+          if(t && t.sl && t.sl.type==='Fib' && t.sl.fib!=null){ const r2=parseFloat(t.sl.fib); if(isFinite(r2)) fibRetSet.add(r2); }
         }
       }
       if(Array.isArray(lbcOpts.sl)){
         for(const s of lbcOpts.sl){
-          if(s && s.type==='Fib' && s.fib!=null){ const r=parseFloat(s.fib); if(isFinite(r)) fibSet.add(r); }
+          if(s && s.type==='Fib' && s.fib!=null){ const r=parseFloat(s.fib); if(isFinite(r)) fibRetSet.add(r); }
         }
       }
     }catch(_){ }
   }
-  if(fibSet.size){
-    const fibs = Array.from(fibSet).sort((a,b)=>a-b);
-    for(const r of fibs){ const target = up? (B + move*r) : (B - move*r); createTPLine(target, `Fib ${r}`, '#6b7280'); }
+  if(fibRetSet.size){
+    const fibs = Array.from(fibRetSet).sort((a,b)=>a-b);
+    for(const r of fibs){ const target = up? (B - move*r) : (B + move*r); createTPLine(target, `Fib Ret ${fibDirLabel} ${r}`, '#6b7280'); }
+  }
+  if(fibExtSet.size){
+    const fibs = Array.from(fibExtSet).sort((a,b)=>a-b);
+    for(const r of fibs){ const target = up? (B + move*r) : (B - move*r); createTPLine(target, `Fib Ext ${fibDirLabel} ${r}`, '#6b7280'); }
   }
   // TP Ladder
-  if(lbcOpts.tpEnable && Array.isArray(lbcOpts.tp) && lbcOpts.tp.length){ let n=1; for(const t of lbcOpts.tp){ if(n>10) break; const typ=(t.type||'Fib'); let price=null; if(typ==='Fib'){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)){ price = up? (B + move*r) : (B - move*r); } }
+  const tpLadderForLines = normalizeTPLadder(lbcOpts.tp);
+  if(lbcOpts.tpEnable && tpLadderForLines.length){ let n=1; for(const t of tpLadderForLines){ if(n>10) break; const typ=(t.type||'Fib'); let price=null; if(typ==='Fib'){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)){ price = up? (B + move*r) : (B - move*r); } }
       else if(typ==='Percent'){ const p=parseFloat(t.pct!=null? t.pct : t.value); if(isFinite(p)){ price = up? (C * (1 + p/100)) : (C * (1 - p/100)); } }
       else if(typ==='EMA'){ const len = Math.max(1, parseInt(((t&&t.emaLen)!=null? t.emaLen : (lbcOpts.emaLen||55)),10)); const ema=emaCalc(candles, len); const v = ema[ema.length-1]; if(isFinite(v)){ price=v; } }
       if(price!=null){ createTPLine(price, `TP${n}`, '#7c3aed'); }
@@ -2475,13 +2412,15 @@ applyEMAStyles();
 
 // Sauvegarde LBC depuis la modale (si présente)
 const lbcSaveBtn = document.getElementById('lbcSave');
-const optEnabled=document.getElementById('optEnabled'); const optNol=document.getElementById('optNol'); const optShowTrend=document.getElementById('optShowTrend'); const optTrendUp=document.getElementById('optTrendUp'); const optTrendDn=document.getElementById('optTrendDn'); const optUseZZDraw=document.getElementById('optUseZZDraw'); const optPrd=document.getElementById('optPrd');
+const optEnabled=document.getElementById('optEnabled'); const optNol=document.getElementById('optNol'); const optRiskMgmt=document.getElementById('optRiskMgmt'); const optRiskPct=document.getElementById('optRiskPct'); const optShowTrend=document.getElementById('optShowTrend'); const optTrendUp=document.getElementById('optTrendUp'); const optTrendDn=document.getElementById('optTrendDn'); const optUseZZDraw=document.getElementById('optUseZZDraw'); const optPrd=document.getElementById('optPrd');
 const optSLInitPct=document.getElementById('optSLInitPct'); const optSLEnable=document.getElementById('optSLEnable'); const optBEEnable=document.getElementById('optBEEnable'); const optBEBars=document.getElementById('optBEBars'); const optBELockPct=document.getElementById('optBELockPct'); const optEMALen=document.getElementById('optEMALen'); const optShowClose=document.getElementById('optShowClose');
 const optEntryMode=document.getElementById('optEntryMode'); const optEnt382=document.getElementById('optEnt382'); const optEnt500=document.getElementById('optEnt500'); const optEnt618=document.getElementById('optEnt618'); const optEnt786=document.getElementById('optEnt786');
 if(lbcSaveBtn){
   lbcSaveBtn.addEventListener('click', ()=>{
     if(optEnabled) lbcOpts.enabled = !!optEnabled.checked;
     if(optNol) lbcOpts.nol = Math.max(1, parseInt(optNol.value||String(lbcOpts.nol)));
+    if(optRiskMgmt) lbcOpts.riskMgmt = !!optRiskMgmt.checked;
+    if(optRiskPct) lbcOpts.riskMaxPct = Math.max(0, parseFloat(optRiskPct.value||String(lbcOpts.riskMaxPct||1.0)));
     if(optShowTrend) lbcOpts.showTrend = !!optShowTrend.checked;
     if(optTrendUp) lbcOpts.trendUpColor = optTrendUp.value||lbcOpts.trendUpColor;
     if(optTrendDn) lbcOpts.trendDnColor = optTrendDn.value||lbcOpts.trendDnColor;
@@ -2538,7 +2477,6 @@ if(lbcSaveBtn){
       const vFib=document.getElementById(`optTP${i}Fib`);
       const vEma=document.getElementById(`optTP${i}Ema`);
       const pPct=document.getElementById(`optTP${i}P`);
-      const qPct=document.getElementById(`optTP${i}Qty`);
       const sSel=document.getElementById(`optTP${i}SLType`);
       const sNum=document.getElementById(`optTP${i}SLR`);
       const sFib=document.getElementById(`optTP${i}SLFib`);
@@ -2562,8 +2500,8 @@ if(lbcSaveBtn){
         const len=parseInt(((vEma && vEma.value) || (optEMALen && optEMALen.value) || ''),10);
         if(isFinite(len) && len>0){ entry.emaLen=len; }
       }
-      if(qPct && qPct.value!==''){
-        const qv=parseFloat(qPct.value); if(isFinite(qv)) entry.qty=qv;
+      if(pPct && pPct.value!==''){
+        const qv=parseFloat(pPct.value); if(isFinite(qv)) entry.qty=qv;
       }
       // attached SL per TP
       if(sSel){
@@ -2611,7 +2549,8 @@ if(lbcSaveBtn){
       }
       tpArr.push(entry);
     }
-    lbcOpts.tp = tpArr;
+    lbcOpts.tp = normalizeTPLadder(tpArr);
+    lbcOpts.tpCount = Math.max(1, Math.min(10, lbcOpts.tp.length || tpCount));
 
     const slArr=[];
     for(let i=1;i<=10;i++){
@@ -2644,6 +2583,7 @@ if(lbcSaveBtn){
 
 // --- Backtest (période visible / all / dates) ---
 const btRunBtn=document.getElementById('btRun'); const btCancelBtn=document.getElementById('btCancel'); const btOptimizeBtn=document.getElementById('btOptimize');
+if(btCancelBtn&&btModalEl){ btCancelBtn.addEventListener('click', ()=> closeModalEl(btModalEl)); }
 const btProgressEl=document.getElementById('btProgress'); const btProgText=document.getElementById('btProgText'); const btProgBar=document.getElementById('btProgBar'); const btProgNote=document.getElementById('btProgNote'); const btProgTime=document.getElementById('btProgTime'); const btProgLog=document.getElementById('btProgLog'); const btAbortBtn=document.getElementById('btAbort');
 const btProgGlobalText=document.getElementById('btProgGlobalText'); const btProgGlobalBar=document.getElementById('btProgGlobalBar');
 const btStartCap=document.getElementById('btStartCap'); const btFee=document.getElementById('btFee'); const btLev=document.getElementById('btLev'); const btMaxPct=document.getElementById('btMaxPct'); const btMaxBase=document.getElementById('btMaxBase');
@@ -2664,7 +2604,7 @@ function runBacktestSlice(sIdx, eIdx, conf){
   clearTPHitMarkers(); clearSLHitMarkers();
   const trades=[];
   let pivIdx=-1;
-  function advancePivotIdxTo(i){ while(pivIdx+1<pivAll.length && pivAll[pivIdx+1].idx<=i){ pivIdx++; } }
+  function advancePivotIdxTo(i){ while(pivIdx+1<pivAll.length && pivAll[pivIdx+1].idx+prd<=i){ pivIdx++; } }
   function segAtIdx(){ if(pivIdx>=1){ const a=pivAll[pivIdx-1], b=pivAll[pivIdx]; return { a, b, dir: b.price>a.price?'up':'down' }; } return null; }
   function computeSLFromLadder(dir, entry, i){ try{ if(!(lbcOpts.slEnable && Array.isArray(lbcOpts.sl) && lbcOpts.sl.length)) return null; const seg=segAtIdx(); const A=seg?seg.a.price:null, B=seg?seg.b.price:null, move=seg?Math.abs(B-A):null; const cands=[]; for(const t of lbcOpts.sl){ const typ=(t&&t.type)||'Percent'; let price=null; if(typ==='Fib' && seg && move!=null){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)) price = (seg.dir==='up')? (B - move*r) : (B + move*r); } else if(typ==='Percent'){ const p=parseFloat(t.pct!=null? t.pct : t.value); if(isFinite(p)) price = dir==='long'? (entry*(1 - p/100)) : (entry*(1 + p/100)); } else if(typ==='EMA'){ const len=Math.max(1, parseInt(((t&&t.emaLen)!=null? t.emaLen : (lbcOpts.emaLen||55)),10)); let ema=slEmaCache.get(len); if(!ema){ ema=emaCalc(candles, len); slEmaCache.set(len, ema); } const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) price=v; } if(price!=null){ if(dir==='long'){ if(price<=entry) cands.push(price); } else { if(price>=entry) cands.push(price); } } } if(!cands.length) return null; return dir==='long'? Math.max(...cands) : Math.min(...cands); }catch(_){ return null; } }
   function buildTargets(dir, entry, riskAbs, i){
@@ -2682,6 +2622,7 @@ function runBacktestSlice(sIdx, eIdx, conf){
             list.push({price, w, srcIdx: idx});
         } }
       }
+      list = mergeDuplicateTargets(list);
       if(dir==='long') list.sort((a,b)=>a.price-b.price); else list.sort((a,b)=>b.price-a.price);
       let sumW=0, hasW=false; for(const it of list){ if(it.w!=null && it.w>0){ sumW+=it.w; hasW=true; } }
       if(!hasW){ if(list.length){ const even=1/list.length; list=list.map(it=>({ price:it.price, w:even, srcIdx: it.srcIdx })); } else { list=[{price: (dir==='long'? entry + riskAbs*(lbcOpts.tp1R||1) : entry - riskAbs*(lbcOpts.tp1R||1)), w:1, srcIdx: 0}]; } }
@@ -2705,7 +2646,8 @@ function runBacktestSlice(sIdx, eIdx, conf){
     const qty0=notional/Math.max(1e-12, entry);
     const riskAbs=Math.abs(entry-sl);
     const perUnitWorstLoss = riskAbs + ((Math.abs(entry)+Math.abs(sl)) * feePct);
-    const qtyRisk = perUnitWorstLoss>0? (equity / perUnitWorstLoss) : 0;
+    const riskPct=(lbcOpts.riskMgmt===false)?100:Math.max(0, Number(lbcOpts.riskMaxPct)||1.0);
+    const qtyRisk = perUnitWorstLoss>0? ((equity*riskPct/100) / perUnitWorstLoss) : 0;
     const q=Math.max(0, Math.min(qty0, qtyRisk));
     return q;
   }
@@ -2829,7 +2771,7 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
   const emaTargetCache=new Map();
   const slEmaCache=new Map();
   let pivIdx=-1;
-  function advancePivotIdxTo(i){ while(pivIdx+1<pivAll.length && pivAll[pivIdx+1].idx<=i){ pivIdx++; } }
+  function advancePivotIdxTo(i){ while(pivIdx+1<pivAll.length && pivAll[pivIdx+1].idx+prd<=i){ pivIdx++; } }
   function segAtIdx(){ if(pivIdx>=1){ const a=pivAll[pivIdx-1], b=pivAll[pivIdx]; return { a, b, dir: b.price>a.price?'up':'down' }; } return null; }
   function computeSLFromLadder(dir, entry, i){ try{ if(!(params.slEnable && Array.isArray(params.sl) && params.sl.length)) return null; const seg=segAtIdx(); const A=seg?seg.a.price:null, B=seg?seg.b.price:null, move=seg?Math.abs(B-A):null; const cands=[]; for(const t of params.sl){ const typ=(t&&t.type)||'Percent'; let price=null; if(typ==='Fib' && seg && move!=null){ const r=parseFloat(t.fib!=null? t.fib : t.value); if(isFinite(r)) price = (seg.dir==='up')? (B - move*r) : (B + move*r); } else if(typ==='Percent'){ const p=parseFloat(t.pct!=null? t.pct : t.value); if(isFinite(p)) price = dir==='long'? (entry*(1 - p/100)) : (entry*(1 + p/100)); } else if(typ==='EMA'){ const len=Math.max(1, parseInt(((t&&t.emaLen)!=null? t.emaLen : (params.emaLen||55)),10)); let ema=slEmaCache.get(len); if(!ema){ ema=emaCalc(bars, len); slEmaCache.set(len, ema); } const v=ema[Math.min(i, ema.length-1)]; if(isFinite(v)) price=v; } if(price!=null){ if(dir==='long'){ if(price<=entry) cands.push(price); } else { if(price>=entry) cands.push(price); } } } if(!cands.length) return null; return dir==='long'? Math.max(...cands) : Math.min(...cands); }catch(_){ return null; } }
   const tpCompound = (typeof params.tpCompound==='boolean')? params.tpCompound : !!lbcOpts.tpCompound;
@@ -2848,6 +2790,7 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
           list.push({price, w, srcIdx: idx});
         } }
       }
+      list = mergeDuplicateTargets(list);
       if(dir==='long') list.sort((a,b)=>a.price-b.price); else list.sort((a,b)=>b.price-a.price);
       let sumW=0, hasW=false; for(const it of list){ if(it.w!=null && it.w>0){ sumW+=it.w; hasW=true; } }
       if(!hasW){ if(list.length){ const even=1/list.length; list=list.map(it=>({ price:it.price, w:even, srcIdx: it.srcIdx })); } else { list=[{price: (dir==='long'? entry + riskAbs*(params.tp1R||1) : entry - riskAbs*(params.tp1R||1)), w:1, srcIdx: 0}]; } }
@@ -2872,7 +2815,10 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
     const qty0=notional/Math.max(1e-12, entry);
     const riskAbs=Math.abs(entry-sl);
     const perUnitWorstLoss = riskAbs + ((Math.abs(entry)+Math.abs(sl)) * feePct);
-    const qtyRisk = perUnitWorstLoss>0? (equity / perUnitWorstLoss) : 0;
+    const riskEnabled = (params && typeof params.riskMgmt==='boolean') ? params.riskMgmt : !(lbcOpts && lbcOpts.riskMgmt===false);
+    const riskMax = (params && params.riskMaxPct!=null) ? Number(params.riskMaxPct) : Number(lbcOpts&&lbcOpts.riskMaxPct);
+    const riskPct = riskEnabled ? Math.max(0, riskMax || 1.0) : 100;
+    const qtyRisk = perUnitWorstLoss>0? ((equity*riskPct/100) / perUnitWorstLoss) : 0;
     const q=Math.max(0, Math.min(qty0, qtyRisk));
     return q;
   }
@@ -2952,49 +2898,13 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params, collect=false){
   if(btExportDetails){ btExportDetails.addEventListener('click', ()=> exportEvalsCSV()); }
 }catch(_){ }
   if(btOptimizeBtn){ btOptimizeBtn.addEventListener('click', async ()=>{ try{
-  const conf={ startCap: Math.max(0, parseFloat(btStartCap&&btStartCap.value||'10000')), fee: Math.max(0, parseFloat(btFee&&btFee.value||'0.1')), lev: Math.max(1, parseFloat(btLev&&btLev.value||'1')), maxPct: Math.max(0, Math.min(100, parseFloat(btMaxPct&&btMaxPct.value||'100'))), base: (btMaxBase&&btMaxBase.value)||'initial' };
-  const tfSel = (document.getElementById('btOptInterval')&&document.getElementById('btOptInterval').value)||currentInterval;
-  const topN = Math.max(1, parseInt((document.getElementById('btOptTopN')&&document.getElementById('btOptTopN').value)||'20',10));
-  const maxComb = Math.max(1, parseInt((document.getElementById('btOptMax')&&document.getElementById('btOptMax').value)||'100',10));
-  function rng(enId,minId,maxId,stepId,defMin,defMax,defStep){ const en=document.getElementById(enId); if(en && !en.checked){ return null; } const vmin=parseFloat((document.getElementById(minId)&&document.getElementById(minId).value)||String(defMin)); const vmax=parseFloat((document.getElementById(maxId)&&document.getElementById(maxId).value)||String(defMax)); const vstep=parseFloat((document.getElementById(stepId)&&document.getElementById(stepId).value)||String(defStep)); const arr=[]; for(let v=vmin; v<=vmax+1e-9; v+=vstep){ arr.push(+v.toFixed(6)); } return arr; }
-  const rNol = rng('btOptNolEn','btOptNolMin','btOptNolMax','btOptNolStep',2,5,1)||[lbcOpts.nol];
-  const rPrd = rng('btOptPrdEn','btOptPrdMin','btOptPrdMax','btOptPrdStep',8,34,2)||[lbcOpts.prd];
-  const rSL  = rng('btOptSLEn','btOptSLMin','btOptSLMax','btOptSLStep',0.5,3.0,0.5)||[lbcOpts.slInitPct];
-  const rBEb = rng('btOptBEBarsEn','btOptBEBarsMin','btOptBEBarsMax','btOptBEBarsStep',3,8,1)||[lbcOpts.beAfterBars];
-  const rBEL = rng('btOptBELockEn','btOptBELockMin','btOptBELockMax','btOptBELockStep',3,10,1)||[lbcOpts.beLockPct];
-  const rEMA = rng('btOptEMALenEn','btOptEMALenMin','btOptEMALenMax','btOptEMALenStep',21,89,4)||[lbcOpts.emaLen];
-  let combos=[]; for(const nol of rNol){ for(const prd of rPrd){ for(const sl of rSL){ for(const be of rBEb){ for(const bel of rBEL){ for(const em of rEMA){ combos.push({ nol, prd, slInitPct:sl, beAfterBars:be, beLockPct:bel, emaLen:em }); } } } } } }
-  const usePrior = !!(document.getElementById('btUseTFPrior')&&document.getElementById('btUseTFPrior').checked);
-  if(usePrior){ try{ let priorArr = Array.isArray(window.labPalmaresCache)? window.labPalmaresCache.slice(0, topN) : []; if((!priorArr.length) && window.SUPA && typeof SUPA.fetchPalmares==='function'){ priorArr = await SUPA.fetchPalmares(currentSymbol, tfSel, topN); } for(const it of priorArr){ if(it&&it.params){ combos.unshift({ ...it.params }); } } }catch(_){ } }
-  if(combos.length>maxComb){ const sample=[]; while(sample.length<maxComb){ const i=Math.floor(Math.random()*combos.length); sample.push(combos[i]); combos.splice(i,1); } combos=sample; }
-  let bars=null;
-  if(tfSel===currentInterval){
-    bars = __baseAfterCutoff();
-  } else {
-    const mem = loadMemSeries(currentSymbol, tfSel);
-    if(mem && Array.isArray(mem.bars) && mem.bars.length){
-      bars = mem.bars;
-    } else {
-      try{
-        bars = await fetchAllKlines(currentSymbol, tfSel, REMOTE_MAX_BARS);
-        try{ saveMemSeries(currentSymbol, tfSel, bars, bars.length); }catch(_){ }
-      }catch(_){
-        bars = __baseAfterCutoff();
-      }
-    }
-  }
-  let from=null,to=null;
-  if(btRangeDates&&btRangeDates.checked){ const f=(btFrom&&btFrom.value)||''; const t=(btTo&&btTo.value)||''; from = f? Math.floor(new Date(f).getTime()/1000): null; to = t? Math.floor(new Date(t).getTime()/1000): null; }
-  else if(btRangeAll&&btRangeAll.checked){ from=null; to=null; }
-  else { const r=getVisibleRange(); if(r){ from=r.from; to=r.to; } }
-  const idxFromTimeLocal=(bars,from,to)=>{ let s=0,e=bars.length-1; if(from!=null){ for(let i=0;i<bars.length;i++){ if(bars[i].time>=from){ s=i; break; } } } if(to!=null){ for(let j=bars.length-1;j>=0;j--){ if(bars[j].time<=to){ e=j; break; } } } return [s,e]; };
-  const [sIdx,eIdx]=idxFromTimeLocal(bars,from,to);
-  openBtProgress('Optimisation...'); btAbort=false; const best=[]; const weights=getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
-  let done=0; const total=combos.length; async function step(k){ const end=Math.min(k+5, total); for(let i=k;i<end;i++){ if(btAbort) break; const p=combos[i]; const res=runBacktestSliceFor(bars, sIdx, eIdx, conf, p); const score=scoreResult(res, weights); best.push({ score, params:p, res }); best.sort((a,b)=> b.score-a.score); if(best.length>topN){ best.length=topN; } done++; if(btProgBar&&btProgText){ const pct=Math.round(done/total*100); btProgBar.style.width=pct+'%'; btProgText.textContent=`Optimisation ${pct}% (${done}/${total})`; } }
-    if(done<total && !btAbort){ setTimeout(()=> step(end), 0); } else { closeBtProgress(); closeModalEl(btModalEl); try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ } setStatus('Optimisation terminée'); }
-  }
-  step(0);
- }catch(e){ setStatus('Erreur optimisation'); }
+  if(labSymbolSelect){ labSymbolSelect.value=(symbolSelect&&symbolSelect.value)||currentSymbol; try{ localStorage.setItem('lab:sym', labSymbolSelect.value); }catch(_){ } }
+  if(labTFSelect){ labTFSelect.value=(intervalSelect&&intervalSelect.value)||currentInterval; try{ localStorage.setItem('lab:tf', labTFSelect.value); }catch(_){ } }
+  closeModalEl(btModalEl);
+  if(labOpenBtn){ labOpenBtn.click(); }
+  else if(labModalEl){ openModalEl(labModalEl); await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }
+  setStatus('Lab prêt pour optimiser Heaven');
+ }catch(e){ setStatus('Erreur ouverture Lab'); }
 }); }
 if(btRunBtn){ btRunBtn.addEventListener('click', ()=>{ if(!candles.length){ setStatus('Aucune donnée'); return; } const conf={ startCap: Math.max(0, parseFloat(btStartCap&&btStartCap.value||'10000')), fee: Math.max(0, parseFloat(btFee&&btFee.value||'0.1')), lev: Math.max(1, parseFloat(btLev&&btLev.value||'1')), maxPct: Math.max(0, Math.min(100, parseFloat(btMaxPct&&btMaxPct.value||'100'))), base: (btMaxBase&&btMaxBase.value)||'initial' };
   let from=null, to=null; if(btRangeDates&&btRangeDates.checked){ const f=(btFrom&&btFrom.value)||''; const t=(btTo&&btTo.value)||''; from = f? Math.floor(new Date(f).getTime()/1000): null; to = t? Math.floor(new Date(t).getTime()/1000): null; } else if(btRangeAll&&btRangeAll.checked){ from=null; to=null; } else { const r=getVisibleRange(); if(r){ from=r.from; to=r.to; } }
@@ -3547,25 +3457,6 @@ async function computeDefaultDetailCompareCfgForSymbol(sym){
         }
       }
     }
-  } else {
-    let prof = 'balancee';
-    try{ prof = localStorage.getItem('labWeightsProfile') || 'balancee'; }catch(_){ }
-    const w = getWeights(prof);
-    for(const tf of tfs){
-      let arr = [];
-      try{ arr = readPalmares(sym, tf) || []; }catch(_){ arr = []; }
-      if(!Array.isArray(arr) || !arr.length) continue;
-      for(const it of arr){
-        if(!it || !it.params) continue;
-        const st = it.res || {};
-        let sc = Number.isFinite(it.score) ? Number(it.score) : scoreResult(st, w);
-        if(!Number.isFinite(sc)) continue;
-        if(!best || sc > best.score){
-          const label = it.name || `Palmarès ${symbolToDisplay(sym)} • ${tf}`;
-          best = { score: sc, params: it.params, label, tf, profile: prof };
-        }
-      }
-    }
   }
   let cfg;
   if(best && best.params){
@@ -3746,8 +3637,6 @@ async function populateDetailCompPalmares(){
     let pal=[];
     if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured() && typeof SUPA.fetchPalmares==='function'){
       try{ pal = await SUPA.fetchPalmares(sym, tf, 50, prof); }catch(_){ pal=[]; }
-    } else {
-      try{ pal = readPalmares(sym, tf)||[]; }catch(_){ pal=[]; }
     }
     __detailCompPalmaresList = Array.isArray(pal)? pal.slice(): [];
     const w=getWeights(prof||'balancee');
@@ -5056,6 +4945,13 @@ if(labRunBtn){ labRunBtn.addEventListener('click', async ()=>{ try{
   try{ window.__labGoalOverride = null; }catch(_){ }
   const strategy=(document.getElementById('labStrategy')&&document.getElementById('labStrategy').value)||'hybrid';
 const conf=readLabRiskConf();
+  if(!isSupabaseBestStorageReady()){
+    const msg=supabaseBestStorageError();
+    try{ addBtLog && addBtLog(msg); }catch(_){ }
+    setStatus(msg);
+    if(labRunStatusEl) labRunStatusEl.textContent='Supabase requis';
+    return;
+  }
   // Log mode (Nouvelle stratégie vs Entraîner) for clarity
   try{
     if(typeof addBtLog==='function'){
@@ -5631,8 +5527,6 @@ function setupLabAdvUI(){
   const advBtn=document.getElementById('labAdvancedToggle');
   if(advBtn && (!advBtn.dataset || advBtn.dataset.wiredAdvRefresh!=='1')){ advBtn.addEventListener('click', ()=>{ try{ updateLabAdvVisibility(); }catch(_){ } }); if(!advBtn.dataset) advBtn.dataset={}; advBtn.dataset.wiredAdvRefresh='1'; }
 }
-// Global helper to compute a unique key for a TP rung
-function keyOfTP(t){ try{ if(!t) return ''; const typ=t.type||'Fib'; if(typ==='Fib') return `F:${t.fib}`; if(typ==='Percent') return `P:${t.pct}`; if(typ==='EMA') return `E:${t.emaLen}`; return String(typ); }catch(_){ return ''; } }
   function sampleTPList(tpCfg){
     const { allowFib, allowPct, allowEMA, pctMin, pctMax, fibs } = tpCfg || {};
     const n = Math.max(1, Math.min(10, Number(tpCfg && tpCfg.count) || 10));
@@ -5722,7 +5616,7 @@ function keyOfTP(t){ try{ if(!t) return ''; const typ=t.type||'Fib'; if(typ==='F
     if(list.length && !list.some(t=> t && t.beOn)){
       list[list.length-1].beOn = true;
     }
-    return list;
+    return normalizeTPLadder(list);
 }
 function mutateTP(list,tpCfg){
   if(!Array.isArray(list)||!list.length) return list;
@@ -5796,7 +5690,7 @@ function mutateTP(list,tpCfg){
   if(out.length && !out.some(t=> t && t.beOn)){
     out[out.length-1].beOn = true;
   }
-  return out; }
+  return normalizeTPLadder(out); }
 
   function readSLOpt(){
     try{
@@ -5888,13 +5782,13 @@ function randomParams(){ const vars=readLabVarToggles(); const tpCfg=readTPOpt()
     if(vars.varEntries){ const e=__sampleEntries(p); Object.assign(p, e); }
     if(vars.varTP && tpCfg.en){
       // Cas normal: on échantillonne une nouvelle ladder TP selon la config Lab
-      p.tp = sampleTPList(tpCfg).slice(0,10);
+      p.tp = normalizeTPLadder(sampleTPList(tpCfg)).slice(0,10);
       p.tpEnable=true;
     } else {
       // Fallback: on reprend la ladder Heaven existante, sinon on en génère une par défaut
-      p.tp = Array.isArray(lbcOpts.tp)? lbcOpts.tp.slice(0,10):[];
+      p.tp = normalizeTPLadder(lbcOpts.tp).slice(0,10);
       if(!p.tp.length && tpCfg && tpCfg.en){
-        p.tp = sampleTPList(tpCfg).slice(0,10);
+        p.tp = normalizeTPLadder(sampleTPList(tpCfg)).slice(0,10);
       }
       p.tpEnable=!!p.tp.length;
     }
@@ -5911,12 +5805,12 @@ function randomParams(){ const vars=readLabVarToggles(); const tpCfg=readTPOpt()
     return p; }
   function neighbor(arr, v){ const i=arr.indexOf(v); const out=[]; if(i>0) out.push(arr[i-1]); out.push(v); if(i>=0 && i<arr.length-1) out.push(arr[i+1]); return pick(out.length?out:arr); }
 function mutate(p, rate){ const vars=readLabVarToggles(); const tpCfg=readTPOpt(); const slCfg=readSLOpt(); const q={...p}; if(vars.varNol && Math.random()<rate) q.nol = neighbor(rNol, q.nol); if(vars.varPrd && Math.random()<rate) q.prd = neighbor(rPrd, q.prd); if(vars.varSLInit && Math.random()<rate) q.slInitPct = neighbor(rSL, q.slInitPct); if(vars.varBEBars && Math.random()<rate) q.beAfterBars = neighbor(rBEb, q.beAfterBars); if(vars.varBELock && Math.random()<rate) q.beLockPct = neighbor(rBEL, q.beLockPct); if(vars.varEMALen && Math.random()<rate) q.emaLen = neighbor(rEMALen, q.emaLen); if(Math.random()<rate){ q.maxPct = neighbor(rMaxPct, (q.maxPct!=null? q.maxPct : labProfileRiskPct())); } if(vars.varEntries && Math.random()<rate){ const e=__sampleEntries(q); Object.assign(q, e); }
-  if(vars.varTP && Math.random()<rate){ q.tp = mutateTP(Array.isArray(q.tp)? q.tp: [], tpCfg).slice(0,10); q.tpEnable=true; }
+  if(vars.varTP && Math.random()<rate){ q.tp = normalizeTPLadder(mutateTP(Array.isArray(q.tp)? q.tp: [], tpCfg)).slice(0,10); q.tpEnable=true; }
   if(vars.varSL && Math.random()<rate){ q.sl = mutateSL(Array.isArray(q.sl)? q.sl: [], slCfg).slice(0,10); q.slEnable=true; }
   if(Math.random()<rate){ q.tpCompound = !q.tpCompound; }
   if(Math.random()<rate){ q.tpCloseAllLast = !q.tpCloseAllLast; }
-  return q; }
-function crossover(a,b){ const tpCfg=readTPOpt(); const slCfg=readSLOpt(); return { nol: Math.random()<0.5?a.nol:b.nol, prd: Math.random()<0.5?a.prd:b.prd, slInitPct: Math.random()<0.5?a.slInitPct:b.slInitPct, beAfterBars: Math.random()<0.5?a.beAfterBars:b.beAfterBars, beLockPct: Math.random()<0.5?a.beLockPct:b.beLockPct, emaLen: Math.random()<0.5?a.emaLen:b.emaLen, maxPct: (Math.random()<0.5? (a.maxPct!=null?a.maxPct:b.maxPct) : (b.maxPct!=null?b.maxPct:a.maxPct)), entryMode: a.entryMode, useFibRet: a.useFibRet, confirmMode: a.confirmMode, ent382:a.ent382, ent500:a.ent500, ent618:a.ent618, ent786:a.ent786, tpEnable:true, tpCompound: (Math.random()<0.5? a.tpCompound : b.tpCompound), tpCloseAllLast: (Math.random()<0.5? a.tpCloseAllLast : b.tpCloseAllLast), tp: crossoverTP(a.tp||[], b.tp||[], tpCfg).slice(0,10), slEnable:true, sl: crossoverSL(a.sl||[], b.sl||[], slCfg).slice(0,10) }; }
+  q.tp=normalizeTPLadder(q.tp); q.tpEnable=!!(q.tp&&q.tp.length); return q; }
+function crossover(a,b){ const tpCfg=readTPOpt(); const slCfg=readSLOpt(); return { nol: Math.random()<0.5?a.nol:b.nol, prd: Math.random()<0.5?a.prd:b.prd, slInitPct: Math.random()<0.5?a.slInitPct:b.slInitPct, beAfterBars: Math.random()<0.5?a.beAfterBars:b.beAfterBars, beLockPct: Math.random()<0.5?a.beLockPct:b.beLockPct, emaLen: Math.random()<0.5?a.emaLen:b.emaLen, maxPct: (Math.random()<0.5? (a.maxPct!=null?a.maxPct:b.maxPct) : (b.maxPct!=null?b.maxPct:a.maxPct)), entryMode: a.entryMode, useFibRet: a.useFibRet, confirmMode: a.confirmMode, ent382:a.ent382, ent500:a.ent500, ent618:a.ent618, ent786:a.ent786, tpEnable:true, tpCompound: (Math.random()<0.5? a.tpCompound : b.tpCompound), tpCloseAllLast: (Math.random()<0.5? a.tpCloseAllLast : b.tpCloseAllLast), tp: normalizeTPLadder(crossoverTP(a.tp||[], b.tp||[], tpCfg)).slice(0,10), slEnable:true, sl: crossoverSL(a.sl||[], b.sl||[], slCfg).slice(0,10) }; }
 async function evalParamsList(list, phase='Eval'){
     const out=[]; let idx=0; const N=list.length||0;
     function fmtTP(tp){ try{ if(!Array.isArray(tp)||!tp.length) return '—'; return tp.map(t=>{ const typ=(t.type||'Fib'); if(typ==='Fib'){ return `F:${t.fib}`; } if(typ==='Percent'){ return `P:${t.pct}%`; } if(typ==='EMA'){ return `E:${t.emaLen}`; } return typ; }).slice(0,10).join(';'); }catch(_){ return '—'; } }
@@ -6070,7 +5964,7 @@ try{ addBtLog && addBtLog(`Bayes:init — scheduling ${start.length} évals`); }
 try{ const top=cur[0]; if(top){ addBtLog(`Bayes init — best ${top.score.toFixed(2)} PF ${(top.res.profitFactor===Infinity?'∞':(top.res.profitFactor||0).toFixed(2))}`); } }catch(_){ }
     bestGlobal = Math.max(bestGlobal, (cur[0]?.score ?? -Infinity));
     updateProgress(`Bayes 0/${iters}`, 0);
-    function baseFromLbc(){ return { nol:lbcOpts.nol|0, prd:lbcOpts.prd|0, slInitPct:+lbcOpts.slInitPct||0, beAfterBars:lbcOpts.beAfterBars|0, beLockPct:+lbcOpts.beLockPct||0, emaLen:lbcOpts.emaLen|0, entryMode:lbcOpts.entryMode||'Both', useFibRet:!!lbcOpts.useFibRet, confirmMode:lbcOpts.confirmMode||'Bounce', ent382:!!lbcOpts.ent382, ent500:!!lbcOpts.ent500, ent618:!!lbcOpts.ent618, ent786:!!lbcOpts.ent786, tpEnable:!!lbcOpts.tpEnable, tp:(Array.isArray(lbcOpts.tp)? lbcOpts.tp.slice(0,10):[]), slEnable:!!lbcOpts.slEnable, sl:(Array.isArray(lbcOpts.sl)? lbcOpts.sl.slice(0,10):[]) }; }
+    function baseFromLbc(){ return { nol:lbcOpts.nol|0, prd:lbcOpts.prd|0, slInitPct:+lbcOpts.slInitPct||0, riskMgmt:!!lbcOpts.riskMgmt, riskMaxPct:Number(lbcOpts.riskMaxPct)||1.0, beAfterBars:lbcOpts.beAfterBars|0, beLockPct:+lbcOpts.beLockPct||0, emaLen:lbcOpts.emaLen|0, entryMode:lbcOpts.entryMode||'Both', useFibRet:!!lbcOpts.useFibRet, confirmMode:lbcOpts.confirmMode||'Bounce', ent382:!!lbcOpts.ent382, ent500:!!lbcOpts.ent500, ent618:!!lbcOpts.ent618, ent786:!!lbcOpts.ent786, tpEnable:!!lbcOpts.tpEnable, tpCompound:!!lbcOpts.tpCompound, tpCloseAllLast:!!lbcOpts.tpCloseAllLast, tp:(Array.isArray(lbcOpts.tp)? lbcOpts.tp.slice(0,10):[]), slEnable:!!lbcOpts.slEnable, sl:(Array.isArray(lbcOpts.sl)? lbcOpts.sl.slice(0,10):[]) }; }
     for(let it=1; it<=iters && !btAbort; it++){
       while(btPaused && !btAbort){ if(labRunStatusEl) labRunStatusEl.textContent='Pause'; await new Promise(r=> setTimeout(r, 200)); }
       if(timeUp() || goalReached() || quotaReached()) break;
@@ -6150,45 +6044,8 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
       gen:(x.gen!=null? x.gen : ((x.owner&&x.owner.gen)||1)),
       name: x.name || (x.owner && x.owner.name) || null,
     }));
-    if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.persistLabResults==='function'){
-      // Tout passe par Supabase (naming + persistance gérés côté SUPA)
-      try{ await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut, profileName: (localStorage.getItem('labWeightsProfile')||'balancee') }); }catch(_){ }
-      try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
-    } else {
-      // Fallback local uniquement si Supabase non configuré
-      try{
-        const existing = readPalmares(sym, tfSel) || [];
-        // Donner un nom unique aux nouvelles stratégies si absent
-        const namedNew = bestOut.map((it)=>{
-          if(it.name && typeof it.name==='string') return it;
-          let base='strat';
-          try{ base = randomName(); }catch(_){ base='strat'; }
-          const nm = uniqueNameFor(sym, tfSel, base);
-          return { ...it, name: nm };
-        });
-        // Fusionner ancien palmarès et nouvelles entrées en dédupliquant par params
-        const weightsLocal = getWeights(localStorage.getItem('labWeightsProfile')||'balancee');
-        const byKey = new Map();
-        const pushOrUpdate = (item)=>{
-          if(!item || !item.params) return;
-          const key = paramsKey(item.params||{});
-          const st = item.res || item.metrics || {};
-          const sc = Number.isFinite(item.score)? item.score : scoreResult(st, weightsLocal);
-          const prev = byKey.get(key);
-          if(!prev || sc > (Number(prev.score)||0)){
-            byKey.set(key, { ...item, score: sc });
-          }
-        };
-        existing.forEach(pushOrUpdate);
-        namedNew.forEach(pushOrUpdate);
-        let merged = Array.from(byKey.values());
-        merged.sort((a,b)=> (Number(b.score)||0) - (Number(a.score)||0));
-        const MAX_LOCAL = 50;
-        if(merged.length>MAX_LOCAL) merged = merged.slice(0, MAX_LOCAL);
-        writePalmares(sym, tfSel, merged);
-      }catch(_){ }
-      try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
-    }
+    await persistBestResultsToSupabase({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut, profileName: (localStorage.getItem('labWeightsProfile')||'balancee') });
+    try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
     setStatus(t('status.palmaresUpdated')); try{ __labSimDone = Math.max(__labSimDone, __labSimPlanned||__labSimDone); updateGlobalProgressUI(); }catch(_){ } closeBtProgress();
     maybeScheduleLabAutoLoop();
   } else {
@@ -6229,13 +6086,8 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
     let merged = Array.from(mergedMap.values());
     try{ merged.sort((a,b)=> (Number(b.score)||0) - (Number(a.score)||0)); }catch(_){ }
     const bestOut = merged.slice(0, Math.min(MAX_BEST, merged.length));
-    if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.persistLabResults==='function'){
-      try{ await SUPA.persistLabResults({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut, profileName: (localStorage.getItem('labWeightsProfile')||'balancee') }); }catch(_){ }
-      try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
-    } else {
-      try{ writePalmares(sym, tfSel, bestOut); }catch(_){ }
-      try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
-    }
+    await persistBestResultsToSupabase({ symbol:sym, tf: tfSel, tested: allTested, best: bestOut, profileName: (localStorage.getItem('labWeightsProfile')||'balancee') });
+    try{ await renderLabFromStorage(); await computeLabBenchmarkAndUpdate(); }catch(_){ }
     setStatus(t('status.improveDone')); try{ __labSimDone = Math.max(__labSimDone, __labSimPlanned||__labSimDone); updateGlobalProgressUI(); }catch(_){ } closeBtProgress();
     maybeScheduleLabAutoLoop();
   }
@@ -6245,15 +6097,15 @@ if(strategy==='hybrid' && !timeUp() && !goalReached()){ bayOut = await runBayes(
 
 // Presets (Heaven)
 const lbcPresetName=document.getElementById('lbcPresetName'); const lbcPresetSave=document.getElementById('lbcPresetSave'); const lbcPresetSelect=document.getElementById('lbcPresetSelect'); const lbcPresetLoad=document.getElementById('lbcPresetLoad'); const lbcPresetDelete=document.getElementById('lbcPresetDelete'); const lbcResetBtn=document.getElementById('lbcReset');
-function loadPresetList(){ try{ const s=localStorage.getItem('lbcPresetList'); const names=s? JSON.parse(s): []; if(lbcPresetSelect){ lbcPresetSelect.innerHTML = names.map(n=>`<option value=\"${n}\">${n}</option>`).join(''); } return names; }catch(_){ return []; } }
-function savePresetList(names){ try{ localStorage.setItem('lbcPresetList', JSON.stringify(names)); }catch(_){ } }
-function savePreset(name){ const names=loadPresetList(); const idx=names.indexOf(name); if(idx===-1){ names.push(name); savePresetList(names); loadPresetList(); } try{ localStorage.setItem('lbcPreset:'+name, JSON.stringify(lbcOpts)); }catch(_){ } }
-function loadPresetByName(name){ try{ const s=localStorage.getItem('lbcPreset:'+name); if(!s) return false; lbcOpts = { ...defaultLBC, ...JSON.parse(s) }; normalizeLBCOpts(); saveLBCOpts(); renderLBC(); return true; }catch(_){ return false; } }
-function deletePreset(name){ try{ localStorage.removeItem('lbcPreset:'+name); const names=loadPresetList().filter(n=>n!==name); savePresetList(names); loadPresetList(); }catch(_){} }
+function loadPresetList(){ if(lbcPresetSelect){ lbcPresetSelect.innerHTML = ''; } return []; }
+function savePresetList(names){ try{ void names; }catch(_){ } }
+function savePreset(name){ try{ void name; }catch(_){ } setStatus('Presets locaux désactivés: utilisez la sauvegarde Supabase.'); }
+function loadPresetByName(name){ try{ void name; }catch(_){ } setStatus('Presets locaux désactivés: chargez depuis Supabase.'); return false; }
+function deletePreset(name){ try{ void name; }catch(_){} setStatus('Presets locaux désactivés.'); }
 loadPresetList();
-if(lbcPresetSave){ lbcPresetSave.addEventListener('click', ()=>{ const name=(lbcPresetName&&lbcPresetName.value||'').trim(); if(!name){ setStatus('Nom du preset requis'); return; } savePreset(name); setStatus('Preset sauvegardé'); }); }
-if(lbcPresetLoad){ lbcPresetLoad.addEventListener('click', ()=>{ const name=(lbcPresetSelect&&lbcPresetSelect.value)||''; if(!name){ setStatus('Aucun preset'); return; } if(loadPresetByName(name)){ try{ populateHeavenModal(); }catch(_){ } setStatus('Preset chargé'); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } } }); }
-if(lbcPresetDelete){ lbcPresetDelete.addEventListener('click', ()=>{ const name=(lbcPresetSelect&&lbcPresetSelect.value)||''; if(!name) return; if(confirm(`Supprimer le preset \"${name}\" ?`)){ deletePreset(name); setStatus('Preset supprimé'); } }); }
+if(lbcPresetSave){ lbcPresetSave.addEventListener('click', ()=>{ const name=(lbcPresetName&&lbcPresetName.value||'').trim(); savePreset(name); }); }
+if(lbcPresetLoad){ lbcPresetLoad.addEventListener('click', ()=>{ const name=(lbcPresetSelect&&lbcPresetSelect.value)||''; loadPresetByName(name); }); }
+if(lbcPresetDelete){ lbcPresetDelete.addEventListener('click', ()=>{ const name=(lbcPresetSelect&&lbcPresetSelect.value)||''; deletePreset(name); }); }
 if(lbcResetBtn){ lbcResetBtn.addEventListener('click', ()=>{ lbcOpts = { ...defaultLBC }; normalizeLBCOpts(); saveLBCOpts(); renderLBC(); try{ populateHeavenModal(); }catch(_){ } setStatus('Paramètres réinitialisés'); try{ computeLabBenchmarkAndUpdate(); }catch(_){ } }); }
 
 // Supabase-backed Heaven strategies
@@ -6266,11 +6118,12 @@ const lbcSupaDelete=document.getElementById('lbcSupaDelete');
 function currentHeavenParamsForPersist(){ try{
   return {
     nol:lbcOpts.nol, prd:lbcOpts.prd, slInitPct:lbcOpts.slInitPct,
-    beAfterBars:lbcOpts.beAfterBars, beLockPct:lbcOpts.beLockPct,
+    riskMgmt:!!lbcOpts.riskMgmt, riskMaxPct:Number(lbcOpts.riskMaxPct)||1.0,
+    beEnable:!!lbcOpts.beEnable, beAfterBars:lbcOpts.beAfterBars, beLockPct:lbcOpts.beLockPct,
     emaLen:lbcOpts.emaLen,
     entryMode:lbcOpts.entryMode||'Both', useFibRet:!!lbcOpts.useFibRet, confirmMode:lbcOpts.confirmMode||'Bounce',
     ent382:!!lbcOpts.ent382, ent500:!!lbcOpts.ent500, ent618:!!lbcOpts.ent618, ent786:!!lbcOpts.ent786,
-    tpEnable:!!lbcOpts.tpEnable, tp: Array.isArray(lbcOpts.tp)? lbcOpts.tp.slice(0,10):[],
+    tpEnable:!!lbcOpts.tpEnable, tp: normalizeTPLadder(lbcOpts.tp), tpCount: clampTPCount((normalizeTPLadder(lbcOpts.tp).length || lbcOpts.tpCount || 1)),
     slEnable:!!lbcOpts.slEnable, sl: Array.isArray(lbcOpts.sl)? lbcOpts.sl.slice(0,10):[],
     tp1R:lbcOpts.tp1R, tpCompound: !!lbcOpts.tpCompound, tpCloseAllLast: !!lbcOpts.tpCloseAllLast,
   };
@@ -6280,6 +6133,9 @@ function applyHeavenParams(p){ try{
   if(p.nol!=null) lbcOpts.nol = p.nol|0;
   if(p.prd!=null) lbcOpts.prd = p.prd|0;
   if(p.slInitPct!=null) lbcOpts.slInitPct = +p.slInitPct;
+  if(p.riskMgmt!=null) lbcOpts.riskMgmt = !!p.riskMgmt;
+  if(p.riskMaxPct!=null) lbcOpts.riskMaxPct = +p.riskMaxPct;
+  if(p.beEnable!=null) lbcOpts.beEnable = !!p.beEnable;
   if(p.beAfterBars!=null) lbcOpts.beAfterBars = p.beAfterBars|0;
   if(p.beLockPct!=null) lbcOpts.beLockPct = +p.beLockPct;
   if(p.emaLen!=null) lbcOpts.emaLen = p.emaLen|0;
@@ -6291,7 +6147,7 @@ function applyHeavenParams(p){ try{
   if(p.ent618!=null) lbcOpts.ent618 = !!p.ent618;
   if(p.ent786!=null) lbcOpts.ent786 = !!p.ent786;
   if(p.tpEnable!=null) lbcOpts.tpEnable = !!p.tpEnable;
-  if(Array.isArray(p.tp)) lbcOpts.tp = p.tp.slice(0,10);
+  if(Array.isArray(p.tp)){ lbcOpts.tp = normalizeTPLadder(p.tp); lbcOpts.tpCount = clampTPCount(lbcOpts.tp.length || 1); }
   if(p.slEnable!=null) lbcOpts.slEnable = !!p.slEnable;
   if(Array.isArray(p.sl)) lbcOpts.sl = p.sl.slice(0,10);
   if(p.tp1R!=null) lbcOpts.tp1R = +p.tp1R;
@@ -6320,11 +6176,8 @@ async function populateHeavenLoadOptions(){ try{ if(!heavenLoadSelect) return; c
   let supa = [];
   if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured()){ try{ await populateHeavenSupaList(); supa = Array.isArray(window.__heavenSupaList)? window.__heavenSupaList.slice(): []; }catch(_){ supa=[]; } }
   if(supa.length){ for(const r of supa){ opts.push(`<option value="supa:${r.id}">Supa: ${(r.name||'(sans nom)')} — ${new Date(r.created_at).toLocaleString()}</option>`); } }
-  // Local presets
-  let localNames=[]; try{ localNames = loadPresetList(); }catch(_){ localNames=[]; }
-  if(Array.isArray(localNames) && localNames.length){ for(const n of localNames){ opts.push(`<option value="local:${n}">Preset: ${n}</option>`); } }
   // Palmarès (Lab)
-  let pal=[]; if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured()){ try{ pal = await SUPA.fetchPalmares(sym, tf, 25, profSel); }catch(_){ pal=[]; } } else { try{ pal = readPalmares(sym, tf)||[]; }catch(_){ pal=[]; } }
+  let pal=[]; if(window.SUPA && SUPA.isConfigured && SUPA.isConfigured()){ try{ pal = await SUPA.fetchPalmares(sym, tf, 25, profSel); }catch(_){ pal=[]; } }
   window.__heavenPalmaresList = Array.isArray(pal)? pal.slice() : [];
   if(window.__heavenPalmaresList.length){ let idx=0; for(const it of window.__heavenPalmaresList){ const sc = Number.isFinite(it.score)? it.score.toFixed(2) : (it.res? (function(){ try{ const w=getWeights(profSel||'balancee'); return scoreResult(it.res, w).toFixed(2);}catch(_){ return '—'; } })() : '—'); const nm = it.name || `Palmarès #${idx+1}`; opts.push(`<option value="pal:${idx}">Palmarès: ${nm} — ${sc}</option>`); idx++; } }
   heavenLoadSelect.innerHTML = opts.join('');
@@ -6347,8 +6200,7 @@ try{
     }
   }
 }catch(_){ }
-if(heavenLoadBtn && (!heavenLoadBtn.dataset || heavenLoadBtn.dataset.wired!=='1')){ heavenLoadBtn.addEventListener('click', async ()=>{ try{ const v=(heavenLoadSelect&&heavenLoadSelect.value)||''; if(!v) return; const parts=String(v).split(':'); const kind=parts[0]||''; const id=parts.slice(1).join(':'); if(kind==='local'){ if(id){ if(loadPresetByName(id)){ try{ populateHeavenModal(); }catch(_){ } } } }
-  else if(kind==='supa'){ const rows=Array.isArray(window.__heavenSupaList)? window.__heavenSupaList:[]; const it=rows.find(r=> String(r.id)===String(id)); if(it && it.params){ applyHeavenParams(it.params||{}); try{ if(heavenTFSelect && it.tf){ heavenTFSelect.value = it.tf; try{ localStorage.setItem('heaven:tf', it.tf); }catch(_){ } } }catch(_){ } try{ populateHeavenModal(); }catch(_){ } } }
+if(heavenLoadBtn && (!heavenLoadBtn.dataset || heavenLoadBtn.dataset.wired!=='1')){ heavenLoadBtn.addEventListener('click', async ()=>{ try{ const v=(heavenLoadSelect&&heavenLoadSelect.value)||''; if(!v) return; const parts=String(v).split(':'); const kind=parts[0]||''; const id=parts.slice(1).join(':'); if(kind==='supa'){ const rows=Array.isArray(window.__heavenSupaList)? window.__heavenSupaList:[]; const it=rows.find(r=> String(r.id)===String(id)); if(it && it.params){ applyHeavenParams(it.params||{}); try{ if(heavenTFSelect && it.tf){ heavenTFSelect.value = it.tf; try{ localStorage.setItem('heaven:tf', it.tf); }catch(_){ } } }catch(_){ } try{ populateHeavenModal(); }catch(_){ } } }
   else if(kind==='pal'){ const idx=parseInt(id,10); const arr=Array.isArray(window.__heavenPalmaresList)? window.__heavenPalmaresList:[]; const it=arr[idx]; if(it && it.params){ applyHeavenParams(it.params||{}); try{ populateHeavenModal(); }catch(_){ } } }
   // Switch chart TF to selected Heaven TF
   try{ const tfSel=(heavenTFSelect&&heavenTFSelect.value)||''; if(tfSel && tfSel!==currentInterval){ try{ if(intervalSelect) intervalSelect.value=tfSel; localStorage.setItem('chart:tf', tfSel); }catch(_){ } currentInterval=tfSel; closeWs(); await load(currentSymbol, currentInterval); openWs(currentSymbol, currentInterval); } }catch(_){ }
@@ -6427,7 +6279,7 @@ async function renderLiveDrawer(){ try{ ensureLiveDrawer(); const list=document.
   `<label data-act=\"1\" style=\"font-size:12px; display:flex; align-items:center; gap:6px; user-select:none; cursor:pointer;\">Actif <input type=\"checkbox\" data-act=\"1\" ${on?'checked':''} /></label></div>`+
   `<div style=\"font-size:12px; color:${isDark()? '#9ca3af':'#4b5563'};\">${symbolToDisplay(s.symbol)} • ${s.tf}</div>`+
   `</div>`; }).join('');
-  list.querySelectorAll('.lw-item').forEach(el=>{ const name=el.getAttribute('data-name'); el.addEventListener('click', async (e)=>{ const t=e.target; try{ if(t && (t.closest && (t.closest('label[data-act]') || t.closest('input[data-act]')))) return; }catch(_){ if(t && t.getAttribute && t.getAttribute('data-act')==='1') return; } await headlessActivate(name); }); const ck=el.querySelector('input[type=checkbox][data-act]'); if(ck){ ck.addEventListener('click', (ev)=> ev.stopPropagation()); ck.addEventListener('change', async ()=>{ if(ck.checked){ const sess=await SUPA.fetchHeadlessSessionByName(name); const sym=(sess&&sess.symbol)||currentSymbol; const tf=(sess&&sess.tf)||currentInterval; await SUPA.startHeadlessLive({ name, symbol:sym, tf, startCap:(sess&&sess.start_cap)||10000, fee:0.1, lev:1, params: currentHeavenParamsForPersist() }); } else { await SUPA.stopHeadlessLiveByName(name); } renderLiveDrawer(); }); } });
+  list.querySelectorAll('.lw-item').forEach(el=>{ const name=el.getAttribute('data-name'); el.addEventListener('click', async (e)=>{ const t=e.target; try{ if(t && (t.closest && (t.closest('label[data-act]') || t.closest('input[data-act]')))) return; }catch(_){ if(t && t.getAttribute && t.getAttribute('data-act')==='1') return; } await headlessActivate(name); }); const ck=el.querySelector('input[type=checkbox][data-act]'); if(ck){ ck.addEventListener('click', (ev)=> ev.stopPropagation()); ck.addEventListener('change', async ()=>{ if(ck.checked){ const sess=await SUPA.fetchHeadlessSessionByName(name); const sym=(sess&&sess.symbol)||currentSymbol; const tf=(sess&&sess.tf)||currentInterval; await SUPA.startHeadlessLive({ name, symbol:sym, tf, startCap:(sess&&sess.start_cap)||10000, fee:0.1, lev:1, params: (sess&&sess.strategy_params)||currentHeavenParamsForPersist() }); } else { await SUPA.stopHeadlessLiveByName(name); } renderLiveDrawer(); }); } });
   // UX enhancements for live wallets list (hover, buttons, accent)
   try{
     list.querySelectorAll('.lw-item').forEach(el=>{ try{
@@ -6440,7 +6292,7 @@ async function renderLiveDrawer(){ try{ ensureLiveDrawer(); const list=document.
         const lbl = header.querySelector('label[data-act]') || header.querySelector('label');
         if(!header.querySelector('button[data-play]')){
           const b=document.createElement('button'); b.className='icon-btn'; b.setAttribute('data-act','1'); b.setAttribute('data-play','1'); b.title='Démarrer'; b.textContent='▶';
-          b.addEventListener('click', async (ev)=>{ ev.stopPropagation(); const sess=await SUPA.fetchHeadlessSessionByName(name); const sym=(sess&&sess.symbol)||currentSymbol; const tf=(sess&&sess.tf)||currentInterval; await SUPA.startHeadlessLive({ name, symbol:sym, tf, startCap:(sess&&sess.start_cap)||10000, fee:0.1, lev:1, params: currentHeavenParamsForPersist() }); renderLiveDrawer(); });
+          b.addEventListener('click', async (ev)=>{ ev.stopPropagation(); const sess=await SUPA.fetchHeadlessSessionByName(name); const sym=(sess&&sess.symbol)||currentSymbol; const tf=(sess&&sess.tf)||currentInterval; await SUPA.startHeadlessLive({ name, symbol:sym, tf, startCap:(sess&&sess.start_cap)||10000, fee:0.1, lev:1, params: (sess&&sess.strategy_params)||currentHeavenParamsForPersist() }); renderLiveDrawer(); });
           if(lbl){ header.insertBefore(b, lbl); } else { header.appendChild(b); }
         }
         if(!header.querySelector('button[data-stop]')){
@@ -6461,12 +6313,6 @@ async function renderLiveDrawer(){ try{ ensureLiveDrawer(); const list=document.
               try{
                 if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.deleteLiveWallet==='function'){
                   ok = await SUPA.deleteLiveWallet(name, 'paper');
-                } else {
-                  // local fallback
-                  let arr = (typeof readLiveWallets==='function')? readLiveWallets() : [];
-                  if(Array.isArray(arr)) arr = arr.filter(x=> x && x.name!==name);
-                  if(typeof writeLiveWallets==='function') writeLiveWallets(arr);
-                  ok = true;
                 }
               }catch(_){ ok=false; }
               if(ok){ try{ setStatus && setStatus('Wallet supprimé'); }catch(_){ } try{ if(typeof populateLiveWalletsUI==='function') await populateLiveWalletsUI(); }catch(_){ } renderLiveDrawer(); }
@@ -6501,7 +6347,7 @@ function multiLiveOnBar(bar){ }
 // Live state for markers and position mgmt (with equity and trade events)
 let livePos=null; let livePendingFib=null; let liveTrades=[];
 function clearLiveTrades(){ liveTrades=[]; }
-function renderLiveHUD(){ try{ if(!liveSession||!liveSession.active) return; if(stratTitle){ stratTitle.textContent = `${symbolToDisplay(liveSession.symbol)} • ${liveSession.tf} — Live`; } if(stratTBody){ const eq=Number(liveSession.equity)||0; const start=Number(liveSession.startCap)||0; const pnl=eq-start; const rows=[]; rows.push(`<tr><td style=\"text-align:left\">Capital</td><td>—</td><td style=\"text-align:right\">${eq.toFixed(2)}</td></tr>`); rows.push(`<tr><td style=\"text-align:left\">P&L net</td><td>—</td><td style=\"text-align:right\">${pnl.toFixed(2)}</td></tr>`); stratTBody.innerHTML = rows.join(''); } }catch(_){ } }function refreshLiveMonitoringUI(){ try{ renderLiveHUD(); const state={ trades: __headlessTrades.slice(), symbol: liveSession.symbol, tf: liveSession.tf, startCap: liveSession.startCap, equityFinal: liveSession.equity, totalPnl: (Number(liveSession.equity)||0) - (Number(liveSession.startCap)||0) }; lastTradesCtx=state; populateTradesModal(state); }catch(_){ } } async function headlessPollOnce(){ try{ if(!(window.SUPA && SUPA.fetchHeadlessSessionByName && SUPA.fetchLiveEvents)) return; if(!__headlessActiveName) return; const sess=await SUPA.fetchHeadlessSessionByName(__headlessActiveName); if(!sess){ return; } liveSession = { ...(liveSession||{}), active:true, symbol:sess.symbol, tf:sess.tf, equity: Number(sess.equity||sess.start_cap||0)||0, startCap: Number(sess.start_cap||0)||0 };
+function renderLiveHUD(){ try{ if(!liveSession||!liveSession.active) return; if(stratTitle){ stratTitle.textContent = `${symbolToDisplay(liveSession.symbol)} • ${liveSession.tf} — Live`; } if(stratTBody){ const eq=Number(liveSession.equity)||0; const start=Number(liveSession.startCap)||0; const pnl=eq-start; const rows=[]; rows.push(`<tr><td style=\"text-align:left\">Capital</td><td>—</td><td style=\"text-align:right\">${eq.toFixed(2)}</td></tr>`); rows.push(`<tr><td style=\"text-align:left\">P&L net</td><td>—</td><td style=\"text-align:right\">${pnl.toFixed(2)}</td></tr>`); stratTBody.innerHTML = rows.join(''); } }catch(_){ } }function refreshLiveMonitoringUI(){ try{ renderLiveHUD(); const state={ trades: __headlessTrades.slice(), symbol: liveSession.symbol, tf: liveSession.tf, startCap: liveSession.startCap, equityFinal: liveSession.equity, totalPnl: (Number(liveSession.equity)||0) - (Number(liveSession.startCap)||0) }; lastTradesCtx=state; populateTradesModal(state); }catch(_){ } } async function headlessPollOnce(){ try{ if(!(window.SUPA && SUPA.fetchHeadlessSessionByName && SUPA.fetchLiveEvents)) return; if(!__headlessActiveName) return; const sess=await SUPA.fetchHeadlessSessionByName(__headlessActiveName); if(!sess){ return; } liveSession = { ...(liveSession||{}), active:true, symbol:sess.symbol, tf:sess.tf, equity: Number(sess.equity??sess.start_cap??0)||0, startCap: Number(sess.start_cap||0)||0 };
   const events = await SUPA.fetchLiveEvents(sess.id, __headlessLastAt||null, 500);
   if(Array.isArray(events) && events.length){ for(const ev of events){ const p=ev.payload||{}; const tsSec = (p.time!=null)? Number(p.time) : Math.floor(new Date(ev.at_time).getTime()/1000); if(ev.kind==='entry'){ try{ addLiveEntryMarker(tsSec, p.dir); }catch(_){ } try{ __headlessTrades.push({ dir:p.dir, entryTime:tsSec, entry:p.entry, initSL:p.sl, exitTime:tsSec, exit:p.entry, reason:'Entry', qty:p.qty, pnl:0, fees:0, net:0, rr:null }); }catch(_){ } }
     else if(ev.kind==='tp'){ try{ addTPHitMarker(tsSec, p.dir); }catch(_){ } try{ __headlessTrades.push({ dir:p.dir, entryTime:tsSec, entry:p.entry, initSL:p.initSL||p.sl||null, exitTime:tsSec, exit:p.exit, reason:`TP${(p.idx||'')}`, qty:p.qty, pnl:p.pnl, fees:p.fees, net:p.net, rr:null }); }catch(_){ } }
@@ -6538,6 +6384,7 @@ function computeSLFromLadder(dir, entry, i){ try{ if(!(lbcOpts.slEnable && Array
           else if(typ==='EMA'){ const len=Math.max(1, parseInt(((t&&t.emaLen)!=null? t.emaLen : (lbcOpts.emaLen||55)),10)); const ema=emaCalc(candles, len); const v=ema[ema.length-1]; if(isFinite(v)) price=v; }
           if(price!=null){ if((dir==='long' && price>entry) || (dir==='short' && price<entry)){ let w=null; const q=t.qty; if(q!=null && isFinite(q)) w=(q>1? q/100 : q); list.push({price, w, srcIdx: idx}); } }
         }
+        list = mergeDuplicateTargets(list);
         if(dir==='long') list.sort((a,b)=>a.price-b.price); else list.sort((a,b)=>b.price-a.price);
         let sumW=0, hasW=false; for(const it of list){ if(it.w!=null && it.w>0){ sumW+=it.w; hasW=true; } }
         if(!hasW){ if(list.length){ const even=1/list.length; list=list.map(it=>({ price:it.price, w:even, srcIdx: it.srcIdx })); }
@@ -6551,7 +6398,7 @@ function computeSLFromLadder(dir, entry, i){ try{ if(!(lbcOpts.slEnable && Array
       }
       return list;
     }
-    function __liveComputeQty(entry, sl){ if(!(isFinite(entry)&&isFinite(sl))) return 0; const equity=Number(liveSession.equity)||0; if(equity<=0) return 0; const budget=Math.max(0, equity); const notional=budget*lev; const qty0 = notional/Math.max(1e-12, entry); const riskAbs=Math.abs(entry-sl); const perUnitWorstLoss = riskAbs + ((Math.abs(entry)+Math.abs(sl)) * feePct); const qtyRisk = perUnitWorstLoss>0? (equity / perUnitWorstLoss) : 0; const q=Math.max(0, Math.min(qty0, qtyRisk)); return q; }
+    function __liveComputeQty(entry, sl){ if(!(isFinite(entry)&&isFinite(sl))) return 0; const equity=Number(liveSession.equity)||0; if(equity<=0) return 0; const budget=Math.max(0, equity); const notional=budget*lev; const qty0 = notional/Math.max(1e-12, entry); const riskAbs=Math.abs(entry-sl); const perUnitWorstLoss = riskAbs + ((Math.abs(entry)+Math.abs(sl)) * feePct); const riskPct=(lbcOpts.riskMgmt===false)?100:Math.max(0, Number(lbcOpts.riskMaxPct)||1.0); const qtyRisk = perUnitWorstLoss>0? ((equity*riskPct/100) / perUnitWorstLoss) : 0; const q=Math.max(0, Math.min(qty0, qtyRisk)); return q; }
     let dirty=false, uiDirty=false;
     // Entry logic (trend flip and optional Fib retracement)
     if(!livePos){
@@ -6620,7 +6467,23 @@ function computeSLFromLadder(dir, entry, i){ try{ if(!(lbcOpts.slEnable && Array
     if(uiDirty){ renderLiveHUD(); refreshLiveTradesUI(); }
   }catch(_){ }
 }
-if(liveStartBtn){ liveStartBtn.addEventListener('click', async ()=>{ try{ if(!(window.SUPA && SUPA.isConfigured && SUPA.isConfigured())){ setStatus('Supabase requis pour le mode headless'); return; } const name=(liveWalletName&&liveWalletName.value)||randomName(); const cap=Math.max(0, parseFloat(liveStartCap&&liveStartCap.value||'10000')); const fee=Math.max(0, parseFloat(liveFee&&liveFee.value||'0.1')); const lev=Math.max(1, parseFloat(liveLev&&liveLev.value||'1')); const sym=currentSymbol; const tfSel=(liveTFSelect&&liveTFSelect.value)||((intervalSelect&&intervalSelect.value)||currentInterval)||''; let params=currentHeavenParamsForPersist(); try{ const val=(liveStrategySel&&liveStrategySel.value)||''; const cache=(window.__liveStratCache||{}); if(val && Array.isArray(cache.items)){ const it=cache.items.find(x=> String(x.value)===String(val)); if(it && it.params){ params = it.params; } } }catch(_){ } const ok = await SUPA.startHeadlessLive({ name, symbol:sym, tf: tfSel, startCap:cap, fee, lev, params }); if(ok && ok.ok){ setStatus('Session live démarrée (headless)'); await headlessActivate(name); ensureLiveDrawer(); renderLiveDrawer(); closeModalEl(liveModalEl); } else { setStatus('Erreur démarrage headless'); } }catch(_){ } }); }
+if(liveStartBtn){ liveStartBtn.addEventListener('click', async ()=>{ try{
+  if(!(window.SUPA && SUPA.isConfigured && SUPA.isConfigured())){ setStatus('Supabase requis pour le mode headless'); return; }
+  const val=(liveStrategySel&&liveStrategySel.value)||'';
+  const cache=(window.__liveStratCache||{});
+  const selected=(val && Array.isArray(cache.items))? cache.items.find(x=> String(x.value)===String(val)) : null;
+  if(!(selected && selected.paperEligible && selected.params)){ setStatus('Sélectionnez une stratégie éligible au paper trading'); return; }
+  const name=(liveWalletName&&liveWalletName.value)||randomName();
+  const cap=Math.max(0, parseFloat(liveStartCap&&liveStartCap.value||'10000'));
+  const fee=Math.max(0, parseFloat(liveFee&&liveFee.value||'0.1'));
+  const lev=Math.max(1, parseFloat(liveLev&&liveLev.value||'1'));
+  const sym=currentSymbol;
+  const tfSel=(liveTFSelect&&liveTFSelect.value)||((intervalSelect&&intervalSelect.value)||currentInterval)||'';
+  let walletId=null; try{ const wallets=Array.isArray(window.__liveWalletsCache)?window.__liveWalletsCache:[]; const wallet=wallets.find(w=>String(w.name)===String(name) && (w.paper!==false)); walletId=wallet&&wallet.id?wallet.id:null; }catch(_){ walletId=null; }
+  const ok = await SUPA.startHeadlessLive({ name, walletId, symbol:sym, tf: tfSel, startCap:cap, fee, lev, params:selected.params });
+  if(ok && ok.ok){ setStatus('Session paper démarrée (headless)'); await headlessActivate(name); ensureLiveDrawer(); renderLiveDrawer(); closeModalEl(liveModalEl); }
+  else { setStatus('Erreur démarrage headless'); }
+}catch(_){ } }); }
 if(liveStopBtn){ liveStopBtn.addEventListener('click', async ()=>{ try{ if(!(window.SUPA && SUPA.stopHeadlessLiveByName)) return; if(!__headlessActiveName) return; const ok=await SUPA.stopHeadlessLiveByName(__headlessActiveName); if(ok){ setStatus('Session headless arrêtée'); } else { setStatus('Arrêt échoué'); } ensureLiveDrawer(); renderLiveDrawer(); }catch(_){ } }); }
 
 async function headlessActivate(name){ try{ if(!name) return; __headlessActiveName=name; const sess = (window.SUPA && SUPA.fetchHeadlessSessionByName)? await SUPA.fetchHeadlessSessionByName(name) : null; if(!sess){ setStatus('Session introuvable'); return; } __headlessSessionId = sess.id; __headlessLastAt = null; __headlessTrades = []; __headlessMarkers={ entries:[], tps:[], sls:[], bes:[] }; if(__headlessRTSub && __headlessRTSub.unsubscribe){ try{ __headlessRTSub.unsubscribe(); }catch(_){ } __headlessRTSub=null; } if(__headlessPollTimer){ try{ clearInterval(__headlessPollTimer); }catch(_){ } __headlessPollTimer=null; }
@@ -6635,7 +6498,7 @@ async function headlessActivate(name){ try{ if(!name) return; __headlessActiveNa
     // Apply filter immediately on current candles
 try{ if(typeof window.__liveChartMinTimeSec==='number' && isFinite(window.__liveChartMinTimeSec)){ candles = (candles||[]).filter(b=> b.time>=window.__liveChartMinTimeSec); candleSeries.setData(candles); updateEMAs(); renderLBC(); updateCutoffBadge(); } }catch(_){ }
   }
-  liveSession = { active:true, symbol: sess.symbol, tf: sess.tf, equity: Number(sess.equity||sess.start_cap||0)||0, startCap: Number(sess.start_cap||0)||0 };
+  liveSession = { active:true, symbol: sess.symbol, tf: sess.tf, equity: Number(sess.equity??sess.start_cap??0)||0, startCap: Number(sess.start_cap||0)||0 };
   openModalEl(stratModalEl); openModalEl(tradesModalEl); try{ ensureFloatingModal(stratModalEl, 'strat', { left: 40, top: 40, width: 480, height: 300, zIndex: bumpZ() }); ensureFloatingModal(tradesModalEl, 'trades', { left: 540, top: 40, width: 720, height: 360, zIndex: bumpZ() }); }catch(_){ }
   updateLiveDrawerTab();
   try{ if(window.SUPA && SUPA.subscribeLiveEvents){ __headlessRTSub = SUPA.subscribeLiveEvents(__headlessSessionId, (row)=>{ try{ const ev=row||{}; const p=ev.payload||{}; const tsSec=(p.time!=null)? Number(p.time) : Math.floor(new Date(ev.at_time).getTime()/1000); if(ev.kind==='entry'){ try{ addLiveEntryMarker(tsSec, p.dir); }catch(_){ } try{ __headlessTrades.push({ dir:p.dir, entryTime:tsSec, entry:p.entry, initSL:p.sl, exitTime:tsSec, exit:p.entry, reason:'Entry', qty:p.qty, pnl:0, fees:0, net:0, rr:null }); }catch(_){ } } else if(ev.kind==='tp'){ try{ addTPHitMarker(tsSec, p.dir); }catch(_){ } try{ __headlessTrades.push({ dir:p.dir, entryTime:tsSec, entry:p.entry, initSL:p.initSL||p.sl||null, exitTime:tsSec, exit:p.exit, reason:`TP${(p.idx||'')}`, qty:p.qty, pnl:p.pnl, fees:p.fees, net:p.net, rr:null }); }catch(_){ } } else if(ev.kind==='sl'){ try{ addSLHitMarker(tsSec, p.dir); }catch(_){ } try{ __headlessTrades.push({ dir:p.dir, entryTime:tsSec, entry:p.entry, initSL:p.initSL||p.sl||null, exitTime:tsSec, exit:p.exit, reason:'SL', qty:p.qty, pnl:p.pnl, fees:p.fees, net:p.net, rr:null }); }catch(_){ } } else if(ev.kind==='be'){ try{ addBEHitMarker(tsSec, p.dir); }catch(_){ } } else if(ev.kind==='flip'){ try{ __headlessTrades.push({ dir:p.dir, entryTime:tsSec, entry:p.entry, initSL:p.initSL||p.sl||null, exitTime:tsSec, exit:p.exit, reason:'Flip', qty:p.qty, pnl:p.pnl, fees:p.fees, net:p.net, rr:null }); }catch(_){ } } refreshLiveMonitoringUI(); renderLBC(); }catch(_){ } }); } }catch(_){ }
@@ -6680,16 +6543,11 @@ const liveWalletName=document.getElementById('liveWalletName');
 const liveWalletSave=document.getElementById('liveWalletSave');
 const liveWalletLoad=document.getElementById('liveWalletLoad');
 const liveWalletDelete=document.getElementById('liveWalletDelete');
-function readLiveWallets(){ try{ const s=localStorage.getItem('liveWallets'); return s? JSON.parse(s): []; }catch(_){ return []; } }
-function writeLiveWallets(arr){ try{ localStorage.setItem('liveWallets', JSON.stringify(arr)); }catch(_){} }
-async function populateLiveWalletsUI(){ try{ const locals = readLiveWallets(); if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchLiveWallets==='function'){ let rows=[]; try{ rows = await SUPA.fetchLiveWallets(100, 'paper'); }catch(_){ rows=[]; }
-  // Merge Supabase rows with local (avoid duplicate names; Supabase wins)
-  const byName=new Map(); const merged=[]; if(Array.isArray(rows)){ for(const r of rows){ if(!byName.has(r.name)){ byName.set(r.name, true); merged.push(r); } } }
-  if(Array.isArray(locals)){ for(const l of locals){ if(l && l.name && !byName.has(l.name)){ merged.push({ name: l.name, startCap:l.startCap, fee:l.fee, lev:l.lev, __local:true }); } } }
+async function populateLiveWalletsUI(){ try{ if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.fetchLiveWallets==='function'){ let rows=[]; try{ rows = await SUPA.fetchLiveWallets(100, 'paper'); }catch(_){ rows=[]; }
   try{ window.__liveWalletsCache = Array.isArray(rows)? rows.slice(): []; }catch(_){ }
-  if(liveWalletSel){ liveWalletSel.innerHTML = (merged||[]).map(w=>`<option value=\"${w.name}\">${w.name}</option>`).join(''); }
-} else { if(liveWalletSel){ liveWalletSel.innerHTML = (locals||[]).map(w=>`<option value=\"${w.name}\">${w.name}</option>`).join(''); } }
+  if(liveWalletSel){ liveWalletSel.innerHTML = (rows||[]).map(w=>`<option value=\"${w.name}\">${w.name}</option>`).join(''); }
+} else { if(liveWalletSel){ liveWalletSel.innerHTML = ''; } }
 }catch(_){ } }
-if(liveWalletSave){ liveWalletSave.addEventListener('click', async ()=>{ try{ const name=(liveWalletName&&liveWalletName.value||'').trim(); if(!name){ setStatus('Nom du wallet requis'); return; } const cap=+(liveStartCap&&liveStartCap.value||'10000'); const fee=+(liveFee&&liveFee.value||'0.1'); const lev=+(liveLev&&liveLev.value||'1'); if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.persistLiveWallet==='function'){ const ok = await SUPA.persistLiveWallet({ name, startCap:cap, fee, lev, exchange:'paper', base_currency:'USDC' }); if(ok){ setStatus('Wallet enregistré (Supabase)'); await populateLiveWalletsUI(); } else { setStatus('Erreur enregistrement Supabase'); } } else { let arr=readLiveWallets(); const idx=arr.findIndex(w=>w.name===name); const item={ name, startCap:cap, fee, lev }; if(idx>=0) arr[idx]=item; else arr.unshift(item); writeLiveWallets(arr.slice(0,100)); populateLiveWalletsUI(); setStatus('Wallet enregistré'); } }catch(_){ } }); }
-if(liveWalletLoad){ liveWalletLoad.addEventListener('click', async ()=>{ try{ const sel=(liveWalletSel&&liveWalletSel.value)||''; if(!sel) return; if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && Array.isArray(window.__liveWalletsCache)){ const w = window.__liveWalletsCache.find(x=>x.name===sel); if(w){ if(liveStartCap) liveStartCap.value=String(w.startCap||''); if(liveFee) liveFee.value=String(w.fee||''); if(liveLev) liveLev.value=String(w.lev||''); setStatus('Wallet chargé (Supabase)'); return; } } const w=readLiveWallets().find(x=>x.name===sel); if(!w) return; if(liveStartCap) liveStartCap.value=String(w.startCap||''); if(liveFee) liveFee.value=String(w.fee||''); if(liveLev) liveLev.value=String(w.lev||''); setStatus('Wallet chargé'); }catch(_){ } }); }
-if(liveWalletDelete){ liveWalletDelete.addEventListener('click', async ()=>{ try{ const sel=(liveWalletSel&&liveWalletSel.value)||''; if(!sel) return; if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.deleteLiveWallet==='function'){ const ok = await SUPA.deleteLiveWallet(sel, 'paper'); if(ok){ await populateLiveWalletsUI(); setStatus('Wallet supprimé (Supabase)'); } else { setStatus('Suppression échouée (Supabase)'); } } else { let arr=readLiveWallets().filter(x=>x.name!==sel); writeLiveWallets(arr); populateLiveWalletsUI(); setStatus('Wallet supprimé'); } }catch(_){ } }); }
+if(liveWalletSave){ liveWalletSave.addEventListener('click', async ()=>{ try{ const name=(liveWalletName&&liveWalletName.value||'').trim(); if(!name){ setStatus('Nom du wallet requis'); return; } if(!(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.persistLiveWallet==='function')){ setStatus('Supabase requis pour enregistrer un wallet'); return; } const cap=+(liveStartCap&&liveStartCap.value||'10000'); const fee=+(liveFee&&liveFee.value||'0.1'); const lev=+(liveLev&&liveLev.value||'1'); const ok = await SUPA.persistLiveWallet({ name, startCap:cap, fee, lev, exchange:'paper', base_currency:'USDC' }); if(ok){ setStatus('Wallet enregistré (Supabase)'); await populateLiveWalletsUI(); } else { setStatus('Erreur enregistrement Supabase'); } }catch(_){ } }); }
+if(liveWalletLoad){ liveWalletLoad.addEventListener('click', async ()=>{ try{ const sel=(liveWalletSel&&liveWalletSel.value)||''; if(!sel) return; if(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && Array.isArray(window.__liveWalletsCache)){ const w = window.__liveWalletsCache.find(x=>x.name===sel); if(w){ if(liveStartCap) liveStartCap.value=String(w.startCap||''); if(liveFee) liveFee.value=String(w.fee||''); if(liveLev) liveLev.value=String(w.lev||''); setStatus('Wallet chargé (Supabase)'); } } }catch(_){ } }); }
+if(liveWalletDelete){ liveWalletDelete.addEventListener('click', async ()=>{ try{ const sel=(liveWalletSel&&liveWalletSel.value)||''; if(!sel) return; if(!(window.SUPA && typeof SUPA.isConfigured==='function' && SUPA.isConfigured() && typeof SUPA.deleteLiveWallet==='function')){ setStatus('Supabase requis pour supprimer un wallet'); return; } const ok = await SUPA.deleteLiveWallet(sel, 'paper'); if(ok){ await populateLiveWalletsUI(); setStatus('Wallet supprimé (Supabase)'); } else { setStatus('Suppression échouée (Supabase)'); } }catch(_){ } }); }

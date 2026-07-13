@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import math
 import random
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from multiprocessing.pool import ThreadPool
 
 from deap import base, creator, tools
 
+from .params import normalize_canonical_params
 from .scoring import composite_score
+from .utils import sha1_of_params
 
 
 @dataclass
@@ -17,10 +21,12 @@ class EASpace:
     sl_list: list[float]
     beb_list: list[int]
     bel_list: list[float]
+    be_enable_list: list[bool]
     ema_list: list[int]
     entry_modes: list[str]
     tp_vectors: list[list[float]]
     alloc_patterns: list[list[float]]
+    tp_type: str = "Fib"
 
 
 def _ind_to_candidate(ind, space: EASpace) -> dict:
@@ -30,22 +36,24 @@ def _ind_to_candidate(ind, space: EASpace) -> dict:
     sl = space.sl_list[ind[i]]; i += 1
     beb = space.beb_list[ind[i]]; i += 1
     bel = space.bel_list[ind[i]]; i += 1
+    be_enable = space.be_enable_list[ind[i]]; i += 1
     ema = space.ema_list[ind[i]]; i += 1
     mode = space.entry_modes[ind[i]]; i += 1
     tpv = space.tp_vectors[ind[i]] if space.tp_vectors else [] ; i += 1
     alloc = space.alloc_patterns[ind[i]] if space.alloc_patterns else [100.0]; i += 1
-    return {
+    return normalize_canonical_params({
         "nol": int(nol),
         "prd": int(prd),
         "sl_init_pct": float(sl),
+        "be_enable": bool(be_enable),
         "be_after_bars": int(beb),
         "be_lock_pct": float(bel),
         "ema_len": int(ema),
         "entry_mode": mode,
-        "tp_types": ["Fib"] * 10 if all(x <= 5 for x in tpv) else ["Percent"] * 10,
+        "tp_types": [space.tp_type] * 10,
         "tp_r": list(tpv) + [0.0] * (10 - len(tpv)),
         "tp_p": list(alloc) + [0.0] * (10 - len(alloc)),
-    }
+    })
 
 
 def run_ea(space: EASpace,
@@ -60,13 +68,18 @@ def run_ea(space: EASpace,
            n_jobs: int = 4,
            on_progress: Callable[[float, str], None] | None = None,
            early_stop_patience: int | None = 3,
-           early_stop_eps: float = 1e-9) -> list[dict]:
+           early_stop_eps: float = 1e-9,
+           deadline_time: float | None = None) -> list[dict]:
     # Genome: indices into lists
     gene_sizes = [
         len(space.nol_list), len(space.prd_list), len(space.sl_list), len(space.beb_list),
-        len(space.bel_list), len(space.ema_list), len(space.entry_modes),
+        len(space.bel_list), len(space.be_enable_list), len(space.ema_list), len(space.entry_modes),
         max(1, len(space.tp_vectors)), max(1, len(space.alloc_patterns)),
     ]
+    elite_count = 0
+    if elitism_frac > 0.0 and pop_size > 0:
+        elite_count = max(1, min(pop_size, int(math.ceil(pop_size * elitism_frac))))
+    hall_size = max(1, min(pop_size, 50))
     if not hasattr(creator, "FitnessMax"):
         creator.create("FitnessMax", base.Fitness, weights=(1.0,))
     if not hasattr(creator, "Individual"):
@@ -88,9 +101,20 @@ def run_ea(space: EASpace,
         i = random.randrange(len(ind))
         ind[i] = random.randrange(gene_sizes[i])
         return (ind,)
+    eval_cache: dict[str, dict] = {}
+
+    def evaluate_candidate_cached(cand: dict) -> dict:
+        key = sha1_of_params(cand)
+        cached = eval_cache.get(key)
+        if cached is not None:
+            return dict(cached)
+        rep = dict(eval_candidate(cand))
+        eval_cache[key] = rep
+        return dict(rep)
+
     def evaluate(ind):
         cand = _ind_to_candidate(ind, space)
-        rep = eval_candidate(cand)
+        rep = evaluate_candidate_cached(cand)
         score = composite_score(rep, weights)
         return (score,)
     toolbox.register("mate", mate)
@@ -107,12 +131,14 @@ def run_ea(space: EASpace,
         toolbox.register("map", map)
 
     pop = toolbox.population(n=pop_size)
-    hall = tools.HallOfFame(max(1, int(pop_size * elitism_frac)))
+    hall = tools.HallOfFame(hall_size)
 
     try:
         best_score = float('-inf')
         no_improve = 0
         for gen in range(n_generations):
+            if deadline_time is not None and time.time() >= deadline_time:
+                break
             # Evaluate fitness (parallel via toolbox.map if pool set)
             invalid = [ind for ind in pop if not ind.fitness.valid]
             if invalid:
@@ -148,9 +174,16 @@ def run_ea(space: EASpace,
                 if random.random() < mut_prob:
                     toolbox.mutate(mut)
                     del mut.fitness.values
+            if elite_count > 0 and len(hall) > 0:
+                elites = [toolbox.clone(ind) for ind in hall[:elite_count]]
+                offspring[: len(elites)] = elites
             pop[:] = offspring
         # Final evaluate
-        invalid = [ind for ind in pop if not ind.fitness.valid]
+        invalid = [
+            ind
+            for ind in pop
+            if not ind.fitness.valid and not (deadline_time is not None and time.time() >= deadline_time)
+        ]
         if invalid:
             fits = list(toolbox.map(toolbox.evaluate, invalid))
             for ind, fv in zip(invalid, fits):
@@ -160,11 +193,21 @@ def run_ea(space: EASpace,
         if pool is not None:
             pool.close()
             pool.join()
-    # Build seeds
+    # Build seeds from the final population plus the best individuals seen during the whole run.
     seeds: list[dict] = []
-    for ind in tools.selBest(pop, k=min(len(pop), 50)):
+    seed_pool = [ind for ind in pop if ind.fitness.valid]
+    seen_genomes = {tuple(ind) for ind in seed_pool}
+    for ind in hall:
+        if not ind.fitness.valid:
+            continue
+        key = tuple(ind)
+        if key in seen_genomes:
+            continue
+        seen_genomes.add(key)
+        seed_pool.append(ind)
+    for ind in tools.selBest(seed_pool, k=min(len(seed_pool), 50)):
         cand = _ind_to_candidate(ind, space)
-        rep = eval_candidate(cand)
+        rep = evaluate_candidate_cached(cand)
         rep["score"] = composite_score(rep, weights)
         seeds.append({"params": cand, "metrics": rep, "provenance": "EA"})
     # Deduplicate by params

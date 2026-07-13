@@ -4,22 +4,56 @@ This Python package provides an optimization engine for the Heaven trading strat
 - Grid/Random search
 - Evolutionary Algorithm (EA) exploration
 - Local Bayesian refinement (Optuna TPE/Gaussian)
-- Caching, early stopping, walk-forward validation, Monte Carlo robustness checks
+- Caching, true EA elitism, early stopping, walk-forward validation, Monte Carlo robustness checks
+- Trade diagnostics for strategy analysis (streaks, exits, exposure, payoff)
 - Parallel evaluation and progress callbacks for UI integration
+- Supabase-only persistence for evaluated and selected strategies
 
 Quickstart
 - Install requirements: pip install -r requirements.txt
 - Create a config: see config.example.yaml
+- Set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_SERVICE_KEY`) in the shell, `.env`, or `.env.runner`
 - Run: python run_optimize.py --config config.example.yaml
+- Reproducible historical BTCUSDC 15m diagnostic: set `HEAVEN_SEED=20260603`, then run `python run_optimize.py --config config.btc15m.yaml`
+- Preview the recent pair/TF matrix: `python run_experiment_matrix.py --dry-run`
+- Run a first recent robust pass: `python run_experiment_matrix.py --fast`
+- Compare Percent exits: `python run_experiment_matrix.py --fast --tp-mode Percent`
+- Explore short-TF break-even sensitivity: `python run_experiment_matrix.py --fast --tp-mode Percent --include-no-be`
+- Timeframe-aware matrix profiles are applied automatically: each TF has dedicated Heaven ranges, EA/Bayesian budgets, TP Percent ranges, max-trade caps, and exposure caps. On `1m`, `--scalping-1m` restricts entries to the pure scalping `Original` mode.
+- The `15m` profile is fee-aware and deliberately selective: it searches higher `nol/prd`, wider Percent TPs, lower trade counts, and lower exposure so candidates can survive Binance round-trip fees.
+- Analyze a Supabase campaign and deduplicated next experiment commands: `python analyze_strategy_evaluations.py --campaign-prefix heaven-robust --symbol BTCUSDC --tf 15m`
+- Audit expected matrix coverage: `python analyze_strategy_evaluations.py --campaign-prefix heaven-robust --expected-symbols BTCUSDC ETHUSDC BNBUSDC --expected-timeframes 15m 1h 4h`
+- List concrete paper-ready Supabase strategies, capped by default at 1% risk and 1x leverage: `python list_paper_candidates.py --symbol BTCUSDC --tf 15m`
+- Start a paper session from an eligible Supabase strategy with the same safety caps: `python start_paper_candidate.py --strategy-id <heaven_strategies.id> --session-name <paper-name> --max-risk-pct 1 --max-leverage 1 --invoke-runner`
+- Audit controlled live readiness from a validated paper session: `python prepare_live_candidate.py --session-name <paper-name> --strategy-id <heaven_strategies.id> --target-session-name <live-name> --record-event --strict-exit`
+- Advance a scope end-to-end without local storage: `python advance_heaven_project.py --symbol BTCUSDC --tf 15m`; add `--start-paper --invoke-runner` only when you want to create missing Supabase paper sessions for the listed candidates.
 
 Outputs
-- JSON/CSV of top-N results
-- Equity curves (CSV) per candidate
-- Logs and cache under cache_dir
+- Evaluations in `strategy_evaluations`, scoped by an immutable `run_id`
+- Strategy-analysis metrics in each evaluation (`diag_*` and `oos_diag_*`)
+- Campaign performance summaries read from `strategy_evaluations` with no local export required
+- Ranked selections in `palmares_sets` and `palmares_entries`
+- Reloadable best strategies in `heaven_strategies`
+- Runtime logs and deterministic computation cache under `cache_dir`
 
 Notes
 - Data loading uses Binance REST; provide your own data or cache for speed.
-- Simulation mirrors the JS logic (SL/BE/TP) for numerical parity; minor rounding deltas may occur.
+- Optimization uses closed candles only. `validation.oos_split` reserves an untouched holdout range.
+- Walk-forward, Monte Carlo, and holdout metrics affect the final robust score.
+- Timeframe profiles penalize and gate overtrading via `max_trades`, `max_oos_trades`, `max_exposure_frac`, and `max_oos_exposure_frac`.
+- Training scores discount candidates with negative net return or profit factor below 1.0, so low-drawdown losers no longer dominate the EA/Bayesian search.
+- The robust validation pool keeps the best training scores and adds diversified winners by PF, PnL, Calmar, consistency, trades, and low drawdown.
+- Only strategies that pass the paper-trading gates are copied to `heaven_strategies`.
+- Auto-generated strategy names start with a French, Spanish, or Polish dictionary word; technical suffixes only prevent Supabase name collisions.
+- No strategy result or preset is written to local files by the optimizer.
+- Campaign analysis is Supabase-only: it reads persisted evaluations and prints the top candidates, failed validation gates, per symbol/TF readiness, and a deduplicated experiment plan that resolves paper candidates through exact Supabase strategy IDs.
+- Paper sessions are Supabase-only. `list_paper_candidates.py` prints exact Supabase strategy IDs and commands, while `start_paper_candidate.py` refuses non-eligible, over-risked, over-leveraged strategies and never writes local strategy state.
+- Live preparation is audit-only by default: `prepare_live_candidate.py` refuses failed paper gates, weak strategy-analysis metrics, risk/leverage violations, unsupported entries, and never creates live sessions or orders.
+- `advance_heaven_project.py` is the operator cockpit for the promotion path: it compares fresh `heaven_strategies` with `strategy_evaluations`, checks Supabase paper sessions, refuses duplicate starts, and prints the next action from optimization to paper validation and live-readiness audit.
+- Optional `HEAVEN_RUN_TYPE` (`NEW` or `LAB`) and `HEAVEN_CAMPAIGN_ID` values are stored with each run.
+- The recent matrix defaults to `Original` entries for conservative first passes; use `--include-fib` to explore Fib Retracement and Both entries now supported by the headless paper runner.
+- Simulation and paper runners only use pivots after their confirmation delay, close flip exits at signal close, and enter the next trade at the following candle open.
+- A runner that cannot cover all missed candles stops the paper session with a `history_gap` event instead of silently replaying partial history.
 - Optional numba acceleration can be enabled if available.
 
 ---

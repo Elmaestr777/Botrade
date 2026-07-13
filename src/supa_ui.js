@@ -22,6 +22,22 @@ let __profileIdCacheByName = new Map();
   function slog(msg){ try{ if(typeof window!=='undefined' && typeof window.addLabLog==='function'){ window.addLabLog(msg); } }catch(_){ }
     try{ console.log('[SUPA]', msg); }catch(_){ }
   }
+
+  const STRATEGY_NAME_WORDS = ['soleil','riviere','montagne','etoile','foret','tempete','vallee','estrella','tormenta','bosque','piedra','cometa','rzeka','gwiazda','morze','dolina','iskra','polana'];
+  function strategyDictionaryWord(rank){
+    try{
+      if(typeof window!=='undefined' && typeof window.randomName==='function'){
+        const word = String(window.randomName() || '').trim();
+        if(word) return word;
+      }
+    }catch(_){ }
+    return STRATEGY_NAME_WORDS[Math.abs((Number(rank)||1) - 1) % STRATEGY_NAME_WORDS.length];
+  }
+  function generatedStrategyName(rank, seed){
+    const word = strategyDictionaryWord(rank);
+    const token = String(seed || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 8);
+    return (token ? `${word}-${token}-${rank}` : `${word}-${rank}`).slice(0, 120);
+  }
  
    function ensureClient(){
      const cfg = readCfg();
@@ -30,6 +46,11 @@ let __profileIdCacheByName = new Map();
      try{ client = window.supabase.createClient(cfg.url, cfg.anon, { auth: { persistSession: true, autoRefreshToken: true } }); }catch(_){ client = null; }
      return client;
    }
+
+  function hasRequiredConfig(){
+    const cfg = readCfg();
+    return !!(cfg.url && cfg.anon);
+  }
 
   async function isLoggedIn(){ try{ const c=ensureClient(); if(!c) return false; const { data:{ user } } = await c.auth.getUser(); return !!user; }catch(_){ return false; } }
   async function getUserId(){ try{ const c=ensureClient(); if(!c) return null; const { data:{ user } } = await c.auth.getUser(); return (user && user.id) || null; }catch(_){ return null; } }
@@ -167,18 +188,65 @@ function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfi
 
   function chunk(arr, n){ const out=[]; for(let i=0;i<arr.length;i+=n){ out.push(arr.slice(i,i+n)); } return out; }
 
+  function stableJson(value){
+    if(Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+    if(value && typeof value === 'object'){
+      return `{${Object.keys(value).sort().map(k=> `${JSON.stringify(k)}:${stableJson(value[k])}`).join(',')}}`;
+    }
+    return JSON.stringify(value);
+  }
+
+  function uniqueStrategies(rows, keyFn, limit){
+    const seen = new Set();
+    const out = [];
+    for(const row of rows||[]){
+      const key = keyFn(row);
+      if(seen.has(key)) continue;
+      seen.add(key);
+      const clean = { ...row };
+      delete clean._strategyKey;
+      out.push(clean);
+      if(out.length >= Math.max(1, limit)) break;
+    }
+    return out;
+  }
+
+  function newRunId(){
+    try{
+      if(window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+      if(window.crypto && typeof window.crypto.getRandomValues === 'function'){
+        const bytes = new Uint8Array(16);
+        window.crypto.getRandomValues(bytes);
+        bytes[6] = (bytes[6] & 0x0f) | 0x40;
+        bytes[8] = (bytes[8] & 0x3f) | 0x80;
+        const hex = Array.from(bytes, b=> b.toString(16).padStart(2, '0')).join('');
+        return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
+      }
+    }catch(_){ }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c=>{
+      const r = Math.random() * 16 | 0;
+      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+  }
+
   async function upsertStrategyEvaluations(rows){
-    const c = ensureClient(); if(!c || !rows || !rows.length) return;
-    // Upsert with on_conflict composite key matching the table UNIQUE constraint
-    // NB: we include user_id to align with "unique (user_id, symbol, tf, profile_id, params)"
+    const c = ensureClient(); if(!c || !rows || !rows.length) return false;
+    const onConflict = 'user_id,symbol,tf,profile_id,params,run_id';
     for(const part of chunk(rows, 80)){
       try{
         const { error } = await c
           .from('strategy_evaluations')
-          .upsert(part, { onConflict: 'user_id,symbol,tf,profile_id,params', ignoreDuplicates: false, returning: 'minimal' });
-        if(error) console.warn('supabase upsert strategy_evaluations', error);
-      }catch(e){ console.warn('supabase upsert strategy_evaluations ex', e); }
+          .upsert(part, { onConflict, ignoreDuplicates: false, returning: 'minimal' });
+        if(error){
+          slog('Supabase: upsert strategy_evaluations KO — '+(error.message||error));
+          return false;
+        }
+      }catch(e){
+        slog('Supabase: upsert strategy_evaluations exception — '+(e&&e.message?e.message:e));
+        return false;
+      }
     }
+    return true;
   }
 
   async function createPalmaresSet(row){
@@ -199,22 +267,46 @@ function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfi
   }
 
   async function insertPalmaresEntries(rows){
-    const c = ensureClient(); if(!c || !rows || !rows.length) return;
+    const c = ensureClient(); if(!c || !rows || !rows.length) return false;
     for(const part of chunk(rows, 80)){
-      try{ const { error } = await c.from('palmares_entries').insert(part); if(error) console.warn('palmares_entries', error); }
-      catch(e){ console.warn('palmares_entries ex', e); }
+      try{
+        const { error } = await c.from('palmares_entries').insert(part);
+        if(error){
+          slog('Supabase: insert palmares_entries KO — '+(error.message||error));
+          return false;
+        }
+      }
+      catch(e){
+        slog('Supabase: insert palmares_entries exception — '+(e&&e.message?e.message:e));
+        return false;
+      }
     }
+    return true;
   }
 
   async function markSelectedForSet(rows, setId){
-    if(!rows || !rows.length || !setId) return;
+    if(!rows || !rows.length || !setId) return false;
     const upd = rows.map(r=> ({ ...r, selected:true, palmares_set_id:setId }));
-    await upsertStrategyEvaluations(upd);
+    return await upsertStrategyEvaluations(upd);
+  }
+
+  function uniqueTPLadder(tp){
+    try{
+      const out=[]; const seen=new Map();
+      const keyOf=(t)=>{ const typ=String(t.type||'Fib'); if(typ==='Percent'){ const v=Number(t.pct!=null?t.pct:t.value); return Number.isFinite(v)?`P:${v.toFixed(8)}`:''; } if(typ==='EMA'){ const v=parseInt(t.emaLen,10); return Number.isFinite(v)?`E:${v}`:''; } const v=Number(t.fib!=null?t.fib:t.value); return Number.isFinite(v)?`F:${v.toFixed(8)}`:''; };
+      for(const raw of (Array.isArray(tp)?tp:[]).slice(0,10)){
+        if(!raw) continue; const t={...raw}; const key=keyOf(t); if(!key) continue;
+        const existing=seen.get(key);
+        if(existing){ const a=Number(existing.qty); const b=Number(t.qty); if(Number.isFinite(a)&&Number.isFinite(b)) existing.qty=a+b; else if(!Number.isFinite(a)&&Number.isFinite(b)) existing.qty=b; if(t.beOn) existing.beOn=true; if(!existing.sl && t.sl) existing.sl={...t.sl}; if(!existing.trail && t.trail) existing.trail={...t.trail}; }
+        else { seen.set(key,t); out.push(t); }
+      }
+      return out.slice(0,10);
+    }catch(_){ return Array.isArray(tp)?tp.slice(0,10):[]; }
   }
 
   function canonicalParamsFromUI(p){
     // Canonical shape aligned with Python engine (snake_case + tp_types/tp_r/tp_p)
-    const tp = Array.isArray(p.tp) ? p.tp.slice(0, 10) : [];
+    const tp = uniqueTPLadder(Array.isArray(p.tp) ? p.tp.slice(0, 10) : []);
     const tp_types = new Array(10).fill('Fib');
     const tp_r = new Array(10).fill(0.0);
     const tp_p = new Array(10).fill(0.0);
@@ -266,15 +358,18 @@ function currentProfileName(){ try{ return localStorage.getItem('labWeightsProfi
 
 async function persistLabResults(ctx){
     try{
-      const c = ensureClient(); if(!c){ slog('Supabase: client indisponible'); return; }
-      const ok = await testConnection(); if(!ok){ slog('Supabase: connexion KO, annulation de la persistance'); return; }
+      const c = ensureClient(); if(!c){ slog('Supabase: client indisponible'); return false; }
+      const ok = await testConnection(); if(!ok){ slog('Supabase: connexion KO, annulation de la persistance'); return false; }
       // Public pool: no auth, rows written with user_id = null
       const uid = null;
       const profName = (ctx && ctx.profileName) || currentProfileName();
       const profileId = await getProfileIdByName(profName);
       const sym = ctx.symbol, tf = ctx.tf;
       const now = Date.now();
-      const runContext = { source:'UI:Lab', ts: now };
+      const runId = newRunId();
+      const campaignId = ctx && ctx.campaignId ? String(ctx.campaignId) : null;
+      const runMeta = { run_id: runId, campaign_id: campaignId, run_type: 'LAB', profile: profName };
+      const runContext = { source:'UI:Lab', ts: now, run_id: runId, campaign_id: campaignId };
  
       // Upsert tested strategies (selected=false)
       const toEval = [];
@@ -288,38 +383,47 @@ async function persistLabResults(ctx){
           const params = canonicalParamsFromUI(t.params||{});
           const metrics = t.metrics||t.res||{};
           const score = (typeof t.score==='number')? t.score : 0;
-          toEval.push({ user_id: uid, symbol: sym, tf, profile_id: profileId || null, params, metrics, score, selected: false, palmares_set_id: null, provenance: 'UI:Lab', run_context: runContext });
+          toEval.push({ ...runMeta, user_id: uid, symbol: sym, tf, profile_id: profileId || null, params, metrics, score, selected: false, palmares_set_id: null, provenance: 'UI:Lab', run_context: runContext });
         }
       }
-      if(toEval.length){ slog(`Supabase: upsert ${toEval.length} évaluations (top) ...`); await upsertStrategyEvaluations(toEval); slog('Supabase: évaluations enregistrées'); }
+      if(toEval.length){
+        slog(`Supabase: upsert ${toEval.length} évaluations (top) ...`);
+        const evalOk = await upsertStrategyEvaluations(toEval);
+        if(!evalOk) return false;
+        slog('Supabase: évaluations enregistrées');
+      }
  
       // Palmarès Top-N
       const best = Array.isArray(ctx.best)? ctx.best.slice() : [];
       if(best.length){
         slog(`Supabase: création palmarès (${best.length})...`);
-        const setId = await createPalmaresSet({ user_id: uid, symbol: sym, tf, profile_id: profileId || null, top_n: best.length, note: `Lab ${sym} ${tf}` });
+        const setId = await createPalmaresSet({ ...runMeta, user_id: uid, symbol: sym, tf, profile_id: profileId || null, top_n: best.length, note: `Lab ${sym} ${tf}` });
         if(setId){
           const entries = []; let rank=1;
           const used=new Set();
-          function genName(){ try{ if(typeof window!=='undefined' && typeof window.randomName==='function'){ return window.randomName(); } }catch(_){ }
-            const pool=['aurora','zenith','ember','nova','atlas','odyssey','vertex','harbor','willow','meadow']; return pool[Math.floor(Math.random()*pool.length)]; }
           for(const b of best){
-            let nm = (b.name||null);
-            if(!nm){ let tries=0; do{ nm=genName(); tries++; }while(used.has(nm)&&tries<5); used.add(nm); }
-            entries.push({ set_id: setId, rank, name: nm, params: canonicalParamsFromUI(b.params||{}), metrics: b.metrics||b.res||{}, score: (typeof b.score==='number')? b.score : 0, provenance: 'UI:Lab', generation: (b.gen!=null? b.gen:1) });
+            const base = String((b && b.name) || generatedStrategyName(rank, runId) || 'soleil').slice(0, 110);
+            let nm = base;
+            let suffix = 2;
+            while(used.has(nm)){ nm = `${base}-${suffix}`.slice(0, 120); suffix++; }
+            used.add(nm);
+            try{ b.name = nm; }catch(_){ }
+            entries.push({ ...runMeta, set_id: setId, rank, name: nm, params: canonicalParamsFromUI(b.params||{}), metrics: b.metrics||b.res||{}, score: (typeof b.score==='number')? b.score : 0, provenance: 'UI:Lab', generation: (b.gen!=null? b.gen:1) });
             rank++;
           }
-          try{
-            await insertPalmaresEntries(entries); slog('Supabase: entrées palmarès insérées');
-          }catch(e){ slog('Supabase: insert palmarès_entries KO — '+(e&&e.message?e.message:e)); }
+          const entriesOk = await insertPalmaresEntries(entries);
+          if(!entriesOk) return false;
+          slog('Supabase: entrées palmarès insérées');
         } else {
           slog('Supabase: création palmarès_set KO (id absent)');
+          return false;
         }
         // Mark selected — même si setId est null, on passe selected=true pour pouvoir lire via fetchPalmares
         // IMPORTANT: on copie aussi metrics + score dans strategy_evaluations pour que le Palmarès
         // côté UI puisse afficher PF, P&L, etc. à partir de la table strategy_evaluations seule.
         try{
           const selRows = best.map(b=> ({
+            ...runMeta,
             user_id: uid,
             symbol: sym,
             tf,
@@ -328,14 +432,21 @@ async function persistLabResults(ctx){
             metrics: b.metrics || b.res || {},
             score: (typeof b.score === 'number') ? b.score : 0,
           }));
-          await markSelectedForSet(selRows, setId||null);
+          const markOk = await markSelectedForSet(selRows, setId||null);
+          if(!markOk) return false;
           slog('Supabase: stratégies marquées selected=true');
-        }catch(e){ slog('Supabase: mark selected KO — '+(e&&e.message?e.message:e)); }
+        }catch(e){ slog('Supabase: mark selected KO — '+(e&&e.message?e.message:e)); return false; }
+        try{
+          const savedHeaven = await persistBestHeavenStrategies({ symbol: sym, tf, best, profileName: profName, runId });
+          if(!savedHeaven) return false;
+        }catch(e){ slog('Supabase: sauvegarde heaven_strategies KO — '+(e&&e.message?e.message:e)); return false; }
         slog('Supabase: fin persistance Lab');
+        return true;
       } else {
         slog('Supabase: aucun “best” à enregistrer');
+        return true;
       }
-    }catch(e){ slog('Supabase: persistLabResults exception — '+(e&&e.message?e.message:e)); console.warn('persistLabResults error', e); }
+    }catch(e){ slog('Supabase: persistLabResults exception — '+(e&&e.message?e.message:e)); console.warn('persistLabResults error', e); return false; }
   }
 
   async function openConfigAndLogin(){
@@ -368,7 +479,7 @@ async function fetchKnownCanonicalKeys(symbol, tf, profileName){
         const { data, error } = await q.range(from, from+step-1);
         if(error) break;
         if(!Array.isArray(data) || !data.length) break;
-        for(const row of data){ try{ const p=row.params||{}; const keys=Object.keys(p).sort(); out.add(JSON.stringify(p, keys)); }catch(_){ } }
+        for(const row of data){ try{ out.add(stableJson(row.params||{})); }catch(_){ } }
         // Limite de sécurité pour ne pas charger un volume énorme en mémoire
         const MAX_KEYS = 5000;
         if(out.size >= MAX_KEYS) break;
@@ -400,6 +511,9 @@ async function fetchKnownCanonicalKeys(symbol, tf, profileName){
       nol: p.nol|0,
       prd: p.prd|0,
       slInitPct: +p.sl_init_pct,
+      riskMgmt: true,
+      riskMaxPct: Number(p.risk_max_pct||1.0) || 1.0,
+      beEnable: (typeof p.be_enable === 'boolean') ? p.be_enable : true,
       beAfterBars: p.be_after_bars|0,
       beLockPct: +p.be_lock_pct,
       emaLen: p.ema_len|0,
@@ -425,7 +539,7 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
         const score=(typeof row.score==='number')? row.score:0;
         const name=row.name||null;
         const gen = (typeof row.generation==='number' && Number.isFinite(row.generation)) ? row.generation : 1;
-        out.push({ id:'db_'+(idx++), name, gen, params:paramsUI, res:metrics, score, ts:Date.now() });
+        out.push({ id:'db_'+(idx++), name, gen, params:paramsUI, res:metrics, score, ts:Date.now(), _strategyKey: stableJson(row.params||{}) });
       }
       return out;
     }
@@ -439,7 +553,7 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
         .eq('palmares_sets.tf', tf);
       if(profileId!=null) q = q.eq('palmares_sets.profile_id', profileId); else q = q.is('palmares_sets.profile_id', null);
       q = q.order('score', { ascending:false }).order('created_at', { ascending:false });
-      const { data, error } = await q.limit(Math.max(1, limit));
+      const { data, error } = await q.limit(Math.min(1000, Math.max(1, limit) * 5));
       if(error || !Array.isArray(data)) return [];
       const mapped = mapRows(data);
       // Tri numérique côté client selon le mode demandé
@@ -451,7 +565,7 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
         }
         return (Number(b.score||0) - Number(a.score||0));
       });
-      return sorted.slice(0, Math.max(1, limit));
+      return uniqueStrategies(sorted, row=> row._strategyKey, limit);
     }catch(_){ return []; }
   }
 
@@ -466,6 +580,7 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
         const score=(typeof row.score==='number')? row.score:0;
         // row.palmares_sets peut être null si la jointure échoue; on garde un fallback prudant
         const scope = row.palmares_sets || {};
+        const strategyKey = `${scope.symbol || row.symbol || ''}|${scope.tf || row.tf || ''}|${scope.profile_id || row.profile_id || ''}|${stableJson(row.params||{})}`;
         out.push({
           id:'glob_'+(idx++),
           symbol: scope.symbol || row.symbol || null,
@@ -477,6 +592,7 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
           res: metrics,
           score,
           ts: Date.now(),
+          _strategyKey: strategyKey,
         });
       }
       return out;
@@ -489,7 +605,7 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
         .select('name,generation,params,metrics,score,created_at,palmares_sets(symbol,tf,profile_id)')
         .order('score', { ascending:false })
         .order('created_at', { ascending:false });
-      const { data, error } = await q.limit(Math.max(1, limit));
+      const { data, error } = await q.limit(Math.min(1000, Math.max(1, limit) * 5));
       if(error){ slog('Supabase: fetchGlobalPalmares KO — '+(error.message||error)); return []; }
       const mapped = mapRows(data||[]);
       // Tri numérique côté client selon le mode demandé
@@ -506,7 +622,7 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
           default:    return Number(b.score||0) - Number(a.score||0);
         }
       });
-      return sorted.slice(0, Math.max(1, limit));
+      return uniqueStrategies(sorted, row=> row._strategyKey, limit);
     }catch(_){ return []; }
   }
 
@@ -515,11 +631,40 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
     try{
       const c=ensureClient(); if(!c){ slog('Supabase: client indisponible'); return false; }
       const row={ user_id: null, symbol: ctx.symbol, tf: ctx.tf, name: (ctx.name||null), params: ctx.params||{}, metrics: ctx.metrics||null };
-      const { error } = await c.from('heaven_strategies').upsert([row], { onConflict: 'symbol,tf,name', ignoreDuplicates: false, returning: 'minimal' });
+      const { error } = await c.from('heaven_strategies').upsert([row], { onConflict: 'user_id,symbol,tf,name', ignoreDuplicates: false, returning: 'minimal' });
       if(error){ slog('Supabase: persistHeavenStrategy KO — '+(error.message||error)); return false; }
       slog('Supabase: Heaven sauvegardée');
       return true;
     }catch(e){ slog('Supabase: persistHeavenStrategy exception — '+(e&&e.message?e.message:e)); return false; }
+  }
+  async function persistBestHeavenStrategies(ctx){
+    try{
+      const c=ensureClient(); if(!c){ slog('Supabase: client indisponible'); return false; }
+      const best = Array.isArray(ctx && ctx.best) ? ctx.best : [];
+      if(!best.length) return true;
+      const rows=[];
+      let rank=1;
+      for(const b of best){
+        const nm = String((b && b.name) || generatedStrategyName(rank, (ctx && (ctx.runId || ctx.run_id || ctx.campaignId || ctx.campaign_id)) || '')).slice(0, 120);
+        rows.push({
+          user_id: null,
+          symbol: ctx.symbol,
+          tf: ctx.tf,
+          name: nm,
+          params: (b && b.params) || {},
+          metrics: (b && (b.metrics || b.res)) || null,
+        });
+        rank++;
+      }
+      for(const part of chunk(rows, 50)){
+        const { error } = await c
+          .from('heaven_strategies')
+          .upsert(part, { onConflict: 'user_id,symbol,tf,name', ignoreDuplicates: false, returning: 'minimal' });
+        if(error){ slog('Supabase: persistBestHeavenStrategies KO — '+(error.message||error)); return false; }
+      }
+      slog(`Supabase: ${rows.length} meilleures stratégies Heaven sauvegardées`);
+      return true;
+    }catch(e){ slog('Supabase: persistBestHeavenStrategies exception — '+(e&&e.message?e.message:e)); return false; }
   }
   async function fetchHeavenStrategies(symbol, tf, limit=50){
     const c=ensureClient(); if(!c) return [];
@@ -550,9 +695,16 @@ async function fetchPalmares(symbol, tf, limit=25, profileName, sortMode){
     try{
       const p = (ctx && ctx.params) || (typeof window!=='undefined' && typeof window.currentHeavenParamsForPersist==='function'? window.currentHeavenParamsForPersist(): {});
       const name = (ctx && ctx.name) || (typeof window!=='undefined' && window.liveWalletName && window.liveWalletName.value) || (typeof window!=='undefined' && window.randomName && window.randomName()) || 'live';
+      let walletId = (ctx && (ctx.walletId || ctx.wallet_id)) || null;
+      if(!walletId && name){
+        try{
+          const { data: wallet } = await c.from('wallets').select('id').eq('name', name).eq('exchange', 'paper').is('user_id', null).maybeSingle();
+          walletId = wallet && wallet.id ? wallet.id : null;
+        }catch(_){ walletId = null; }
+      }
       const base = {
         user_id: null,
-        wallet_id: null,
+        wallet_id: walletId,
         name,
         symbol: ctx.symbol,
         tf: ctx.tf,
@@ -600,7 +752,7 @@ async function fetchHeadlessSessions(limit=50){
   }
 async function fetchHeadlessSessionByName(name){
     const c=ensureClient(); if(!c||!name) return null;
-    try{ const { data, error } = await c.from('live_sessions').select('id,name,symbol,tf,active,equity,start_cap,last_bar_time,created_at,updated_at').eq('name', name).maybeSingle(); if(error){ slog('Supabase: fetchHeadlessSessionByName KO — '+(error.message||error)); return null; } return data||null; }catch(_){ return null; }
+    try{ const { data, error } = await c.from('live_sessions').select('id,name,symbol,tf,active,equity,start_cap,last_bar_time,strategy_params,created_at,updated_at').eq('name', name).maybeSingle(); if(error){ slog('Supabase: fetchHeadlessSessionByName KO — '+(error.message||error)); return null; } return data||null; }catch(_){ return null; }
   }
   async function fetchLiveEvents(sessionId, sinceIso, limit=500){
     const c=ensureClient(); if(!c||!sessionId) return [];
@@ -641,7 +793,7 @@ async function fetchHeadlessSessionByName(name){
       if(!row.name){ slog('Supabase: persistLiveWallet — nom requis'); return false; }
       const { error } = await c
         .from('wallets')
-        .upsert([row], { onConflict: 'name,exchange', ignoreDuplicates: false, returning: 'minimal' });
+        .upsert([row], { onConflict: 'user_id,name,exchange', ignoreDuplicates: false, returning: 'minimal' });
       if(error){ slog('Supabase: persistLiveWallet KO — '+(error.message||error)); return false; }
       slog('Supabase: Wallet sauvegardé');
       return true;
@@ -679,7 +831,7 @@ async function fetchHeadlessSessionByName(name){
   }
   
   window.SUPA = {
-    isConfigured: ()=>{ const c=readCfg(); return !!(c.url && c.anon); },
+    isConfigured: hasRequiredConfig,
     configSource: ()=>{ const s=staticCfg(); return (s.url&&s.anon)? 'static' : 'localStorage'; },
     openConfigAndLogin,
     ensureAuthFlow,
@@ -694,6 +846,7 @@ async function fetchHeadlessSessionByName(name){
     upsertLabProfileWeights,
     // Heaven
     persistHeavenStrategy,
+    persistBestHeavenStrategies,
     fetchHeavenStrategies,
     deleteHeavenStrategy,
     renameHeavenStrategy,

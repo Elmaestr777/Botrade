@@ -78,11 +78,17 @@ def compute_pivots(bars: list[Bar], prd: int) -> list[dict[str, float]]:
     return piv
 
 
-def last_two_pivots_before(piv: list[dict[str, float]], idx: int):
+def last_two_pivots_before(piv: list[dict[str, float]], idx: int, prd: int = 0):
+    """Return pivots that were confirmed before the decision at ``idx``.
+
+    A pivot at index ``p`` is only known after ``prd`` following bars have
+    closed. Decisions made at the open of ``idx`` may therefore use it only
+    when ``p + prd < idx``.
+    """
     b = None
     a = None
     for k in range(len(piv) - 1, -1, -1):
-        if piv[k]["idx"] <= idx:
+        if piv[k]["idx"] + prd < idx:
             if b is None:
                 b = piv[k]
             else:

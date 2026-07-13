@@ -5,7 +5,8 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 Scope
 - This repo contains two parts:
   - Python engine (package heaven_opt) to optimize and backtest the “Heaven” trading strategy with EA exploration, Bayesian refinement, and validation.
-  - Browser UI (src/) that visualizes charts and includes a local “Lab” for quick, client-side backtesting/optimization, served via a static HTTP server.
+  - Browser UI (src/) that visualizes charts and includes a client-side “Lab” for quick backtesting/optimization, served via a static HTTP server.
+  - Supabase stores Heaven evaluations, palmarès, reloadable strategies, live sessions, and live events.
 
 Common commands
 - Install dependencies
@@ -23,13 +24,14 @@ Common commands
 - Run the optimizer (Python)
   - python run_optimize.py --config config.example.yaml
   - Optional flags: --fast (smaller EA/Bayes budgets), --no-wf (skip walk-forward/Monte Carlo)
-  - Env vars: HEAVEN_SEED=<int> (reproducible RNG), HEAVEN_NO_WF=1 (alternate skip validation)
+  - Required env vars: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_KEY)
+  - Optional env vars: HEAVEN_SEED=<int> (reproducible RNG), HEAVEN_NO_WF=1 (alternate skip validation)
 - Serve the browser UI locally
   - npm run dev
   - Open http://127.0.0.1:5173 in your browser
 - Caching and artifacts
   - Python caches under .cache_heaven (joblib); delete the folder to force recomputation.
-  - Optimizer outputs go to runs/<timestamp> (results.yaml and, if EA mode, ea_seeds.yaml).
+  - Strategy results are stored only in Supabase; no local strategy result files are produced.
 
 High-level architecture and flow
 - Configuration and models (heaven_opt/__init__.py)
@@ -39,7 +41,7 @@ High-level architecture and flow
 - Orchestrator (heaven_opt/api.py)
   - Loads market data via cached_fetch_klines_range, defines eval_candidate() to simulate one parameter set, and orchestrates optimization.
   - EA + Bayesian: DEAP-based EA explores a coarse space; Optuna refines top seeds within local bounds.
-  - Consolidation: walk-forward and Monte Carlo validation augment metrics (unless disabled), then composite_score() ranks and top-N are saved.
+  - Consolidation: walk-forward and Monte Carlo validation augment metrics (unless disabled), then composite_score() ranks and top-N are persisted to Supabase.
 - Simulation engine (heaven_opt/simulator.py)
   - Mirrors the browser logic: Line Break entries, optional Fib retracement confirmation, trailing to BE, optional EMA-based exits, and a 10-target TP ladder.
   - Computes equity, P&L, PF, Sharpe, slope/R², Calmar, and drawdowns.
@@ -56,7 +58,7 @@ High-level architecture and flow
 
 Browser “Lab” and UI (src/)
 - src/main.js renders the chart (Lightweight Charts), streams live klines (Binance WS), and exposes modals for Live/Lab/Backtest/Heaven config.
-- The “Lab” stores per-symbol/TF candidates/results in localStorage (lab:results:* and lab:palmares:*), provides a sortable palmarès, and includes a client-side optimizer over parameter grids.
+- The “Lab” persists evaluated strategies and palmarès to Supabase and has no local fallback for strategy results or presets.
 - The Python simulator mirrors these UI choices to keep numerical parity; minor rounding deltas are expected.
 
 Key configs and knobs
@@ -66,9 +68,9 @@ Key configs and knobs
 - Time window: general.date_from/date_to define the klines range fetched and simulated.
 
 Outputs and notes (from README)
-- Outputs: JSON/CSV of top-N results; Equity curves (CSV) per candidate; logs and caches under cache_dir.
+- Outputs: Supabase `strategy_evaluations`, `palmares_sets`, `palmares_entries`, and `heaven_strategies`; a shared `run_id` preserves each optimization run; logs and caches under cache_dir.
 - Data via Binance REST; providing cached data speeds up runs.
 - Optional numba acceleration is listed in requirements but excluded on Windows.
 
 Repository layout (high level)
-- heaven_opt/ (Python engine) • src/ (browser UI) • docs/ (audit prompts/snapshots) • runs/ (artifacts) • vendor/ (lightweight-charts bundle) • tools/ (small JS utilities)
+- heaven_opt/ (Python engine) • src/ (browser UI) • supabase/ (schema and Edge Function) • runner/ (WebSocket live runner) • docs/ (audit prompts/snapshots) • vendor/ (lightweight-charts bundle) • tools/ (small JS utilities)

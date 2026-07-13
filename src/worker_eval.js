@@ -13,6 +13,7 @@ function emaCalc(data, len){ const out=new Array(data.length); let k=2/(len+1); 
 function getEMA(len){ let arr=__EMA_CACHE.get(len); if(!arr){ arr=emaCalc(BARS, Math.max(1, len|0)); __EMA_CACHE.set(len, arr); } return arr; }
 function computeLineBreakState(bars, nol){ const n=bars.length; if(!n) return {trend:[], level:[], flips:[]}; const trend=new Array(n).fill(0); const level=new Array(n).fill(null); const flips=[]; let t=bars[0].close>=bars[0].open?1:-1; let opens=[bars[0].open]; let closes=[bars[0].close]; for(let i=0;i<n;i++){ const c=bars[i].close; if(t===1){ const cnt=Math.min(nol, opens.length); const minUp=Math.min(...opens.slice(0,cnt), ...closes.slice(0,cnt)); if(c<minUp) t=-1; if(c>closes[0]||t===-1){ const o=(t===-1? opens[0]:closes[0]); opens.unshift(o); closes.unshift(c); } } else { const cnt=Math.min(nol, opens.length); const maxDn=Math.max(...opens.slice(0,cnt), ...closes.slice(0,cnt)); if(c>maxDn) t=1; if(c<closes[0]||t===1){ const o=(t===1? opens[0]:closes[0]); opens.unshift(o); closes.unshift(c); } } trend[i]=t; const cnt2=Math.min(nol, opens.length); const minUp2=Math.min(...opens.slice(0,cnt2), ...closes.slice(0,cnt2)); const maxDn2=Math.max(...opens.slice(0,cnt2), ...closes.slice(0,cnt2)); level[i]=(t===1? minUp2: maxDn2); if(i>0 && trend[i]!==trend[i-1]) flips.push(i); } return {trend, level, flips}; }
 function computePivots(bars, prd){ const piv=[]; for(let i=prd;i<bars.length-prd;i++){ let isH=true, isL=true; for(let j=1;j<=prd;j++){ if(!(bars[i].high>bars[i-j].high && bars[i].high>bars[i+j].high)) isH=false; if(!(bars[i].low<bars[i-j].low && bars[i].low<bars[i+j].low)) isL=false; if(!isH&&!isL) break; } if(isH||isL) piv.push({ idx:i, time:bars[i].time, price: isH? bars[i].high : bars[i].low }); } return piv; }
+function mergeDuplicateTargets(list){ try{ const out=[]; const seen=new Map(); for(const raw of (Array.isArray(list)?list:[])){ const price=Number(raw&&raw.price); if(!Number.isFinite(price)) continue; const key=price.toFixed(8); const w=(raw.w!=null && isFinite(raw.w))? Number(raw.w): null; const existing=seen.get(key); if(existing){ if(w!=null){ existing.w=(existing.w!=null && isFinite(existing.w))? existing.w+w : w; } } else { const t={...raw, price}; if(w!=null) t.w=w; seen.set(key,t); out.push(t); } } return out; }catch(_){ return Array.isArray(list)? list:[]; } }
 
 function mean(a){ return a.length? a.reduce((x,y)=>x+y,0)/a.length : 0; }
 function std(a){ const m=mean(a); const v=a.length? a.reduce((s,v)=> s+(v-m)*(v-m),0)/a.length : 0; return Math.sqrt(v); }
@@ -27,7 +28,7 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params){
   const emaTargetCache=new Map();
   const slEmaCache=new Map();
   let pivIdx=-1;
-  function advancePivotIdxTo(i){ while(pivIdx+1<pivAll.length && pivAll[pivIdx+1].idx<=i){ pivIdx++; } }
+  function advancePivotIdxTo(i){ while(pivIdx+1<pivAll.length && pivAll[pivIdx+1].idx+prd<=i){ pivIdx++; } }
   function segAtIdx(){ if(pivIdx>=1){ const a=pivAll[pivIdx-1], b=pivAll[pivIdx]; return { a, b, dir: b.price>a.price?'up':'down' }; } return null; }
   function computeSLFromLadder(dir, entry, i){
     try{
@@ -58,6 +59,7 @@ function runBacktestSliceFor(bars, sIdx, eIdx, conf, params){
           list.push({price, w, srcIdx: idx});
         } }
       }
+      list = mergeDuplicateTargets(list);
       if(dir==='long') list.sort((a,b)=>a.price-b.price); else list.sort((a,b)=>b.price-a.price);
       let sumW=0, hasW=false; for(const it of list){ if(it.w!=null && it.w>0){ sumW+=it.w; hasW=true; } }
       if(!hasW){ if(list.length){ const even=1/list.length; list=list.map(it=>({ price:it.price, w:even, srcIdx: it.srcIdx })); } else { list=[{price: (dir==='long'? entry + riskAbs*(params.tp1R||1) : entry - riskAbs*(params.tp1R||1)), w:1, srcIdx: 0}]; } }
