@@ -35,9 +35,10 @@ Garder le workflow Heaven fiable: moteurs coherents, meilleures strategies stock
 6. Persister les meilleurs resultats dans `palmares_sets`, `palmares_entries` et, si recharge UI attendue, `heaven_strategies`.
 7. Donner un `run_id` commun aux evaluations, au set et aux entrees d'un meme run quand les colonnes de run existent.
 8. Pour une campagne multi-paires/TF, utiliser `run_experiment_matrix.py`: bougies cloturees, fenetre d'entrainement, holdout intact, profils par TF, puis gates paper. Sur les TF courts, ajouter `--include-no-be` pour tester `beEnable` actif/inactif sans relacher les gates; sur `1m`, utiliser `--time-budget-sec` plutot qu'un timeout externe brutal afin de persister les candidats partiels, et `--scalping-1m` pour forcer les entrees scalping avant d'augmenter le budget.
-9. Pour lancer un candidat paper, utiliser `start_paper_candidate.py` afin de refuser automatiquement les strategies non eligibles et de rester Supabase-only.
-10. Avant toute preparation live, utiliser `validate_paper_session.py` pour verifier les gates paper reels et enregistrer l'audit dans `live_events` si utile.
-11. Ajouter une migration de grants/RLS seulement si l'acces Data API ou la securite Supabase le justifie.
+9. Pour faire avancer un scope de bout en bout, utiliser `advance_heaven_project.py --symbol <PAIR> --tf <TF>`: il compare `heaven_strategies`, `strategy_evaluations` et `live_sessions`, refuse les doublons paper, puis imprime la prochaine action. Ajouter `--start-paper --invoke-runner` seulement pour creer les sessions paper manquantes dans Supabase.
+10. Pour lancer un candidat paper individuellement, utiliser `start_paper_candidate.py` afin de refuser automatiquement les strategies non eligibles et de rester Supabase-only.
+11. Avant toute preparation live, utiliser `validate_paper_session.py` pour verifier les gates paper reels et enregistrer l'audit dans `live_events` si utile.
+12. Ajouter une migration de grants/RLS seulement si l'acces Data API ou la securite Supabase le justifie.
 
 # Regles de decision
 
@@ -79,6 +80,7 @@ Garder le workflow Heaven fiable: moteurs coherents, meilleures strategies stock
 - `node --check runner/index.js` si le runner headless est modifie.
 - `deno check supabase/functions/live-runner/index.ts` si `deno` est disponible et que l'Edge Function est modifiee.
 - `python -m ruff check heaven_opt run_optimize.py run_experiment_matrix.py start_paper_candidate.py validate_paper_session.py tests`
+- `python -m ruff check advance_heaven_project.py`
 - `python -m pytest -q`
 - `python run_experiment_matrix.py --dry-run`
 - Test UI modale Heaven si des champs `opt*` changent: ouvrir la modale, modifier les champs visibles, sauvegarder, rouvrir, comparer les valeurs et verifier l'absence d'erreur console.

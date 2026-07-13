@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from advance_heaven_project import build_advancement_report, session_name_for_candidate
 from analyze_strategy_evaluations import (
     build_experiment_plan,
     paper_failure_names,
@@ -686,6 +687,113 @@ def test_list_paper_candidates_enforces_risk_and_leverage_controls():
     assert [item["id"] for item in report["candidates"]] == ["safe123"]
     assert report["excluded_failure_counts"] == {"max_leverage": 1, "max_risk_pct": 1}
     assert report["controls"] == {"max_risk_pct": 1.0, "max_leverage": 1.0}
+
+
+def test_advance_heaven_project_starts_missing_candidate_session():
+    strategy_rows = [
+        {
+            "id": "abc123",
+            "name": "heaven-btc-15m",
+            "symbol": "BTCUSDC",
+            "tf": "15m",
+            "created_at": "2026-06-13T15:49:47Z",
+            "params": {"entryMode": "Original", "riskMaxPct": 1.0, "leverage": 1.0},
+            "metrics": {
+                "score": 0.6,
+                "robustness_score": 0.66,
+                "paper_eligible": 1.0,
+                "robustly_validated": 1.0,
+                "paper_gate_failures": [],
+            },
+        }
+    ]
+    evaluation_rows = [
+        {
+            "campaign_id": "old-campaign",
+            "symbol": "BTCUSDC",
+            "tf": "15m",
+            "score": 50,
+            "created_at": "2025-12-11T19:01:30Z",
+            "metrics": {"paper_eligible": 0.0},
+        }
+    ]
+
+    report = build_advancement_report(
+        strategy_rows=strategy_rows,
+        evaluation_rows=evaluation_rows,
+        paper_sessions=[],
+        paper_session_report={"rows": 0, "live_ready": 0, "top": []},
+        symbol="BTCUSDC",
+        tf="15m",
+        top_n=1,
+        session_prefix="paper",
+        max_risk_pct=1.0,
+        max_leverage=1.0,
+    )
+
+    assert report["status"] == "ready_to_start_paper"
+    assert report["candidate_report"]["candidate_count"] == 1
+    assert report["actions"][0]["action"] == "start_paper"
+    assert report["actions"][0]["session_name"] == "paper-btcusdc-15m-abc123"
+    assert "heaven_strategies is fresher" in report["warnings"][0]
+
+
+def test_advance_heaven_project_validates_existing_candidate_session_instead_of_duplicate_start():
+    strategy_rows = [
+        {
+            "id": "abc123",
+            "name": "heaven-btc-15m",
+            "symbol": "BTCUSDC",
+            "tf": "15m",
+            "created_at": "2026-06-13T15:49:47Z",
+            "params": {"entryMode": "Original", "riskMaxPct": 1.0, "leverage": 1.0},
+            "metrics": {"paper_eligible": 1.0, "robustly_validated": 1.0},
+        }
+    ]
+    paper_sessions = [
+        {
+            "id": "session-1",
+            "name": "paper-btcusdc-15m-abc123",
+            "symbol": "BTCUSDC",
+            "tf": "15m",
+            "active": True,
+        }
+    ]
+
+    report = build_advancement_report(
+        strategy_rows=strategy_rows,
+        evaluation_rows=[],
+        paper_sessions=paper_sessions,
+        paper_session_report={"rows": 1, "live_ready": 0, "top": []},
+        symbol="BTCUSDC",
+        tf="15m",
+        top_n=1,
+        session_prefix="paper",
+        max_risk_pct=1.0,
+        max_leverage=1.0,
+    )
+
+    actions = [item["action"] for item in report["actions"]]
+    assert report["status"] == "paper_running_or_needs_validation"
+    assert actions == ["validate_paper", "audit_live_after_validation"]
+    assert report["matched_candidate_sessions"] == 1
+
+
+def test_session_name_for_candidate_reads_generated_start_command():
+    report = build_paper_candidate_report(
+        [
+            {
+                "id": "abc123",
+                "name": "heaven-safe",
+                "symbol": "BTCUSDC",
+                "tf": "1h",
+                "params": {"entryMode": "Original", "riskMaxPct": 1.0, "leverage": 1.0},
+                "metrics": {"paper_eligible": 1.0, "robustly_validated": 1.0},
+            }
+        ]
+    )
+
+    assert session_name_for_candidate(report["candidates"][0]) == "paper-btcusdc-1h-abc123"
 
 
 def test_start_paper_candidate_enforces_risk_and_leverage_controls():
